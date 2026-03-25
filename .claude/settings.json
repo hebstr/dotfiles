@@ -1,0 +1,32 @@
+{
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "95"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Write(/home/julien/.claude/skills/**)",
+      "Write(/tmp/**)"
+    ]
+  },
+  "enabledPlugins": {
+    "posit-dev@posit-dev-skills": true,
+    "r-lib@posit-dev-skills": true,
+    "open-source@posit-dev-skills": true,
+    "quarto@posit-dev-skills": true,
+    "skill-creator@claude-plugins-official": true,
+    "ouroboros@ouroboros": true
+  },
+  "extraKnownMarketplaces": {
+    "ouroboros": {
+      "source": {
+        "source": "github",
+        "repo": "Q00/ouroboros"
+      }
+    }
+  }
+}

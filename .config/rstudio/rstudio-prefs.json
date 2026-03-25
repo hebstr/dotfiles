@@ -1,0 +1,64 @@
+{
+    "initial_working_directory": "~/R",
+    "pdf_previewer": "none",
+    "posix_terminal_shell": "bash",
+    "editor_theme": "Tomorrow Night 80s",
+    "jobs_tab_visibility": "shown",
+    "default_sweave_engine": "knitr",
+    "save_workspace": "never",
+    "load_workspace": false,
+    "default_encoding": "UTF-8",
+    "default_project_location": "~/Documents/pro/DES/IFSI",
+    "panes": {
+        "quadrants": [
+            "Source",
+            "TabSet2",
+            "TabSet1",
+            "Console"
+        ],
+        "tabSet1": [
+            "Environment",
+            "History",
+            "Files",
+            "Plots",
+            "Packages",
+            "Help",
+            "Build",
+            "Viewer",
+            "Connections",
+            "Presentation"
+        ],
+        "tabSet2": [
+            "Presentations"
+        ],
+        "hiddenTabSet": [
+            "VCS",
+            "Tutorial",
+            "Presentations"
+        ],
+        "console_left_on_top": false,
+        "console_right_on_top": true,
+        "additional_source_columns": 0
+    },
+    "save_files_before_build": true,
+    "graphics_antialiasing": "subpixel",
+    "insert_native_pipe_operator": true,
+    "reindent_on_paste": false,
+    "code_completion_characters": 2,
+    "code_completion_delay": 100,
+    "indent_guides": "gray",
+    "shiny_viewer_type": "browser",
+    "spelling_dictionary_language": "fr_FR",
+    "help_font_size_points": 9,
+    "syntax_color_console": true,
+    "show_hidden_files": true,
+    "rainbow_fenced_divs": false,
+    "always_save_history": false,
+    "text_rendering": "geometricPrecision",
+    "highlight_selected_line": true,
+    "highlight_r_function_calls": true,
+    "rainbow_parentheses": true,
+    "font_size_points": 9,
+    "source_with_echo": true,
+    "auto_detect_indentation": true
+}

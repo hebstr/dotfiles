@@ -1,0 +1,42 @@
+[user]
+	email = ju.diez@protonmail.com
+	name = hebstr
+[credential]
+	helper = cache
+[init]
+	defaultBranch = main
+[pull]
+	rebase = true
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	line-numbers = true
+	side-by-side = false
+	hyperlinks = true
+[fetch]
+	prune = true
+[push]
+	autoSetupRemote = true
+[diff]
+	colorMoved = default
+	algorithm = histogram
+[rebase]
+	autoStash = true
+[rerere]
+	enabled = true
+[tag]
+	sort = version:refname
+[column]
+	ui = auto
+[branch]
+	sort = -committerdate
+[alias]
+	st = status -sb
+	lg = log --oneline --graph --all --decorate
+	sw = switch
+	unstage = restore --staged
+[merge]
+	conflictstyle = zdiff3

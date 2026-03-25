@@ -1,0 +1,33 @@
+[
+    {
+        "key": "ctrl+,",
+        "command": "workbench.action.openSettings",
+        "args": "@scope:remote",
+        "when": "remoteName == 'wsl' || remoteName == 'ssh-remote'"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "workbench.action.positronConsole.focusConsole",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "workbench.action.focusActiveEditorGroup",
+        "when": "positronConsoleFocused"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "workbench.action.focusActiveEditorGroup",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "shift+space",
+        "command": "workbench.action.terminal.focus",
+        "when": "positronConsoleFocused"
+    },
+    {
+        "key": "shift+space",
+        "command": "workbench.action.positronConsole.focusConsole",
+        "when": "terminalFocus"
+    }
+]

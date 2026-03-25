@@ -1,0 +1,16 @@
+# Credentials / tokens
+**/hosts.yml
+**/.credentials.json
+**/credentials.toml
+**/*token*
+**/*secret*
+
+# State files (auto-generated, not config)
+**/history.jsonl
+**/*-cache.json
+**/*-receipt.json
+
+# OS / editor artifacts
+.DS_Store
+*~
+*.swp
