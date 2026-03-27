@@ -1,7 +1,6 @@
 {
   "env": {
-    "MAX_THINKING_TOKENS": "10000",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "95"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85"
   },
   "permissions": {
     "allow": [
@@ -11,6 +10,19 @@
       "Bash",
       "Write(/home/julien/.claude/skills/**)",
       "Write(/tmp/**)"
+    ],
+    "deny": [
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git reset*)",
+      "Bash(git checkout*)",
+      "Bash(git merge*)",
+      "Bash(git rebase*)",
+      "Bash(git tag*)",
+      "Bash(git branch -D*)",
+      "Bash(git branch -d*)",
+      "Bash(rm -rf*)"
     ]
   },
   "enabledPlugins": {
@@ -21,6 +33,39 @@
     "skill-creator@claude-plugins-official": true,
     "ouroboros@ouroboros": true
   },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-project-context.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send 'Claude Code' 'Claude Code needs your attention'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if the task is fully complete. Verify that all files mentioned as created or modified actually exist and are non-empty. If something is missing or incomplete, return {\"ok\": false, \"reason\": \"what's missing\"}.",
+            "model": "claude-haiku"
+          }
+        ]
+      }
+    ]
+  },
   "extraKnownMarketplaces": {
     "ouroboros": {
       "source": {
@@ -28,5 +73,6 @@
         "repo": "Q00/ouroboros"
       }
     }
-  }
+  },
+  "effortLevel": "medium"
 }

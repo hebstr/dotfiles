@@ -14,8 +14,18 @@
 - Code text (variable, comments, roxygen documentation) in English
 - R: use native pipe `|>`
 - R: use the lambda shorthand `\()` instead of `function()`
+- R: use `here::here()` for paths, never absolute paths
+- Python: prefer polars over pandas unless the project already uses pandas
 - Only modify code directly related to the task, don't refactor surrounding code
 - No manual soft wraps in .md/.qmd files — one sentence or logical unit per line, no artificial line breaks
+
+## Data & review pitfalls
+
+- Never commit patient-identifiable data (names, DOB, free text, non-pseudonymized IDs)
+- Joins: always use explicit keys, check for NA on join keys after every join
+- Domain-specific regex or business rules: do not "fix" or tighten without explicit domain validation
+- LLM inference parameters (temperature, top_p, seed): do not change without documented justification — breaks reproducibility of existing results
+- Calculated approximations (e.g. age from date diff / 365.25): flag but do not auto-correct — often intentional for consistency with institutional conventions
 
 ## Communication
 

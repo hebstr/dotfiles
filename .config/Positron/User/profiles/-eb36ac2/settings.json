@@ -1,11 +1,211 @@
 {
 
+// ÉDITEUR ---------------------------------------------------------------------
+
+    "editor.fontFamily": "'Fira Code', 'monospace'",
+    "editor.fontSize": 12,
+    "editor.fontLigatures": true,
+    "editor.lineHeight": 1.5,
+    "editor.detectIndentation": true,
+    "editor.tabSize": 4,
+    "editor.tabCompletion": "onlySnippets",
+    "editor.formatOnSave": false,
+    "editor.formatOnPaste": false,
+    "editor.renderFinalNewline": "dimmed",
+    "editor.actionBar.enabled": false,
+    "editor.cursorBlinking": "phase",
+    "editor.cursorStyle": "line",
+    "editor.cursorWidth": 3,
+    "editor.cursorSurroundingLines": 10,
+    "notebook.lineNumbers": "on",
+
+    "editor.rulers": [
+        {
+            "column": 80
+        },
+        {
+            "color": "#ff0000",
+            "column": 100
+        }
+    ],
+
+// TERMINAL --------------------------------------------------------------------
+
+    "terminal.integrated.fontFamily": "'Fira Code', 'monospace'",
+    "terminal.integrated.fontSize": 12.5,
+    "terminal.integrated.fontLigatures.enabled": true,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.cursorStyle": "line",
+    "terminal.integrated.cursorWidth": 3,
+    "terminal.integrated.cursorStyleInactive": "line",
+    "terminal.integrated.stickyScroll.enabled": false,
+    "terminal.integrated.environmentChangesRelaunch": "off",
+    // "terminal.integrated.shellIntegration.enabled": false,
+
+// GESTION DES FICHIERS --------------------------------------------------------
+
+    "files.defaultLanguage": "r",
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "files.associations": {
+        "renv.lock": "json"
+    },
+
+// EXCLUSIONS DE FICHIERS ------------------------------------------------------
+
+    "files.exclude": {
+        "**/.Rhistory": true,
+        "**/*.Rproj": true,
+        "**/.Rproj.user": true,
+        "**/renv/library": true,
+        "**/renv/local": true,
+        "**/renv/sandbox": true,
+        "**/renv/staging": true,
+        "**/.quarto": true,
+        "**/_book": true,
+        "**/_site": true,
+        "**/_freeze": true,
+        "**/.venv": true
+    },
+
+    "files.watcherExclude": {
+        "**/.Rhistory": true,
+        "**/.Rproj.user": true,
+        "**/renv/library": true,
+        "**/renv/local": true,
+        "**/renv/sandbox": true,
+        "**/renv/staging": true,
+        "**/.quarto": true,
+        "**/_book": true,
+        "**/_site": true,
+        "**/_freeze": true,
+        "**/.venv": true
+    },
+
+    "search.exclude": {
+        "**/.Rhistory": true,
+        "**/.Rproj.user": true,
+        "**/renv/library": true,
+        "**/renv/local": true,
+        "**/renv/sandbox": true,
+        "**/renv/staging": true,
+        "**/.quarto": true,
+        "**/_book": true,
+        "**/_site": true,
+        "**/_freeze": true,
+        "**/.venv": true
+    },
+
+// LANGAGE SPÉCIFIQUE ----------------------------------------------------------
+
+    "[r]": {
+        "editor.tabSize": 2
+    },
+
+    "[markdown]": {
+        "files.trimTrailingWhitespace": false
+    },
+
+    "[quarto]": {
+        "files.trimTrailingWhitespace": false,
+        // "editor.wordWrap": "off"
+    },
+
+    "quarto.render.previewType": "external",
+
+    "python.createEnvironment.contentButton": "show",
+    "python.installModulesInTerminal": true,
+    "python.globalModuleInstallation": true,
+    "python.enableAutoReload": false,
+    "positronPythonPackageManager.enablePackagePane": true,
+    // "python.terminal.activateEnvironment": false,
+
+// GIT -------------------------------------------------------------------------
+
+    "git.openRepositoryInParentFolders": "always",
+    "git.autoRepositoryDetection": false,
+    "git.enableCommitSigning": true,
+
+    "projectManager.git.baseFolders": [
+        "/home/julien"
+    ],
+
+// INTERFACE -------------------------------------------------------------------
+
+    "explorer.confirmDragAndDrop": false,
+    "explorer.confirmDelete": false,
+    "extensions.autoRestart": true,
+    "testing.resultsView.layout": "treeLeft",
+
+// POSITRON --------------------------------------------------------------------
+
+    "console.fontFamily": "'Fira Code', 'monospace'",
+    "console.fontSize": 12.5,
+    "console.fontLigatures": true,
+    "debug.console.fontSize": 11,
+
+    "positron-r-package-manager.defaultInstaller": "pak",
+    "positron.r.quietMode": true,
+    "positron.assistant.enable": false,
+    "positron.plots.darkFilter": "off",
+    "positron.viewer.interactivePlotsInViewer": true,
+    "positron.viewer.openLocalhostUrls": false,
+    "dataExplorer.summaryCollapsed": true,
+    "interpreters.showSessions": true,
+
+// EXTENSIONS ------------------------------------------------------------------
+
+    "errorLens.delay": 500,
+    "errorLens.padding": "0px",
+
+    "material-icon-theme.files.associations": {
+        ".Rprofile": "r",
+        ".Renviron": "r",
+        "DESCRIPTION": "r",
+        "NAMESPACE": "r",
+        "_targets.R": "r",
+        ".Rbuildignore": "settings",
+        "renv.lock": "lock",
+        "rv.lock": "lock",
+    },
+
+    "material-icon-theme.folders.associations": {
+        "man": "docs",
+        "vignettes": "docs",
+        "renv": "lib",
+    },
+
+    "quartoWizard.ask.trustAuthors": "never",
+
+// RÉSEAU ET CONTENEURS --------------------------------------------------------
+
+    "json.schemaDownload.enable": false,
+    "remote.autoForwardPortsSource": "hybrid",
+    "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
+    "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
+
+// CLAUDE CODE -----------------------------------------------------------------
+
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.selectedModel": "opus",
+
 // APPARENCE GLOBALE -----------------------------------------------------------
 
     "workbench.colorTheme": "Material Night Purple",
     "workbench.iconTheme": "material-icon-theme",
+    "workbench.startupEditor": "none",
+    "workbench.settings.editor": "json",
+    "workbench.editor.highlightModifiedTabs": true,
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.empty.hint": "hidden",
+    "workbench.tree.renderIndentGuides": "always",
+    "workbench.keybindings.rstudioKeybindings": true,
+    "workbench.secondarySideBar.showLabels": false,
 
     "window.title": "${activeEditorFull}${separator}${rootName}",
+
+    // "window.zoomLevel": 0.1,
 
 // COLORATION SYNTAXIQUE -------------------------------------------------------
 
@@ -155,7 +355,6 @@
             {
                 "name": "Support (tags, misc)",
                 "scope": [
-                    "constant.other.color",
                     "meta.tag",
                     "punctuation.definition.tag",
                     "punctuation.separator.inheritance.php",
@@ -501,177 +700,5 @@
             }
         ]
     },
-
-// ÉDITEUR ---------------------------------------------------------------------
-
-    "editor.fontFamily": "'Fira Code', 'monospace'",
-    "editor.fontSize": 12,
-    "editor.fontLigatures": true,
-    "editor.lineHeight": 1.5,
-    "editor.detectIndentation": true,
-    "editor.tabSize": 4,
-    "editor.tabCompletion": "onlySnippets",
-    "editor.formatOnSave": false, // UP
-    "editor.formatOnPaste": false,
-    "editor.renderFinalNewline": "dimmed",
-    "editor.actionBar.enabled": false,
-    "notebook.lineNumbers": "on",
-
-    "editor.rulers": [
-        {
-            "column": 80
-        },
-        {
-            "color": "#ff0000",
-            "column": 100
-        }
-    ],
-
-// CURSEUR ---------------------------------------------------------------------
-
-    "editor.cursorBlinking": "phase",
-    "editor.cursorStyle": "line",
-    "editor.cursorWidth": 3,
-    "editor.cursorSurroundingLines": 10,
-
-// GESTION DES FICHIERS --------------------------------------------------------
-
-    "files.defaultLanguage": "r",
-    "files.insertFinalNewline": true,
-    "files.trimFinalNewlines": true,
-    "files.trimTrailingWhitespace": true,
-    "files.associations": {
-        "renv.lock": "json"
-    },
-
-// EXCLUSIONS DE FICHIERS ------------------------------------------------------
-
-    "files.exclude": {
-        "**/.Rhistory": true,
-        "**/*.Rproj": true,
-        "**/.Rproj.user/**": true,
-        "**/renv/library": true,
-        "**/renv/local": true,
-        "**/renv/staging": true,
-        "**/.quarto/**": true,
-        "**/_book/**": true,
-        "**/_freeze/**": true,
-        "**/.venv/**": true
-    },
-
-    "files.watcherExclude": {
-        "**/*.Rproj": true,
-        "**/renv/library": true,
-        "**/renv/local": true,
-        "**/renv/staging": true,
-        "**/.quarto/**": true,
-        "**/_book/**": true,
-        "**/_freeze/**": true,
-        "**/.venv/**": true
-    },
-
-    "search.exclude": {
-        "**/.quarto": true,
-        "**/_book": true,
-        "**/_freeze": true,
-        "**/.venv": true,
-    },
-
-// LANGAGE SPÉCIFIQUE ----------------------------------------------------------
-
-    "[r]": {
-        "editor.tabSize": 2
-    },
-
-    "quarto.render.previewType": "external", // UP
-
-    "[quarto]": {
-        // "editor.wordWrap": "off",
-    },
-
-    "python.createEnvironment.contentButton": "show",
-    "python.installModulesInTerminal": true,
-    "python.globalModuleInstallation": true,
-    "python.enableAutoReload": false, // UP
-    "positronPythonPackageManager.enablePackagePane": true,
-    // "python.terminal.activateEnvironment": false,
-
-// GIT -------------------------------------------------------------------------
-
-    "git.openRepositoryInParentFolders": "always",
-    "git.enableCommitSigning": true,
-
-    "projectManager.git.baseFolders": [
-        "~/Documents"
-    ],
-
-// TERMINAL --------------------------------------------------------------------
-
-    "terminal.integrated.fontFamily": "'Fira Code', 'monospace'",
-    "terminal.integrated.fontSize": 12,
-    "terminal.integrated.fontLigatures.enabled": true,
-    "terminal.integrated.cursorBlinking": true,
-    "terminal.integrated.cursorStyle": "line",
-    "terminal.integrated.cursorWidth": 3,
-    "terminal.integrated.cursorStyleInactive": "line",
-    "terminal.integrated.stickyScroll.enabled": false,
-    "terminal.integrated.environmentChangesRelaunch": "off",
-    // "terminal.integrated.shellIntegration.enabled": false,
-
-// INTERFACE ET COMPORTEMENT GÉNÉRAL -------------------------------------------
-
-    "workbench.startupEditor": "none",
-    "workbench.settings.editor": "json",
-    "workbench.editor.highlightModifiedTabs": true,
-    "workbench.editor.enablePreview": false,
-    "workbench.editor.empty.hint": "hidden",
-    "workbench.tree.renderIndentGuides": "always",
-    "workbench.keybindings.rstudioKeybindings": true,
-    "workbench.secondarySideBar.showLabels": false,
-
-    "explorer.confirmDragAndDrop": false,
-    "explorer.confirmDelete": false,
-
-    "extensions.autoRestart": true, // UP
-    "testing.resultsView.layout": "treeLeft",
-
-// POSITRON --------------------------------------------------------------------
-
-    "console.fontFamily": "'Fira Code', 'monospace'",
-    "console.fontSize": 12.5,
-    "console.fontLigatures": true,
-    "debug.console.fontSize": 11,
-
-    "positron-r-package-manager.defaultInstaller": "pak",
-    "positron.r.quietMode": true, // UP
-    "positron.assistant.enable": false, // UP
-    "positron.plots.darkFilter": "off",
-    "positron.viewer.interactivePlotsInViewer": true,
-    "positron.viewer.openLocalhostUrls": false,
-    "dataExplorer.summaryCollapsed": true,
-    "interpreters.showSessions": true,
-
-// EXTENSIONS ------------------------------------------------------------------
-
-    "errorLens.delay": 500,
-    "errorLens.padding": "0px",
-
-    "material-icon-theme.files.associations": {
-
-    },
-
-    "quartoWizard.ask.trustAuthors": "never",
-
-// RÉSEAU ET CONTENEURS --------------------------------------------------------
-
-    "json.schemaDownload.enable": false,
-    "remote.autoForwardPortsSource": "hybrid",
-    "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
-    "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
-
-// CLAUDE CODE -----------------------------------------------------------------
-
-    "claudeCode.preferredLocation": "panel",
-    "claudeCode.selectedModel": "opus",
 
 }

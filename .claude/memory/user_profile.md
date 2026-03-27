@@ -7,5 +7,5 @@ type: user
 - OS: Ubuntu Linux
 - GitHub account: hebstr
 - Has multiple active R packages (edstr, hebstr)
-- Uses renv for R project dependency management, uv for Python
+- Uses renv/rv for R project dependency management, uv for Python
 - Works in a hospital/EDS (Entrepot de Donnees de Sante) context

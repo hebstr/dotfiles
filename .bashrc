@@ -1,25 +1,22 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
-
-# === Interactive check ===
+### INTERACTIVE CHECK -------------------------------------------------------
 
 case $- in
     *i*) ;;
       *) return;;
 esac
 
-# === History ===
+### HISTORY -----------------------------------------------------------------
 
 HISTCONTROL=ignoreboth:erasedups
 HISTTIMEFORMAT="%F %T  "
 HISTSIZE=10000
 HISTFILESIZE=20000
-PROMPT_COMMAND="history -a"
+
+### SHELL OPTIONS -----------------------------------------------------------
+
 shopt -s histappend
 shopt -s cmdhist
 shopt -s lithist
-
-# === Shell options ===
-
 shopt -s checkwinsize
 shopt -s cdspell
 shopt -s dirspell
@@ -29,13 +26,29 @@ shopt -s nocaseglob
 
 set -o noclobber
 
-# === Readline ===
+### READLINE ----------------------------------------------------------------
 
 bind 'set completion-ignore-case on'
 bind 'set show-all-if-ambiguous on'
 bind 'set mark-symlinked-directories on'
 
-# === Prompt ===
+### PATH --------------------------------------------------------------------
+
+export PNPM_HOME="/home/julien/.local/share/pnpm"
+
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+### PROMPT ------------------------------------------------------------------
 
 if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
@@ -58,30 +71,33 @@ xterm*|rxvt*)
     ;;
 esac
 
-# === Colors ===
+### VENV PROMPT FIX (Positron shell integration workaround) -----------------
 
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+export VIRTUAL_ENV_DISABLE_PROMPT=1
+
+__base_ps1="$PS1"
+
+__fix_venv_prompt() {
+    if [ -n "$VIRTUAL_ENV" ]; then
+        PS1="(${VIRTUAL_ENV_PROMPT:-$(basename "$VIRTUAL_ENV")}) $__base_ps1"
+    else
+        PS1="$__base_ps1"
+    fi
+}
+
+PROMPT_COMMAND="__fix_venv_prompt; history -a"
+
+### COLORS ------------------------------------------------------------------
 
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 
-# === PATH ===
+### PAGER -------------------------------------------------------------------
 
-export PNPM_HOME="/home/julien/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-case ":$PATH:" in
-  *":$HOME/.local/bin:"*) ;;
-  *) export PATH="$HOME/.local/bin:$PATH" ;;
-esac
-
-[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-
-# === Aliases ===
+### ALIASES -----------------------------------------------------------------
 
 alias softup='sudo apt update && sudo apt full-upgrade && sudo apt autoremove && sudo apt clean && sudo snap refresh'
 alias hardup='sudo journalctl --vacuum-time=7d && snap list --all | awk "/disabled/{print \$1, \$3}" | while read name rev; do sudo snap remove "$name" --revision="$rev"; done'
@@ -90,8 +106,9 @@ alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias fd=fdfind
 alias qp='rm -rf .quarto; quarto preview'
+alias yolo='git add . && git commit -m "." && git push'
 
-# === Completion & external sources ===
+### COMPLETION & EXTERNAL SOURCES -------------------------------------------
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
@@ -104,3 +121,5 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+[ -f ~/.secrets ] && source ~/.secrets
