@@ -29,7 +29,7 @@ set -o noclobber
 ### READLINE ----------------------------------------------------------------
 
 bind 'set completion-ignore-case on'
-bind 'set show-all-if-ambiguous on'
+bind 'set show-all-if-ambiguous off'
 bind 'set mark-symlinked-directories on'
 
 ### PATH --------------------------------------------------------------------

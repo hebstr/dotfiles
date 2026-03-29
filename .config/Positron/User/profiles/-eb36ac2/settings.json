@@ -141,7 +141,7 @@
 // POSITRON --------------------------------------------------------------------
 
     "console.fontFamily": "'Fira Code', 'monospace'",
-    "console.fontSize": 12.5,
+    "console.fontSize": 12,
     "console.fontLigatures": true,
     "debug.console.fontSize": 11,
 
@@ -700,5 +700,6 @@
             }
         ]
     },
+    "redhat.telemetry.enabled": false,
 
 }
