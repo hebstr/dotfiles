@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: st-add-folder <path> [options]
+
+Add a folder to Syncthing and share it with all connected devices.
+
+Arguments:
+  <path>              Path to the folder to share
+
+Options:
+  --id <id>           Folder ID (default: basename of path, without leading dot)
+  --label <label>     Display label (default: same as id)
+  --versioning <n>    Enable simple file versioning with n versions (default: off)
+  --ignore <file>     Path to a .stignore template to copy into the folder
+  --devices <ids>     Comma-separated device IDs (default: all known devices)
+  --dry-run           Show what would be done without applying
+  -h, --help          Show this help
+
+Examples:
+  st-add-folder ~/.claude
+  st-add-folder ~/.claude --id claude-config --versioning 5
+  st-add-folder ~/TODO --ignore ~/dotfiles/stignore-templates/todo.stignore
+  st-add-folder ~/snap/zotero-snap --devices "AQG7RA4-...,C2N42ZX-..."
+EOF
+    exit 0
+}
+
+ST_URL="http://127.0.0.1:8384"
+
+get_api_key() {
+    syncthing cli config gui apikey get 2>/dev/null
+}
+
+get_all_devices() {
+    syncthing cli config devices list 2>/dev/null
+}
+
+st_api() {
+    local method=$1 endpoint=$2
+    shift 2
+    curl -s -X "$method" \
+        -H "X-API-Key: $API_KEY" \
+        -H "Content-Type: application/json" \
+        "${ST_URL}${endpoint}" "$@"
+}
+
+folder_exists() {
+    st_api GET "/rest/config/folders" | python3 -c "
+import json, sys
+folders = json.load(sys.stdin)
+sys.exit(0 if any(f['id'] == '$1' for f in folders) else 1)
+" 2>/dev/null
+}
+
+FOLDER_PATH=""
+FOLDER_ID=""
+FOLDER_LABEL=""
+VERSIONING=0
+IGNORE_FILE=""
+DEVICE_LIST=""
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help) usage ;;
+        --id) FOLDER_ID="$2"; shift 2 ;;
+        --label) FOLDER_LABEL="$2"; shift 2 ;;
+        --versioning) VERSIONING="$2"; shift 2 ;;
+        --ignore) IGNORE_FILE="$2"; shift 2 ;;
+        --devices) DEVICE_LIST="$2"; shift 2 ;;
+        --dry-run) DRY_RUN=true; shift ;;
+        -*) echo "Unknown option: $1" >&2; exit 1 ;;
+        *) FOLDER_PATH="$1"; shift ;;
+    esac
+done
+
+if [[ -z "$FOLDER_PATH" ]]; then
+    echo "Error: folder path required" >&2
+    usage
+fi
+
+FOLDER_PATH=$(realpath "$FOLDER_PATH")
+
+if [[ ! -d "$FOLDER_PATH" ]]; then
+    echo "Error: $FOLDER_PATH is not a directory" >&2
+    exit 1
+fi
+
+if [[ -z "$FOLDER_ID" ]]; then
+    FOLDER_ID=$(basename "$FOLDER_PATH" | sed 's/^\.//')
+fi
+
+if [[ -z "$FOLDER_LABEL" ]]; then
+    FOLDER_LABEL="$FOLDER_ID"
+fi
+
+if ! pgrep -x syncthing >/dev/null 2>&1; then
+    echo "Error: Syncthing is not running" >&2
+    exit 1
+fi
+
+API_KEY=$(get_api_key)
+if [[ -z "$API_KEY" ]]; then
+    echo "Error: could not retrieve Syncthing API key" >&2
+    exit 1
+fi
+
+if folder_exists "$FOLDER_ID"; then
+    echo "Error: folder '$FOLDER_ID' already exists in Syncthing" >&2
+    exit 1
+fi
+
+if [[ -n "$DEVICE_LIST" ]]; then
+    IFS=',' read -ra DEVICES <<< "$DEVICE_LIST"
+else
+    mapfile -t DEVICES < <(get_all_devices)
+fi
+
+DEVICES_JSON=$(python3 -c "
+import json, sys
+devices = sys.argv[1:]
+print(json.dumps([{'deviceID': d, 'introducedBy': '', 'encryptionPassword': ''} for d in devices]))
+" "${DEVICES[@]}")
+
+VERSIONING_JSON='{}'
+if [[ $VERSIONING -gt 0 ]]; then
+    VERSIONING_JSON=$(python3 -c "
+import json
+print(json.dumps({
+    'type': 'simple',
+    'params': {'keep': '$VERSIONING'},
+    'cleanupIntervalS': 3600,
+    'fsPath': '',
+    'fsType': 'basic'
+}))
+")
+fi
+
+CONFIG_JSON=$(python3 -c "
+import json, sys
+config = {
+    'id': sys.argv[1],
+    'label': sys.argv[2],
+    'path': sys.argv[3],
+    'type': 'sendreceive',
+    'devices': json.loads(sys.argv[4]),
+    'rescanIntervalS': 10,
+    'fsWatcherEnabled': True,
+    'fsWatcherDelayS': 10,
+    'autoNormalize': True,
+    'versioning': json.loads(sys.argv[5]),
+    'minDiskFree': {'value': 1, 'unit': '%'},
+    'maxConflicts': 10
+}
+print(json.dumps(config, indent=2))
+" "$FOLDER_ID" "$FOLDER_LABEL" "$FOLDER_PATH" "$DEVICES_JSON" "$VERSIONING_JSON")
+
+echo "Folder config:"
+echo "$CONFIG_JSON"
+echo ""
+
+if $DRY_RUN; then
+    echo "[dry-run] Would add folder '$FOLDER_ID' -> $FOLDER_PATH"
+    echo "[dry-run] Shared with ${#DEVICES[@]} device(s)"
+    [[ -n "$IGNORE_FILE" ]] && echo "[dry-run] Would copy $IGNORE_FILE -> $FOLDER_PATH/.stignore"
+    exit 0
+fi
+
+st_api POST "/rest/config/folders" -d "$CONFIG_JSON"
+echo "Folder '$FOLDER_ID' added to Syncthing"
+
+if [[ -n "$IGNORE_FILE" ]]; then
+    if [[ -f "$IGNORE_FILE" ]]; then
+        cp "$IGNORE_FILE" "$FOLDER_PATH/.stignore"
+        echo "Copied .stignore from $IGNORE_FILE"
+    else
+        echo "Warning: ignore file $IGNORE_FILE not found, skipped" >&2
+    fi
+fi
+
+echo ""
+echo "Shared with ${#DEVICES[@]} device(s)"
+echo "Accept the folder on remote devices via their Syncthing UI"

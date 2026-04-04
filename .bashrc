@@ -99,9 +99,30 @@ fi
 
 ### ALIASES -----------------------------------------------------------------
 
-alias softup='sudo apt update && sudo apt full-upgrade && sudo apt autoremove && sudo apt clean && sudo snap refresh'
-alias hardup='sudo journalctl --vacuum-time=7d && snap list --all | awk "/disabled/{print \$1, \$3}" | while read name rev; do sudo snap remove "$name" --revision="$rev"; done'
-alias flatup='flatpak update -y && flatpak uninstall --unused -y'
+alias softup='\
+  sudo apt update && \
+  sudo apt full-upgrade && \
+  sudo apt autoremove && \
+  sudo apt autoclean && \
+  sudo snap refresh && \
+  flatpak update -y && \
+  flatpak uninstall --unused -y'
+
+alias devup='\
+  npm update -g && \
+  rustup update && \
+  uv self update && \
+  claude update'
+  
+alias hardup='\
+  sudo journalctl --vacuum-time=7d && \
+  snap list --all | awk "/disabled/{print \$1, \$3}" | \
+  while read name rev; do sudo snap remove "$name" --revision="$rev"; done'
+  
+alias claude-update-plugins='jq -r ".plugins | keys[]" ~/.claude/plugins/installed_plugins.json | xargs -I{} claude plugin update {}'
+
+alias firmup='fwupdmgr refresh && fwupdmgr update'
+
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias fd=fdfind

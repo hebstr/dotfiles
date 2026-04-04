@@ -22,6 +22,13 @@
       "Bash(git tag*)",
       "Bash(git branch -D*)",
       "Bash(git branch -d*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh pr close*)",
+      "Bash(git switch*)",
+      "Bash(git restore*)",
+      "Bash(git stash*)",
+      "Bash(git cherry-pick*)",
       "Bash(rm -rf*)"
     ]
   },
@@ -36,23 +43,23 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path') && case \"$FILE\" in *.R|*.r) air format \"$FILE\" && jarl check \"$FILE\";; *.py) ruff format \"$FILE\" && ruff check \"$FILE\";; esac"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "notify-send 'Claude Code' 'Claude Code needs your attention'"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Check if the task is fully complete. Verify that all files mentioned as created or modified actually exist and are non-empty. If something is missing or incomplete, return {\"ok\": false, \"reason\": \"what's missing\"}.",
-            "model": "claude-haiku"
           }
         ]
       }
@@ -64,13 +71,22 @@
     "open-source@posit-dev-skills": true,
     "quarto@posit-dev-skills": true,
     "skill-creator@claude-plugins-official": true,
-    "ouroboros@ouroboros": true
+    "ouroboros@ouroboros": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "mcp-server-dev@claude-plugins-official": true,
+    "r-skills@r-skills": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
       "source": {
         "source": "github",
         "repo": "Q00/ouroboros"
+      }
+    },
+    "r-skills": {
+      "source": {
+        "source": "github",
+        "repo": "ab604/claude-code-r-skills"
       }
     }
   }

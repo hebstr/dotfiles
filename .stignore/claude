@@ -1,0 +1,7 @@
+// Caches et fichiers regenerables
+plugins/cache
+projects/*/compacted
+
+// Sessions et logs (volumineux, machine-specifiques)
+*.jsonl
+statsig/

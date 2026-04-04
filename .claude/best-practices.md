@@ -50,7 +50,7 @@ Notes from a review of `~/.claude/CLAUDE.md` (2026-03-27).
 1. **Bloat** — 500+ lines means Claude ignores half of it
 2. **Vague rules** — "Write clean code" has zero effect
 3. **Contradictions across files** — Claude picks one arbitrarily
-4. **Storing secrets** — use `.env` + reference in CLAUDE.md
+4. **Storing secrets** — use `.env`, `.mcp.json` env block (for MCP server keys), or `settings.json` env — never in CLAUDE.md
 5. **Duplicating what code says** — file structure, imports, conventions visible in source
 6. **Over-specifying** — Claude learns structure by reading code; only document non-obvious patterns
 7. **Relying on CLAUDE.md for critical enforcement** — use hooks (`PreToolUse`) for must-never-happen rules
@@ -64,7 +64,28 @@ Notes from a review of `~/.claude/CLAUDE.md` (2026-03-27).
 | Block dangerous actions deterministically | `settings.json` permissions |
 | Things Claude learns from corrections | Auto memory |
 | Task-specific workflows invoked on demand | Skills |
-| Environment variables | `settings.json` env |
+| Environment variables | `settings.json` env, `.mcp.json` env block |
+
+## Auto memory system
+
+Claude persists information across sessions via memory files in `~/.claude/memory/` (global) and per-project `memory/` directories.
+
+### Memory types
+
+| Type | Lifespan | Content | Example |
+|------|----------|---------|---------|
+| **user** | permanent | Role, expertise, preferences | "data scientist, R expert, new to React" |
+| **feedback** | permanent | Corrections and validations of work approach | "don't propose shared email for LITREV_EMAIL" |
+| **project** | temporary | Ongoing initiatives, decisions, deadlines | "litrev skills review pass in progress" |
+| **reference** | permanent | Pointers to external resources | "pipeline bugs tracked in Linear project INGEST" |
+
+### Best practices
+
+- `project` memories must be deleted once the work is complete
+- Each memory lives in its own file with frontmatter (name, description, type) + a pointer in `MEMORY.md`
+- `MEMORY.md` is an index, not content — keep under 200 lines
+- Don't save what code or git already tells you (architecture, history, visible conventions)
+- Don't duplicate what's in CLAUDE.md
 
 ## Gaps identified in current setup (to revisit per-project)
 
