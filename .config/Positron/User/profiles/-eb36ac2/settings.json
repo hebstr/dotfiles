@@ -192,7 +192,7 @@
 
 // APPARENCE GLOBALE -----------------------------------------------------------
 
-    "workbench.colorTheme": "Material Night Purple",
+    "workbench.colorTheme": "Material Night Eighties",
     "workbench.iconTheme": "material-icon-theme",
     "workbench.startupEditor": "none",
     "workbench.settings.editor": "json",
