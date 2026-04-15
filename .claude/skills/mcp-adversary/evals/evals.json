@@ -1,0 +1,47 @@
+{
+  "skill_name": "mcp-adversary",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I built an MCP server for my literature review pipeline. Can you review the tool descriptions and find any issues? The server is at ~/.claude/skills/litrev-mcp/",
+      "expected_output": "Should trigger mcp-adversary. Explicit MCP server review request with path provided. Should spawn 3 agents and produce a structured report.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "audit my MCP server — I think the tool descriptions are confusing and the LLM keeps picking the wrong tool",
+      "expected_output": "Should trigger mcp-adversary. Symptom-based request about MCP tool selection issues. Should locate the MCP server from context or ask.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "are my tool descriptions good enough? I have 8 tools and I'm worried they overlap too much",
+      "expected_output": "Should trigger mcp-adversary. Informal phrasing, no explicit 'MCP' but 'tool descriptions' + 'overlap' strongly suggests MCP tool surface review.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I have a Python script in utils/parser.py that's getting messy. Can you critically review it and find security issues?",
+      "expected_output": "Should NOT trigger mcp-adversary. This is a general code review — should trigger critical-code-reviewer. No MCP server involved.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "review my SKILL.md — I think the description is too broad and triggers on the wrong things",
+      "expected_output": "Should NOT trigger mcp-adversary. This is a skill review — should trigger skill-adversary. Target is a SKILL.md, not an MCP server.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want to scan my MCP server for prompt injection vulnerabilities and tool poisoning attacks",
+      "expected_output": "Should NOT trigger mcp-adversary. This is a security scan request — should recommend mcp-scan or Pipelock. mcp-adversary is for usability/correctness, not security.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "j'ai un serveur MCP avec des outils qui marchent mal, le LLM appelle jamais le bon outil. tu peux regarder ?",
+      "expected_output": "Should trigger mcp-adversary. French language, symptom-based request about MCP tool selection. Casual phrasing.",
+      "files": []
+    }
+  ]
+}
