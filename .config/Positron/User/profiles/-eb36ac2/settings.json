@@ -700,6 +700,5 @@
             }
         ]
     },
-    "redhat.telemetry.enabled": false,
 
 }

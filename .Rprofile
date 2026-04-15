@@ -14,6 +14,9 @@ if (interactive()) {
 }
 
 options(
+  repos = c(
+    CRAN = "https://packagemanager.posit.co/cran/__linux__/noble/latest"
+  ),
   duckdb.enable_rstudio_connection_pane = TRUE,
   tidyverse.quiet = TRUE,
   tidymodels.quiet = TRUE,
@@ -21,4 +24,4 @@ options(
   digits = 3
 )
 
-# conflicted::conflicts_prefer(dplyr::filter(), .quiet = TRUE)
+conflicted::conflicts_prefer(dplyr::filter(), .quiet = TRUE)

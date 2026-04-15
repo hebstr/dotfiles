@@ -1,4 +1,5 @@
 {
+  "cleanupPeriodDays": 7,
   "env": {
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85"
   },
@@ -9,6 +10,7 @@
       "Grep",
       "Bash",
       "Write(/home/julien/.claude/skills/**)",
+      "Write(/home/julien/.claude/plugins/marketplaces/litrev/**)",
       "Write(/tmp/**)"
     ],
     "deny": [
@@ -30,7 +32,8 @@
       "Bash(git stash*)",
       "Bash(git cherry-pick*)",
       "Bash(rm -rf*)"
-    ]
+    ],
+    "defaultMode": "default"
   },
   "hooks": {
     "UserPromptSubmit": [
@@ -74,7 +77,9 @@
     "ouroboros@ouroboros": true,
     "claude-code-setup@claude-plugins-official": true,
     "mcp-server-dev@claude-plugins-official": true,
-    "r-skills@r-skills": true
+    "r-skills@r-skills": true,
+    "litrev@litrev": true,
+    "frontend-design@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -89,5 +94,6 @@
         "repo": "ab604/claude-code-r-skills"
       }
     }
-  }
+  },
+  "autoDreamEnabled": true
 }

@@ -8,6 +8,37 @@
 - Publishing : Quarto, Typst
 - IDE: Positron
 
+## Environment
+
+### Runtimes
+
+| Tool   | Version | Usage |
+|--------|---------|-------|
+| R      | 4.5.3   | Data processing, statistical analysis |
+| Python | 3.13.9  | NLP pipeline (langchain + ollama), data manipulation |
+| Quarto | 1.9.22  | Book generation (HTML via `quarto render`) |
+| Typst  | 0.14.2  | PDF typesetting (via Quarto) |
+
+### Package management
+
+| Tool  | Scope  | Notes |
+|-------|--------|-------|
+| rv    | R      | Lockfile: `rv.lock` |
+| renv  | R      | Lockfile: `renv.lock` (legacy projects) |
+| uv    | Python | Lockfile: `uv.lock`, config: `pyproject.toml` |
+
+### CLI tools available
+
+| Tool    | Role                                      |
+|---------|-------------------------------------------|
+| git     | Version control                           |
+| ripgrep | Fast code search (`rg`)                   |
+| uv      | Python package/project manager            |
+| ruff    | Python linter/formatter (via uv)          |
+| delta   | Structured diffs with line numbers        |
+| fd      | File search by name (`fdfind`)            |
+| duckdb  | SQL queries from shell (`~/.local/bin/duckdb`) |
+
 ## Coding preferences
 
 - No inline comments in code
@@ -33,11 +64,20 @@
 
 ## Plan & memory discipline
 
-- When a decision changes the project plan or backlog (new priority, reordering, item completed, new item), update the tracking files and relevant memory in the same response — never wait for the user to ask
+- If a `PLAN.md` file exists at the project root, read it at session start and display: current objective, current step, and any blockers. Do not ask the user what to read — just do it. If no `PLAN.md` exists and the task involves multiple sequential steps spanning more than one session, propose creating one.
+- When a step is completed, an item is deferred, a priority changes, or a blocker appears, update **all affected tracking files and memory** in the same response — never wait for the user to ask. "All affected" means: any markdown file at the project root that tracks plan state, backlog, or deferred items, plus any memory file whose content is now stale. If unsure whether a file is affected, read it and check.
+- After a structural change (new file, renamed tool/function, moved path, added/removed phase), verify consistency of directly affected files **and check for side effects** in files that reference the changed entity (grep for the old name/path across the project). Do this before marking the step complete — check as you go, not after the fact.
+- Concrete post-change greps — all mandatory, not optional:
+  1. Old counts (e.g. "12 tools" → update to new count)
+  2. "planned"/"todo" references to the feature just implemented → mark done
+  3. README/doc tables listing the changed entities → add/remove/rename entries
+  4. Permission/config files that gate the changed capability (allowed-tools, DESCRIPTION Imports, `__all__`, manifests, rbac configs) → grant access where appropriate
+  5. Instructions or docs that describe limitations now lifted by the change (e.g. "Do NOT do X", "ask user to provide X manually", "planned for later") → update to reflect new capability
+- When compacting, always preserve: current objective and active step from PLAN.md, list of modified files, and active constraints or blockers.
 
 ## Communication
 
-- Mirror the user's language for conversation (code always in English, see Coding preferences)
+- Mirror the user's language for conversation (code always in English, see Coding preferences). Always use proper diacritics regardless of input quality — write "étapes" even if the user wrote "etapes".
 - Straightforward and blunt, without overplaying it
 - No corporate jargon or marketing speak
 - No emojis in any output unless explicitly requested

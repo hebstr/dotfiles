@@ -1,11 +1,11 @@
 ---
-name: Investigate tool failures instead of dismissing them
-description: When an external tool (Ouroboros, CI, linter) returns a failure, investigate the root cause before concluding it's irrelevant
+name: Errors are never cosmetic — always investigate
+description: Any error message (hook, tool, CI, linter) must be investigated before proceeding. Never dismiss, minimize, or label an error as cosmetic.
 type: feedback
 ---
 
-When an external tool returns a failure or unexpected result (REJECTED, exit code != 0, error status), always investigate the root cause — run the underlying commands, check what's installed, reproduce the failure. Do not dismiss it with assumptions like "probably just missing tooling" without verifying.
+An error is NEVER cosmetic. Any message containing "error", non-zero exit code, REJECTED status, or unexpected result must be investigated before proceeding. Do not dismiss, minimize, wave away, or label an error as "cosmetic" or "not critical".
 
-**Why:** The user had to explicitly ask me to explore an Ouroboros evaluate REJECTED result that I waved away as "linting/coverage tool failures unrelated to the changes." The diagnosis was correct (mypy and pytest-cov not installed), but I should have reached that conclusion through investigation, not assumption. Dismissing failures without inspection erodes trust.
+**Why:** (1) The user had to explicitly ask me to explore an Ouroboros evaluate REJECTED result that I waved away as "probably just missing tooling." (2) I labeled PreToolUse:Write hook errors as "cosmetic" without investigating — turns out it was a real hook (doc-blocker from r-skills plugin) with an overly broad matcher. Both times the user had to push me to investigate. Dismissing errors without inspection erodes trust.
 
-**How to apply:** When any tool reports a failure: (1) identify what commands it likely ran, (2) reproduce them locally, (3) report the actual root cause with evidence. Only then assess whether it's a real problem or a false negative. This applies to Ouroboros evaluate, CI pipelines, pre-commit hooks, and any other automated check.
+**How to apply:** When any error appears: (1) identify the source (which hook, tool, command, CI step), (2) reproduce or read logs to find the root cause, (3) report the actual cause with evidence, (4) only then assess severity. This applies to hook errors, Ouroboros evaluate, CI pipelines, pre-commit hooks, linters, and any other automated check. Even if the operation "succeeded despite the error", the error itself needs explanation.

@@ -119,7 +119,10 @@ alias hardup='\
   snap list --all | awk "/disabled/{print \$1, \$3}" | \
   while read name rev; do sudo snap remove "$name" --revision="$rev"; done'
   
-alias claude-update-plugins='jq -r ".plugins | keys[]" ~/.claude/plugins/installed_plugins.json | xargs -I{} claude plugin update {}'
+alias claude-update-plugins='\
+  jq -r ".plugins | \
+  keys[]" ~/.claude/plugins/installed_plugins.json | \
+  xargs -I{} claude plugin update {}'
 
 alias firmup='fwupdmgr refresh && fwupdmgr update'
 
