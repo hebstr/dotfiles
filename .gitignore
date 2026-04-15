@@ -22,3 +22,5 @@
 
 # Node
 **/node_modules/
+
+**/.git/
