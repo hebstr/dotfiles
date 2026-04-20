@@ -19,7 +19,7 @@ Run on a fresh machine after:
 ## Existing folders
 
 ```sh
-st-add-folder ~/.claude --ignore ~/dotfiles/.stignore/claude --versioning 1
+st-add-folder ~/.claude --ignore ~/dotfiles/syncthing/.stignore/claude --versioning 1
 st-add-folder ~/Documents --id Documents
 st-add-folder ~/Musique --id Musique
 st-add-folder ~/Images --id images/photos

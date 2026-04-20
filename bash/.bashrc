@@ -113,24 +113,40 @@ alias devup='\
   rustup update && \
   uv self update && \
   claude update'
-  
+
 alias hardup='\
   sudo journalctl --vacuum-time=7d && \
   snap list --all | awk "/disabled/{print \$1, \$3}" | \
   while read name rev; do sudo snap remove "$name" --revision="$rev"; done'
-  
+
 alias claude-update-plugins='\
   jq -r ".plugins | \
   keys[]" ~/.claude/plugins/installed_plugins.json | \
   xargs -I{} claude plugin update {}'
 
 alias firmup='fwupdmgr refresh && fwupdmgr update'
-
+dot() {
+  local args=() expand=false arg
+  for arg in "$@"; do
+    if [ "$arg" = "." ]; then
+      expand=true
+    else
+      args+=("$arg")
+    fi
+  done
+  if $expand; then
+    local pkgs
+    pkgs=$(cd ~/dotfiles && ls -d */ 2>/dev/null | grep -v '^_\|^\.' | tr -d '/')
+    stow -d ~/dotfiles -t ~ "${args[@]}" $pkgs
+  else
+    stow -d ~/dotfiles -t ~ "$@"
+  fi
+}
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
-alias fd=fdfind
 alias qp='rm -rf .quarto; quarto preview'
 alias yolo='git add . && git commit -m "." && git push'
+alias fd=fdfind
 
 ### COMPLETION & EXTERNAL SOURCES -------------------------------------------
 
