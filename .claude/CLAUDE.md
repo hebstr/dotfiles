@@ -64,7 +64,8 @@
 
 ## Plan & memory discipline
 
-- If a `PLAN.md` file exists at the project root, read it at session start and display: current objective, current step, and any blockers. Do not ask the user what to read — just do it. If no `PLAN.md` exists and the task involves multiple sequential steps spanning more than one session, propose creating one.
+- **Claude-related markdown files live in `.claude/` by default** (CLAUDE.md, PLAN.md, MEMORY.md, handoff docs, etc.). The project root is accepted as legacy location — when encountered, read it in place but do not re-introduce root-level Claude files. When creating a new Claude-related file, always default to `.claude/`.
+- At session start, look for `PLAN.md` in `.claude/PLAN.md` (preferred) or at the project root (legacy). Read whichever exists and display: current objective, current step, and any blockers. Do not ask the user what to read — just do it. If no `PLAN.md` exists and the task involves multiple sequential steps spanning more than one session, propose creating one — default location is `.claude/PLAN.md`.
 - When a step is completed, an item is deferred, a priority changes, or a blocker appears, update **all affected tracking files and memory** in the same response — never wait for the user to ask. "All affected" means: any markdown file at the project root that tracks plan state, backlog, or deferred items, plus any memory file whose content is now stale. If unsure whether a file is affected, read it and check.
 - After a structural change (new file, renamed tool/function, moved path, added/removed phase), verify consistency of directly affected files **and check for side effects** in files that reference the changed entity (grep for the old name/path across the project). Do this before marking the step complete — check as you go, not after the fact.
 - Concrete post-change greps — all mandatory, not optional:
@@ -83,6 +84,7 @@
 - No emojis in any output unless explicitly requested
 - Never state a verifiable fact without checking it first (tool call, file read, search)
 - If uncertain or unverifiable, say so explicitly — never fabricate or present assumptions as facts
+- Never say "fix appliqué" / "fix applied" unless an Edit/Write has actually modified a file. When the change requires user action (git command to run, manual edit), phrase it as "à appliquer par toi" / "voici la commande à exécuter" — the user manages their own git operations and needs accurate status
 - When explaining concepts: accompany code with prose, introduce progressively, use analogies for unfamiliar ideas, show expected output when it helps. Keep it focused; go deeper only when asked
 - When executing a task: concise, no unsolicited explanations
 - Anticipate idiomatic R/Python pitfalls
