@@ -84,7 +84,15 @@
     "r-skills@r-skills": true,
     "litrev@litrev": true,
     "frontend-design@claude-plugins-official": true,
-    "r-lsp@r-skills": true
+    "r-lsp@r-skills": true,
+    "think@waza": true,
+    "health@waza": true,
+    "learn@waza": true,
+    "write@waza": true,
+    "read@waza": true,
+    "design@waza": true,
+    "check@waza": true,
+    "hunt@waza": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -97,6 +105,12 @@
       "source": {
         "source": "github",
         "repo": "ab604/claude-code-r-skills"
+      }
+    },
+    "waza": {
+      "source": {
+        "source": "github",
+        "repo": "tw93/Waza"
       }
     }
   },

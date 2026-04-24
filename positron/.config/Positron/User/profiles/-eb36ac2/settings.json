@@ -118,8 +118,25 @@
     "python.installModulesInTerminal": true,
     "python.globalModuleInstallation": true,
     "python.enableAutoReload": false,
-    "positronPythonPackageManager.enablePackagePane": true,
     // "python.terminal.activateEnvironment": false,
+
+    // UP
+    "[dockerfile]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "foxundermoon.shell-format"
+    },
+
+    // UP
+    "bashIde.shellcheckPath": "shellcheck",
+    "bashIde.shfmt.path": "/usr/bin/shfmt",
+    "bashIde.enableSourceErrorDiagnostics": true,
+    "bashIde.shfmt.caseIndent": true,
+    "bashIde.shfmt.spaceRedirects": true,
+    "[shellscript]": {
+        "editor.tabSize": 2,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
+    },
 
 // GIT -------------------------------------------------------------------------
 

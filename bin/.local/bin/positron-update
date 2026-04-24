@@ -1,0 +1,78 @@
+#!/bin/sh
+set -eu
+
+VER=$(curl -fsSL https://api.github.com/repos/posit-dev/positron/releases/latest | jq -r .tag_name)
+ARCH=x64
+CDN=https://cdn.posit.co/positron/releases
+
+if [ -z "${VER}" ] || [ "${VER}" = "null" ]; then
+  echo "Failed to resolve latest Positron version from GitHub API" >&2
+  exit 1
+fi
+
+echo "Latest Positron release: ${VER}"
+
+CURRENT_VER=$(positron --version 2> /dev/null | awk 'NR==1 {print $2; exit}')
+CURRENT_BUILD=$(positron --version 2> /dev/null | awk 'NR==1 && $3=="build" {print $4; exit}')
+if [ -n "${CURRENT_VER}" ] && [ -n "${CURRENT_BUILD}" ]; then
+  CURRENT_TAG="${CURRENT_VER}-${CURRENT_BUILD}"
+else
+  CURRENT_TAG=unknown
+fi
+if [ "${CURRENT_TAG}" = "${VER}" ]; then
+  echo "Already on ${VER} — nothing to do."
+  exit 0
+fi
+
+CURRENT_DEB=$(dpkg-query -W -f='${Version}' positron 2> /dev/null || true)
+
+sudo -v
+
+DEB=Positron-${VER}-${ARCH}.deb
+CHECKSUMS=positron-${VER}-checksums.json
+TMP=$(mktemp -d)
+cleanup() {
+  rc=$?
+  rm -rf "${TMP}"
+  exit "${rc}"
+}
+trap cleanup EXIT
+
+echo "Downloading Positron ${VER}..."
+curl -fL --progress-bar -o "${TMP}/${DEB}" "${CDN}/deb/x86_64/${DEB}"
+curl -fsSL -o "${TMP}/${CHECKSUMS}" "${CDN}/checksums/${CHECKSUMS}"
+
+echo "Verifying checksum..."
+EXPECTED=$(jq -r --arg f "${DEB}" '.[$f]' "${TMP}/${CHECKSUMS}")
+if [ -z "${EXPECTED}" ] || [ "${EXPECTED}" = "null" ]; then
+  echo "Checksum entry missing for ${DEB} in ${CHECKSUMS}" >&2
+  exit 1
+fi
+ACTUAL=$(sha256sum "${TMP}/${DEB}" | awk '{print $1}')
+if [ "${EXPECTED}" != "${ACTUAL}" ]; then
+  echo "Checksum mismatch for ${DEB}" >&2
+  echo "  expected: ${EXPECTED}" >&2
+  echo "  actual:   ${ACTUAL}" >&2
+  exit 1
+fi
+
+echo "Installing via dpkg..."
+if ! sudo dpkg -i "${TMP}/${DEB}"; then
+  echo "dpkg install failed — attempting to fix dependencies" >&2
+  if ! sudo apt-get install -f -y; then
+    echo "Dependency fix failed." >&2
+    if [ -n "${CURRENT_DEB}" ]; then
+      echo "To restore previous install: sudo apt-get install --allow-downgrades positron=${CURRENT_DEB}" >&2
+    fi
+    exit 1
+  fi
+fi
+
+echo
+echo "Installed version:"
+positron --version
+echo
+echo "Previous version was: ${CURRENT_TAG}"
+if [ -n "${CURRENT_DEB}" ]; then
+  echo "To roll back: sudo apt-get install --allow-downgrades positron=${CURRENT_DEB}"
+fi

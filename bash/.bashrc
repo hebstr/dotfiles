@@ -1,8 +1,8 @@
 ### INTERACTIVE CHECK -------------------------------------------------------
 
 case $- in
-    *i*) ;;
-      *) return;;
+  *i*) ;;
+  *) return ;;
 esac
 
 ### HISTORY -----------------------------------------------------------------
@@ -51,22 +51,22 @@ esac
 ### PROMPT ------------------------------------------------------------------
 
 if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
+  debian_chroot=$(cat /etc/debian_chroot)
 fi
 
 case "$TERM" in
-    xterm-color|*-256color) color_prompt=yes;;
+  xterm-color | *-256color) color_prompt=yes ;;
 esac
 
 if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+  PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 else
-    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+  PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
 unset color_prompt
 
 case "$TERM" in
-xterm*|rxvt*)
+  xterm* | rxvt*)
     PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
     ;;
 esac
@@ -78,11 +78,11 @@ export VIRTUAL_ENV_DISABLE_PROMPT=1
 __base_ps1="$PS1"
 
 __fix_venv_prompt() {
-    if [ -n "$VIRTUAL_ENV" ]; then
-        PS1="(${VIRTUAL_ENV_PROMPT:-$(basename "$VIRTUAL_ENV")}) $__base_ps1"
-    else
-        PS1="$__base_ps1"
-    fi
+  if [ -n "$VIRTUAL_ENV" ]; then
+    PS1="(${VIRTUAL_ENV_PROMPT:-$(basename "$VIRTUAL_ENV")}) $__base_ps1"
+  else
+    PS1="$__base_ps1"
+  fi
 }
 
 PROMPT_COMMAND="__fix_venv_prompt; history -a"
@@ -90,7 +90,7 @@ PROMPT_COMMAND="__fix_venv_prompt; history -a"
 ### COLORS ------------------------------------------------------------------
 
 if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+  test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 
 ### PAGER -------------------------------------------------------------------
@@ -102,6 +102,15 @@ fi
 alias softup='\
   sudo apt update && \
   sudo apt full-upgrade && \
+  sudo apt autoremove && \
+  sudo apt autoclean && \
+  sudo snap refresh && \
+  flatpak update -y && \
+  flatpak uninstall --unused -y'
+
+alias softup-fast='\
+  sudo apt-fast update && \
+  sudo apt-fast dist-upgrade && \
   sudo apt autoremove && \
   sudo apt autoclean && \
   sudo snap refresh && \
@@ -125,6 +134,7 @@ alias claude-update-plugins='\
   xargs -I{} claude plugin update {}'
 
 alias firmup='fwupdmgr refresh && fwupdmgr update'
+
 dot() {
   local args=() expand=false arg
   for arg in "$@"; do
@@ -136,12 +146,13 @@ dot() {
   done
   if $expand; then
     local pkgs
-    pkgs=$(cd ~/dotfiles && ls -d */ 2>/dev/null | grep -v '^_\|^\.' | tr -d '/')
+    pkgs=$(cd ~/dotfiles && ls -d */ 2> /dev/null | grep -v '^_\|^\.' | tr -d '/')
     stow -d ~/dotfiles -t ~ "${args[@]}" $pkgs
   else
     stow -d ~/dotfiles -t ~ "$@"
   fi
 }
+
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias qp='rm -rf .quarto; quarto preview'
@@ -151,7 +162,7 @@ alias fd=fdfind
 ### COMPLETION & EXTERNAL SOURCES -------------------------------------------
 
 if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+  . ~/.bash_aliases
 fi
 
 if ! shopt -oq posix; then

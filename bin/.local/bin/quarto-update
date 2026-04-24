@@ -1,0 +1,79 @@
+#!/bin/sh
+set -eu
+
+VER=$(curl -fsSL https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | jq -r .tag_name | sed 's/^v//')
+ARCH=linux-amd64
+URL=https://github.com/quarto-dev/quarto-cli/releases/download
+
+if [ -z "${VER}" ] || [ "${VER}" = "null" ]; then
+  echo "Failed to resolve latest Quarto version from GitHub API" >&2
+  exit 1
+fi
+
+echo "Latest Quarto release: ${VER}"
+
+CURRENT=$(quarto --version 2> /dev/null | head -n1 | awk '{print $1}')
+[ -n "${CURRENT}" ] || CURRENT=unknown
+if [ "${CURRENT}" = "${VER}" ]; then
+  echo "Already on ${VER} — nothing to do."
+  exit 0
+fi
+
+sudo -v
+
+TARBALL=quarto-${VER}-${ARCH}.tar.gz
+CHECKSUMS=quarto-${VER}-checksums.txt
+BASE_URL=${URL}/v${VER}
+TMP=$(mktemp -d)
+PREFIX=/opt/quarto
+BACKUP="/opt/quarto.bak-${CURRENT}"
+SWAPPED=0
+cleanup() {
+  rc=$?
+  if [ "${SWAPPED}" = "1" ] && [ ! -d "${PREFIX}" ] && [ -d "${BACKUP}" ]; then
+    echo "Install failed after backup — restoring ${BACKUP} to ${PREFIX}" >&2
+    sudo mv "${BACKUP}" "${PREFIX}" || echo "Rollback failed — ${BACKUP} still holds the previous install" >&2
+  fi
+  rm -rf "${TMP}"
+  exit "${rc}"
+}
+trap cleanup EXIT
+
+if [ -e "${BACKUP}" ]; then
+  echo "Backup path ${BACKUP} already exists — remove it first or rename it." >&2
+  exit 1
+fi
+
+echo "Downloading Quarto ${VER}..."
+curl -fL --progress-bar -o "${TMP}/${TARBALL}" "${BASE_URL}/${TARBALL}"
+curl -fsSL -o "${TMP}/${CHECKSUMS}" "${BASE_URL}/${CHECKSUMS}"
+
+echo "Verifying checksum..."
+LINE=$(grep -E "[[:space:]]${TARBALL}\$" "${TMP}/${CHECKSUMS}") || {
+  echo "Checksum line missing for ${TARBALL} in ${CHECKSUMS}" >&2
+  exit 1
+}
+(cd "${TMP}" && printf '%s\n' "${LINE}" | sha256sum -c -)
+
+echo "Extracting to staging area..."
+STAGE="${TMP}/quarto-new"
+mkdir -p "${STAGE}"
+tar -xzf "${TMP}/${TARBALL}" -C "${STAGE}" --strip-components=1
+
+if [ ! -x "${STAGE}/bin/quarto" ]; then
+  echo "Extracted tree missing bin/quarto — aborting before touching ${PREFIX}" >&2
+  exit 1
+fi
+
+echo "Backing up current install to ${BACKUP}"
+sudo mv "${PREFIX}" "${BACKUP}"
+SWAPPED=1
+sudo mv "${STAGE}" "${PREFIX}"
+SWAPPED=0
+
+echo
+echo "Installed version:"
+quarto --version
+echo
+echo "Run 'quarto check' to validate the install."
+echo "Backup kept at ${BACKUP} — remove with: sudo rm -rf ${BACKUP}"

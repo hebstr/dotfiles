@@ -23,5 +23,3 @@ options(
   openxlsx2.maxWidth = 60,
   digits = 3
 )
-
-conflicted::conflicts_prefer(dplyr::filter(), .quiet = TRUE)

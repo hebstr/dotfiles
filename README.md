@@ -13,6 +13,11 @@ _meta/
 
 Packages follow stow conventions: each top-level dir maps its tree relative to `~`. For example `bash/.bashrc` → `~/.bashrc`, `Rstudio/.config/rstudio/rstudio-prefs.json` → `~/.config/rstudio/rstudio-prefs.json`.
 
+The `bin/` package contains personal CLI utilities symlinked to `~/.local/bin/`:
+
+- `positron-update`, `quarto-update` — interactive installers that fetch the latest release, verify checksum, and install (deb / tarball)
+- `st-add-folder` — Syncthing helper
+
 `_meta/` and dotted dirs are never stowed — the `dot` function explicitly excludes them.
 
 ## Bootstrap a new machine

@@ -14,8 +14,9 @@
 - [feedback_claudemd_config.md](feedback_claudemd_config.md) — CLAUDE.md structure: global vs project scope, what to avoid
 - [feedback_review_workflow.md](feedback_review_workflow.md) — Preferred review workflow: 3 background specialists + parallel-review + consolidated report + walkthrough
 - [feedback_renv_r_packages.md](feedback_renv_r_packages.md) — Do not recommend renv for R packages — DESCRIPTION is the canonical dependency declaration
-- [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md) — Verify codebase facts with tools before asserting them
+- [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md) — Verify EVERY factual claim with the authoritative source before stating it. Absence in local filesystem ≠ proof of non-existence. No filler analogies. No doubling down.
 - [feedback_review_severity_personal.md](feedback_review_severity_personal.md) — Calibrate review severity down for personal/internal packages
+- [feedback_review_severity_shell_installers.md](feedback_review_severity_shell_installers.md) — Calibrate review severity for personal shell installers (quarto-update, positron-update)
 - [feedback_verify_r_exports.md](feedback_verify_r_exports.md) — Verify R function exports before suggesting @importFrom or pkg::fn
 - [feedback_walkthrough_process.md](feedback_walkthrough_process.md) — Interactive walkthrough: point-by-point, terse, inline corrections, recap at end
 - [feedback_investigate_failures.md](feedback_investigate_failures.md) — Errors are NEVER cosmetic — investigate every error message before proceeding, never dismiss or minimize

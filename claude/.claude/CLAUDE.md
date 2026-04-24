@@ -16,7 +16,7 @@
 |--------|---------|-------|
 | R      | 4.5.3   | Data processing, statistical analysis |
 | Python | 3.13.9  | NLP pipeline (langchain + ollama), data manipulation |
-| Quarto | 1.9.22  | Book generation (HTML via `quarto render`) |
+| Quarto | 1.9.37  | Book generation (HTML via `quarto render`) |
 | Typst  | 0.14.2  | PDF typesetting (via Quarto) |
 
 ### Package management
@@ -38,6 +38,22 @@
 | delta   | Structured diffs with line numbers        |
 | fd      | File search by name (`fdfind`)            |
 | duckdb  | SQL queries from shell (`~/.local/bin/duckdb`) |
+| stow    | Symlink manager for dotfiles (`~/dotfiles`)    |
+| shellcheck  | Shell linter (analyse statique, codes `SC*`) |
+| shellharden | Auto-fix du quoting des variables shell      |
+| shfmt       | Formateur shell (indentation, espacement)    |
+
+### Shell search preferences
+
+- **Prefer `rg` over `grep`** for code/text search in Bash. Faster, respects `.gitignore`, sensible defaults.
+- **Prefer `fdfind` over `find`** for file discovery in Bash. Faster, respects `.gitignore`, simpler syntax.
+- Applies to every Bash invocation — including quick one-liners. Do not default to `grep`/`find` out of habit.
+- Fallback rule: if `rg`/`fdfind` is not installed on the current machine (e.g. `command -v rg` fails), use `grep`/`find`. Also fall back when the query needs a feature the modern tool doesn't support (e.g. `find -exec`, filesystem predicates).
+
+### Dotfiles & symlinks
+
+- Dotfiles live in `~/dotfiles`, organized as stow packages (`bin`, `bash`, `claude`, `gh`, `git`, `positron`, `R`, `Rstudio`, `syncthing`).
+- Always use `stow` to create symlinks from `~/dotfiles` — never `ln -s` directly. Place files inside the package using the target-relative layout (e.g. `~/dotfiles/bin/.local/bin/foo.sh`), then `cd ~/dotfiles && stow <package>`. If a manual symlink or file already exists at the target, `rm` it before stowing.
 
 ## Coding preferences
 
