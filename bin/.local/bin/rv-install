@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+rv_installed=false
+
+if ! command -v rv > /dev/null 2>&1; then
+  echo "rv not found in PATH — bootstrapping from A2-ai's official installer…"
+  curl -fsSL \
+    --connect-timeout 10 \
+    --max-time 120 \
+    --retry 2 \
+    https://raw.githubusercontent.com/A2-ai/rv/refs/heads/main/scripts/install.sh |
+    bash
+  rv_installed=true
+
+  if ! command -v rv > /dev/null 2>&1; then
+    echo "rv installed to ~/.local/bin but not yet on PATH in this shell." >&2
+    echo "Open a new terminal or run 'source ~/.bashrc' / 'source ~/.zshrc', and re-run." >&2
+    exit 1
+  fi
+fi
+
+if [[ "$rv_installed" == true ]]; then
+  echo "$(rv --version) installed — restoring packages from rv.lock…"
+else
+  echo "$(rv --version) found — restoring packages from rv.lock…"
+fi
+
+rv sync

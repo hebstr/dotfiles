@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INSTALLED=~/.claude/plugins/installed_plugins.json
+
+claude plugin marketplace update
+
+if [ ! -f "${INSTALLED}" ]; then
+  echo "No installed_plugins.json found — nothing else to update."
+  exit 0
+fi
+
+echo "Updating installed plugins..."
+
+while IFS= read -r plugin; do
+  echo "  → ${plugin}"
+  claude plugin update "${plugin}" || echo "    [failed]" >&2
+done < <(jq -er '.plugins | keys[]' "${INSTALLED}")

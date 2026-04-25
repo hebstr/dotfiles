@@ -92,7 +92,9 @@
     "read@waza": true,
     "design@waza": true,
     "check@waza": true,
-    "hunt@waza": true
+    "hunt@waza": true,
+    "review@hebstr": true,
+    "workflow@hebstr": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -111,6 +113,12 @@
       "source": {
         "source": "github",
         "repo": "tw93/Waza"
+      }
+    },
+    "hebstr": {
+      "source": {
+        "source": "directory",
+        "path": "/home/julien/Documents/pro/packages/claude-code-hebstr"
       }
     }
   },
