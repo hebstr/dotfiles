@@ -10,11 +10,6 @@
 **/*-cache.json
 **/*-receipt.json
 
-# OS / editor artifacts
-.DS_Store
-*~
-*.swp
-
 # Python
 **/.venv/
 **/__pycache__/
@@ -24,4 +19,4 @@
 **/node_modules/
 
 # Claude
-.claude/
+/.claude/

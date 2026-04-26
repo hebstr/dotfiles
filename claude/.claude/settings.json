@@ -81,7 +81,6 @@
     "claude-code-setup@claude-plugins-official": true,
     "mcp-server-dev@claude-plugins-official": true,
     "r-skills@r-skills": true,
-    "litrev@litrev": true,
     "frontend-design@claude-plugins-official": true,
     "r-lsp@r-skills": true,
     "think@waza": true,
@@ -93,7 +92,8 @@
     "check@waza": true,
     "hunt@waza": true,
     "review@hebstr": true,
-    "workflow@hebstr": true
+    "workflow@hebstr": true,
+    "litrev@litrev": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -117,7 +117,7 @@
     "hebstr": {
       "source": {
         "source": "directory",
-        "path": "/home/julien/Documents/pro/packages/claude-code-hebstr"
+        "path": "/home/julien/Documents/pro/packages/claude-code-plugins"
       }
     },
     "litrev": {
