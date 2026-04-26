@@ -22,3 +22,6 @@
 
 # Node
 **/node_modules/
+
+# Claude
+.claude/

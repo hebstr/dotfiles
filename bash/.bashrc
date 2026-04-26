@@ -149,6 +149,7 @@ dot() {
 }
 
 alias ls='ls --color=auto'
+alias ll='ls -lah'
 alias grep='grep --color=auto'
 alias qp='rm -rf .quarto; quarto preview'
 alias yolo='git add . && git commit -m "." && git push'

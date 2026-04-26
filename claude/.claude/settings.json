@@ -10,7 +10,6 @@
       "Grep",
       "Bash",
       "Write(/home/julien/.claude/skills/**)",
-      "Write(/home/julien/.claude/plugins/marketplaces/litrev/**)",
       "Write(/tmp/**)"
     ],
     "deny": [
@@ -119,6 +118,12 @@
       "source": {
         "source": "directory",
         "path": "/home/julien/Documents/pro/packages/claude-code-hebstr"
+      }
+    },
+    "litrev": {
+      "source": {
+        "source": "directory",
+        "path": "/home/julien/Documents/pro/packages/claude-code-litrev"
       }
     }
   },
