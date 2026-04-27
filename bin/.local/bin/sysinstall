@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEFAULT_PREFIX="/usr/local/bin"
+
+declare -A INSTALLERS=(
+  [air]="https://github.com/posit-dev/air/releases/latest/download/air-installer.sh|AIR_UNMANAGED_INSTALL"
+  [jarl]="https://github.com/etiennebacher/jarl/releases/latest/download/jarl-installer.sh|JARL_UNMANAGED_INSTALL"
+  [uv]="https://astral.sh/uv/install.sh|UV_UNMANAGED_INSTALL"
+  [ruff]="https://astral.sh/ruff/install.sh|RUFF_UNMANAGED_INSTALL"
+)
+
+usage() {
+  cat << EOF
+sysinstall — install cargo-dist-style binaries system-wide
+
+USAGE:
+  sysinstall [--prefix DIR] TOOL [TOOL...]
+  sysinstall [--prefix DIR] --all
+  sysinstall --list
+  sysinstall -h | --help
+
+OPTIONS:
+  --prefix DIR   Install destination (default: ${DEFAULT_PREFIX})
+  --all          Install every known tool
+  --list         List known tools and their installers
+  -h, --help     Show this help
+
+KNOWN TOOLS:
+  $(printf '%s\n' "${!INSTALLERS[@]}" | sort | paste -sd' ')
+
+The script pipes each installer through 'sudo env <VAR>=<prefix> sh',
+which is the cargo-dist convention for unmanaged system-wide installs.
+EOF
+}
+
+list_tools() {
+  printf '%-10s %-40s %s\n' "TOOL" "ENV VAR" "URL"
+  for tool in $(printf '%s\n' "${!INSTALLERS[@]}" | sort); do
+    IFS='|' read -r url var <<< "${INSTALLERS[$tool]}"
+    printf '%-10s %-40s %s\n' "$tool" "$var" "$url"
+  done
+}
+
+install_one() {
+  local tool="$1" prefix="$2"
+  local entry="${INSTALLERS[$tool]:-}"
+  if [[ -z "$entry" ]]; then
+    echo "sysinstall: unknown tool '$tool' (try --list)" >&2
+    return 1
+  fi
+  local url var
+  IFS='|' read -r url var <<< "$entry"
+
+  echo "→ installing $tool into $prefix (env: $var)" >&2
+  if ! curl -fsSL --connect-timeout 10 --max-time 120 --retry 2 "$url" |
+    sudo env "$var=$prefix" sh; then
+    echo "sysinstall: failed to install '$tool' from $url" >&2
+    return 1
+  fi
+
+  local installed="$prefix/$tool"
+  if [[ ! -x "$installed" ]]; then
+    echo "sysinstall: $tool installer ran but $installed is not executable" >&2
+    return 1
+  fi
+  echo "✓ $("$installed" --version 2> /dev/null || echo "$tool installed")" >&2
+}
+
+main() {
+  local prefix="$DEFAULT_PREFIX"
+  local tools=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h | --help)
+        usage
+        return 0
+        ;;
+      --list)
+        list_tools
+        return 0
+        ;;
+      --all)
+        mapfile -t tools < <(printf '%s\n' "${!INSTALLERS[@]}" | sort)
+        shift
+        ;;
+      --prefix)
+        [[ $# -ge 2 ]] || {
+          echo "sysinstall: --prefix requires an argument" >&2
+          return 2
+        }
+        prefix="$2"
+        shift 2
+        ;;
+      --prefix=*)
+        prefix="${1#--prefix=}"
+        shift
+        ;;
+      -*)
+        echo "sysinstall: unknown option '$1'" >&2
+        return 2
+        ;;
+      *)
+        tools+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [[ ${#tools[@]} -eq 0 ]]; then
+    usage >&2
+    return 2
+  fi
+
+  for cmd in curl sudo; do
+    command -v "$cmd" > /dev/null 2>&1 || {
+      echo "sysinstall: missing required command '$cmd'" >&2
+      return 1
+    }
+  done
+
+  for tool in "${tools[@]}"; do
+    if [[ -z "${INSTALLERS[$tool]:-}" ]]; then
+      echo "sysinstall: unknown tool '$tool' (try --list)" >&2
+      return 2
+    fi
+  done
+
+  sudo -v
+
+  local failed=()
+  for tool in "${tools[@]}"; do
+    install_one "$tool" "$prefix" || failed+=("$tool")
+  done
+
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    echo "sysinstall: failed for: ${failed[*]}" >&2
+    return 1
+  fi
+}
+
+main "$@"
