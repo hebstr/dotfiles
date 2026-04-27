@@ -717,5 +717,6 @@
             }
         ]
     },
+    "diffEditor.ignoreTrimWhitespace": false,
 
 }
