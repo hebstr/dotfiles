@@ -1,22 +1,59 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+INSTALLER_URL="https://raw.githubusercontent.com/A2-ai/rv/refs/heads/main/scripts/install.sh"
+LATEST_API="https://api.github.com/repos/A2-ai/rv/releases/latest"
+
+run_installer() {
+  local script
+  script="$(mktemp)"
+  trap 'rm -f "$script"' RETURN
+  curl -fsSL \
+    --connect-timeout 10 \
+    --max-time 120 \
+    --retry 2 \
+    -o "$script" \
+    "$INSTALLER_URL"
+  bash "$script"
+}
+
 if command -v rv > /dev/null 2>&1; then
-  echo "$(rv --version) already installed." >&2
+  current="$(rv --version 2> /dev/null | awk '{print $2}')"
+  latest_tag="$(
+    curl -fsSL --connect-timeout 10 --max-time 30 --retry 2 "$LATEST_API" |
+      jq -r '.tag_name // empty' 2> /dev/null |
+      sed -E 's/^v//' || true
+  )"
+
+  if [[ -z "$latest_tag" ]]; then
+    echo "rv $current installed; skipping update check (failed to query GitHub API)." >&2
+    exit 0
+  fi
+
+  if [[ "$current" == "$latest_tag" ]]; then
+    echo "rv $current is up to date." >&2
+    exit 0
+  fi
+
+  echo "rv $current installed — upgrading to $latest_tag…" >&2
+  run_installer
+
+  if ! command -v rv > /dev/null 2>&1; then
+    echo "rv upgraded, but not yet visible on PATH in this shell." >&2
+    echo "Start a new shell (or re-source your shell rc) and re-run." >&2
+    exit 1
+  fi
+
+  echo "$(rv --version) installed." >&2
   exit 0
 fi
 
-echo "rv not found in PATH — bootstrapping from A2-ai's official installer…" >&2
-curl -fsSL \
-  --connect-timeout 10 \
-  --max-time 120 \
-  --retry 2 \
-  https://raw.githubusercontent.com/A2-ai/rv/refs/heads/main/scripts/install.sh |
-  bash
+echo "rv not found on PATH — bootstrapping via A2-ai's official installer…" >&2
+run_installer
 
 if ! command -v rv > /dev/null 2>&1; then
-  echo "rv installed but not yet on PATH in this shell." >&2
-  echo "Open a new terminal or re-source your shell rc, then re-run." >&2
+  echo "rv installed, but not yet visible on PATH in this shell." >&2
+  echo "Start a new shell (or re-source your shell rc) and re-run." >&2
   exit 1
 fi
 
