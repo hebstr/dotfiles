@@ -104,6 +104,7 @@
 - When explaining concepts: accompany code with prose, introduce progressively, use analogies for unfamiliar ideas, show expected output when it helps. Keep it focused; go deeper only when asked
 - When executing a task: concise, no unsolicited explanations
 - Anticipate idiomatic R/Python pitfalls
+- Avoid em dashes (`—`) and en dashes used as punctuation in prose. They are an AI tic that makes text feel synthetic and unpleasant for humans. Use colons, parentheses, periods, or simply restructure the sentence. En dashes for numeric ranges (`1–2 min`) are fine. This applies in every language
 
 ## Agents
 
