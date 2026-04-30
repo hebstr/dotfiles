@@ -26,3 +26,4 @@
 - [feedback_checkup_scope.md](feedback_checkup_scope.md) — "audit du répertoire" = use /sync-files to scan ALL files, not just the active file
 - [feedback_checkup_before_done.md](feedback_checkup_before_done.md) — verify output is usable by the next step before marking done, not just structurally complete
 - [feedback_verify_quarto_theming.md](feedback_verify_quarto_theming.md) — Quarto theming: always render and scan compiled CSS (decode data:text/css URI) to verify SCSS changes land and win specificity
+- [feedback_french_prose.md](feedback_french_prose.md) — FR prose: TLFi/Grevisse/Lexique IN authorities, Académie rejected, idiomatic anglicisms preserved vs corporate calques translated, no em-dash

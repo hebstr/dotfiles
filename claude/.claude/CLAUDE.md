@@ -106,6 +106,21 @@
 - Anticipate idiomatic R/Python pitfalls
 - Avoid em dashes (`—`) and en dashes used as punctuation in prose. They are an AI tic that makes text feel synthetic and unpleasant for humans. Use colons, parentheses, periods, or simply restructure the sentence. En dashes for numeric ranges (`1–2 min`) are fine. This applies in every language
 
+## Prose hygiene
+
+Concrete anti-AI-slop patterns to avoid in all prose Claude writes. Applies to both English and French. Full reference in the `/write` skill — these are the always-on essentials.
+
+- **No negative parallelism.** "Not X. Y." / "Ce n'est pas X. C'est Y." — the most common AI tell. State Y directly.
+- **No rhetorical self-questions.** "The result? Devastating." / "Le résultat ? Spectaculaire." — state the answer.
+- **No ritual openers.** Drop "It's worth noting", "Notably,", "Importantly," / "Il convient de noter", "Force est de constater", "À noter que", "Il importe de souligner".
+- **No conclusion announcements.** Drop "In conclusion", "To sum up" / "En somme", "Pour conclure". Just end.
+- **Drop empty intensifiers.** "quietly", "fundamentally", "remarkably", "literally", "genuinely" / "véritablement", "particulièrement", "résolument", "pleinement". Usually deletable without loss.
+- **Plain verbs over puffed.** "use" not "leverage/utilize/harness" ; "show" not "demonstrate". In FR : "utiliser" pas "leverager", "traiter" pas "adresser (un problème)", "prendre en charge" pas "supporter (une feature)", "ça a du sens" pas "ça fait du sens", "certainement" pas "définitivement" (au sens de *certainly*).
+- **No "véritable/real + N" filler.** "Un véritable défi" → "un défi". "A real challenge" → "a challenge".
+- **No transformation clichés.** "X révolutionne/redéfinit/bouleverse Y", "X revolutionizes/redefines Y" — describe the actual mechanism instead.
+- **No false agency.** "the data tells us" / "le constat est sans appel" — name the human or supply the evidence.
+- **For deep polish or full prose review, invoke `/write`** — auto-loads complete EN/FR/ZH reference based on detected language. Don't try to recall the full skill from memory.
+
 ## Agents
 
 - When the user asks to "spawn agents", "lance des agents", or requests parallel work: always use the Agent tool — do not do the work sequentially yourself

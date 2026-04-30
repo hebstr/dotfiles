@@ -155,6 +155,16 @@ alias qp='rm -rf .quarto; quarto preview'
 alias yolo='git add . && git commit -m "." && git push'
 alias fd=fdfind
 
+release() {
+  local tag="$1"
+  [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: release X.Y.Z (or vX.Y.Z)" >&2; return 1; }
+  git add -A \
+    && git commit -m "$tag" \
+    && git tag -a "$tag" -m "$tag" \
+    && git push \
+    && git push origin "$tag"
+}
+
 ### COMPLETION & EXTERNAL SOURCES -------------------------------------------
 
 if [ -f ~/.bash_aliases ]; then
