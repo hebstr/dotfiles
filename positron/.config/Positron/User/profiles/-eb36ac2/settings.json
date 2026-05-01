@@ -118,7 +118,7 @@
     "python.installModulesInTerminal": true,
     "python.globalModuleInstallation": true,
     "python.enableAutoReload": false,
-    // "python.terminal.activateEnvironment": false,
+    "python.terminal.activateEnvironment": true,
 
     // UP
     "[dockerfile]": {
@@ -209,7 +209,7 @@
 
 // APPARENCE GLOBALE -----------------------------------------------------------
 
-    "workbench.colorTheme": "Material Night Eighties",
+    "workbench.colorTheme": "Material Night Purple",
     "workbench.iconTheme": "material-icon-theme",
     "workbench.startupEditor": "none",
     "workbench.settings.editor": "json",

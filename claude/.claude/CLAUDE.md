@@ -14,7 +14,7 @@
 
 | Tool   | Version | Usage |
 |--------|---------|-------|
-| R      | 4.5.3   | Data processing, statistical analysis |
+| R      | 4.6.0   | Data processing, statistical analysis |
 | Python | 3.13.9  | NLP pipeline (langchain + ollama), data manipulation |
 | Quarto | 1.9.37  | Book generation (HTML via `quarto render`) |
 | Typst  | 0.14.2  | PDF typesetting (via Quarto) |
@@ -38,6 +38,7 @@
 | delta   | Structured diffs with line numbers        |
 | fd      | File search by name (`fdfind`)            |
 | duckdb  | SQL queries from shell (`~/.local/bin/duckdb`) |
+| rig     | R version manager (`rig default <version>`)    |
 | stow    | Symlink manager for dotfiles (`~/dotfiles`)    |
 | shellcheck  | Shell linter (analyse statique, codes `SC*`) |
 | shellharden | Auto-fix du quoting des variables shell      |

@@ -130,24 +130,6 @@ alias hardup='\
 
 alias firmup='fwupdmgr refresh && fwupdmgr update'
 
-dot() {
-  local args=() expand=false arg
-  for arg in "$@"; do
-    if [ "$arg" = "." ]; then
-      expand=true
-    else
-      args+=("$arg")
-    fi
-  done
-  if $expand; then
-    local pkgs
-    pkgs=$(cd ~/dotfiles && ls -d */ 2> /dev/null | grep -v '^_\|^\.' | tr -d '/')
-    stow -d ~/dotfiles -t ~ "${args[@]}" $pkgs
-  else
-    stow -d ~/dotfiles -t ~ "$@"
-  fi
-}
-
 alias ls='ls --color=auto'
 alias ll='ls -lah'
 alias grep='grep --color=auto'

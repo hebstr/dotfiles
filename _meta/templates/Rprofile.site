@@ -1,0 +1,10 @@
+options(
+  repos = c(
+    CRAN = "https://packagemanager.posit.co/cran/__linux__/noble/latest"
+  ),
+  duckdb.enable_rstudio_connection_pane = TRUE,
+  tidyverse.quiet = TRUE,
+  tidymodels.quiet = TRUE,
+  openxlsx2.maxWidth = 60,
+  digits = 3
+)
