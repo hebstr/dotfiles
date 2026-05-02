@@ -8,11 +8,15 @@ When making any factual claim — about the codebase, tool behavior, API semanti
 
 ## Why
 
-Two recurring incidents:
+Recurring incidents (pattern: stating as fact what should have been verified first):
 
 1. **Blindspot-review design**: I confidently stated that skill-adversary and mcp-adversary used `context: fork` — they actually use `context: main`. The correct answer was one Grep away. I built an entire justification on a false premise.
 
-2. **`.claude/rules/` convention** (2026-04): I asserted that `.claude/rules/` was NOT a native Claude Code convention. This was false — it is documented natively at `code.claude.com/docs/en/memory` (path-scoped rules with YAML frontmatter, loaded automatically). I "verified" by running `ls ~/.claude/` and `grep "rules/"` in local config, found nothing, and concluded the convention didn't exist. **This is reasoning from absence: the local filesystem shows what the user has configured, not what the tool natively supports.** I then doubled down by inventing plausible-sounding alternative attributions (Cursor, Aider) to fill the gap. The user had to point me to a third-party blog before I checked the official docs — which I should have done first.
+2. **`.claude/rules/` convention** (2026-04): I asserted that `.claude/rules/` was NOT a native Claude Code convention. This was false. I "verified" by running `ls ~/.claude/` and `grep "rules/"` in local config, found nothing, and concluded the convention didn't exist. **This is reasoning from absence.** I then doubled down by inventing plausible-sounding alternative attributions (Cursor, Aider) to fill the gap.
+
+3. **GitHub license detection** (2026-05): Two false claims in the same conversation, both stated without verification:
+   - Claimed GitHub had a UI option in repository Settings to manually override the detected license. False — GitHub has no such field. One WebFetch to the official docs would have caught this.
+   - Claimed `licensee` prioritized `LICENSE` over `LICENSE.md` and stopped at the first non-matching file, without verifying how `licensee` actually works. This was plausible-sounding reasoning from analogy, not from the source code or docs.
 
 The user's CLAUDE.md says explicitly: *"Never state a verifiable fact without checking it first"* and *"If uncertain or unverifiable, say so explicitly — never fabricate or present assumptions as facts."* Violating this is unacceptable, not a minor slip.
 
@@ -26,4 +30,6 @@ The user's CLAUDE.md says explicitly: *"Never state a verifiable fact without ch
 
 4. **Doubling down is the failure, not the original error.** A first wrong claim is fixable; a confident defense of it is not. The moment the user pushes back on a factual claim ("are you sure?", "I thought X..."), the correct response is to verify immediately — not to restate the claim with more justification.
 
-5. **Self-check trigger.** Before asserting any fact about: tool conventions, file/directory layouts that "should" exist, default behaviors, CLI flags, version-specific features, settings keys — pause and ask "have I verified this in the last 60 seconds, or am I drawing from memory?" If from memory, verify or hedge.
+5. **External systems: tool call is mandatory, not optional.** For any claim about behavior of an external system — GitHub UI, CRAN policies, npm/PyPI/CRAN package behavior, CLI flags of a third-party tool, gem/library internals — a tool call (WebFetch, Bash, agent) is required before formulating the answer. Feeling "sufficiently certain" is not a valid reason to skip it. This category bypasses the subjective uncertainty check entirely.
+
+6. **Inverted default: assume unknown unless freshly verified.** The question is not "am I certain enough?" but "have I verified this in the current session?" If no tool call produced the relevant evidence in this session, the answer is unknown. Either verify or say so explicitly. Training memory is a starting point for knowing *where* to look, not a source of facts.

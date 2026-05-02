@@ -14,7 +14,7 @@ fi
 # Section 2: R environment (renv or rv)
 if [ -f renv.lock ]; then
   R_VER=$(grep -A1 '"R"' renv.lock | grep -o '"Version": "[^"]*"' | head -1 | cut -d'"' -f4)
-  PKG_COUNT=$(grep '"Package"' renv.lock | wc -l)
+  PKG_COUNT=$(grep -c '"Package"' renv.lock)
   echo "renv active (R $R_VER, $PKG_COUNT packages locked). Use pak::pkg_install(), not install.packages()."
 elif [ -f rv.lock ] || [ -f rproject.toml ]; then
   echo "rv environment detected. Packages managed via rv, not install.packages()."

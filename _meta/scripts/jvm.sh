@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 echo "/usr/lib/jvm/java-21-openjdk-amd64/lib/server" | sudo tee /etc/ld.so.conf.d/java-jvm.conf
 sudo ldconfig
 

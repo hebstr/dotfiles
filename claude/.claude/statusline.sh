@@ -4,7 +4,7 @@ exec 2>/dev/null
 
 CACHE_DIR="$HOME/.cache/waza-statusline"
 CACHE_FILE="$CACHE_DIR/last.json"
-CACHE_MAX_AGE=21600  # 6 hours: one full rate_limit window
+CACHE_MAX_AGE=21600 # 6 hours: one full rate_limit window
 
 input=$(cat)
 
@@ -55,7 +55,7 @@ seven_reset="${live_seven_reset:-}"
 if [ "$five_pct" = "null" ] || [ -z "$five_pct" ]; then
   if [ -f "$CACHE_FILE" ]; then
     cache_mtime=$(cache_file_mtime "$CACHE_FILE")
-    cache_age=$(( $(date +%s) - cache_mtime ))
+    cache_age=$(($(date +%s) - cache_mtime))
     if [ "$cache_age" -lt "$CACHE_MAX_AGE" ]; then
       cached=$(jq -r "$jq_rl" "$CACHE_FILE" 2>/dev/null)
       IFS="$tab" read -r five_pct five_reset seven_pct seven_reset <<EOF
@@ -68,10 +68,11 @@ fi
 # Persist live rate_limits only when present (atomic write)
 if [ "${live_five_pct:-}" != "null" ] && [ -n "${live_five_pct:-}" ] && [ -n "$input" ]; then
   mkdir -p "$CACHE_DIR"
+  # shellcheck disable=SC2015
   printf '%s' "$input" | jq '{rate_limits: .rate_limits}' \
-    > "${CACHE_FILE}.tmp" 2>/dev/null \
-    && mv "${CACHE_FILE}.tmp" "$CACHE_FILE" 2>/dev/null \
-    || true
+    >"${CACHE_FILE}.tmp" 2>/dev/null &&
+    mv "${CACHE_FILE}.tmp" "$CACHE_FILE" 2>/dev/null ||
+    true
 fi
 
 # --- Colors ---
@@ -93,13 +94,13 @@ format_reset() {
   now=$(date +%s)
   diff=$((epoch - now))
   [ "$diff" -le 0 ] && return
-  local mins=$(( diff / 60 ))
-  local hours=$(( mins / 60 ))
-  local days=$(( hours / 24 ))
+  local mins=$((diff / 60))
+  local hours=$((mins / 60))
+  local days=$((hours / 24))
   if [ "$days" -ge 1 ]; then
-    printf "%dd%dh" "$days" $(( hours % 24 ))
+    printf "%dd%dh" "$days" $((hours % 24))
   elif [ "$hours" -ge 1 ]; then
-    printf "%dh%dm" "$hours" $(( mins % 60 ))
+    printf "%dh%dm" "$hours" $((mins % 60))
   else
     printf "%dm" "$mins"
   fi
@@ -122,9 +123,12 @@ context_part="${DIM}Context${RESET} ${ctx_color}${ctx_pct}%${RESET}"
 # Usage color
 usage_color() {
   local pct="$1"
-  if [ "$pct" -ge 90 ] 2>/dev/null; then printf "%s" "$RED"
-  elif [ "$pct" -ge 70 ] 2>/dev/null; then printf "%s" "$MAGENTA"
-  else printf "%s" "$BLUE"
+  if [ "$pct" -ge 90 ] 2>/dev/null; then
+    printf "%s" "$RED"
+  elif [ "$pct" -ge 70 ] 2>/dev/null; then
+    printf "%s" "$MAGENTA"
+  else
+    printf "%s" "$BLUE"
   fi
 }
 

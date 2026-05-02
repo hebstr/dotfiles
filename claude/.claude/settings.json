@@ -1,7 +1,8 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 7,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75"
   },
   "permissions": {
     "allow": [
@@ -10,7 +11,10 @@
       "Grep",
       "Bash",
       "Write(/home/julien/.claude/skills/**)",
-      "Write(/tmp/**)"
+      "Write(/tmp/**)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.anthropic.com)"
     ],
     "deny": [
       "Bash(git add*)",
@@ -35,6 +39,17 @@
     "defaultMode": "default"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-project-context.sh"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -51,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path') && case \"$FILE\" in *.R|*.r) air format \"$FILE\" && jarl check \"$FILE\";; *.py) ruff format \"$FILE\" && ruff check \"$FILE\";; esac"
+            "command": "FILE=$(jq -r '.tool_input.file_path') && case \"$FILE\" in *.R|*.r) air format \"$FILE\" && jarl check \"$FILE\";; *.py) ruff format \"$FILE\" && ruff check \"$FILE\";; *.sh|*.bash) shfmt -w -i 2 -ci \"$FILE\" && shellcheck \"$FILE\";; esac"
           }
         ]
       }
@@ -61,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "notify-send 'Claude Code' 'Claude Code needs your attention'"
+            "command": "notify-send 'Claude Code' 'Claude Code needs your attention' 2>/dev/null || true"
           }
         ]
       }
@@ -128,5 +143,6 @@
     }
   },
   "effortLevel": "high",
+  "showThinkingSummaries": true,
   "autoDreamEnabled": true
 }

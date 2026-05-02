@@ -57,7 +57,7 @@ shfmt -w -i 2 -ci -sr script.sh
 - **Better Shellscript Syntax** (`jeff-hykin.better-shellscript-syntax`) — more precise highlighting
 - **Bash Debug** (`rogalmic.bash-debug`) — step-by-step debugger (scripts > 100 lines)
 
-No extension for shellharden — run manually or via pre-commit.
+No extension for shellharden — run manually or via prek.
 
 ## `settings.json` config
 
@@ -101,20 +101,20 @@ Example for Dockerfile:
 }
 ```
 
-## Pre-commit hook
+## Pre-commit hook (prek)
 
-`.pre-commit-config.yaml`:
+`prek.toml`:
 
-```yaml
-repos:
-  - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.13.1
-    hooks:
-      - id: shfmt
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
-    hooks:
-      - id: shellcheck
+```toml
+[[repos]]
+repo = "https://github.com/scop/pre-commit-shfmt"
+rev = "v3.13.0-1"
+hooks = [{ id = "shfmt" }]
+
+[[repos]]
+repo = "https://github.com/shellcheck-py/shellcheck-py"
+rev = "v0.10.0.1"
+hooks = [{ id = "shellcheck" }]
 ```
 
 ## Check a script without executing it

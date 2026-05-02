@@ -3,12 +3,12 @@ set -euo pipefail
 
 VER=$(curl -fsSL https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | jq -r '(.tag_name // "") | sub("^v"; "")')
 case "$(uname -m)" in
-  x86_64) ARCH=linux-amd64 ;;
-  aarch64) ARCH=linux-arm64 ;;
-  *)
-    echo "Unsupported architecture: $(uname -m)" >&2
-    exit 1
-    ;;
+x86_64) ARCH=linux-amd64 ;;
+aarch64) ARCH=linux-arm64 ;;
+*)
+  echo "Unsupported architecture: $(uname -m)" >&2
+  exit 1
+  ;;
 esac
 URL=https://github.com/quarto-dev/quarto-cli/releases/download
 
@@ -19,7 +19,7 @@ fi
 
 echo "Latest Quarto release: ${VER}"
 
-CURRENT=$(quarto --version 2> /dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+CURRENT=$(quarto --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
 [ -n "${CURRENT}" ] || CURRENT=unknown
 if [ "${CURRENT}" = "${VER}" ]; then
   echo "Already on ${VER} — nothing to do."
@@ -39,7 +39,7 @@ SUDO_KEEPALIVE_PID=
 cleanup() {
   rc=$?
   if [ -n "${SUDO_KEEPALIVE_PID}" ]; then
-    kill "${SUDO_KEEPALIVE_PID}" 2> /dev/null || true
+    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
   fi
   if [ "${SWAPPED}" = "1" ] && [ ! -d "${PREFIX}" ] && [ -d "${BACKUP}" ]; then
     echo "Install failed after backup — restoring ${BACKUP} to ${PREFIX}" >&2
@@ -52,7 +52,7 @@ trap cleanup EXIT
 
 (while true; do
   sleep 60
-  sudo -n -v 2> /dev/null || exit
+  sudo -n -v 2>/dev/null || exit
 done) &
 SUDO_KEEPALIVE_PID=$!
 
@@ -82,7 +82,7 @@ if [ ! -x "${STAGE}/bin/quarto" ]; then
   exit 1
 fi
 
-if ! "${STAGE}/bin/quarto" --version > /dev/null 2>&1; then
+if ! "${STAGE}/bin/quarto" --version >/dev/null 2>&1; then
   echo "Staged quarto fails to execute — aborting before touching ${PREFIX}" >&2
   exit 1
 fi

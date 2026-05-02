@@ -3,12 +3,12 @@ set -euo pipefail
 
 VER=$(curl -fsSL https://api.github.com/repos/posit-dev/positron/releases/latest | jq -r .tag_name)
 case "$(dpkg --print-architecture)" in
-  amd64) ARCH=x64 CDN_ARCH=x86_64 ;;
-  arm64) ARCH=arm64 CDN_ARCH=arm64 ;;
-  *)
-    echo "Unsupported architecture: $(dpkg --print-architecture)" >&2
-    exit 1
-    ;;
+amd64) ARCH=x64 CDN_ARCH=x86_64 ;;
+arm64) ARCH=arm64 CDN_ARCH=arm64 ;;
+*)
+  echo "Unsupported architecture: $(dpkg --print-architecture)" >&2
+  exit 1
+  ;;
 esac
 CDN=https://cdn.posit.co/positron/releases
 
@@ -19,9 +19,9 @@ fi
 
 echo "Latest Positron release: ${VER}"
 
-VER_OUTPUT=$(positron --version 2> /dev/null || true)
-CURRENT_VER=$(awk 'NR==1 {print $2; exit}' <<< "${VER_OUTPUT}")
-CURRENT_BUILD=$(awk 'NR==1 && $3=="build" {print $4; exit}' <<< "${VER_OUTPUT}")
+VER_OUTPUT=$(positron --version 2>/dev/null || true)
+CURRENT_VER=$(awk 'NR==1 {print $2; exit}' <<<"${VER_OUTPUT}")
+CURRENT_BUILD=$(awk 'NR==1 && $3=="build" {print $4; exit}' <<<"${VER_OUTPUT}")
 if [ -n "${CURRENT_VER}" ] && [ -n "${CURRENT_BUILD}" ]; then
   CURRENT_TAG="${CURRENT_VER}-${CURRENT_BUILD}"
 else
@@ -32,7 +32,7 @@ if [ "${CURRENT_TAG}" = "${VER}" ]; then
   exit 0
 fi
 
-CURRENT_DEB=$(dpkg-query -W -f='${Version}' positron 2> /dev/null || true)
+CURRENT_DEB=$(dpkg-query -W -f='${Version}' positron 2>/dev/null || true)
 
 sudo -v
 

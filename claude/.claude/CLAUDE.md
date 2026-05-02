@@ -10,6 +10,10 @@
 
 ## Environment
 
+### System
+
+- OS: Ubuntu 24.04 LTS, x86_64
+
 ### Runtimes
 
 | Tool   | Version | Usage |
@@ -21,28 +25,44 @@
 
 ### Package management
 
-| Tool  | Scope  | Notes |
-|-------|--------|-------|
-| rv    | R      | Lockfile: `rv.lock` |
-| renv  | R      | Lockfile: `renv.lock` (legacy projects) |
-| uv    | Python | Lockfile: `uv.lock`, config: `pyproject.toml` |
+**R**
+
+| Tool | Notes |
+|------|-------|
+| pak  | Default package installer (`pak::pak()`) |
+| rv   | Lockfile: `rv.lock`, config: `rproject.toml` |
+| renv | Lockfile: `renv.lock` (legacy projects) |
+
+- CRAN mirror: `https://packagemanager.posit.co/cran/__linux__/noble/latest` (PPM, Linux noble binaries)
+
+**Python**
+
+| Tool | Notes |
+|------|-------|
+| uv   | Lockfile: `uv.lock`, config: `pyproject.toml` |
 
 ### CLI tools available
 
 | Tool    | Role                                      |
 |---------|-------------------------------------------|
 | git     | Version control                           |
+| gh      | GitHub CLI (PRs, issues, releases)        |
 | ripgrep | Fast code search (`rg`)                   |
 | uv      | Python package/project manager            |
 | ruff    | Python linter/formatter (via uv)          |
+| air     | R formatter                               |
+| jarl    | R linter                                  |
 | delta   | Structured diffs with line numbers        |
 | fd      | File search by name (`fdfind`)            |
+| jq      | JSON processor                            |
 | duckdb  | SQL queries from shell (`~/.local/bin/duckdb`) |
 | rig     | R version manager (`rig default <version>`)    |
 | stow    | Symlink manager for dotfiles (`~/dotfiles`)    |
 | shellcheck  | Shell linter (analyse statique, codes `SC*`) |
 | shellharden | Auto-fix du quoting des variables shell      |
 | shfmt       | Formateur shell (indentation, espacement)    |
+| prek        | Pre-commit hooks runner (Rust, remplace pre-commit) |
+| bats        | Bash TDD framework |
 
 ### Shell search preferences
 

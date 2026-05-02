@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+DEFAULT_PREFIX="/usr/local/bin"
+
+declare -A INSTALLERS=(
+  [air]="https://github.com/posit-dev/air/releases/latest/download/air-installer.sh|AIR_UNMANAGED_INSTALL"
+  [jarl]="https://github.com/etiennebacher/jarl/releases/latest/download/jarl-installer.sh|JARL_UNMANAGED_INSTALL"
+  [uv]="https://astral.sh/uv/install.sh|UV_UNMANAGED_INSTALL"
+  [ruff]="https://astral.sh/ruff/install.sh|RUFF_UNMANAGED_INSTALL"
+  [prek]="https://github.com/j178/prek/releases/latest/download/prek-installer.sh|PREK_INSTALL_DIR"
+)
+
+declare -A REPOS=(
+  [air]="posit-dev/air"
+  [jarl]="etiennebacher/jarl"
+  [uv]="astral-sh/uv"
+  [ruff]="astral-sh/ruff"
+  [prek]="j178/prek"
+)
+
+usage() {
+  cat <<EOF
+devtools-install — install cargo-dist-style binaries system-wide
+
+USAGE:
+  devtools-install [--prefix DIR] [--force] TOOL [TOOL...]
+  devtools-install [--prefix DIR] [--force] --all
+  devtools-install --list
+  devtools-install -h | --help
+
+OPTIONS:
+  --prefix DIR   Install destination (default: ${DEFAULT_PREFIX})
+  --all          Install every known tool
+  --force        Skip version check and reinstall even if up to date
+  --list         List known tools and their installers
+  -h, --help     Show this help
+
+KNOWN TOOLS:
+  $(printf '%s\n' "${!INSTALLERS[@]}" | sort | paste -sd' ')
+
+The script pipes each installer through 'sudo env <VAR>=<prefix> sh',
+which is the cargo-dist convention for unmanaged system-wide installs.
+EOF
+}
+
+list_tools() {
+  printf '%-10s %-40s %s\n' "TOOL" "ENV VAR" "URL"
+  for tool in $(printf '%s\n' "${!INSTALLERS[@]}" | sort); do
+    IFS='|' read -r url var <<<"${INSTALLERS[$tool]}"
+    printf '%-10s %-40s %s\n' "$tool" "$var" "$url"
+  done
+}
+
+get_latest_version() {
+  local repo="$1"
+  curl -fsSL --connect-timeout 10 \
+    "https://api.github.com/repos/${repo}/releases/latest" |
+    jq -r '(.tag_name // "") | sub("^v"; "")'
+}
+
+get_installed_version() {
+  local tool="$1" prefix="$2"
+  local bin="${prefix}/${tool}"
+  if [[ ! -x "$bin" ]]; then
+    echo ""
+    return 0
+  fi
+  "$bin" --version 2>/dev/null |
+    grep -oE '[0-9]+\.[0-9]+\.[0-9]+' |
+    head -n1 ||
+    echo ""
+}
+
+install_one() {
+  local tool="$1" prefix="$2" force="$3"
+  local entry="${INSTALLERS[$tool]:-}"
+  if [[ -z "$entry" ]]; then
+    echo "devtools-install: unknown tool '$tool' (try --list)" >&2
+    return 1
+  fi
+  local url var
+  IFS='|' read -r url var <<<"$entry"
+
+  local repo="${REPOS[$tool]}"
+  local latest
+  latest=$(get_latest_version "$repo")
+  if [[ -z "$latest" || "$latest" == "null" ]]; then
+    echo "devtools-install: failed to resolve latest version for '$tool' from GitHub API" >&2
+    return 1
+  fi
+
+  local current
+  current=$(get_installed_version "$tool" "$prefix")
+
+  if [[ "$force" != "1" && -n "$current" && "$current" == "$latest" ]]; then
+    echo "  $tool ${current} — already up to date, nothing to do" >&2
+    return 0
+  fi
+
+  if [[ -n "$current" ]]; then
+    echo "→ updating $tool ${current} → ${latest} in $prefix" >&2
+  else
+    echo "→ installing $tool ${latest} into $prefix" >&2
+  fi
+
+  local tmpfile
+  tmpfile=$(mktemp) || {
+    echo "devtools-install: mktemp failed" >&2
+    return 1
+  }
+  trap 'rm -f "${tmpfile}"; trap - RETURN' RETURN
+
+  if ! curl -fsSL --connect-timeout 10 --max-time 120 --retry 2 "$url" -o "$tmpfile"; then
+    echo "devtools-install: failed to download '$tool' from $url" >&2
+    return 1
+  fi
+
+  if ! sudo env "$var=$prefix" sh "$tmpfile"; then
+    echo "devtools-install: failed to install '$tool' from $url" >&2
+    return 1
+  fi
+
+  local installed="$prefix/$tool"
+  if [[ ! -x "$installed" ]]; then
+    echo "devtools-install: $tool installer ran but $installed is not executable" >&2
+    return 1
+  fi
+  echo "✓ $("$installed" --version 2>/dev/null || echo "$tool installed")" >&2
+}
+
+main() {
+  local prefix="$DEFAULT_PREFIX"
+  local force=0
+  local tools=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --list)
+      list_tools
+      return 0
+      ;;
+    --all)
+      mapfile -t tools < <(printf '%s\n' "${!INSTALLERS[@]}" | sort)
+      shift
+      ;;
+    --force)
+      force=1
+      shift
+      ;;
+    --prefix)
+      [[ $# -ge 2 ]] || {
+        echo "devtools-install: --prefix requires an argument" >&2
+        return 2
+      }
+      prefix="$2"
+      shift 2
+      ;;
+    --prefix=*)
+      prefix="${1#--prefix=}"
+      shift
+      ;;
+    -*)
+      echo "devtools-install: unknown option '$1'" >&2
+      return 2
+      ;;
+    *)
+      tools+=("$1")
+      shift
+      ;;
+    esac
+  done
+
+  if [[ ${#tools[@]} -eq 0 ]]; then
+    usage >&2
+    return 2
+  fi
+
+  for cmd in curl jq sudo; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "devtools-install: missing required command '$cmd'" >&2
+      return 1
+    }
+  done
+
+  for tool in "${tools[@]}"; do
+    if [[ -z "${INSTALLERS[$tool]:-}" ]]; then
+      echo "devtools-install: unknown tool '$tool' (try --list)" >&2
+      return 2
+    fi
+  done
+
+  if [[ ! -d "$prefix" ]]; then
+    echo "devtools-install: prefix directory does not exist: $prefix" >&2
+    return 2
+  fi
+
+  sudo -v
+
+  local failed=()
+  for tool in "${tools[@]}"; do
+    install_one "$tool" "$prefix" "$force" || failed+=("$tool")
+  done
+
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    echo "devtools-install: failed for: ${failed[*]}" >&2
+    return 1
+  fi
+}
+
+main "$@"
