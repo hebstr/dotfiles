@@ -17,7 +17,10 @@ hooks = [
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
 rev = "v0.14.14"
-hooks = [{ id = "ruff" }]
+hooks = [
+  { id = "ruff-format" },
+  { id = "ruff", args = ["--fix"] },
+]
 
 [[repos]]
 repo = "https://github.com/posit-dev/air-pre-commit"
@@ -32,6 +35,22 @@ rev = "0.4.0"
 hooks = [
   { id = "jarl-check", files = '\.(R|r)$' }
 ]
+
+[[repos]]
+repo = "https://github.com/shellcheck-py/shellcheck-py"
+rev = "v0.10.0.1"
+hooks = [
+  { id = "shellcheck", exclude = '^bash/' }
+]
+
+[[repos]]
+repo = "https://github.com/scop/pre-commit-shfmt"
+rev = "v3.13.0-1"
+hooks = [
+  { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^bash/' }
+]
+
+------
 
 ### ATTENTE SUPPORT
 # [[repos]]
