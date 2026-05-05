@@ -85,7 +85,18 @@ __fix_venv_prompt() {
   fi
 }
 
-PROMPT_COMMAND="__fix_venv_prompt; history -a"
+### PROJECT ENV SYNC --------------------------------------------------------
+
+_SYNC_LAST_DIR=""
+
+__sync_env_hook() {
+  [[ "$PWD" == "$_SYNC_LAST_DIR" ]] && return
+  _SYNC_LAST_DIR="$PWD"
+  [[ -f pyproject.toml ]] && uv sync --quiet
+  # [[ -f rproject.toml ]] && rv sync --json > /dev/null
+}
+
+PROMPT_COMMAND="__fix_venv_prompt; __sync_env_hook; history -a"
 
 ### COLORS ------------------------------------------------------------------
 
@@ -123,10 +134,13 @@ alias devup='\
   uv self update && \
   claude update'
 
-alias hardup='\
-  sudo journalctl --vacuum-time=7d && \
-  snap list --all | awk "/disabled/{print \$1, \$3}" | \
-  while read name rev; do sudo snap remove "$name" --revision="$rev"; done'
+hardup() {
+  sudo journalctl --vacuum-time=7d &&
+    snap list --all | awk '/disabled/{print $1, $3}' |
+    while read -r name rev; do
+      sudo snap remove "$name" --revision="$rev"
+    done
+}
 
 alias firmup='fwupdmgr refresh && fwupdmgr update'
 
@@ -139,17 +153,21 @@ alias fd=fdfind
 
 release() {
   local tag="$1"
-  [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: release X.Y.Z (or vX.Y.Z)" >&2; return 1; }
-  git add -A \
-    && git commit -m "$tag" \
-    && git tag -a "$tag" -m "$tag" \
-    && git push \
-    && git push origin "$tag"
+  [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+    echo "usage: release X.Y.Z (or vX.Y.Z)" >&2
+    return 1
+  }
+  git add -A &&
+    git commit -m "$tag" &&
+    git tag -a "$tag" -m "$tag" &&
+    git push &&
+    git push origin "$tag"
 }
 
 ### COMPLETION & EXTERNAL SOURCES -------------------------------------------
 
 if [ -f ~/.bash_aliases ]; then
+  # shellcheck source=/dev/null
   . ~/.bash_aliases
 fi
 
@@ -161,4 +179,5 @@ if ! shopt -oq posix; then
   fi
 fi
 
+# shellcheck source=/dev/null
 [ -f ~/.secrets ] && source ~/.secrets
