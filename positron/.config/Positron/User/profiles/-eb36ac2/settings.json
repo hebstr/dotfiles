@@ -17,6 +17,7 @@
     "editor.cursorStyle": "line",
     "editor.cursorWidth": 3,
     "editor.cursorSurroundingLines": 10,
+    "diffEditor.ignoreTrimWhitespace": false,
     "notebook.lineNumbers": "on",
 
     "editor.rulers": [
@@ -97,6 +98,8 @@
         "**/.venv": true
     },
 
+    "search.quickOpen.includeSymbols": true,
+
 // LANGAGE SPÉCIFIQUE ----------------------------------------------------------
 
     "[r]": {
@@ -120,13 +123,11 @@
     "python.enableAutoReload": false,
     "python.terminal.activateEnvironment": true,
 
-    // UP
     "[dockerfile]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },
 
-    // UP
     "bashIde.shellcheckPath": "shellcheck",
     "bashIde.shfmt.path": "/usr/bin/shfmt",
     "bashIde.enableSourceErrorDiagnostics": true,
@@ -185,12 +186,14 @@
         ".Rbuildignore": "settings",
         "renv.lock": "lock",
         "rv.lock": "lock",
+        "*.Rproj": "r",
     },
 
     "material-icon-theme.folders.associations": {
-        "man": "docs",
+        "man": "mock",
+        "renv": "packages",
+        "rv": "packages",
         "vignettes": "docs",
-        "renv": "lib",
     },
 
     "quartoWizard.ask.trustAuthors": "never",
@@ -219,6 +222,7 @@
     "workbench.tree.renderIndentGuides": "always",
     "workbench.keybindings.rstudioKeybindings": true,
     "workbench.secondarySideBar.showLabels": false,
+    "workbench.layoutControl.enabled": false,
 
     "window.title": "${activeEditorFull}${separator}${rootName}",
 
@@ -227,6 +231,20 @@
 // COLORATION SYNTAXIQUE -------------------------------------------------------
 
     "editor.tokenColorCustomizations": {
+        "[Material Night Eighties]": {
+            "textMateRules": [
+                {
+                    "name": "Comment",
+                    "scope": [
+                        "comment",
+                        "punctuation.definition.comment"
+                    ],
+                    "settings": {
+                        "foreground": "#888"
+                    }
+                }
+            ]
+        },
         "textMateRules": [
             {
                 "name": "Text and Source Base",
@@ -337,7 +355,7 @@
                 }
             },
             {
-                "name": "Namespace", // UP
+                "name": "Namespace",
                 "scope": [
                     "entity.name.namespace.r",
                 ],
@@ -726,6 +744,5 @@
             }
         ]
     },
-    "diffEditor.ignoreTrimWhitespace": false,
 
 }
