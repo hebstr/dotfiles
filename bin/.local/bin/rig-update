@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+
+: "${RIG_GPG_KEY_URL:=https://rig.r-pkg.org/deb/rig.gpg}"
+: "${RIG_GPG_KEY_DEST:=/etc/apt/trusted.gpg.d/rig.gpg}"
+: "${RIG_APT_SOURCE_FILE:=/etc/apt/sources.list.d/rig.list}"
+RIG_APT_SOURCE_LINE="deb http://rig.r-pkg.org/deb rig main"
+RIG_PACKAGE="r-rig"
+RIG_API_URL="https://api.github.com/repos/r-lib/rig/releases/latest"
+
+fetch_latest_version() {
+  local tag
+  tag=$(curl -fsSL "$RIG_API_URL" | jq -r '.tag_name | ltrimstr("v")')
+  if [[ -z "$tag" || "$tag" == "null" ]]; then
+    printf 'Failed to resolve latest rig version from GitHub API\n' >&2
+    exit 1
+  fi
+  printf '%s' "$tag"
+}
+
+get_current_version() {
+  local ver
+  ver=$(rig --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+  printf '%s' "${ver:-unknown}"
+}
+
+setup_apt_repo() {
+  if [[ ! -f "$RIG_GPG_KEY_DEST" ]]; then
+    sudo curl -fsSL "$RIG_GPG_KEY_URL" -o "$RIG_GPG_KEY_DEST"
+  fi
+  if [[ ! -f "$RIG_APT_SOURCE_FILE" ]]; then
+    printf '%s\n' "$RIG_APT_SOURCE_LINE" | sudo tee "$RIG_APT_SOURCE_FILE" >/dev/null
+  fi
+}
+
+do_upgrade() {
+  sudo apt-get update -qq
+  sudo apt-get install -y "$RIG_PACKAGE"
+}
+
+main() {
+  local latest current
+  latest=$(fetch_latest_version)
+  current=$(get_current_version)
+
+  printf 'Latest rig release: %s\n' "$latest"
+  printf 'Current version:    %s\n' "$current"
+
+  if [[ "$current" == "$latest" ]]; then
+    printf 'Already on %s — nothing to do.\n' "$latest"
+    exit 0
+  fi
+
+  sudo -v
+
+  setup_apt_repo
+  do_upgrade
+
+  printf '\nInstalled version:\n'
+  rig --version
+  printf '\nPrevious version was: %s\n' "$current"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
