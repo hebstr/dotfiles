@@ -337,6 +337,15 @@
                 }
             },
             {
+                "name": "Namespace", // UP
+                "scope": [
+                    "entity.name.namespace.r",
+                ],
+                "settings": {
+                    "foreground": "#ffd000"
+                }
+            },
+            {
                 "name": "Punctuation Definition",
                 "scope": [
                     "punctuation.definition.string",

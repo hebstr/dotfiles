@@ -38,7 +38,12 @@
         ],
         "console_left_on_top": false,
         "console_right_on_top": true,
-        "additional_source_columns": 0
+        "additional_source_columns": 0,
+        "sidebar": [
+            "Chat"
+        ],
+        "sidebar_visible": false,
+        "sidebar_location": "left"
     },
     "save_files_before_build": true,
     "graphics_antialiasing": "subpixel",
@@ -60,5 +65,6 @@
     "rainbow_parentheses": true,
     "font_size_points": 9,
     "source_with_echo": true,
-    "auto_detect_indentation": true
+    "auto_detect_indentation": true,
+    "assistant_toolbar_button_visible": false
 }
