@@ -6,9 +6,9 @@
 - site_libs/**
 
 # --- R ---
-- .renv/**
-- renv/library/**
 - rv/library/**
+- renv/library/**
+- .renv/**
 - .Rproj.user/**
 - .Rhistory
 - .RData
@@ -47,6 +47,3 @@
 # --- Tmp ---
 - *.tmp
 - *.swp
-
-# --- Downloads ---
-- Downloads/**
