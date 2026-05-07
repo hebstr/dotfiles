@@ -2,7 +2,7 @@
 set -euo pipefail
 
 HOST="cpd000001"
-REPO="edjulien/data/"
+REPO="edjulien/"
 SOURCE="$HOST:/home/$REPO"
 DEST="/s/julien.elicesdiez/backup/$REPO"
 EXCLUDES="$HOME/.config/backup/excludes.txt"

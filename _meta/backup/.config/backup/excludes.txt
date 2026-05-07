@@ -21,11 +21,23 @@
 - .uv/**
 - .ruff_cache/**
 
+# --- Rust ---
+- .rustup/**
+- .cargo/registry/**
+- .cargo/git/**
+
 # --- Node ---
 - node_modules/**
 
+# --- IDE servers ---
+- .positron-server/**
+- .vscode-server/**
+
 # --- System / cache ---
 - .cache/**
+- .local/lib/**
+- .local/state/**
+- .local/share/R/**
 - .local/share/Trash/**
 - .local/share/recently-used.xbf
 - .thumbnails/**
