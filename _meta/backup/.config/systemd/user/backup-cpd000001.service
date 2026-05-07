@@ -1,10 +1,10 @@
 [Unit]
-Description=Backup /home/julien to remote
+Description=Backup cpd000001 to vwp000295
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=%h/.local/bin/backup-home
+ExecStart=%h/.local/bin/backup-cpd000001
 StandardOutput=journal
 StandardError=journal

@@ -9,4 +9,5 @@ EXCLUDES="$HOME/.config/backup/excludes.txt"
 
 rclone sync "$SOURCE" "$DEST" \
   --filter-from="$EXCLUDES" \
+  --delete-excluded \
   --progress

@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily backup of /home/julien
+Description=Backup cpd000001 to vwp000295
 
 [Timer]
 OnCalendar=daily
