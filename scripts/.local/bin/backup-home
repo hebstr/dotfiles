@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REMOTE="cpd000001"
-SOURCE="${REMOTE}:/home/edjulien/"
-DEST="/s/julien.elicesdiez/backup/edjulien/"
-EXCLUDES="${HOME}/.config/backup/excludes.txt"
+HOST="cpd000001"
+REPO="edjulien/data/"
+SOURCE="$HOST:/home/$REPO"
+DEST="/s/julien.elicesdiez/backup/$REPO"
+EXCLUDES="$HOME/.config/backup/excludes.txt"
 
-rclone sync \
-  "${SOURCE}" \
-  "${DEST}" \
-  --filter-from="${EXCLUDES}" \
+rclone sync "$SOURCE" "$DEST" \
+  --filter-from="$EXCLUDES" \
   --progress
