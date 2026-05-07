@@ -1,0 +1,12 @@
+- .cache/**
+- .local/share/Trash/**
+- .local/share/recently-used.xbf
+- .thumbnails/**
+- Downloads/**
+- node_modules/**
+- __pycache__/**
+- .renv/**
+- renv/library/**
+- *.pyc
+- *.log
+- .venv/**

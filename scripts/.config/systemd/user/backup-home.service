@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup /home/julien to remote
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/backup-home
+StandardOutput=journal
+StandardError=journal
