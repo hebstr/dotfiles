@@ -362,9 +362,11 @@
                 "name": "Namespace",
                 "scope": [
                     "entity.name.namespace.r",
+                    "storage.type.function.python"
                 ],
                 "settings": {
-                    "foreground": "#ffd000"
+                    "foreground": "#FAD430",
+                    "fontStyle": "bold"
                 }
             },
             {
@@ -435,7 +437,8 @@
             {
                 "name": "Attribute ID",
                 "scope": [
-                    "entity.other.attribute-name.id"
+                    "entity.other.attribute-name.id",
+                    "constant.other.caps.python"
                 ],
                 "settings": {
                     "foreground": "#FAD430"

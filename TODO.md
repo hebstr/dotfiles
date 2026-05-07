@@ -1,0 +1,3 @@
+- faire une note avec symlinks Rprofile.site
+- formaliser duckdb-install
+- audit streamlit

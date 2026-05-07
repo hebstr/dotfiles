@@ -2,6 +2,7 @@ options(
   repos = c(
     CRAN = "https://packagemanager.posit.co/cran/__linux__/noble/latest"
   ),
+  java.parameters = "-Xmx8g",
   duckdb.enable_rstudio_connection_pane = TRUE,
   tidyverse.quiet = TRUE,
   tidymodels.quiet = TRUE,
