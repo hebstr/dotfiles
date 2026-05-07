@@ -67,7 +67,8 @@
         "**/_book": true,
         "**/_site": true,
         "**/_freeze": true,
-        "**/.venv": true
+        "**/.venv": true,
+        "**/.ruff_cache": true,
     },
 
     "files.watcherExclude": {
@@ -81,7 +82,8 @@
         "**/_book": true,
         "**/_site": true,
         "**/_freeze": true,
-        "**/.venv": true
+        "**/.venv": true,
+        "**/.ruff_cache": true,
     },
 
     "search.exclude": {
@@ -95,7 +97,8 @@
         "**/_book": true,
         "**/_site": true,
         "**/_freeze": true,
-        "**/.venv": true
+        "**/.venv": true,
+        "**/.ruff_cache": true,
     },
 
     "search.quickOpen.includeSymbols": true,
@@ -187,6 +190,7 @@
         "renv.lock": "lock",
         "rv.lock": "lock",
         "*.Rproj": "r",
+        "*.ggsql": "sql",
     },
 
     "material-icon-theme.folders.associations": {
