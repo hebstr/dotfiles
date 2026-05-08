@@ -10,7 +10,6 @@ prek.toml                  # pre-commit hooks (shellcheck, shfmt, check-yaml)
 _meta/
 ├── notes/       # internal docs
 ├── profiles/    # exportable Positron / VS Code profiles
-├── scripts/     # one-shot setup scripts (not stowed)
 ├── templates/   # reusable config templates
 └── tests/       # bats test suites for bin/ scripts
 ```

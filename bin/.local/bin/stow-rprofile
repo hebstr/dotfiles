@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RPROFILE="$HOME/dotfiles/_meta/templates/Rprofile.site"
+OPT_R="${OPT_R:-/opt/R}"
+
+if [[ ! -f "$RPROFILE" ]]; then
+  echo "Template not found: $RPROFILE" >&2
+  exit 1
+fi
+
+if command -v rig >/dev/null 2>&1; then
+  versions=$(rig list | awk 'NR > 2 { print ($1 == "*") ? $2 : $1 }')
+else
+  versions=$(find "$OPT_R/" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+$' || true)
+fi
+
+if [[ -z "$versions" ]]; then
+  echo "No R versions found." >&2
+  exit 1
+fi
+
+while IFS= read -r version; do
+  dir="$OPT_R/$version"
+  if [[ ! -d "$dir" ]]; then
+    echo "Skipping $version: $dir not found" >&2
+    continue
+  fi
+  sudo ln -sf "$RPROFILE" "$dir/lib/R/etc/Rprofile.site"
+  echo "$version -> $dir/lib/R/etc/Rprofile.site"
+done <<<"$versions"
