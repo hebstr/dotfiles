@@ -86,6 +86,9 @@
 - R: use `here::here()` for paths, never absolute paths
 - R: always install packages with `pak::pak()`, never `install.packages()`
 - R: format with `air`, lint with `jarl` (configs in air.toml)
+- R: never use `renv` — `rv` replaces it for all project types; `DESCRIPTION` is canonical for packages
+- R: for list-building from repeated calls, lead with purrr (`set_names()` + `map()`); base R only if asked or for a concrete performance reason
+- R: before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "pkg::fn_name"`
 - Python: prefer polars over pandas unless the project already uses pandas
 - Only modify code directly related to the task, don't refactor surrounding code
 - No manual soft wraps in .md/.qmd files — one sentence or logical unit per line, no artificial line breaks
@@ -113,6 +116,9 @@
   4. Permission/config files that gate the changed capability (allowed-tools, DESCRIPTION Imports, `__all__`, manifests, rbac configs) → grant access where appropriate
   5. Instructions or docs that describe limitations now lifted by the change (e.g. "Do NOT do X", "ask user to provide X manually", "planned for later") → update to reflect new capability
 - When compacting, always preserve: current objective and active step from PLAN.md, list of modified files, and active constraints or blockers.
+- Memory level: before saving any memory, ask "would this apply in a different project?" Yes → global (`~/.claude/memory/`); No → project. Feedback on behavior or workflow is almost always global.
+- Before marking any step done, verify the output is usable by the next step — check content quality, not just field presence.
+- "audit du répertoire" / scan requests = scope is ALL files in the working directory; use `/sync-files` rather than ad-hoc single-file checks.
 
 ## Communication
 
@@ -125,6 +131,10 @@
 - Never say "fix appliqué" / "fix applied" unless an Edit/Write has actually modified a file. When the change requires user action (git command to run, manual edit), phrase it as "à appliquer par toi" / "voici la commande à exécuter" — the user manages their own git operations and needs accurate status
 - When explaining concepts: accompany code with prose, introduce progressively, use analogies for unfamiliar ideas, show expected output when it helps. Keep it focused; go deeper only when asked
 - When executing a task: concise, no unsolicited explanations
+- No apologies, no performativity: no "sorry", "oops", "great question", or simulated emotions. On correction: state the problem, fix it, move on.
+- Any error (hook, tool, CI, linter, non-zero exit) must be investigated before proceeding — never dismiss or label as cosmetic
+- "Show me how to X" means a tutorial to follow, not execution; if intent is ambiguous, ask
+- At a natural session boundary (context limit, different working directory): proactively provide a ready-to-paste continuation prompt — do not wait for the user to ask
 - Anticipate idiomatic R/Python pitfalls
 - Avoid em dashes (`—`) and en dashes used as punctuation in prose. They are an AI tic that makes text feel synthetic and unpleasant for humans. Use colons, parentheses, periods, or simply restructure the sentence. En dashes for numeric ranges (`1–2 min`) are fine. This applies in every language
 
@@ -152,6 +162,8 @@ Concrete anti-AI-slop patterns to avoid in all prose Claude writes. Applies to b
 - Use background mode for exploration, foreground when results feed into the next step
 - Agent type selection: `Explore` (haiku) for fast code scanning, `ouroboros:qa-judge` for structured verdicts with score, `ouroboros:architect` for system-level design views, `general-purpose` for complex multi-step tasks
 - Agents do not survive session interruptions and cannot communicate with each other — plan for partial failures and bridge results in the main context
+- `Explore` subagent has no WebFetch/WebSearch in practice despite its description — use `general-purpose` for any task requiring web access
+- Subagent outputs are unverified claims: verify any command, URL, CLI flag, or API syntax before relaying to the user
 
 ## showboat
 

@@ -1,15 +1,14 @@
 #!/usr/bin/env bats
 
-SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/symlinks-check"
-
 setup() {
-  TMPDIR_TEST=$(mktemp -d)
-  export TMPDIR_TEST
-  export HOME="$TMPDIR_TEST"
+  TEST_DIR=$(mktemp -d)
+  export TEST_DIR
+  export HOME="$TEST_DIR"
+  export SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/symlinks-check"
 }
 
 teardown() {
-  rm -rf "$TMPDIR_TEST"
+  rm -rf "$TEST_DIR"
 }
 
 @test "exits 0 with no output when no symlinks exist" {

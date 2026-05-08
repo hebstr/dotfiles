@@ -21,13 +21,13 @@ declare -A REPOS=(
 
 usage() {
   cat <<EOF
-devtools-install — install cargo-dist-style binaries system-wide
+devtools-update — install cargo-dist-style binaries system-wide
 
 USAGE:
-  devtools-install [--prefix DIR] [--force] TOOL [TOOL...]
-  devtools-install [--prefix DIR] [--force] --all
-  devtools-install --list
-  devtools-install -h | --help
+  devtools-update [--prefix DIR] [--force] TOOL [TOOL...]
+  devtools-update [--prefix DIR] [--force] --all
+  devtools-update --list
+  devtools-update -h | --help
 
 OPTIONS:
   --prefix DIR   Install destination (default: ${DEFAULT_PREFIX})
@@ -76,7 +76,7 @@ install_one() {
   local tool="$1" prefix="$2" force="$3"
   local entry="${INSTALLERS[$tool]:-}"
   if [[ -z "$entry" ]]; then
-    echo "devtools-install: unknown tool '$tool' (try --list)" >&2
+    echo "devtools-update: unknown tool '$tool' (try --list)" >&2
     return 1
   fi
   local url var
@@ -86,7 +86,7 @@ install_one() {
   local latest
   latest=$(get_latest_version "$repo")
   if [[ -z "$latest" || "$latest" == "null" ]]; then
-    echo "devtools-install: failed to resolve latest version for '$tool' from GitHub API" >&2
+    echo "devtools-update: failed to resolve latest version for '$tool' from GitHub API" >&2
     return 1
   fi
 
@@ -106,13 +106,13 @@ install_one() {
 
   local tmpfile
   tmpfile=$(mktemp) || {
-    echo "devtools-install: mktemp failed" >&2
+    echo "devtools-update: mktemp failed" >&2
     return 1
   }
   trap 'rm -f "${tmpfile}"; trap - RETURN' RETURN
 
   if ! curl -fsSL --connect-timeout 10 --max-time 120 --retry 2 "$url" -o "$tmpfile"; then
-    echo "devtools-install: failed to download '$tool' from $url" >&2
+    echo "devtools-update: failed to download '$tool' from $url" >&2
     return 1
   fi
 
@@ -120,13 +120,13 @@ install_one() {
   # installers, so server compromise defeats both. Accepted risk for a personal
   # workstation script fetching from known OSS sources.
   if ! sudo env "$var=$prefix" sh "$tmpfile"; then
-    echo "devtools-install: failed to install '$tool' from $url" >&2
+    echo "devtools-update: failed to install '$tool' from $url" >&2
     return 1
   fi
 
   local installed="$prefix/$tool"
   if [[ ! -x "$installed" ]]; then
-    echo "devtools-install: $tool installer ran but $installed is not executable" >&2
+    echo "devtools-update: $tool installer ran but $installed is not executable" >&2
     return 1
   fi
   echo "✓ $("$installed" --version 2>/dev/null || echo "$tool installed")" >&2
@@ -157,7 +157,7 @@ main() {
       ;;
     --prefix)
       [[ $# -ge 2 ]] || {
-        echo "devtools-install: --prefix requires an argument" >&2
+        echo "devtools-update: --prefix requires an argument" >&2
         return 2
       }
       prefix="$2"
@@ -168,7 +168,7 @@ main() {
       shift
       ;;
     -*)
-      echo "devtools-install: unknown option '$1'" >&2
+      echo "devtools-update: unknown option '$1'" >&2
       return 2
       ;;
     *)
@@ -185,20 +185,20 @@ main() {
 
   for cmd in curl jq sudo; do
     command -v "$cmd" >/dev/null 2>&1 || {
-      echo "devtools-install: missing required command '$cmd'" >&2
+      echo "devtools-update: missing required command '$cmd'" >&2
       return 1
     }
   done
 
   for tool in "${tools[@]}"; do
     if [[ -z "${INSTALLERS[$tool]:-}" ]]; then
-      echo "devtools-install: unknown tool '$tool' (try --list)" >&2
+      echo "devtools-update: unknown tool '$tool' (try --list)" >&2
       return 2
     fi
   done
 
   if [[ ! -d "$prefix" ]]; then
-    echo "devtools-install: prefix directory does not exist: $prefix" >&2
+    echo "devtools-update: prefix directory does not exist: $prefix" >&2
     return 2
   fi
 
@@ -210,7 +210,7 @@ main() {
   done
 
   if [[ ${#failed[@]} -gt 0 ]]; then
-    echo "devtools-install: failed for: ${failed[*]}" >&2
+    echo "devtools-update: failed for: ${failed[*]}" >&2
     return 1
   fi
 }

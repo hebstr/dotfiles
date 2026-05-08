@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+
+VER=$(curl -fsSL https://api.github.com/repos/duckdb/duckdb/releases/latest | jq -r '.tag_name // ""')
+case "$(uname -m)" in
+x86_64) ARCH=amd64 ;;
+aarch64) ARCH=arm64 ;;
+*)
+  echo "Unsupported architecture: $(uname -m)" >&2
+  exit 1
+  ;;
+esac
+
+if [ "$VER" = "" ] || [ "$VER" = "null" ]; then
+  echo "Failed to resolve latest DuckDB version from GitHub API" >&2
+  exit 1
+fi
+
+echo "Latest DuckDB release: ${VER}"
+
+CURRENT=$(duckdb --version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+[ "$CURRENT" != "" ] || CURRENT=unknown
+if [ "$CURRENT" = "$VER" ]; then
+  echo "Already on ${VER} — nothing to do."
+  exit 0
+fi
+
+ARTIFACT="duckdb_cli-linux-${ARCH}.gz"
+BASE_URL="https://github.com/duckdb/duckdb/releases/download/${VER}"
+DEST="${HOME}/.local/bin/duckdb"
+TMP=$(mktemp -d)
+cleanup() {
+  rc=$?
+  rm -rf "$TMP"
+  exit "$rc"
+}
+trap cleanup EXIT
+
+echo "Downloading DuckDB ${VER}..."
+# DuckDB does not publish checksums; TLS to GitHub is the integrity boundary.
+curl -fL --progress-bar -o "${TMP}/${ARTIFACT}" "${BASE_URL}/${ARTIFACT}"
+
+echo "Extracting..."
+gunzip -c "${TMP}/${ARTIFACT}" >"${TMP}/duckdb"
+chmod +x "${TMP}/duckdb"
+
+echo "Verifying binary..."
+if ! "${TMP}/duckdb" --version >/dev/null 2>&1; then
+  echo "Extracted binary fails to execute — aborting" >&2
+  exit 1
+fi
+
+# On first run the target may be a root-owned symlink left by the old duckdb.org installer.
+if [ -e "$DEST" ] || [ -L "$DEST" ]; then
+  BACKUP="${DEST}.bak-${CURRENT}-$(date +%Y%m%d-%H%M%S)"
+  if [ -L "$DEST" ]; then
+    echo "Removing symlink ${DEST} -> $(readlink "$DEST")"
+    rm -f "$DEST" 2>/dev/null || sudo rm -f "$DEST" || {
+      echo "Cannot remove ${DEST} — manual intervention required" >&2
+      exit 1
+    }
+  else
+    mv "$DEST" "$BACKUP"
+    echo "Previous binary backed up to ${BACKUP}"
+  fi
+fi
+
+mv "${TMP}/duckdb" "$DEST"
+
+echo
+echo "Installed version:"
+"$DEST" --version
+echo
+echo "Previous version was: ${CURRENT}"

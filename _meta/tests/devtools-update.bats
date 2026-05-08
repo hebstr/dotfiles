@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
-# Tests for devtools-install
+# Tests for devtools-update
 # Mocks: curl, jq, sudo — no real network calls, no real installs
 
-SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/devtools-install"
+SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/devtools-update"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -127,7 +127,7 @@ make_curl_stub() {
 @test "--help prints usage and exits 0" {
   run "$SCRIPT" --help
   [ "$status" -eq 0 ]
-  [[ "$output" == *"devtools-install"* ]]
+  [[ "$output" == *"devtools-update"* ]]
   [[ "$output" == *"USAGE"* ]]
 }
 

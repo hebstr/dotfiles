@@ -22,6 +22,16 @@ Orthogonal roles:
 - **shellharden** automatically fixes quoting (based on shellcheck rules)
 - **shfmt** formats (cosmetic only, no semantic correction)
 
+## Mandatory pipeline after every create/edit
+
+After writing or editing any shell script, run the full pipeline in one shot before marking the task done:
+
+```sh
+shellharden --replace script.sh && shfmt -w -i 2 -ci -sr script.sh && shellcheck script.sh
+```
+
+Running only one or two tools is not sufficient — all three are complementary.
+
 ## Typical pipeline
 
 Order matters — shellharden modifies structure, shfmt formats, shellcheck validates:

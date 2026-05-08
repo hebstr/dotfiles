@@ -1,7 +1,8 @@
 [[repos]]
 repo = "local"
 hooks = [
-  { id = "check-stow-symlinks", name = "Check dotfiles symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
+  { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
+  { id = "bats-tests", name = "check bats tests", entry = "bats _meta/tests/", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/)' },
 ]
 
 [[repos]]
