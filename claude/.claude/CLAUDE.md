@@ -117,6 +117,7 @@
   5. Instructions or docs that describe limitations now lifted by the change (e.g. "Do NOT do X", "ask user to provide X manually", "planned for later") → update to reflect new capability
 - When compacting, always preserve: current objective and active step from PLAN.md, list of modified files, and active constraints or blockers.
 - Memory level: before saving any memory, ask "would this apply in a different project?" Yes → global (`~/.claude/memory/`); No → project. Feedback on behavior or workflow is almost always global.
+- **A general behavioral rule (applies unconditionally, in all projects) goes directly into `~/.claude/CLAUDE.md`, not into a feedback memory file.** Feedback memory is for nuanced, contextual guidance that supplements CLAUDE.md. When a correction is absolute — no exceptions, no context-dependence — it belongs in CLAUDE.md.
 - Before marking any step done, verify the output is usable by the next step — check content quality, not just field presence.
 - "audit du répertoire" / scan requests = scope is ALL files in the working directory; use `/sync-files` rather than ad-hoc single-file checks.
 
@@ -127,6 +128,7 @@
 - No corporate jargon or marketing speak
 - No emojis in any output unless explicitly requested
 - Never state a verifiable fact without checking it first (tool call, file read, search)
+- **Never write an external URL to a file without verifying it first** (WebFetch or `gh api` for GitHub repos). Training-data assumptions about URLs are unreliable. If verification is impossible, omit the link and say so.
 - If uncertain or unverifiable, say so explicitly — never fabricate or present assumptions as facts
 - Never say "fix appliqué" / "fix applied" unless an Edit/Write has actually modified a file. When the change requires user action (git command to run, manual edit), phrase it as "à appliquer par toi" / "voici la commande à exécuter" — the user manages their own git operations and needs accurate status
 - When explaining concepts: accompany code with prose, introduce progressively, use analogies for unfamiliar ideas, show expected output when it helps. Keep it focused; go deeper only when asked

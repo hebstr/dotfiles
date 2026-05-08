@@ -1,3 +1,2 @@
 - faire une note avec symlinks Rprofile.site
-- formaliser duckdb-install
-- audit streamlit
+- Ouroboros: not available (runtime error — probe returned cannot assign to field 'content').
