@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+broken=$(
+  find ~/ -maxdepth 3 -type l 2>/dev/null | while IFS= read -r link; do
+    target=$(readlink "$link")
+    [[ "$target" == "$HOME/dotfiles/"* ]] || continue
+    test -e "$link" || printf 'BROKEN: %s -> %s\n' "$link" "$target"
+  done
+)
+
+if [ -n "$broken" ]; then
+  printf '%s\n' "$broken"
+  exit 1
+fi

@@ -31,6 +31,9 @@ get_current_version() {
 
 setup_apt_repo() {
   if [[ ! -f "$RIG_GPG_KEY_DEST" ]]; then
+    # No fingerprint pinning: a hardcoded fingerprint would require manual
+    # updates on key rotation. Accepted risk for a personal workstation script
+    # fetching from the official r-pkg.org domain over TLS.
     sudo curl -fsSL "$RIG_GPG_KEY_URL" -o "$RIG_GPG_KEY_DEST"
   fi
   if [[ ! -f "$RIG_APT_SOURCE_FILE" ]]; then

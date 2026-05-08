@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+
 INSTALLER_URL="https://raw.githubusercontent.com/A2-ai/rv/refs/heads/main/scripts/install.sh"
 LATEST_API="https://api.github.com/repos/A2-ai/rv/releases/latest"
 

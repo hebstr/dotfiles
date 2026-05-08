@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+command -v claude >/dev/null 2>&1 || {
+  printf 'claude is required\n' >&2
+  exit 1
+}
+command -v curl >/dev/null 2>&1 || {
+  printf 'curl is required\n' >&2
+  exit 1
+}
+
 INSTALLED=~/.claude/plugins/installed_plugins.json
 
 claude plugin marketplace update
 
-if [ ! -f "${INSTALLED}" ]; then
+if [ ! -f "$INSTALLED" ]; then
   echo "No installed_plugins.json found — nothing else to update."
   exit 0
 fi
@@ -14,5 +27,27 @@ echo "Updating installed plugins..."
 
 while IFS= read -r plugin; do
   echo "  → ${plugin}"
-  claude plugin update "${plugin}" || echo "    [failed]" >&2
-done < <(jq -er '.plugins | keys[]' "${INSTALLED}")
+  claude plugin update "$plugin" || echo "    [failed]" >&2
+done < <(jq -er '.plugins | keys[]' "$INSTALLED")
+
+MCP_JSON=~/.claude/mcp.json
+if [ -f "$MCP_JSON" ] && jq -e '.mcpServers.ouroboros' "$MCP_JSON" >/dev/null 2>&1; then
+  echo "Checking ouroboros MCP version..."
+  LATEST=$(curl -sf "https://pypi.org/pypi/ouroboros-ai/json" | jq -r '.info.version' 2>/dev/null) || LATEST=""
+  if [ "$LATEST" != "" ]; then
+    CURRENT=$(jq -r '.mcpServers.ouroboros.args[] | select(test("ouroboros-ai"))' "$MCP_JSON" 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || echo "")
+    if [ "$CURRENT" != "" ] && [ "$CURRENT" != "$LATEST" ]; then
+      tmp=$(mktemp "$(dirname "$MCP_JSON")/.mcp.XXXXXX")
+      trap 'rm -f "$tmp"' EXIT
+      jq --arg v "$LATEST" '
+        .mcpServers.ouroboros.args |= map(
+          if test("ouroboros-ai") then gsub("==\\d+\\.\\d+\\.\\d+"; "==" + $v) else . end
+        )' "$MCP_JSON" >"$tmp" && mv "$tmp" "$MCP_JSON"
+      echo "  → ouroboros MCP: ${CURRENT} → ${LATEST} (restart Claude Code to apply)"
+    else
+      echo "  → ouroboros MCP: already at ${LATEST}"
+    fi
+  else
+    echo "  → ouroboros MCP: could not fetch latest version from PyPI" >&2
+  fi
+fi

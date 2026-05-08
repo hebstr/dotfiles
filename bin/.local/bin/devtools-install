@@ -116,6 +116,9 @@ install_one() {
     return 1
   fi
 
+  # No checksum verification: checksums are hosted on the same servers as the
+  # installers, so server compromise defeats both. Accepted risk for a personal
+  # workstation script fetching from known OSS sources.
   if ! sudo env "$var=$prefix" sh "$tmpfile"; then
     echo "devtools-install: failed to install '$tool' from $url" >&2
     return 1

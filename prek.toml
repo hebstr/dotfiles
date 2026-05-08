@@ -1,4 +1,10 @@
 [[repos]]
+repo = "local"
+hooks = [
+  { id = "check-stow-symlinks", name = "Check dotfiles symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
+]
+
+[[repos]]
 repo = "https://github.com/pre-commit/pre-commit-hooks"
 rev = "v6.0.0"
 hooks = [

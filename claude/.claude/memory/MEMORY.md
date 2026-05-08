@@ -28,3 +28,4 @@
 - [feedback_verify_quarto_theming.md](feedback_verify_quarto_theming.md) — Quarto theming: always render and scan compiled CSS (decode data:text/css URI) to verify SCSS changes land and win specificity
 - [feedback_french_prose.md](feedback_french_prose.md) — FR prose: TLFi/Grevisse/Lexique IN authorities, Académie rejected, idiomatic anglicisms preserved vs corporate calques translated, no em-dash
 - [feedback_r_idioms_purrr_first.md](feedback_r_idioms_purrr_first.md) — R list-building: lead with purrr (set_names + map); base R only when asked or for performance
+- [feedback_show_me_how.md](feedback_show_me_how.md) — "Show me how to" = tutorial to follow, not execution; ask if ambiguous

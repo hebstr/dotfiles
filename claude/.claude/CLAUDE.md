@@ -31,7 +31,6 @@
 |------|-------|
 | pak  | Default package installer (`pak::pak()`) |
 | rv   | Lockfile: `rv.lock`, config: `rproject.toml` |
-| renv | Lockfile: `renv.lock` (legacy projects) |
 
 - CRAN mirror: `https://packagemanager.posit.co/cran/__linux__/noble/latest` (PPM, Linux noble binaries)
 
@@ -58,6 +57,7 @@
 | duckdb  | SQL queries from shell (`~/.local/bin/duckdb`) |
 | rig     | R version manager (`rig default <version>`)    |
 | stow    | Symlink manager for dotfiles (`~/dotfiles`)    |
+| showboat | Executable demo documents (`uv tool install showboat`) |
 | shellcheck  | Shell linter (analyse statique, codes `SC*`) |
 | shellharden | Auto-fix du quoting des variables shell      |
 | shfmt       | Formateur shell (indentation, espacement)    |
@@ -84,6 +84,7 @@
 - R: use native pipe `|>`
 - R: use the lambda shorthand `\()` instead of `function()`; inside purrr map/walk, prefer tilde formula `~ .x` for simple expressions
 - R: use `here::here()` for paths, never absolute paths
+- R: always install packages with `pak::pak()`, never `install.packages()`
 - R: format with `air`, lint with `jarl` (configs in air.toml)
 - Python: prefer polars over pandas unless the project already uses pandas
 - Only modify code directly related to the task, don't refactor surrounding code
@@ -151,6 +152,17 @@ Concrete anti-AI-slop patterns to avoid in all prose Claude writes. Applies to b
 - Use background mode for exploration, foreground when results feed into the next step
 - Agent type selection: `Explore` (haiku) for fast code scanning, `ouroboros:qa-judge` for structured verdicts with score, `ouroboros:architect` for system-level design views, `general-purpose` for complex multi-step tasks
 - Agents do not survive session interruptions and cannot communicate with each other — plan for partial failures and bridge results in the main context
+
+## showboat
+
+When executing installation, setup, or environment-update tasks — regardless of project — use showboat to produce a trace document in `<project>/_meta/notes/<task-name>.md` (or `~/dotfiles/_meta/notes/` for system-level tasks). Do not use showboat for code, analysis, or narrative documentation.
+
+Key commands:
+- `showboat init <file> <title>` — create document
+- `showboat note <file> <text>` — add prose (accepts stdin)
+- `showboat exec <file> <lang> <code>` — run code and capture output
+- `showboat pop <file>` — remove last entry
+- `showboat verify <file>` — re-run all exec blocks and diff outputs
 
 ## References
 

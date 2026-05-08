@@ -51,8 +51,8 @@ folder_exists() {
   st_api GET "/rest/config/folders" | python3 -c "
 import json, sys
 folders = json.load(sys.stdin)
-sys.exit(0 if any(f['id'] == '$1' for f in folders) else 1)
-" 2>/dev/null
+sys.exit(0 if any(f['id'] == sys.argv[1] for f in folders) else 1)
+" "$1" 2>/dev/null
 }
 
 FOLDER_PATH=""

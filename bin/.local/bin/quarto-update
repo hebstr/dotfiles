@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+
 VER=$(curl -fsSL https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | jq -r '(.tag_name // "") | sub("^v"; "")')
 case "$(uname -m)" in
 x86_64) ARCH=linux-amd64 ;;
