@@ -4,7 +4,7 @@ description: Calibration rules for code reviews of shell scripts in ~/dotfiles/b
 type: feedback
 ---
 
-When reviewing personal shell installers (e.g. `quarto-update`, `positron-update`, `rv-install`) under `~/dotfiles/bin/.local/bin/`, do NOT raise the following finding patterns:
+When reviewing personal shell installers (e.g. `quarto-update`, `positron-update`, `rv-update`) under `~/dotfiles/bin/.local/bin/`, do NOT raise the following finding patterns:
 
 - Defensive branching to distinguish "first install" / "parse failure" / "normal" cases on a single-user workstation where the tool is already installed
 - Supply-chain concerns about checksums served from the same origin as the binary, when the upstream vendor publishes no detached signature (TLS is the only available trust root — note as informational only, no code change possible)

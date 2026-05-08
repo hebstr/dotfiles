@@ -1,2 +1,1 @@
-- faire une note avec symlinks Rprofile.site
 - Ouroboros: not available (runtime error — probe returned cannot assign to field 'content').
