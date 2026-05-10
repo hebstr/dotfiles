@@ -58,10 +58,10 @@
 | rig     | R version manager (`rig default <version>`)    |
 | stow    | Symlink manager for dotfiles (`~/dotfiles`)    |
 | showboat | Executable demo documents (`uv tool install showboat`) |
-| shellcheck  | Shell linter (analyse statique, codes `SC*`) |
-| shellharden | Auto-fix du quoting des variables shell      |
-| shfmt       | Formateur shell (indentation, espacement)    |
-| prek        | Pre-commit hooks runner (Rust, remplace pre-commit) |
+| shellcheck  | Shell linter (static analysis, `SC*` codes)  |
+| shellharden | Auto-fix shell variable quoting              |
+| shfmt       | Shell formatter (indentation, spacing)       |
+| prek        | Pre-commit hooks runner (Rust, replaces pre-commit) |
 | bats        | Bash TDD framework |
 
 ### Shell search preferences
@@ -106,7 +106,7 @@
 ## Plan & memory discipline
 
 - **Claude-related markdown files live in `.claude/` by default** (CLAUDE.md, PLAN.md, MEMORY.md, handoff docs, etc.). The project root is accepted as legacy location — when encountered, read it in place but do not re-introduce root-level Claude files. When creating a new Claude-related file, always default to `.claude/`.
-- At session start, look for `PLAN.md` in `.claude/PLAN.md` (preferred) or at the project root (legacy). Read whichever exists and display: current objective, current step, and any blockers. Do not ask the user what to read — just do it. If no `PLAN.md` exists and the task involves multiple sequential steps spanning more than one session, propose creating one — default location is `.claude/PLAN.md`.
+- At session start, look for `PLAN.md` in `.claude/PLAN.md` (preferred) or at the project root (legacy). Read whichever exists and display: current objective, current step, and any blockers. Do not ask the user what to read — just do it. If no `PLAN.md` exists and the task involves multiple sequential steps spanning more than one session, propose creating one — default location is `.claude/PLAN.md`. A PLAN.md must include: objective, success criteria, scope (what is out of scope), steps, and blockers.
 - When a step is completed, an item is deferred, a priority changes, or a blocker appears, update **all affected tracking files and memory** in the same response — never wait for the user to ask. "All affected" means: any markdown file at the project root that tracks plan state, backlog, or deferred items, plus any memory file whose content is now stale. If unsure whether a file is affected, read it and check.
 - After a structural change (new file, renamed tool/function, moved path, added/removed phase), verify consistency of directly affected files **and check for side effects** in files that reference the changed entity (grep for the old name/path across the project). Do this before marking the step complete — check as you go, not after the fact.
 - Concrete post-change greps — all mandatory, not optional:
@@ -120,6 +120,16 @@
 - **A general behavioral rule (applies unconditionally, in all projects) goes directly into `~/.claude/CLAUDE.md`, not into a feedback memory file.** Feedback memory is for nuanced, contextual guidance that supplements CLAUDE.md. When a correction is absolute — no exceptions, no context-dependence — it belongs in CLAUDE.md.
 - Before marking any step done, verify the output is usable by the next step — check content quality, not just field presence.
 - "audit du répertoire" / scan requests = scope is ALL files in the working directory; use `/sync-files` rather than ad-hoc single-file checks.
+
+## Build discipline
+
+- Before any non-trivial task (anything beyond a bugfix/patch): ask explicitly "what does done look like?" and write the answer as a bullet list (goal, success criteria, known constraints, out of scope) in the conversation before any code. A narrative answer does not count.
+- After completing any non-trivial task: propose adversarial review (`/walkthrough` or `/audit:skill-adversary`) systematically. The review must happen in a fresh conversation — never the build conversation; shared context makes the adversary compliant.
+- Adversarial review exit signal: stop when the reviewer starts hallucinating or inventing problems that don't exist. That's maximum viable refinement — the harshest critic has run out of legitimate complaints.
+- For complex tasks (multiple interdependent features or unclear scope): before the design bullet list, propose decomposition — produce a feature breakdown ordered by dependencies with a minimal viable core identified. User validates before any code is written.
+- For tasks on an existing codebase: before the design bullet list, scan the relevant files to identify the gap between current state and the goal. Build on what exists, don't duplicate it.
+- In long conversations: when a significant decision is made or a direction changes, state it explicitly as a named anchor ("Decision: X because Y") so it survives context compression.
+- Ouroboros (`ooo interview`) when: (a) success criteria cannot be stated in 1–2 sentences without a prior design decision, (b) the project spans multiple sessions and early choices are hard to reverse, or (c) uncertainty is about what to build, not how.
 
 ## Communication
 
@@ -216,6 +226,7 @@ Each command loads its agent/MCP on-demand. Details in each skill file.
 | `ooo evolve` | MCP: `evolve_step` |
 | `ooo evaluate` | `ouroboros:evaluator` |
 | `ooo unstuck` | `ouroboros:{persona}` |
+| `ooo ralph` | MCP: `ouroboros_ralph` (persistent loop until QA passes) |
 | `ooo status` | MCP: `session_status` |
 | `ooo setup` | — |
 | `ooo help` | — |

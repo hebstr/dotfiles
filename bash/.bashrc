@@ -110,38 +110,6 @@ fi
 
 ### ALIASES -----------------------------------------------------------------
 
-alias softup='\
-  sudo apt update && \
-  sudo apt full-upgrade && \
-  sudo apt autoremove && \
-  sudo apt autoclean && \
-  sudo snap refresh && \
-  flatpak update -y && \
-  flatpak uninstall --unused -y'
-
-alias softup-fast='\
-  sudo apt-fast update && \
-  sudo apt-fast dist-upgrade && \
-  sudo apt autoremove && \
-  sudo apt autoclean && \
-  sudo snap refresh && \
-  flatpak update -y && \
-  flatpak uninstall --unused -y'
-
-alias devup='\
-  npm update -g && \
-  rustup update && \
-  uv self update && \
-  claude update'
-
-hardup() {
-  sudo journalctl --vacuum-time=7d &&
-    snap list --all | awk '/disabled/{print $1, $3}' |
-    while read -r name rev; do
-      sudo snap remove "$name" --revision="$rev"
-    done
-}
-
 alias firmup='fwupdmgr refresh && fwupdmgr update'
 
 alias ls='ls --color=auto'

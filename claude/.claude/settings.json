@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 7,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85"
   },
   "permissions": {
     "allow": [
@@ -67,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path') && case \"$FILE\" in *.R|*.r) air format \"$FILE\" && jarl check \"$FILE\";; *.py) ruff format \"$FILE\" && ruff check \"$FILE\";; *.sh|*.bash) shfmt -w -i 2 -ci \"$FILE\" && shellcheck \"$FILE\";; esac"
+            "command": "FILE=$(jq -r '.tool_input.file_path') && REAL=$(realpath \"$FILE\" 2>/dev/null || echo \"$FILE\") && [[ \"$REAL\" == \"$(pwd)\"/* ]] && case \"$FILE\" in *.R|*.r) air format \"$FILE\" && jarl check \"$FILE\" 2>&1 | tail -30;; *.py) ruff format \"$FILE\" && ruff check \"$FILE\" 2>&1 | tail -30;; *.sh|*.bash) shfmt -w -i 2 -ci \"$FILE\" && shellcheck \"$FILE\";; esac"
           }
         ]
       }
@@ -98,18 +98,10 @@
     "mcp-server-dev@claude-plugins-official": true,
     "r-skills@r-skills": true,
     "frontend-design@claude-plugins-official": true,
-    "r-lsp@r-skills": true,
-    "think@waza": true,
-    "health@waza": true,
-    "learn@waza": true,
-    "write@waza": true,
-    "read@waza": true,
-    "design@waza": true,
-    "check@waza": true,
-    "hunt@waza": true,
-    "review@hebstr": true,
     "workflow@hebstr": true,
-    "litrev@litrev": true
+    "litrev@litrev": true,
+    "audit@hebstr": true,
+    "ggsql@posit-dev-skills": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -121,13 +113,7 @@
     "r-skills": {
       "source": {
         "source": "github",
-        "repo": "ab604/claude-code-r-skills"
-      }
-    },
-    "waza": {
-      "source": {
-        "source": "github",
-        "repo": "tw93/Waza"
+        "repo": "jsperger/llm-r-skills"
       }
     },
     "hebstr": {
@@ -138,12 +124,24 @@
     },
     "litrev": {
       "source": {
-        "source": "directory",
-        "path": "/home/julien/Documents/pro/packages/claude-code-litrev"
+        "source": "github",
+        "repo": "hebstr/claude-code-litrev"
+      }
+    },
+    "posit-dev-skills": {
+      "source": {
+        "source": "github",
+        "repo": "posit-dev/skills"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
       }
     }
   },
   "effortLevel": "high",
-  "showThinkingSummaries": true,
-  "autoDreamEnabled": true
+  "autoDreamEnabled": true,
+  "showThinkingSummaries": true
 }

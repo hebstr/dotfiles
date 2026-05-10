@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+command -v curl >/dev/null 2>&1 || {
+  printf 'curl is required\n' >&2
+  exit 1
+}
+
+VER=$(curl -fsSL "https://api.github.com/repos/ankitects/anki/releases?per_page=20" |
+  jq -r 'map(select(.assets | length > 0)) | .[0].tag_name // ""')
+
+if [ -z "${VER}" ] || [ "${VER}" = "null" ]; then
+  echo "Failed to resolve latest Anki launcher version from GitHub API" >&2
+  exit 1
+fi
+
+echo "Latest Anki launcher: ${VER}"
+
+MARKER="${ANKI_MARKER:-/usr/local/share/anki/launcher-version}"
+CURRENT=$(cat "${MARKER}" 2>/dev/null || true)
+[ -n "${CURRENT}" ] || CURRENT=unknown
+
+if [ "${CURRENT}" = "${VER}" ]; then
+  echo "Already on ${VER} — nothing to do."
+  exit 0
+fi
+
+sudo -v
+
+TARBALL="anki-launcher-${VER}-linux.tar.zst"
+CHECKSUMS="anki-launcher-${VER}-checksums.txt"
+BASE_URL="https://github.com/ankitects/anki/releases/download/${VER}"
+TMP=$(mktemp -d)
+SUDO_KEEPALIVE_PID=
+
+cleanup() {
+  rc=$?
+  if [ -n "${SUDO_KEEPALIVE_PID}" ]; then
+    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+  fi
+  rm -rf "${TMP}"
+  exit "${rc}"
+}
+trap cleanup EXIT
+
+(while true; do
+  sleep 60
+  sudo -n -v 2>/dev/null || exit
+done) &
+SUDO_KEEPALIVE_PID=$!
+
+echo "Checking prerequisites..."
+sudo apt-get install -y -qq libxcb-xinerama0 libxcb-cursor0 libnss3 zstd
+
+echo "Downloading Anki ${VER}..."
+curl -fL --progress-bar -o "${TMP}/${TARBALL}" "${BASE_URL}/${TARBALL}"
+curl -fsSL -o "${TMP}/${CHECKSUMS}" "${BASE_URL}/${CHECKSUMS}"
+
+echo "Verifying checksum..."
+LINE=$(grep -F "  ${TARBALL}" "${TMP}/${CHECKSUMS}") || {
+  echo "Checksum line missing for ${TARBALL} in ${CHECKSUMS}" >&2
+  exit 1
+}
+EXPECTED=$(awk '{print $1}' <<<"${LINE}")
+ACTUAL=$(sha256sum "${TMP}/${TARBALL}" | awk '{print $1}')
+if [ "${EXPECTED}" != "${ACTUAL}" ]; then
+  echo "Checksum mismatch for ${TARBALL}" >&2
+  printf '  expected: %s\n  actual:   %s\n' "${EXPECTED}" "${ACTUAL}" >&2
+  exit 1
+fi
+
+echo "Extracting..."
+tar -xf "${TMP}/${TARBALL}" -C "${TMP}"
+INSTALL_SH=$(find "${TMP}" -maxdepth 3 -name install.sh | head -1)
+if [ -z "${INSTALL_SH}" ]; then
+  echo "install.sh missing from extracted archive — aborting" >&2
+  exit 1
+fi
+
+echo "Installing..."
+(cd "$(dirname "${INSTALL_SH}")" && sudo ./install.sh)
+
+sudo mkdir -p "$(dirname "${MARKER}")"
+printf '%s\n' "${VER}" | sudo tee "${MARKER}" >/dev/null
+
+echo
+echo "Installed Anki launcher: ${VER}"
+[ "${CURRENT}" = "unknown" ] || echo "Previous launcher version: ${CURRENT}"

@@ -8,6 +8,7 @@
 
 ## Reference
 - [reference_editorconfig.md](reference_editorconfig.md) — EditorConfig for team/multi-editor formatting consistency
+- [reference_claude_hooks.md](reference_claude_hooks.md) — Claude Code harness event types, hook kinds, and MCP rejection rationale (2026-03-26)
 
 ## Feedback
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md) — 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"

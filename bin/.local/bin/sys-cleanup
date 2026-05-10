@@ -1,0 +1,340 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+JOURNAL_SIZE="200M"
+DRY_RUN=0
+SELECTED_MODULES=()
+
+ALL_MODULES=(
+  trash
+  uv
+  prek
+  go
+  r-cache
+  claude-versions
+  flatpak
+  clementine
+  claude-cli
+  jedi
+  apt
+  journal
+  snap
+  r-renv
+)
+
+SUDO_MODULES=(apt journal snap r-renv)
+
+usage() {
+  cat <<EOF
+sys-cleanup — modular disk cleanup
+
+Usage:
+  sys-cleanup [options] [module...]
+
+Options:
+  --dry-run    print what would be removed, change nothing
+  --list       list available modules
+  -h, --help   show this help
+
+Modules:
+  $(printf '%s\n' "${ALL_MODULES[@]}" | paste -sd ' ')
+
+With no module argument, all modules run.
+EOF
+}
+
+list_modules() {
+  printf '%-20s %s\n' MODULE SUDO
+  for m in "${ALL_MODULES[@]}"; do
+    local sudo_flag=no
+    for s in "${SUDO_MODULES[@]}"; do
+      [[ "$m" == "$s" ]] && sudo_flag=yes && break
+    done
+    printf '%-20s %s\n' "$m" "$sudo_flag"
+  done
+}
+
+bytes_of() {
+  { du -sb "$@" 2>/dev/null || true; } | awk '{sum+=$1} END{print sum+0}'
+}
+
+format_bytes() {
+  local b="$1"
+  if ((b >= 1073741824)); then
+    awk "BEGIN{printf \"%.1f GiB\", $b/1073741824}"
+  elif ((b >= 1048576)); then
+    awk "BEGIN{printf \"%.0f MiB\", $b/1048576}"
+  elif ((b >= 1024)); then
+    awk "BEGIN{printf \"%.0f KiB\", $b/1024}"
+  else
+    echo "${b} B"
+  fi
+}
+
+run_or_dry() {
+  if ((DRY_RUN)); then
+    printf '  [dry-run] %s\n' "$*"
+  else
+    "$@"
+  fi
+}
+
+RESULTS=()
+TOTAL_FREED=0
+
+record() {
+  local module="$1" freed="$2" status="$3"
+  RESULTS+=("$(printf '%-20s %-10s %s' "$module" "$(format_bytes "$freed")" "$status")")
+  TOTAL_FREED=$((TOTAL_FREED + freed))
+}
+
+clean_trash() {
+  local before
+  before=$(bytes_of "${HOME}/.local/share/Trash")
+  run_or_dry gio trash --empty
+  local after
+  after=$(bytes_of "${HOME}/.local/share/Trash")
+  record trash $((before - after)) OK
+}
+
+clean_uv() {
+  if ! command -v uv >/dev/null 2>&1; then
+    record uv 0 "skipped (not found)"
+    return
+  fi
+  local before
+  before=$(bytes_of "${HOME}/.cache/uv")
+  run_or_dry uv cache prune --force
+  local after
+  after=$(bytes_of "${HOME}/.cache/uv")
+  record uv $((before - after)) OK
+}
+
+clean_prek() {
+  if ! command -v prek >/dev/null 2>&1; then
+    record prek 0 "skipped (not found)"
+    return
+  fi
+  local before
+  before=$(bytes_of "${HOME}/.cache/prek")
+  run_or_dry prek cache gc
+  local after
+  after=$(bytes_of "${HOME}/.cache/prek")
+  record prek $((before - after)) OK
+}
+
+clean_go() {
+  local target="${HOME}/.cache/go-build"
+  [[ -d "$target" ]] || {
+    record go 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$target")
+  if command -v go >/dev/null 2>&1; then
+    run_or_dry go clean -cache
+  else
+    run_or_dry rm -rf "$target"
+  fi
+  local after
+  after=$(bytes_of "$target")
+  record go $((before - after)) OK
+}
+
+clean_r-cache() {
+  local before=0 after=0
+  if command -v Rscript >/dev/null 2>&1; then
+    before=$(bytes_of "${HOME}/.cache/R/pkgcache")
+    run_or_dry Rscript -e 'pak::cache_clean()'
+    after=$(bytes_of "${HOME}/.cache/R/pkgcache")
+  fi
+  local sass="${HOME}/.cache/R/sass"
+  local sass_before=0
+  sass_before=$(bytes_of "$sass")
+  if [[ -d "$sass" ]]; then
+    run_or_dry rm -rf "$sass"
+  fi
+  record r-cache $(((before - after) + sass_before)) OK
+}
+
+clean_claude-versions() {
+  local versions_dir="${HOME}/.local/share/claude/versions"
+  [[ -d "$versions_dir" ]] || {
+    record claude-versions 0 "skipped (not found)"
+    return
+  }
+  local latest
+  latest=$(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n1)
+  local before
+  before=$(bytes_of "$versions_dir")
+  while IFS= read -r ver; do
+    [[ "$ver" == "$latest" ]] && continue
+    run_or_dry rm -rf "${versions_dir:?}/${ver}"
+  done < <(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
+  local after
+  after=$(bytes_of "$versions_dir")
+  record claude-versions $((before - after)) OK
+}
+
+clean_flatpak() {
+  if ! command -v flatpak >/dev/null 2>&1; then
+    record flatpak 0 "skipped (not found)"
+    return
+  fi
+  local before
+  before=$(bytes_of "${HOME}/.var")
+  run_or_dry flatpak uninstall --unused -y
+  local after
+  after=$(bytes_of "${HOME}/.var")
+  record flatpak $((before - after)) OK
+}
+
+clean_clementine() {
+  local target="${HOME}/.cache/Clementine"
+  [[ -d "$target" ]] || {
+    record clementine 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$target")
+  run_or_dry rm -rf "$target"
+  record clementine "$before" OK
+}
+
+clean_claude-cli() {
+  local target="${HOME}/.cache/claude-cli-nodejs"
+  [[ -d "$target" ]] || {
+    record claude-cli 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$target")
+  run_or_dry rm -rf "$target"
+  record claude-cli "$before" OK
+}
+
+clean_jedi() {
+  local before=0
+  for target in "${HOME}/.cache/positron-jedi" "${HOME}/.cache/jedi"; do
+    [[ -d "$target" ]] || continue
+    before=$((before + $(bytes_of "$target")))
+    run_or_dry rm -rf "$target"
+  done
+  record jedi "$before" OK
+}
+
+clean_apt() {
+  run_or_dry sudo apt-get clean -y
+  run_or_dry sudo apt-get autoremove --purge -y
+  record apt 0 OK
+}
+
+clean_journal() {
+  run_or_dry sudo journalctl "--vacuum-size=${JOURNAL_SIZE}"
+  record journal 0 OK
+}
+
+clean_snap() {
+  if ! command -v snap >/dev/null 2>&1; then
+    record snap 0 "skipped (not found)"
+    return
+  fi
+  local before
+  before=$(bytes_of /var/lib/snapd/snaps)
+  if ((DRY_RUN)); then
+    LANG=C snap list --all | awk '/disabled/{print "  [dry-run] snap remove "$1" --revision="$3}'
+  else
+    LANG=C snap list --all | awk '/disabled/{print $1, $3}' |
+      while read -r name rev; do
+        sudo snap remove "$name" --revision="$rev"
+      done
+  fi
+  local after
+  after=$(bytes_of /var/lib/snapd/snaps)
+  record snap $((before - after)) OK
+}
+
+clean_r-renv() {
+  local target="${HOME}/.cache/R/renv"
+  [[ -d "$target" ]] || {
+    record r-renv 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$target")
+  run_or_dry sudo rm -rf "$target"
+  local after
+  after=$(bytes_of "$target")
+  record r-renv $((before - after)) OK
+}
+
+needs_sudo() {
+  local modules=("$@")
+  for m in "${modules[@]}"; do
+    for s in "${SUDO_MODULES[@]}"; do
+      [[ "$m" == "$s" ]] && return 0
+    done
+  done
+  return 1
+}
+
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --list)
+      list_modules
+      return 0
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    -*)
+      printf 'sys-cleanup: unknown option: %s\n' "$1" >&2
+      return 2
+      ;;
+    *)
+      SELECTED_MODULES+=("$1")
+      shift
+      ;;
+    esac
+  done
+
+  if [[ ${#SELECTED_MODULES[@]} -eq 0 ]]; then
+    SELECTED_MODULES=("${ALL_MODULES[@]}")
+  fi
+
+  for m in "${SELECTED_MODULES[@]}"; do
+    local found=0
+    for known in "${ALL_MODULES[@]}"; do
+      [[ "$m" == "$known" ]] && found=1 && break
+    done
+    if ((found == 0)); then
+      printf 'sys-cleanup: unknown module: %s\n' "$m" >&2
+      return 2
+    fi
+  done
+
+  if ! ((DRY_RUN)) && needs_sudo "${SELECTED_MODULES[@]}"; then
+    sudo -v
+  fi
+
+  for m in "${SELECTED_MODULES[@]}"; do
+    printf '→ %s\n' "$m"
+    "clean_${m}"
+  done
+
+  printf '\n%-20s %-10s %s\n' MODULE FREED STATUS
+  printf '%s\n' "$(printf '%.0s-' {1..40})"
+  for line in "${RESULTS[@]}"; do
+    printf '%s\n' "$line"
+  done
+  printf '%s\n' "$(printf '%.0s-' {1..40})"
+  printf '%-20s %s\n' TOTAL "$(format_bytes "$TOTAL_FREED")"
+}
+
+main "$@"
