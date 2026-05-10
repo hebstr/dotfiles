@@ -17,6 +17,7 @@
 - [feedback_review_workflow.md](feedback_review_workflow.md) — Preferred review workflow: 3 background specialists + parallel-review + consolidated report + walkthrough
 - [feedback_review_severity_personal.md](feedback_review_severity_personal.md) — Calibrate review severity down for personal/internal packages
 - [feedback_review_severity_shell_installers.md](feedback_review_severity_shell_installers.md) — Calibrate review severity for personal shell installers (quarto-update, positron-update, etc.)
+- [feedback_review_severity_claude_rules.md](feedback_review_severity_claude_rules.md) — Calibrate review of `.claude/rules/` files: skip duplication-from-CLAUDE.md, dedup-of-boilerplate, version-trace headers, review-calibration-as-writing-rule (4 recurring false positives)
 - [feedback_walkthrough_process.md](feedback_walkthrough_process.md) — Interactive walkthrough: point-by-point, terse, inline corrections, recap at end
 - [feedback_verify_quarto_theming.md](feedback_verify_quarto_theming.md) — Quarto theming: always render and scan compiled CSS to verify SCSS changes land and win specificity
 - [feedback_french_prose.md](feedback_french_prose.md) — FR prose: authorities, anglicism policy, typography, register — full reference for prose work

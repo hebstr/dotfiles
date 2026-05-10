@@ -85,7 +85,7 @@
 - R: use the lambda shorthand `\()` instead of `function()`; inside purrr map/walk, prefer tilde formula `~ .x` for simple expressions
 - R: use `here::here()` for paths, never absolute paths
 - R: always install packages with `pak::pak()`, never `install.packages()`
-- R: format with `air`, lint with `jarl` (configs in air.toml)
+- R: format with `air` (config: `air.toml`), lint with `jarl` (config: `jarl.toml`)
 - R: never use `renv` — `rv` replaces it for all project types; `DESCRIPTION` is canonical for packages
 - R: for list-building from repeated calls, lead with purrr (`set_names()` + `map()`); base R only if asked or for a concrete performance reason
 - R: before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "pkg::fn_name"`

@@ -1,2 +1,0 @@
-- revoir rules/
-- learning oportunities
