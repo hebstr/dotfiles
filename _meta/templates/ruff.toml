@@ -278,9 +278,6 @@ docstring-code-format = true
 # Line length for docstring code; integer or "dynamic" (default: "dynamic")
 docstring-code-line-length = "dynamic"
 
-# Quote style for nested strings in f-strings: "alternating", "preserve" (default: "alternating")
-nested-string-quote-style = "alternating"
-
 # Enable preview formatter behavior (default: false)
 preview = false
 

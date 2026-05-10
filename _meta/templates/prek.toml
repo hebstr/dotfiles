@@ -50,8 +50,6 @@ hooks = [
   { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^bash/' }
 ]
 
-------
-
 ### ATTENTE SUPPORT
 # [[repos]]
 # repo = "https://github.com/lorenzwalthert/precommit"
