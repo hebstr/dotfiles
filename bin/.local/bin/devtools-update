@@ -46,7 +46,9 @@ EOF
 
 list_tools() {
   printf '%-10s %-40s %s\n' "TOOL" "ENV VAR" "URL"
-  for tool in $(printf '%s\n' "${!INSTALLERS[@]}" | sort); do
+  local tools=()
+  mapfile -t tools < <(printf '%s\n' "${!INSTALLERS[@]}" | sort)
+  for tool in "${tools[@]}"; do
     IFS='|' read -r url var <<<"${INSTALLERS[$tool]}"
     printf '%-10s %-40s %s\n' "$tool" "$var" "$url"
   done
@@ -55,8 +57,8 @@ list_tools() {
 get_latest_version() {
   local repo="$1"
   curl -fsSL --connect-timeout 10 \
-    "https://api.github.com/repos/${repo}/releases/latest" |
-    jq -r '(.tag_name // "") | sub("^v"; "")'
+    "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null |
+    jq -r '(.tag_name // "") | sub("^v"; "")' 2>/dev/null || true
 }
 
 get_installed_version() {

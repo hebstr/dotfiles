@@ -116,10 +116,11 @@
   4. Permission/config files that gate the changed capability (allowed-tools, DESCRIPTION Imports, `__all__`, manifests, rbac configs) → grant access where appropriate
   5. Instructions or docs that describe limitations now lifted by the change (e.g. "Do NOT do X", "ask user to provide X manually", "planned for later") → update to reflect new capability
 - When compacting, always preserve: current objective and active step from PLAN.md, list of modified files, and active constraints or blockers.
+- **Memory location override (single source of truth).** All memory files (auto-memory included) MUST be written to `~/.claude/memory/` (which is a stow-managed symlink to `~/dotfiles/claude/.claude/memory/`). Ignore the harness default path `~/.claude/projects/<cwd>/memory/`: that directory is deprecated for this user; never write there, never read MEMORY.md from there. The index at `~/.claude/memory/MEMORY.md` is authoritative; update it whenever a memory file is added, renamed, or removed.
 - Memory level: before saving any memory, ask "would this apply in a different project?" Yes → global (`~/.claude/memory/`); No → project. Feedback on behavior or workflow is almost always global.
 - **A general behavioral rule (applies unconditionally, in all projects) goes directly into `~/.claude/CLAUDE.md`, not into a feedback memory file.** Feedback memory is for nuanced, contextual guidance that supplements CLAUDE.md. When a correction is absolute — no exceptions, no context-dependence — it belongs in CLAUDE.md.
 - Before marking any step done, verify the output is usable by the next step — check content quality, not just field presence.
-- "audit du répertoire" / scan requests = scope is ALL files in the working directory; use `/sync-files` rather than ad-hoc single-file checks.
+- "audit du répertoire" / scan requests = scope is ALL files in the working directory; use `/workflow:sync` rather than ad-hoc single-file checks.
 
 ## Build discipline
 

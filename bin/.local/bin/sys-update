@@ -65,16 +65,28 @@ run_or_dry() {
 }
 
 RESULTS=()
+ANY_FAIL=0
 
 record() {
   local module="$1" status="$2"
   RESULTS+=("$(printf '%-16s %s' "$module" "$status")")
 }
 
+print_summary() {
+  ((${#RESULTS[@]} == 0)) && return
+  printf '\n%-16s %s\n' MODULE STATUS
+  printf -- '-----------------------------------\n'
+  for line in "${RESULTS[@]}"; do
+    printf '%s\n' "$line"
+  done
+  printf -- '-----------------------------------\n'
+}
+trap print_summary EXIT
+
 update_apt() {
-  run_or_dry sudo apt-get update -q
-  run_or_dry sudo apt-get full-upgrade -y
-  record apt OK
+  run_or_dry sudo apt-get update -q &&
+    run_or_dry sudo apt-get full-upgrade -y &&
+    record apt OK
 }
 
 update_snap() {
@@ -82,8 +94,7 @@ update_snap() {
     record snap "skipped (not found)"
     return
   fi
-  run_or_dry sudo snap refresh
-  record snap OK
+  run_or_dry sudo snap refresh && record snap OK
 }
 
 update_flatpak() {
@@ -91,8 +102,7 @@ update_flatpak() {
     record flatpak "skipped (not found)"
     return
   fi
-  run_or_dry flatpak update -y
-  record flatpak OK
+  run_or_dry flatpak update -y && record flatpak OK
 }
 
 update_npm() {
@@ -100,8 +110,7 @@ update_npm() {
     record npm "skipped (not found)"
     return
   fi
-  run_or_dry npm update -g
-  record npm OK
+  run_or_dry npm update -g && record npm OK
 }
 
 update_rustup() {
@@ -109,8 +118,7 @@ update_rustup() {
     record rustup "skipped (not found)"
     return
   fi
-  run_or_dry rustup update
-  record rustup OK
+  run_or_dry rustup update && record rustup OK
 }
 
 update_cargo() {
@@ -118,8 +126,7 @@ update_cargo() {
     record cargo "skipped (cargo-update not found)"
     return
   fi
-  run_or_dry cargo install-update -a
-  record cargo OK
+  run_or_dry cargo install-update -a && record cargo OK
 }
 
 update_claude() {
@@ -127,8 +134,7 @@ update_claude() {
     record claude "skipped (not found)"
     return
   fi
-  run_or_dry claude update
-  record claude OK
+  run_or_dry claude update && record claude OK
 }
 
 update_devtools() {
@@ -136,17 +142,15 @@ update_devtools() {
     record devtools "skipped (not found)"
     return
   fi
-  run_or_dry devtools-update --all
-  record devtools OK
+  run_or_dry devtools-update --all && record devtools OK
 }
 
-update_uv-tools() {
+update_uv_tools() {
   if ! command -v uv >/dev/null 2>&1; then
     record uv-tools "skipped (not found)"
     return
   fi
-  run_or_dry uv tool upgrade --all
-  record uv-tools OK
+  run_or_dry uv tool upgrade --all && record uv-tools OK
 }
 
 update_pnpm() {
@@ -154,8 +158,7 @@ update_pnpm() {
     record pnpm "skipped (not found)"
     return
   fi
-  run_or_dry pnpm self-update
-  record pnpm OK
+  run_or_dry pnpm self-update && record pnpm OK
 }
 
 update_rv() {
@@ -163,8 +166,7 @@ update_rv() {
     record rv "skipped (not found)"
     return
   fi
-  run_or_dry rv-update
-  record rv OK
+  run_or_dry rv-update && record rv OK
 }
 
 update_rig() {
@@ -172,8 +174,7 @@ update_rig() {
     record rig "skipped (not found)"
     return
   fi
-  run_or_dry rig-update
-  record rig OK
+  run_or_dry rig-update && record rig OK
 }
 
 update_duckdb() {
@@ -181,17 +182,15 @@ update_duckdb() {
     record duckdb "skipped (not found)"
     return
   fi
-  run_or_dry duckdb-update
-  record duckdb OK
+  run_or_dry duckdb-update && record duckdb OK
 }
 
-update_claude-plugins() {
+update_claude_plugins() {
   if ! command -v claude-plugins-update >/dev/null 2>&1; then
     record claude-plugins "skipped (not found)"
     return
   fi
-  run_or_dry claude-plugins-update
-  record claude-plugins OK
+  run_or_dry claude-plugins-update && record claude-plugins OK
 }
 
 update_quarto() {
@@ -199,8 +198,7 @@ update_quarto() {
     record quarto "skipped (not found)"
     return
   fi
-  run_or_dry quarto-update
-  record quarto OK
+  run_or_dry quarto-update && record quarto OK
 }
 
 update_positron() {
@@ -208,8 +206,7 @@ update_positron() {
     record positron "skipped (not found)"
     return
   fi
-  run_or_dry positron-update
-  record positron OK
+  run_or_dry positron-update && record positron OK
 }
 
 update_anki() {
@@ -217,8 +214,7 @@ update_anki() {
     record anki "skipped (not found)"
     return
   fi
-  run_or_dry anki-update
-  record anki OK
+  run_or_dry anki-update && record anki OK
 }
 
 needs_sudo() {
@@ -261,6 +257,15 @@ main() {
     SELECTED_MODULES=("${ALL_MODULES[@]}")
   fi
 
+  local -A seen=()
+  local uniq=()
+  for m in "${SELECTED_MODULES[@]}"; do
+    [[ -n ${seen[$m]:-} ]] && continue
+    seen[$m]=1
+    uniq+=("$m")
+  done
+  SELECTED_MODULES=("${uniq[@]}")
+
   for m in "${SELECTED_MODULES[@]}"; do
     local found=0
     for known in "${ALL_MODULES[@]}"; do
@@ -278,15 +283,15 @@ main() {
 
   for m in "${SELECTED_MODULES[@]}"; do
     printf '→ %s\n' "$m"
-    "update_${m}"
+    if "update_${m//-/_}"; then
+      :
+    else
+      record "$m" "FAIL (exit $?)"
+      ANY_FAIL=1
+    fi
   done
 
-  printf '\n%-16s %s\n' MODULE STATUS
-  printf '%s\n' "$(printf '%.0s-' {1..35})"
-  for line in "${RESULTS[@]}"; do
-    printf '%s\n' "$line"
-  done
-  printf '%s\n' "$(printf '%.0s-' {1..30})"
+  return "$ANY_FAIL"
 }
 
 main "$@"

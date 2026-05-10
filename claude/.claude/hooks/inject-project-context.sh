@@ -2,6 +2,8 @@
 
 if [ -f DESCRIPTION ]; then
   echo "R package: $(grep '^Package:' DESCRIPTION | cut -d' ' -f2) v$(grep '^Version:' DESCRIPTION | cut -d' ' -f2)"
+elif [ -f rv.lock ] || [ -f rproject.toml ]; then
+  echo "R project (rv-managed). Use pak::pak() for installs; lockfile is rv.lock."
 fi
 
 if [ -f _quarto.yml ]; then

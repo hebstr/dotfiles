@@ -13,7 +13,6 @@ ALL_MODULES=(
   r-cache
   claude-versions
   flatpak
-  clementine
   claude-cli
   jedi
   apt
@@ -22,7 +21,7 @@ ALL_MODULES=(
   r-renv
 )
 
-SUDO_MODULES=(apt journal snap r-renv)
+SUDO_MODULES=(apt journal snap)
 
 usage() {
   cat <<EOF
@@ -84,6 +83,7 @@ TOTAL_FREED=0
 
 record() {
   local module="$1" freed="$2" status="$3"
+  ((freed < 0)) && freed=0
   RESULTS+=("$(printf '%-20s %-10s %s' "$module" "$(format_bytes "$freed")" "$status")")
   TOTAL_FREED=$((TOTAL_FREED + freed))
 }
@@ -141,7 +141,7 @@ clean_go() {
   record go $((before - after)) OK
 }
 
-clean_r-cache() {
+clean_r_cache() {
   local before=0 after=0
   if command -v Rscript >/dev/null 2>&1; then
     before=$(bytes_of "${HOME}/.cache/R/pkgcache")
@@ -149,28 +149,35 @@ clean_r-cache() {
     after=$(bytes_of "${HOME}/.cache/R/pkgcache")
   fi
   local sass="${HOME}/.cache/R/sass"
-  local sass_before=0
-  sass_before=$(bytes_of "$sass")
+  local sass_before=0 sass_after=0
   if [[ -d "$sass" ]]; then
+    sass_before=$(bytes_of "$sass")
     run_or_dry rm -rf "$sass"
+    sass_after=$(bytes_of "$sass")
   fi
-  record r-cache $(((before - after) + sass_before)) OK
+  record r-cache $(((before - after) + (sass_before - sass_after))) OK
 }
 
-clean_claude-versions() {
+clean_claude_versions() {
   local versions_dir="${HOME}/.local/share/claude/versions"
   [[ -d "$versions_dir" ]] || {
     record claude-versions 0 "skipped (not found)"
     return
   }
   local latest
-  latest=$(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n1)
+  latest=$(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+    { grep -E '^[0-9]+(\.[0-9]+)*' || true; } | sort -V | tail -n1)
+  if [[ -z "$latest" ]]; then
+    record claude-versions 0 "skipped (no version dir)"
+    return
+  fi
   local before
   before=$(bytes_of "$versions_dir")
   while IFS= read -r ver; do
     [[ "$ver" == "$latest" ]] && continue
     run_or_dry rm -rf "${versions_dir:?}/${ver}"
-  done < <(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
+  done < <(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+    { grep -E '^[0-9]+(\.[0-9]+)*' || true; })
   local after
   after=$(bytes_of "$versions_dir")
   record claude-versions $((before - after)) OK
@@ -181,27 +188,16 @@ clean_flatpak() {
     record flatpak 0 "skipped (not found)"
     return
   fi
+  local paths=("${HOME}/.local/share/flatpak" /var/lib/flatpak)
   local before
-  before=$(bytes_of "${HOME}/.var")
+  before=$(bytes_of "${paths[@]}")
   run_or_dry flatpak uninstall --unused -y
   local after
-  after=$(bytes_of "${HOME}/.var")
+  after=$(bytes_of "${paths[@]}")
   record flatpak $((before - after)) OK
 }
 
-clean_clementine() {
-  local target="${HOME}/.cache/Clementine"
-  [[ -d "$target" ]] || {
-    record clementine 0 "skipped (not found)"
-    return
-  }
-  local before
-  before=$(bytes_of "$target")
-  run_or_dry rm -rf "$target"
-  record clementine "$before" OK
-}
-
-clean_claude-cli() {
+clean_claude_cli() {
   local target="${HOME}/.cache/claude-cli-nodejs"
   [[ -d "$target" ]] || {
     record claude-cli 0 "skipped (not found)"
@@ -210,28 +206,39 @@ clean_claude-cli() {
   local before
   before=$(bytes_of "$target")
   run_or_dry rm -rf "$target"
-  record claude-cli "$before" OK
+  local after
+  after=$(bytes_of "$target")
+  record claude-cli $((before - after)) OK
 }
 
 clean_jedi() {
-  local before=0
+  local before=0 after=0
   for target in "${HOME}/.cache/positron-jedi" "${HOME}/.cache/jedi"; do
     [[ -d "$target" ]] || continue
     before=$((before + $(bytes_of "$target")))
     run_or_dry rm -rf "$target"
+    after=$((after + $(bytes_of "$target")))
   done
-  record jedi "$before" OK
+  record jedi $((before - after)) OK
 }
 
 clean_apt() {
+  local before
+  before=$(bytes_of /var/cache/apt/archives)
   run_or_dry sudo apt-get clean -y
   run_or_dry sudo apt-get autoremove --purge -y
-  record apt 0 OK
+  local after
+  after=$(bytes_of /var/cache/apt/archives)
+  record apt $((before - after)) "OK (archives only)"
 }
 
 clean_journal() {
+  local before
+  before=$(bytes_of /var/log/journal)
   run_or_dry sudo journalctl "--vacuum-size=${JOURNAL_SIZE}"
-  record journal 0 OK
+  local after
+  after=$(bytes_of /var/log/journal)
+  record journal $((before - after)) OK
 }
 
 clean_snap() {
@@ -254,7 +261,7 @@ clean_snap() {
   record snap $((before - after)) OK
 }
 
-clean_r-renv() {
+clean_r_renv() {
   local target="${HOME}/.cache/R/renv"
   [[ -d "$target" ]] || {
     record r-renv 0 "skipped (not found)"
@@ -262,7 +269,7 @@ clean_r-renv() {
   }
   local before
   before=$(bytes_of "$target")
-  run_or_dry sudo rm -rf "$target"
+  run_or_dry rm -rf "$target"
   local after
   after=$(bytes_of "$target")
   record r-renv $((before - after)) OK
@@ -325,7 +332,7 @@ main() {
 
   for m in "${SELECTED_MODULES[@]}"; do
     printf '→ %s\n' "$m"
-    "clean_${m}"
+    "clean_${m//-/_}"
   done
 
   printf '\n%-20s %-10s %s\n' MODULE FREED STATUS

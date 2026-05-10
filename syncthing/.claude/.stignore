@@ -1,0 +1,53 @@
+// Credentials et caches d'auth (jamais syncer)
+.credentials.json
+mcp-needs-auth-cache.json
+
+// Caches et fichiers regenerables
+plugins/cache
+projects/*/compacted
+stats-cache.json
+.last-cleanup
+cache/
+paste-cache/
+backups/
+
+// Sessions et logs (volumineux, machine-specifiques)
+*.jsonl
+statsig/
+telemetry/
+file-history/
+sessions/
+session-env/
+shell-snapshots/
+todos/
+debug/
+ide/
+
+// Artefacts dev
+.git/
+.venv/
+venv/
+.env/
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+.tox/
+.nox/
+node_modules/
+target/
+.Rproj.user/
+.Rhistory
+.RData
+renv/library/
+renv/staging/
+
+// OS et editeurs
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

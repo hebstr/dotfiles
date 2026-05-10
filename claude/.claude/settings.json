@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 7,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75"
   },
   "permissions": {
     "allow": [
@@ -10,12 +10,23 @@
       "Glob",
       "Grep",
       "Bash",
-      "Write(/home/julien/.claude/skills/**)",
+      "Write(~/.claude/skills/**)",
       "Write(/tmp/**)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.anthropic.com)",
-      "WebFetch(domain:quarto.org)"
+      "WebFetch(domain:quarto.org)",
+      "WebFetch(domain:posit.co)",
+      "WebFetch(domain:packagemanager.posit.co)",
+      "WebFetch(domain:cran.r-project.org)",
+      "WebFetch(domain:pak.r-lib.org)",
+      "WebFetch(domain:tidyverse.org)",
+      "WebFetch(domain:r-pkgs.org)",
+      "WebFetch(domain:adv-r.hadley.nz)",
+      "WebFetch(domain:r4ds.hadley.nz)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:pola.rs)",
+      "WebFetch(domain:docs.python.org)"
     ],
     "deny": [
       "Bash(git add*)",
@@ -42,17 +53,7 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/inject-project-context.sh"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
+        "matcher": "startup|compact|resume",
         "hooks": [
           {
             "type": "command",
@@ -67,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(jq -r '.tool_input.file_path') && REAL=$(realpath \"$FILE\" 2>/dev/null || echo \"$FILE\") && [[ \"$REAL\" == \"$(pwd)\"/* ]] && case \"$FILE\" in *.R|*.r) air format \"$FILE\" && jarl check \"$FILE\" 2>&1 | tail -30;; *.py) ruff format \"$FILE\" && ruff check \"$FILE\" 2>&1 | tail -30;; *.sh|*.bash) shfmt -w -i 2 -ci \"$FILE\" && shellcheck \"$FILE\";; esac"
+            "command": "bash ~/.claude/hooks/format-on-edit.sh"
           }
         ]
       }

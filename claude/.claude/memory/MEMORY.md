@@ -5,10 +5,12 @@
 
 ## Project
 - [project_qmd_format_hook.md](project_qmd_format_hook.md) — Add .qmd to PostToolUse format hook when air supports it
+- [project_review_workflow_backlog.md](project_review_workflow_backlog.md) — Practices and backlog items from the 2026-03 code review glowup audit
 
 ## Reference
 - [reference_editorconfig.md](reference_editorconfig.md) — EditorConfig for team/multi-editor formatting consistency
 - [reference_claude_hooks.md](reference_claude_hooks.md) — Claude Code harness event types, hook kinds, and MCP rejection rationale (2026-03-26)
+- [reference_claude_code_best_practices.md](reference_claude_code_best_practices.md) — Claude Code internals: CLAUDE.md scopes, hook events, auto-memory, notable settings.json keys (2026-05-02)
 
 ## Feedback
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md) — 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
@@ -18,3 +20,6 @@
 - [feedback_walkthrough_process.md](feedback_walkthrough_process.md) — Interactive walkthrough: point-by-point, terse, inline corrections, recap at end
 - [feedback_verify_quarto_theming.md](feedback_verify_quarto_theming.md) — Quarto theming: always render and scan compiled CSS to verify SCSS changes land and win specificity
 - [feedback_french_prose.md](feedback_french_prose.md) — FR prose: authorities, anglicism policy, typography, register — full reference for prose work
+- [feedback_review_third_party_content.md](feedback_review_third_party_content.md) — Don't apply CLAUDE.md prose style rules to third-party skill descriptions, plugin docs, or forked content
+- [feedback_verify_after_install.md](feedback_verify_after_install.md) — Smoke-test new tools/hooks/integrations end-to-end before marking done; never suppress stderr on fresh config
+- [feedback_shell_grep_pipefail.md](feedback_shell_grep_pipefail.md) — `grep` as filter under `set -Eeuo pipefail` crashes on no-match; idiomatic fixes + audit grep
