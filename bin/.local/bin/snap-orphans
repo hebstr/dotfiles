@@ -3,7 +3,7 @@
 #
 # Flags structural orphans:
 #   - base snaps (coreXX, bare) not declared as `base:` by any installed snap
-#   - content/runtime snaps whose slots have zero external plug
+#   - content-interface providers (themes, runtimes, GPU stacks, etc.) whose slots have zero external plug
 # Apps (leaves of the dependency graph) are never flagged — user decides.
 
 set -Eeuo pipefail
@@ -80,7 +80,8 @@ esac
 [[ -n $RETENTION ]] && need_root=1
 
 if [[ $need_root -eq 1 && $DRY_RUN -eq 0 && $EUID -ne 0 ]]; then
-  exec sudo -E -- "$0" "${ORIGINAL_ARGS[@]}"
+  script=$(readlink -f -- "$0")
+  exec sudo -E -- "$script" "${ORIGINAL_ARGS[@]}"
 fi
 
 log() { printf '\n=== %s ===\n' "$*"; }
@@ -96,26 +97,29 @@ run() {
 
 snap_size() {
   local s=$1 size
-  size=$(du -sh /var/lib/snapd/snaps/"$s"_*.snap 2>/dev/null | awk 'END {print $1}')
+  size=$(du -shc /var/lib/snapd/snaps/"$s"_*.snap 2>/dev/null | awk 'END {print $1}')
   [[ -z $size ]] && size="?"
   printf '%s' "$size"
 }
 
 detect_orphans() {
-  local s type b conns
-  local -A bases_used=()
+  local s type b conns info
+  local -A bases_used=() snap_type=()
   local -a snaps=() orphans=()
-  mapfile -t snaps < <(snap list 2>/dev/null | awk 'NR>1 {print $1}')
+  mapfile -t snaps < <(snap list | awk 'NR>1 {print $1}')
 
   for s in "${snaps[@]}"; do
-    b=$(snap info --verbose "$s" 2>/dev/null | awk '/^base:/ {print $2; exit}')
+    info=$(cat /snap/"$s"/current/meta/snap.yaml 2>/dev/null)
+    b=$(awk '/^base:/ {print $2; exit}' <<<"$info")
+    type=$(awk '/^type:/ {print $2; exit}' <<<"$info")
     [[ -n $b ]] && bases_used[$b]=1
+    snap_type[$s]=$type
   done
 
   conns=$(snap connections --all 2>/dev/null || true)
 
   for s in "${snaps[@]}"; do
-    type=$(snap info --verbose "$s" 2>/dev/null | awk '/^type:/ {print $2; exit}')
+    type=${snap_type[$s]:-}
     case $type in
     core | snapd | gadget | kernel) continue ;;
     base)
@@ -172,7 +176,7 @@ mode_remove() {
       printf '  %-50s %10s\n' "$s" "$(snap_size "$s")"
     done
     if [[ $DRY_RUN -eq 0 ]]; then
-      read -r -p "Remove all listed? [y/N] " ans
+      read -r -p "Remove these ${#orphans[@]} snap(s) and re-scan? [y/N] " ans
       if [[ ${ans,,} != "y" ]]; then
         echo "aborted at pass $pass"
         break
