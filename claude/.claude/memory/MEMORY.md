@@ -19,6 +19,7 @@
 - [feedback_review_severity_shell_installers.md](feedback_review_severity_shell_installers.md) — Calibrate review severity for personal shell installers (quarto-update, positron-update, etc.)
 - [feedback_review_severity_bats_tests.md](feedback_review_severity_bats_tests.md) — Calibrate review severity for bats `.bats` test files covering personal shell tooling
 - [feedback_review_severity_claude_rules.md](feedback_review_severity_claude_rules.md) — Calibrate review of `.claude/rules/` files: skip duplication-from-CLAUDE.md, dedup-of-boilerplate, version-trace headers, review-calibration-as-writing-rule (4 recurring false positives)
+- [feedback_review_severity_skill_audits.md](feedback_review_severity_skill_audits.md) — Calibrate skill-adversary/blindspot/sweep on SKILL.md files: skip harness portability, declared-prior anchoring, CLAUDE.md duplication, explicit-invocation FN concerns (4 recurring false positives)
 - [feedback_walkthrough_process.md](feedback_walkthrough_process.md) — Interactive walkthrough: point-by-point, terse, inline corrections, recap at end
 - [feedback_verify_quarto_theming.md](feedback_verify_quarto_theming.md) — Quarto theming: always render and scan compiled CSS to verify SCSS changes land and win specificity
 - [feedback_french_prose.md](feedback_french_prose.md) — FR prose: authorities, anglicism policy, typography, register — full reference for prose work
