@@ -50,7 +50,8 @@
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
     "files.associations": {
-        "renv.lock": "json"
+        "renv.lock": "json",
+        "**/SKILL.md": "markdown"
     },
 
 // EXCLUSIONS DE FICHIERS ------------------------------------------------------
@@ -218,6 +219,8 @@
 
     "claudeCode.preferredLocation": "panel",
     "claudeCode.selectedModel": "opus",
+
+    "chat.useAgentSkills": false,
 
 // APPARENCE GLOBALE -----------------------------------------------------------
 

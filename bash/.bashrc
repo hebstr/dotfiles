@@ -118,6 +118,7 @@ alias grep='grep --color=auto'
 alias qp='rm -rf .quarto; quarto preview'
 alias yolo='git add . && git commit -m "." && git push'
 alias fd=fdfind
+alias firefox='firefox --profile /home/julien/.mozilla/firefox/z24d9fn6.default-release'
 
 release() {
   local tag="$1"
