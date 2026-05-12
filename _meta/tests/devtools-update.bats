@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for devtools-update
-# Mocks: curl, jq, sudo — no real network calls, no real installs
+# Mocks: gh, curl, jq, sudo — no real network calls, no real installs
 
 SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/devtools-update"
 
@@ -32,10 +32,19 @@ exec "$@"
 EOF
   chmod +x "$TMPDIR_TEST/bin/sudo"
 
-  # Default mock curl: returns a minimal GitHub API response for version 1.2.3
+  # Default mock gh: `gh api ... --jq ...` returns version 1.2.3 (post-jq output)
+  cat >"$TMPDIR_TEST/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "api" ]]; then
+  echo "1.2.3"
+fi
+EOF
+  chmod +x "$TMPDIR_TEST/bin/gh"
+
+  # Default mock curl: no-op (installer downloads are overridden per test)
   cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
 #!/usr/bin/env bash
-echo '{"tag_name":"v1.2.3"}'
+exit 0
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
 
@@ -65,28 +74,31 @@ EOF
   chmod +x "${prefix}/${name}"
 }
 
-# Make curl return a specific GitHub API version
+# Make gh api return a specific version and curl serve a fake installer
 mock_latest_version() {
   local version="$1"
-  cat >"$TMPDIR_TEST/bin/curl" <<EOF
+  cat >"$TMPDIR_TEST/bin/gh" <<EOF
 #!/usr/bin/env bash
-if [[ "\$*" == *api.github.com* ]]; then
-  echo '{"tag_name":"v${version}"}'
-else
-  # For installer curl calls: write a fake installer to stdout
-  echo '#!/usr/bin/env sh'
-  echo "mkdir -p \"\${FAKE_INSTALL_PREFIX:-/tmp}\""
-  echo "echo 'fake installer ran'"
+if [[ "\$1" == "api" ]]; then
+  echo "${version}"
 fi
+EOF
+  chmod +x "$TMPDIR_TEST/bin/gh"
+
+  cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+# For installer curl calls: write a fake installer to stdout
+echo '#!/usr/bin/env sh'
+echo "mkdir -p \"\${FAKE_INSTALL_PREFIX:-/tmp}\""
+echo "echo 'fake installer ran'"
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
 }
 
-# Create a curl stub that handles both GitHub API calls and installer downloads.
-# API calls (URL contains api.github.com) return JSON to stdout.
-# Download calls (with -o FILE) copy a pre-baked fake installer to FILE.
-# The fake installer creates an executable $tool binary in the install dir
-# by reading the tool-specific env var set by the sudo stub.
+# Create a curl stub that copies a pre-baked fake installer to the -o FILE,
+# plus a gh stub that returns the version. The fake installer creates an
+# executable $tool binary in the install dir by reading the tool-specific
+# env var set by the sudo stub.
 # shellcheck disable=SC2016  # single quotes are intentional: generating literal shell code
 make_curl_stub() {
   local tool="$1" version="$2"
@@ -103,6 +115,14 @@ make_curl_stub() {
   printf 'chmod +x "$d/%s"\n' "$tool" >>"$installer"
   chmod +x "$installer"
 
+  cat >"$TMPDIR_TEST/bin/gh" <<EOF
+#!/usr/bin/env bash
+if [[ "\$1" == "api" ]]; then
+  echo "${version}"
+fi
+EOF
+  chmod +x "$TMPDIR_TEST/bin/gh"
+
   {
     printf '%s\n' \
       '#!/usr/bin/env bash' \
@@ -111,9 +131,7 @@ make_curl_stub() {
       '    [[ "$prev" == "-o" ]] && outfile="$arg"' \
       '    prev="$arg"' \
       'done'
-    printf 'if [[ "$*" == *api.github.com* ]]; then\n'
-    printf '    echo '"'"'{"tag_name":"v%s"}'"'"'\n' "$version"
-    printf 'elif [[ -n "$outfile" ]]; then\n'
+    printf 'if [[ -n "$outfile" ]]; then\n'
     printf '    cp "%s" "$outfile"\n' "$installer"
     printf 'fi\n'
   } >"$TMPDIR_TEST/bin/curl"
@@ -236,11 +254,11 @@ make_curl_stub() {
 # ---------------------------------------------------------------------------
 
 @test "exits 1 when GitHub API returns empty version" {
-  cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
+  cat >"$TMPDIR_TEST/bin/gh" <<'EOF'
 #!/usr/bin/env bash
-echo '{"tag_name":""}'
+echo ""
 EOF
-  chmod +x "$TMPDIR_TEST/bin/curl"
+  chmod +x "$TMPDIR_TEST/bin/gh"
 
   run "$SCRIPT" --prefix "$PREFIX" uv
   [ "$status" -eq 1 ]
@@ -248,11 +266,11 @@ EOF
 }
 
 @test "exits 1 when GitHub API returns null version" {
-  cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
+  cat >"$TMPDIR_TEST/bin/gh" <<'EOF'
 #!/usr/bin/env bash
-echo '{}'
+echo "null"
 EOF
-  chmod +x "$TMPDIR_TEST/bin/curl"
+  chmod +x "$TMPDIR_TEST/bin/gh"
 
   run "$SCRIPT" --prefix "$PREFIX" uv
   [ "$status" -eq 1 ]
@@ -266,11 +284,7 @@ EOF
 @test "exits 1 when installer curl fails" {
   cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$*" == *api.github.com* ]]; then
-  echo '{"tag_name":"v1.2.3"}'
-else
-  exit 1
-fi
+exit 1
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
 
@@ -282,11 +296,16 @@ EOF
 @test "exits 1 when installer runs but binary is missing" {
   cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$*" == *api.github.com* ]]; then
-  echo '{"tag_name":"v1.2.3"}'
-else
-  echo '#!/usr/bin/env sh'
-  echo 'echo installer ran but dropped nothing'
+outfile="" prev=""
+for arg in "$@"; do
+  [[ "$prev" == "-o" ]] && outfile="$arg"
+  prev="$arg"
+done
+if [[ -n "$outfile" ]]; then
+  {
+    echo '#!/usr/bin/env sh'
+    echo 'echo installer ran but dropped nothing'
+  } >"$outfile"
 fi
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
@@ -303,11 +322,7 @@ EOF
 @test "reports all failed tools and exits 1" {
   cat >"$TMPDIR_TEST/bin/curl" <<'EOF'
 #!/usr/bin/env bash
-if [[ "$*" == *api.github.com* ]]; then
-  echo '{"tag_name":"v1.2.3"}'
-else
-  exit 1
-fi
+exit 1
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
 

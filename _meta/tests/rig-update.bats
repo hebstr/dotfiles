@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for rig-update
-# Mocks: curl, rig, apt-get, sudo — no real network calls, no real installs
+# Mocks: gh, curl, rig, apt-get, sudo — no real network calls, no real installs
 
 SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/rig-update"
 FAKE_LATEST="0.9.0"
@@ -20,20 +20,26 @@ setup() {
   export RIG_GPG_KEY_DEST="$TMPDIR_TEST/rig.gpg"
   export RIG_APT_SOURCE_FILE="$TMPDIR_TEST/rig.list"
 
-  cat >"$TMPDIR_TEST/bin/curl" <<STUB
+  cat >"$TMPDIR_TEST/bin/curl" <<'STUB'
 #!/usr/bin/env bash
-if [[ "\$*" == *"api.github.com"* ]]; then
-  printf '{"tag_name":"v${FAKE_LATEST}"}\n'
-  exit 0
-fi
-while [[ \$# -gt 0 ]]; do
-  case "\$1" in
-    -o) shift; touch "\$1" ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o) shift; touch "$1" ;;
   esac
   shift
 done
 STUB
   chmod +x "$TMPDIR_TEST/bin/curl"
+
+  cat >"$TMPDIR_TEST/bin/gh" <<STUB
+#!/usr/bin/env bash
+if [[ "\$1" == "api" ]]; then
+  printf '%s\n' "${FAKE_LATEST}"
+  exit 0
+fi
+exit 0
+STUB
+  chmod +x "$TMPDIR_TEST/bin/gh"
 
   cat >"$TMPDIR_TEST/bin/apt-get" <<'STUB'
 #!/usr/bin/env bash
@@ -88,11 +94,11 @@ EOF
 }
 
 @test "fetch_latest_version: exits 1 when API returns null" {
-  cat >"$TMPDIR_TEST/bin/curl" <<'STUB'
+  cat >"$TMPDIR_TEST/bin/gh" <<'STUB'
 #!/usr/bin/env bash
-printf '{"tag_name":null}\n'
+printf 'null\n'
 STUB
-  chmod +x "$TMPDIR_TEST/bin/curl"
+  chmod +x "$TMPDIR_TEST/bin/gh"
   run fetch_latest_version
   [ "$status" -eq 1 ]
   [[ "$output" == *"Failed to resolve"* ]]

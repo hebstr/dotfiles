@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-command -v jq >/dev/null 2>&1 || {
-  printf 'jq is required\n' >&2
-  exit 1
-}
+for _cmd in jq gh; do
+  command -v "$_cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$_cmd" >&2
+    exit 1
+  }
+done
 
 INSTALLER_URL="https://raw.githubusercontent.com/A2-ai/rv/refs/heads/main/scripts/install.sh"
-LATEST_API="https://api.github.com/repos/A2-ai/rv/releases/latest"
+LATEST_API_PATH="repos/A2-ai/rv/releases/latest"
 
 run_installer() {
   local script
@@ -25,8 +27,7 @@ run_installer() {
 if command -v rv >/dev/null 2>&1; then
   current="$(rv --version 2>/dev/null | awk '{print $2}')"
   latest_tag="$(
-    curl -fsSL --connect-timeout 10 --max-time 30 --retry 2 "$LATEST_API" |
-      jq -r '.tag_name // empty' 2>/dev/null |
+    gh api "$LATEST_API_PATH" --jq '.tag_name // empty' 2>/dev/null |
       sed -E 's/^v//' || true
   )"
 

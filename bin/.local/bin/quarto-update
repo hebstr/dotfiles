@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-command -v jq >/dev/null 2>&1 || {
-  printf 'jq is required\n' >&2
-  exit 1
-}
+for _cmd in jq gh; do
+  command -v "$_cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$_cmd" >&2
+    exit 1
+  }
+done
 
-VER=$(curl -fsSL https://api.github.com/repos/quarto-dev/quarto-cli/releases/latest | jq -r '(.tag_name // "") | sub("^v"; "")')
+VER=$(gh api repos/quarto-dev/quarto-cli/releases/latest --jq '(.tag_name // "") | sub("^v"; "")')
 case "$(uname -m)" in
 x86_64) ARCH=linux-amd64 ;;
 aarch64) ARCH=linux-arm64 ;;

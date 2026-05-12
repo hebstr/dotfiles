@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-command -v jq >/dev/null 2>&1 || {
-  printf 'jq is required\n' >&2
-  exit 1
-}
+for _cmd in jq gh; do
+  command -v "$_cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$_cmd" >&2
+    exit 1
+  }
+done
 
 : "${RIG_GPG_KEY_URL:=https://rig.r-pkg.org/deb/rig.gpg}"
 : "${RIG_GPG_KEY_DEST:=/etc/apt/trusted.gpg.d/rig.gpg}"
 : "${RIG_APT_SOURCE_FILE:=/etc/apt/sources.list.d/rig.list}"
 RIG_APT_SOURCE_LINE="deb http://rig.r-pkg.org/deb rig main"
 RIG_PACKAGE="r-rig"
-RIG_API_URL="https://api.github.com/repos/r-lib/rig/releases/latest"
+RIG_API_PATH="repos/r-lib/rig/releases/latest"
 
 fetch_latest_version() {
   local tag
-  tag=$(curl -fsSL "$RIG_API_URL" | jq -r '.tag_name | ltrimstr("v")')
+  tag=$(gh api "$RIG_API_PATH" --jq '.tag_name | ltrimstr("v")')
   if [[ -z "$tag" || "$tag" == "null" ]]; then
     printf 'Failed to resolve latest rig version from GitHub API\n' >&2
     exit 1

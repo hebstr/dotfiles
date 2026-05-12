@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+# snap-orphans — find snaps with no remaining consumer and optionally remove them.
+#
+# Flags structural orphans:
+#   - base snaps (coreXX, bare) not declared as `base:` by any installed snap
+#   - content/runtime snaps whose slots have zero external plug
+# Apps (leaves of the dependency graph) are never flagged — user decides.
+
+set -Eeuo pipefail
+
+MODE=report
+EXPLICIT_MODE=0
+DRY_RUN=0
+RETENTION=
+ORIGINAL_ARGS=("$@")
+
+usage() {
+  cat <<'EOF'
+snap-orphans — list and optionally remove snaps with no remaining consumer
+
+Usage:
+  snap-orphans                       Scan and report orphans (read-only, default)
+  snap-orphans --remove              Remove orphans interactively, cascading
+  snap-orphans --purge-snapshots     Forget snapshots whose snap is no longer installed
+  snap-orphans --retention VALUE     Set snapd auto-snapshot retention ('no', '7d', '31d', ...)
+  snap-orphans --dry-run --remove    Simulate removal pass
+  snap-orphans -h | --help
+
+Notes:
+  - --remove iterates: bases freed by a removal become candidates on the next pass.
+  - --retention and --remove/--purge-snapshots can be combined.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+  -r | --remove)
+    MODE=remove
+    EXPLICIT_MODE=1
+    ;;
+  -p | --purge-snapshots)
+    MODE=purge
+    EXPLICIT_MODE=1
+    ;;
+  --retention)
+    shift
+    RETENTION=${1:-}
+    [[ -z $RETENTION ]] && {
+      echo "snap-orphans: --retention requires a value" >&2
+      exit 2
+    }
+    ;;
+  -n | --dry-run) DRY_RUN=1 ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "snap-orphans: unknown option: $1" >&2
+    usage >&2
+    exit 2
+    ;;
+  esac
+  shift
+done
+
+if [[ -n $RETENTION && $EXPLICIT_MODE -eq 0 ]]; then
+  MODE=none
+fi
+
+command -v snap >/dev/null || {
+  echo "snap-orphans: snap not installed" >&2
+  exit 1
+}
+
+need_root=0
+case $MODE in
+remove | purge) need_root=1 ;;
+esac
+[[ -n $RETENTION ]] && need_root=1
+
+if [[ $need_root -eq 1 && $DRY_RUN -eq 0 && $EUID -ne 0 ]]; then
+  exec sudo -E -- "$0" "${ORIGINAL_ARGS[@]}"
+fi
+
+log() { printf '\n=== %s ===\n' "$*"; }
+warn() { printf 'WARN: %s\n' "$*" >&2; }
+
+run() {
+  if [[ $DRY_RUN -eq 1 ]]; then
+    printf 'DRY: %s\n' "$*"
+  else
+    "$@"
+  fi
+}
+
+snap_size() {
+  local s=$1 size
+  size=$(du -sh /var/lib/snapd/snaps/"$s"_*.snap 2>/dev/null | awk 'END {print $1}')
+  [[ -z $size ]] && size="?"
+  printf '%s' "$size"
+}
+
+detect_orphans() {
+  local s type b conns
+  local -A bases_used=()
+  local -a snaps=() orphans=()
+  mapfile -t snaps < <(snap list 2>/dev/null | awk 'NR>1 {print $1}')
+
+  for s in "${snaps[@]}"; do
+    b=$(snap info --verbose "$s" 2>/dev/null | awk '/^base:/ {print $2; exit}')
+    [[ -n $b ]] && bases_used[$b]=1
+  done
+
+  conns=$(snap connections --all 2>/dev/null || true)
+
+  for s in "${snaps[@]}"; do
+    type=$(snap info --verbose "$s" 2>/dev/null | awk '/^type:/ {print $2; exit}')
+    case $type in
+    core | snapd | gadget | kernel) continue ;;
+    base)
+      [[ -z ${bases_used[$s]:-} ]] && orphans+=("$s")
+      ;;
+    *)
+      # Candidate iff snap exposes a content slot (= behaves like a platform provider)
+      # AND no slot of any interface has an external consumer.
+      if awk -v s="$s" '$1 ~ /^content/ && $3 ~ "^"s":"' <<<"$conns" | grep -q .; then
+        if ! awk -v s="$s" '$3 ~ "^"s":" && $2 != "-"' <<<"$conns" | grep -q .; then
+          orphans+=("$s")
+        fi
+      fi
+      ;;
+    esac
+  done
+
+  if [[ ${#orphans[@]} -gt 0 ]]; then
+    printf '%s\n' "${orphans[@]}"
+  fi
+}
+
+mode_report() {
+  local -a orphans=()
+  mapfile -t orphans < <(detect_orphans)
+  if [[ ${#orphans[@]} -eq 0 ]]; then
+    log "No orphan snaps detected"
+    return 0
+  fi
+  log "Orphan snaps (${#orphans[@]})"
+  printf '%-50s %10s\n' "snap" "size"
+  printf -- '%.0s-' {1..62}
+  printf '\n'
+  local s
+  for s in "${orphans[@]}"; do
+    printf '%-50s %10s\n' "$s" "$(snap_size "$s")"
+  done
+  echo
+  echo "To remove (with cascade): snap-orphans --remove"
+}
+
+mode_remove() {
+  local pass=1
+  local -a orphans=()
+  while :; do
+    mapfile -t orphans < <(detect_orphans)
+    if [[ ${#orphans[@]} -eq 0 ]]; then
+      log "No more orphans (after $((pass - 1)) pass(es))"
+      break
+    fi
+    log "Pass $pass — ${#orphans[@]} orphan(s)"
+    local s
+    for s in "${orphans[@]}"; do
+      printf '  %-50s %10s\n' "$s" "$(snap_size "$s")"
+    done
+    if [[ $DRY_RUN -eq 0 ]]; then
+      read -r -p "Remove all listed? [y/N] " ans
+      if [[ ${ans,,} != "y" ]]; then
+        echo "aborted at pass $pass"
+        break
+      fi
+    fi
+    for s in "${orphans[@]}"; do
+      run snap remove "$s" || warn "failed to remove $s"
+    done
+    pass=$((pass + 1))
+    if [[ $DRY_RUN -eq 1 ]]; then
+      log "(dry-run cannot iterate further — re-run without --dry-run to cascade)"
+      break
+    fi
+  done
+}
+
+mode_purge() {
+  log "Purging snapshots whose snap is no longer installed"
+  local installed saved id name
+  installed=$(snap list 2>/dev/null | awk 'NR>1 {print $1}' | sort -u)
+  saved=$(snap saved 2>/dev/null | awk 'NR>1 {print $1"|"$2}')
+  if [[ -z $saved ]]; then
+    echo "no snapshots saved"
+    return
+  fi
+  while IFS='|' read -r id name; do
+    [[ -z $id ]] && continue
+    if grep -qxF "$name" <<<"$installed"; then
+      echo "keep    $id ($name still installed)"
+    else
+      echo "forget  $id ($name)"
+      run snap forget "$id" || warn "failed to forget $id"
+    fi
+  done <<<"$saved"
+}
+
+set_retention() {
+  log "Setting snapshots.automatic.retention=$RETENTION"
+  run snap set system snapshots.automatic.retention="$RETENTION"
+}
+
+case $MODE in
+report) mode_report ;;
+remove) mode_remove ;;
+purge) mode_purge ;;
+none) : ;;
+esac
+
+[[ -n $RETENTION ]] && set_retention
+
+exit 0

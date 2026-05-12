@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-command -v jq >/dev/null 2>&1 || {
-  printf 'jq is required\n' >&2
-  exit 1
-}
+for _cmd in jq gh; do
+  command -v "$_cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$_cmd" >&2
+    exit 1
+  }
+done
 
-VER=$(curl -fsSL https://api.github.com/repos/posit-dev/positron/releases/latest | jq -r .tag_name)
+VER=$(gh api repos/posit-dev/positron/releases/latest --jq '.tag_name')
 case "$(dpkg --print-architecture)" in
 amd64) ARCH=x64 CDN_ARCH=x86_64 ;;
 arm64) ARCH=arm64 CDN_ARCH=arm64 ;;

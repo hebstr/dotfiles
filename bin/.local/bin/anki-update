@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-command -v jq >/dev/null 2>&1 || {
-  printf 'jq is required\n' >&2
-  exit 1
-}
-command -v curl >/dev/null 2>&1 || {
-  printf 'curl is required\n' >&2
-  exit 1
-}
+for _cmd in jq curl gh; do
+  command -v "$_cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$_cmd" >&2
+    exit 1
+  }
+done
 
-VER=$(curl -fsSL "https://api.github.com/repos/ankitects/anki/releases?per_page=20" |
-  jq -r 'map(select(.assets | length > 0)) | .[0].tag_name // ""')
+VER=$(gh api "repos/ankitects/anki/releases?per_page=20" \
+  --jq 'map(select(.prerelease == false and (.assets | length > 0))) | .[0].tag_name // ""')
 
 if [ -z "${VER}" ] || [ "${VER}" = "null" ]; then
   echo "Failed to resolve latest Anki launcher version from GitHub API" >&2

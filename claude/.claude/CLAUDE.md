@@ -129,6 +129,7 @@
 - Adversarial review exit signal: stop when the reviewer starts hallucinating or inventing problems that don't exist. That's maximum viable refinement — the harshest critic has run out of legitimate complaints.
 - For complex tasks (multiple interdependent features or unclear scope): before the design bullet list, propose decomposition — produce a feature breakdown ordered by dependencies with a minimal viable core identified. User validates before any code is written.
 - For tasks on an existing codebase: before the design bullet list, scan the relevant files to identify the gap between current state and the goal. Build on what exists, don't duplicate it.
+- When generalizing a one-shot script into a reusable tool, restrict scope to what is mechanically decidable. Don't bake in subjective heuristics (mtime thresholds, hardcoded lists, usage judgments) — defer those to the user via flags or interactive prompts.
 - In long conversations: when a significant decision is made or a direction changes, state it explicitly as a named anchor ("Decision: X because Y") so it survives context compression.
 - Ouroboros (`ooo interview`) when: (a) success criteria cannot be stated in 1–2 sentences without a prior design decision, (b) the project spans multiple sessions and early choices are hard to reverse, or (c) uncertainty is about what to build, not how.
 

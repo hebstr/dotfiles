@@ -10,7 +10,7 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/quarto-update"
 # override the relevant variable before calling `run`.
 #
 # Variables and their defaults:
-#   CURL_API_RESPONSE      JSON body returned for the GitHub releases/latest call
+#   GH_API_OUTPUT          string returned by gh api --jq for the releases/latest call
 #   CURL_CHECKSUMS_CONTENT line(s) written to the checksums file
 #   UNAME_ARCH             string returned by `uname -m`
 #   QUARTO_CURRENT_VERSION version string printed by `quarto --version`
@@ -18,7 +18,16 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/quarto-update"
 #   TAR_STUB_MODE          full | no_binary | not_executable | failing_binary
 
 _create_stubs() {
-  # curl ─ API call writes to stdout; downloads write to -o <file>
+  # gh ─ `gh api ... --jq ...` returns the resolved tag (post-jq output)
+  cat >"${STUBS}/gh" <<'EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "api" ]; then
+    printf '%s\n' "${GH_API_OUTPUT}"
+fi
+exit 0
+EOF
+
+  # curl ─ downloads write to -o <file>; API calls now go through gh
   cat >"${STUBS}/curl" <<'EOF'
 #!/usr/bin/env bash
 output_file=""
@@ -27,9 +36,7 @@ for arg in "$@"; do
     [ "$next_o" = 1 ] && { output_file="$arg"; next_o=0; continue; }
     [ "$arg" = "-o" ] && next_o=1
 done
-if [[ "$*" == *"api.github.com"* ]]; then
-    printf '%s\n' "${CURL_API_RESPONSE}"
-elif [ -n "$output_file" ]; then
+if [ -n "$output_file" ]; then
     case "$output_file" in
         *checksums*) printf '%s\n' "${CURL_CHECKSUMS_CONTENT}" > "$output_file" ;;
         *)           touch "$output_file" ;;
@@ -117,7 +124,7 @@ setup() {
   STUBS="$(mktemp -d)"
   export STUBS
 
-  export CURL_API_RESPONSE='{"tag_name":"v1.9.37"}'
+  export GH_API_OUTPUT='1.9.37'
   export CURL_CHECKSUMS_CONTENT='fakehash  quarto-1.9.37-linux-amd64.tar.gz'
   export UNAME_ARCH=x86_64
   export QUARTO_CURRENT_VERSION=1.9.0
@@ -170,14 +177,14 @@ teardown() {
 # ─── version resolution ─────────────────────────────────────────────────────
 
 @test "exits 1 when GitHub API returns empty tag_name" {
-  export CURL_API_RESPONSE='{"tag_name":""}'
+  export GH_API_OUTPUT=''
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Failed to resolve"* ]]
 }
 
 @test "exits 1 when GitHub API returns no tag_name field" {
-  export CURL_API_RESPONSE='{}'
+  export GH_API_OUTPUT=''
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Failed to resolve"* ]]

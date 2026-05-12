@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for positron-update
-# Mocks: curl, dpkg, dpkg-query, positron, sha256sum, sudo — no real network calls, no real installs
+# Mocks: gh, curl, dpkg, dpkg-query, positron, sha256sum, sudo — no real network calls, no real installs
 
 SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/positron-update"
 
@@ -21,6 +21,7 @@ setup() {
 
   _make_curl_stub amd64
   _make_dpkg_stub amd64
+  _make_gh_stub "$FAKE_LATEST"
 
   cat >"$TMPDIR_TEST/bin/dpkg-query" <<'STUB'
 #!/usr/bin/env bash
@@ -51,9 +52,9 @@ teardown() {
 
 # _make_curl_stub ARCH
 # Stubs curl to:
-#   - Return GitHub API JSON when called without -o
 #   - Write checksums JSON keyed by the correct deb filename for ARCH when URL contains "checksums"
 #   - Touch an empty file for deb download calls
+# (API version lookup now goes through `gh api` — see _make_gh_stub.)
 _make_curl_stub() {
   local arch="${1:-amd64}"
   local deb_arch
@@ -71,7 +72,7 @@ for arg in "\$@"; do
   prev="\$arg"
 done
 if [[ -z "\$outfile" ]]; then
-  printf '{"tag_name":"${FAKE_LATEST}"}\n'
+  exit 0
 elif [[ "\$url" == *"checksums"* ]]; then
   printf '{"Positron-${FAKE_LATEST}-${deb_arch}.deb":"${FAKE_HASH}"}\n' >"\$outfile"
 else
@@ -79,6 +80,20 @@ else
 fi
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
+}
+
+# _make_gh_stub TAG
+# Stubs `gh api ... --jq ...` to print TAG (the post-jq tag_name).
+_make_gh_stub() {
+  local tag="${1:-}"
+  cat >"$TMPDIR_TEST/bin/gh" <<EOF
+#!/usr/bin/env bash
+if [ "\${1:-}" = "api" ]; then
+  printf '%s\n' "${tag}"
+fi
+exit 0
+EOF
+  chmod +x "$TMPDIR_TEST/bin/gh"
 }
 
 # _make_dpkg_stub ARCH [INSTALL_EXIT_CODE]
@@ -149,11 +164,7 @@ EOF
 # ---------------------------------------------------------------------------
 
 @test "exits 1 when GitHub API returns null version" {
-  cat >"$TMPDIR_TEST/bin/curl" <<'STUB'
-#!/usr/bin/env bash
-printf '{"tag_name":null}\n'
-STUB
-  chmod +x "$TMPDIR_TEST/bin/curl"
+  _make_gh_stub "null"
 
   run "$SCRIPT"
   [ "$status" -eq 1 ]
@@ -161,11 +172,7 @@ STUB
 }
 
 @test "exits 1 when GitHub API returns empty version" {
-  cat >"$TMPDIR_TEST/bin/curl" <<'STUB'
-#!/usr/bin/env bash
-printf '{"tag_name":""}\n'
-STUB
-  chmod +x "$TMPDIR_TEST/bin/curl"
+  _make_gh_stub ""
 
   run "$SCRIPT"
   [ "$status" -eq 1 ]
@@ -235,7 +242,7 @@ for arg in "\$@"; do
   prev="\$arg"
 done
 if [[ -z "\$outfile" ]]; then
-  printf '{"tag_name":"${FAKE_LATEST}"}\n'
+  exit 0
 elif [[ "\$url" == *"checksums"* ]]; then
   printf '{}\n' >"\$outfile"
 else
