@@ -13,6 +13,7 @@ EXPLICIT_MODE=0
 DRY_RUN=0
 RETENTION=
 ORIGINAL_ARGS=("$@")
+SNAP_META_ROOT=${SNAP_META_ROOT:-/snap}
 
 usage() {
   cat <<'EOF'
@@ -109,7 +110,7 @@ detect_orphans() {
   mapfile -t snaps < <(snap list | awk 'NR>1 {print $1}')
 
   for s in "${snaps[@]}"; do
-    info=$(cat /snap/"$s"/current/meta/snap.yaml 2>/dev/null)
+    info=$(cat "$SNAP_META_ROOT/$s/current/meta/snap.yaml" 2>/dev/null)
     b=$(awk '/^base:/ {print $2; exit}' <<<"$info")
     type=$(awk '/^type:/ {print $2; exit}' <<<"$info")
     [[ -n $b ]] && bases_used[$b]=1

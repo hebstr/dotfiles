@@ -125,7 +125,7 @@
 ## Build discipline
 
 - Before any non-trivial task (anything beyond a bugfix/patch): ask explicitly "what does done look like?" and write the answer as a bullet list (goal, success criteria, known constraints, out of scope) in the conversation before any code. A narrative answer does not count.
-- After completing any non-trivial task: propose adversarial review (`/walkthrough` or `/audit:skill-adversary`) systematically. The review must happen in a fresh conversation — never the build conversation; shared context makes the adversary compliant.
+- After completing any non-trivial task: propose adversarial review with `/audit:walkthrough <target> --adversarial` systematically. The review must happen in a fresh conversation — never the build conversation; shared context makes the adversary compliant. `/audit:skill-adversary` is reserved for reviewing SKILL.md files only; never propose it for code, tests, or any non-skill artifact.
 - Adversarial review exit signal: stop when the reviewer starts hallucinating or inventing problems that don't exist. That's maximum viable refinement — the harshest critic has run out of legitimate complaints.
 - For complex tasks (multiple interdependent features or unclear scope): before the design bullet list, propose decomposition — produce a feature breakdown ordered by dependencies with a minimal viable core identified. User validates before any code is written.
 - For tasks on an existing codebase: before the design bullet list, scan the relevant files to identify the gap between current state and the goal. Build on what exists, don't duplicate it.
