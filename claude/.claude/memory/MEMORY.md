@@ -14,7 +14,7 @@
 
 ## Feedback
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md) — 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
-- [feedback_review_workflow.md](feedback_review_workflow.md) — Preferred review workflow: 3 background specialists + parallel-review + consolidated report + walkthrough
+- [feedback_review_workflow.md](feedback_review_workflow.md) — Preferred review workflow: 3 background specialists + 2-3 foreground agents by facet, consolidated report, then `/audit:walkthrough`
 - [feedback_review_severity_personal.md](feedback_review_severity_personal.md) — Calibrate review severity down for personal/internal packages
 - [feedback_review_severity_shell_installers.md](feedback_review_severity_shell_installers.md) — Calibrate review severity for personal shell installers (quarto-update, positron-update, etc.)
 - [feedback_review_severity_bats_tests.md](feedback_review_severity_bats_tests.md) — Calibrate review severity for bats `.bats` test files covering personal shell tooling

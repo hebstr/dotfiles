@@ -8,7 +8,7 @@ Remaining improvements from the multi-agent code review audit (2026-03-25).
 
 ## Practices to adopt (no tooling needed)
 
-- **Human triage (2 min)** between critical-code-reviewer and review-walkthrough: classify findings as blocking / important / minor / rejected before starting walkthrough
+- **Human triage (2 min)** between critical-code-reviewer and `/audit:walkthrough`: classify findings as blocking / important / minor / rejected before starting walkthrough
 - **Pre-mortem (3-5 lines)** before submitting code for review: write down zones of doubt -- you usually know where it's fragile
 - **ADR (Architecture Decision Records)**: 5-10 lines per non-obvious decision to avoid re-debating in future reviews
 

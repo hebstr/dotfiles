@@ -71,6 +71,15 @@
             "command": "bash ~/.claude/hooks/format-on-edit.sh"
           }
         ]
+      },
+      {
+        "matcher": "mcp__plugin_ouroboros_ouroboros__ouroboros_evaluate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"$CLAUDE_PROJECT_DIR/.ouroboros_eval_artifact.md\" ] && mkdir -p \"$CLAUDE_PROJECT_DIR/.claude\" && mv \"$CLAUDE_PROJECT_DIR/.ouroboros_eval_artifact.md\" \"$CLAUDE_PROJECT_DIR/.claude/.ouroboros_eval_artifact.md\""
+          }
+        ]
       }
     ],
     "Notification": [

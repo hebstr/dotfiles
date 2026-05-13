@@ -8,7 +8,7 @@
     "editor.lineHeight": 1.5,
     "editor.detectIndentation": true,
     "editor.tabSize": 4,
-    "editor.tabCompletion": "onlySnippets",
+    "editor.tabCompletion": "on",
     "editor.formatOnSave": false,
     "editor.formatOnPaste": false,
     "editor.renderFinalNewline": "dimmed",
@@ -40,7 +40,7 @@
     "terminal.integrated.cursorWidth": 3,
     "terminal.integrated.cursorStyleInactive": "line",
     "terminal.integrated.stickyScroll.enabled": false,
-    "terminal.integrated.environmentChangesRelaunch": "off",
+    "terminal.integrated.environmentChangesRelaunch": false,
     // "terminal.integrated.shellIntegration.enabled": false,
 
 // GESTION DES FICHIERS --------------------------------------------------------
@@ -175,7 +175,7 @@
     "positron-r-package-manager.defaultInstaller": "pak",
     "positron.r.quietMode": true,
     "positron.assistant.enable": false,
-    "positron.plots.darkFilter": "off",
+    "plots.darkFilter": "off",
     "positron.viewer.interactivePlotsInViewer": true,
     "positron.viewer.openLocalhostUrls": false,
     "dataExplorer.summaryCollapsed": true,

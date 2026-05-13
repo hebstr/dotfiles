@@ -24,9 +24,8 @@ When editing or producing French prose for the user, apply these decisions. Do n
 - Quotation marks `« »` with non-breaking space inside, never `" "` in running French prose.
 
 **Skill placement:**
-- The full FR reference (~900 lines) lives in `~/Documents/pro/packages/claude-code-plugins/workflow/write/references/write-fr.md`. Loaded on-demand by the `/workflow:write` skill.
+- The FR reference is split into `references/write-fr-core.md` (~230 lines, always loaded on FR input) and `references/write-fr-extended.md` (~680 lines, loaded on top for bilingual mode, deep-review requests, or specific registers). Both live under `~/Documents/pro/packages/claude-code-plugins/workflow/write/references/`. Loaded on-demand by the `/workflow:write` skill.
 - The skill is part of the `workflow` plugin in the public `hebstr` marketplace (`claude plugin install workflow@hebstr`). Edit in place at `~/Documents/pro/packages/claude-code-plugins/workflow/write/`.
-- Migrated 2026-04-28 from `~/.agents/skills/write/` (legacy fork of `waza/write`) into the personal plugin. The original `waza/write` is to be uninstalled after smoke-testing `/workflow:write`.
 - Only an essentials distillation (~10 bullets) lives always-on in `~/.claude/CLAUDE.md` under `## Prose hygiene`. Do not promote the full FR reference into CLAUDE.md.
 
 **Why:** Without these guardrails, Claude reverts to slop-prone defaults: invoking the Académie as authority, "translating back" idiomatic anglicisms (cadriciel, étalonnage), inserting em-dashes by EN contagion, or letting calques pass the orthographic filter. Each of these has been explicitly corrected in prior sessions and validated empirically in the Apr 2026 `/write` test pass.
