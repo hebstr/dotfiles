@@ -160,7 +160,7 @@ Claude persists information across sessions via memory files in `~/.claude/memor
 - Don't save what code or git already tells you (architecture, history, visible conventions)
 - Don't duplicate what's in CLAUDE.md
 - `autoMemoryEnabled: false` in settings to disable; or `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`
-- `autoDreamEnabled: true` enables a memory consolidation pass (gates: 24h gap + 5 sessions + exclusive lock)
+- `autoDreamEnabled: true` enables a memory consolidation pass (gates: 24h gap + 5 sessions + exclusive lock). Stale `.consolidate-lock` files in `~/.claude/projects/*/memory/` from crashed passes are swept at SessionStart by `claude/.claude/hooks/sweep-stale-consolidate-locks.sh`, logged to `~/.claude/logs/dream-sweeper.log`.
 
 ## Notable settings.json keys
 

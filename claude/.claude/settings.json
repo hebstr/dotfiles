@@ -26,7 +26,8 @@
       "WebFetch(domain:r4ds.hadley.nz)",
       "WebFetch(domain:pypi.org)",
       "WebFetch(domain:pola.rs)",
-      "WebFetch(domain:docs.python.org)"
+      "WebFetch(domain:docs.python.org)",
+      "Skill(posit-dev:critical-code-reviewer)"
     ],
     "deny": [
       "Bash(git add*)",
@@ -58,6 +59,15 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/inject-project-context.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/sweep-stale-consolidate-locks.sh"
           }
         ]
       }
