@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+for _cmd in curl tar gpg dpkg sed awk grep sort; do
+  command -v "$_cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$_cmd" >&2
+    exit 1
+  }
+done
+
+TDF_FPR=C2839ECAD9408FBE9531C3E9F434A1EFAFEEAEA3
+BASE=https://download.documentfoundation.org/libreoffice/stable
+LANGPACK_LANG=fr
+
+case "$(uname -m)" in
+x86_64) ARCH_PATH=x86_64 ARCH_FILE=x86-64 ;;
+*)
+  echo "Unsupported architecture: $(uname -m) (TDF only ships x86_64 deb)" >&2
+  exit 1
+  ;;
+esac
+
+echo "Resolving latest LibreOffice stable from TDF..."
+VER=$(curl -fsSL "${BASE}/" |
+  grep -oE 'href="[0-9]+\.[0-9]+\.[0-9]+/"' |
+  sed 's|href="\(.*\)/"|\1|' |
+  sort -V | tail -n1) || true
+
+if [ -z "${VER}" ]; then
+  echo "Failed to resolve latest LibreOffice version from ${BASE}/" >&2
+  exit 1
+fi
+
+echo "Latest LibreOffice release: ${VER}"
+
+CURRENT=$(libreoffice --version 2>/dev/null | awk '{print $2}' | head -n1 || true)
+[ -n "${CURRENT}" ] || CURRENT=unknown
+
+CURRENT_TRIPLE=$(awk -F. 'NF>=3 {print $1"."$2"."$3}' <<<"${CURRENT}")
+if [ "${CURRENT_TRIPLE}" = "${VER}" ]; then
+  echo "Already on ${VER} — nothing to do."
+  exit 0
+fi
+
+CURRENT_BRANCH=$(awk -F. 'NF>=2 {print $1"."$2}' <<<"${CURRENT}")
+NEW_BRANCH=$(awk -F. '{print $1"."$2}' <<<"${VER}")
+if [ "${CURRENT}" != "unknown" ] && [ "${CURRENT_BRANCH}" != "${NEW_BRANCH}" ]; then
+  cat >&2 <<EOF
+Branch change detected:
+  installed: ${CURRENT_BRANCH} (${CURRENT})
+  latest:    ${NEW_BRANCH} (${VER})
+
+LibreOffice TDF debs install in parallel by branch (e.g. /opt/libreoffice${NEW_BRANCH}
+alongside /opt/libreoffice${CURRENT_BRANCH}). This script installs the new branch
+without removing the old one.
+
+Type 'yes' to continue, anything else to abort:
+EOF
+  read -r ans
+  [ "${ans}" = "yes" ] || {
+    echo "Aborted."
+    exit 0
+  }
+fi
+
+if ! gpg --list-keys "${TDF_FPR}" >/dev/null 2>&1; then
+  echo "Importing TDF signing key ${TDF_FPR}..."
+  gpg --keyserver hkps://keys.openpgp.org --recv-keys "${TDF_FPR}" ||
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "${TDF_FPR}" ||
+    {
+      echo "Failed to import TDF signing key" >&2
+      exit 1
+    }
+fi
+
+sudo -v
+
+TARBALL=LibreOffice_${VER}_Linux_${ARCH_FILE}_deb.tar.gz
+LANGPACK=LibreOffice_${VER}_Linux_${ARCH_FILE}_deb_langpack_${LANGPACK_LANG}.tar.gz
+URL_DIR=${BASE}/${VER}/deb/${ARCH_PATH}
+
+TMP=$(mktemp -d)
+SUDO_KEEPALIVE_PID=
+cleanup() {
+  rc=$?
+  if [ -n "${SUDO_KEEPALIVE_PID}" ]; then
+    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+  fi
+  rm -rf "${TMP}"
+  exit "${rc}"
+}
+trap cleanup EXIT
+
+(while true; do
+  sleep 60
+  sudo -n -v 2>/dev/null || exit
+done) &
+SUDO_KEEPALIVE_PID=$!
+
+fetch_and_verify() {
+  local file=$1
+  echo "Downloading ${file}..."
+  curl -fL --progress-bar -o "${TMP}/${file}" "${URL_DIR}/${file}"
+  curl -fsSL -o "${TMP}/${file}.asc" "${URL_DIR}/${file}.asc"
+  echo "Verifying GPG signature for ${file}..."
+  if ! gpg --batch --status-fd 3 --verify \
+    "${TMP}/${file}.asc" "${TMP}/${file}" 3>"${TMP}/${file}.status" ||
+    ! grep -qE "^\[GNUPG:\] VALIDSIG ${TDF_FPR} " "${TMP}/${file}.status"; then
+    echo "GPG verification failed for ${file}" >&2
+    exit 1
+  fi
+}
+
+fetch_and_verify "${TARBALL}"
+fetch_and_verify "${LANGPACK}"
+
+echo "Extracting tarballs..."
+tar -xzf "${TMP}/${TARBALL}" -C "${TMP}"
+tar -xzf "${TMP}/${LANGPACK}" -C "${TMP}"
+
+MAIN_DEBS="${TMP}/LibreOffice_${VER}_Linux_${ARCH_FILE}_deb/DEBS"
+LANG_DEBS="${TMP}/LibreOffice_${VER}_Linux_${ARCH_FILE}_deb_langpack_${LANGPACK_LANG}/DEBS"
+
+for d in "${MAIN_DEBS}" "${LANG_DEBS}"; do
+  if [ ! -d "${d}" ] || ! compgen -G "${d}/*.deb" >/dev/null; then
+    echo "Missing or empty DEBS directory: ${d}" >&2
+    exit 1
+  fi
+done
+
+install_debs() {
+  local dir=$1
+  if ! sudo dpkg -i "${dir}"/*.deb; then
+    echo "dpkg install failed — attempting to fix dependencies" >&2
+    if ! sudo apt-get install -f -y; then
+      echo "Dependency fix failed." >&2
+      if [ "${CURRENT}" != "unknown" ]; then
+        echo "Previous LibreOffice was ${CURRENT}. To roll back, reinstall the previous" >&2
+        echo "tarball from ${BASE}/${CURRENT_TRIPLE}/deb/${ARCH_PATH}/" >&2
+      fi
+      exit 1
+    fi
+  fi
+}
+
+echo "Installing LibreOffice ${VER} core .deb packages..."
+install_debs "${MAIN_DEBS}"
+
+echo "Installing ${LANGPACK_LANG} langpack..."
+install_debs "${LANG_DEBS}"
+
+echo
+echo "Installed version:"
+libreoffice --version
+echo
+echo "Previous version was: ${CURRENT}"
+if [ "${CURRENT}" != "unknown" ] && [ "${CURRENT_BRANCH}" = "${NEW_BRANCH}" ]; then
+  echo "To roll back: reinstall ${BASE}/${CURRENT_TRIPLE}/deb/${ARCH_PATH}/${TARBALL//${VER}/${CURRENT_TRIPLE}}"
+fi
