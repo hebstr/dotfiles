@@ -51,7 +51,7 @@ setup() {
   # bash against the (restricted) PATH the script runs under.
   ln -s "/usr/bin/cat" "${STUBS}/cat"
   ln -s "/usr/bin/paste" "${STUBS}/paste"
-  ln -s "${BASH}" "${STUBS}/bash"
+  ln -s "$BASH" "${STUBS}/bash"
 }
 
 # Invoke the script under a PATH that contains only ${STUBS}, so any tool
@@ -59,11 +59,11 @@ setup() {
 _run() {
   # Use $BASH (absolute path) because env resolves its program against the
   # new PATH — `bash` would not be found in ${STUBS} alone.
-  run env PATH="${STUBS}" "$BASH" "${SCRIPT}" "$@"
+  run env PATH="$STUBS" "$BASH" "$SCRIPT" "$@"
 }
 
 teardown() {
-  rm -rf "${STUBS}"
+  rm -rf "$STUBS"
 }
 
 # ─── help / usage ───────────────────────────────────────────────────────────
@@ -86,8 +86,8 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb claude-plugins quarto positron anki; do
-    [[ "$output" == *"${m}"* ]] || {
+    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice; do
+    [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
     }
@@ -110,6 +110,7 @@ teardown() {
   [ "$status" -eq 0 ]
   echo "$output" | grep -E '^apt[[:space:]]+yes$'
   echo "$output" | grep -E '^snap[[:space:]]+yes$'
+  echo "$output" | grep -E '^libreoffice[[:space:]]+yes$'
   echo "$output" | grep -E '^npm[[:space:]]+no$'
   echo "$output" | grep -E '^quarto[[:space:]]+no$'
 }
@@ -211,6 +212,19 @@ EOF
   [[ "$output" == *"[dry-run] claude-plugins-update"* ]]
 }
 
+@test "libreoffice module dispatches to libreoffice-update" {
+  _stub_command libreoffice-update
+  _run --dry-run libreoffice
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] libreoffice-update"* ]]
+}
+
+@test "libreoffice module skips when libreoffice-update is absent" {
+  _run --dry-run libreoffice
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"libreoffice"*"skipped (not found)"* ]]
+}
+
 @test "quarto module dispatches to quarto-update, not quarto itself" {
   _stub_command quarto
   _run --dry-run quarto
@@ -244,7 +258,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb claude-plugins quarto positron anki; do
+    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1

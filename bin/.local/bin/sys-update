@@ -22,9 +22,10 @@ ALL_MODULES=(
   quarto
   positron
   anki
+  libreoffice
 )
 
-SUDO_MODULES=(apt snap)
+SUDO_MODULES=(apt snap libreoffice)
 
 usage() {
   cat <<EOF
@@ -215,6 +216,14 @@ update_anki() {
     return
   fi
   run_or_dry anki-update && record anki OK
+}
+
+update_libreoffice() {
+  if ! command -v libreoffice-update >/dev/null 2>&1; then
+    record libreoffice "skipped (not found)"
+    return
+  fi
+  run_or_dry libreoffice-update && record libreoffice OK
 }
 
 needs_sudo() {
