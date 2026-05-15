@@ -18,7 +18,7 @@ paths:
 | `shfmt` | Formatter (indentation, spacing) | `sudo apt install shfmt` |
 
 Orthogonal roles:
-- **shellcheck** reports — does not fix
+- **shellcheck** reports; does not fix
 - **shellharden** automatically fixes quoting (based on shellcheck rules)
 - **shfmt** formats (cosmetic only, no semantic correction)
 
@@ -80,7 +80,7 @@ shellcheck script.sh     # full lint
 
 ## References
 
-- ShellCheck: https://github.com/koalaman/shellcheck — `SC*` codes documented at https://www.shellcheck.net
+- ShellCheck: https://github.com/koalaman/shellcheck (`SC*` codes documented at https://www.shellcheck.net)
 - shellharden: https://github.com/anordal/shellharden
 - shfmt (`mvdan/sh` project): https://github.com/mvdan/sh
 - bash-language-server: https://github.com/bash-lsp/bash-language-server

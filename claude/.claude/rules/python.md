@@ -21,7 +21,7 @@ Prefer `uv run ruff` inside a project (picks up `pyproject.toml`); use global `r
 ruff format script.py && ruff check --fix script.py
 ```
 
-Both are required — `ruff format` formats only, `ruff check` lints and fixes.
+Both are required: `ruff format` formats only, `ruff check` lints and fixes.
 
 ## Useful flags
 

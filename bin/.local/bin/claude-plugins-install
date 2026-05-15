@@ -48,7 +48,7 @@ while IFS= read -r plugin; do
 done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$SETTINGS")
 
 # ---------------------------------------------------------------------------
-# 3. Skills antigravity (pas disponibles comme plugins individuels)
+# 3. Antigravity skills (not available as individual plugins)
 # Pinned to a commit SHA — bump deliberately after reviewing upstream diff.
 # Upstream is trusted-on-pin, not trusted-on-HEAD.
 # ---------------------------------------------------------------------------

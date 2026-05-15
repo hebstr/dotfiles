@@ -21,8 +21,8 @@ On-demand reference for the machine's installed toolchain. Load when a runtime v
 
 | Tool | Notes |
 |------|-------|
-| pak  | Default package installer (`pak::pak()`) |
-| rv   | Lockfile: `rv.lock`, config: `rproject.toml` |
+| pak  | Default package installer (`pak::pak()`) outside `rv`-managed projects |
+| rv   | Lockfile: `rv.lock`, config: `rproject.toml`. Inside an rv project, use `rv add <pkg>` (not pak) to keep the lockfile authoritative |
 
 - CRAN mirror: `https://packagemanager.posit.co/cran/__linux__/noble/latest` (PPM, Linux noble binaries)
 

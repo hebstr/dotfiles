@@ -35,8 +35,10 @@ if [ -f "$MCP_JSON" ] && jq -e '.mcpServers.ouroboros' "$MCP_JSON" >/dev/null 2>
   echo "Checking ouroboros MCP version..."
   LATEST=$(curl -sf "https://pypi.org/pypi/ouroboros-ai/json" | jq -r '.info.version' 2>/dev/null) || LATEST=""
   if [ "$LATEST" != "" ]; then
-    CURRENT=$(jq -r '.mcpServers.ouroboros.args[] | select(test("ouroboros-ai"))' "$MCP_JSON" 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || echo "")
-    if [ "$CURRENT" != "" ] && [ "$CURRENT" != "$LATEST" ]; then
+    CURRENT=$(jq -r '.mcpServers.ouroboros.args[] | select(test("ouroboros-ai"))' "$MCP_JSON" 2>/dev/null | grep -oP '(?<===)\d+\.\d+\.\d+' || echo "")
+    if [ "$CURRENT" = "" ]; then
+      echo "  → ouroboros MCP: could not parse pinned version in mcp.json" >&2
+    elif [ "$CURRENT" != "$LATEST" ]; then
       tmp=$(mktemp "$(dirname "$MCP_JSON")/.mcp.XXXXXX")
       trap 'rm -f "$tmp"' EXIT
       jq --arg v "$LATEST" '

@@ -19,7 +19,7 @@ paths:
 air format script.R && jarl check script.R
 ```
 
-Both are required — `air` formats only, `jarl` lints only.
+Both are required: `air` formats only, `jarl` lints only.
 
 ## Useful flags
 
