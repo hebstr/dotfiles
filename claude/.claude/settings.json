@@ -97,7 +97,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "notify-send 'Claude Code' 'Claude Code needs your attention' 2>/dev/null || true"
+            "command": "bash ~/.claude/hooks/notify.sh"
           }
         ]
       }
