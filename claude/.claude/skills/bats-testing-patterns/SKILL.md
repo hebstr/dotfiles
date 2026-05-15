@@ -1,8 +1,7 @@
 ---
 name: bats-testing-patterns
 description: "Master Bash Automated Testing System (Bats) for comprehensive shell script testing. Use when writing tests for shell scripts, CI/CD pipelines, or requiring test-driven development of shell utilities."
-when_to_use: "bats, tester un script bash, écrire des tests shell, TDD bash, test bash, shell script tests, @test blocks, run helper, assert_equal, setup teardown bash"
-risk: safe
+risk: unknown
 source: community
 date_added: "2026-02-27"
 ---

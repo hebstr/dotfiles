@@ -1,7 +1,6 @@
 ---
 name: bash-defensive-patterns
 description: "Master defensive Bash programming techniques for production-grade scripts. Use when writing robust shell scripts, CI/CD pipelines, or system utilities requiring fault tolerance and safety."
-when_to_use: "set -euo pipefail, strict mode, trap, error handling bash, robustifier un script, durcir un script, defensive bash, shell installer, écrire un installeur, write installer, harden shell script"
 risk: safe
 source: community
 date_added: "2026-02-27"
