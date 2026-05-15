@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Declarative restore of Claude Code marketplaces, plugins, and autoUpdate flags.
-# Regenerated snapshot: 2026-04-23
+# Reads desired state from ~/.claude/settings.json (extraKnownMarketplaces + enabledPlugins).
 #
 # Run on a fresh machine (or after a wipe) to rebuild the plugin setup:
-#   bash ~/.claude/install-plugins.sh
+#   claude-plugins-install
 #
 # Idempotent: re-running only adds what's missing. Existing installs are left alone.
 
@@ -21,56 +21,31 @@ command -v jq >/dev/null 2>&1 || {
   exit 1
 }
 
-# ---------------------------------------------------------------------------
-# 1. Marketplaces (github repos declaring .claude-plugin/marketplace.json)
-# ---------------------------------------------------------------------------
-MARKETPLACES=(
-  "posit-dev/skills"
-  "Q00/ouroboros"
-  "ab604/claude-code-r-skills"
-  "hebstr/claude-code-plugins"
-  "anthropics/claude-plugins-official"
-)
+SETTINGS="$HOME/.claude/settings.json"
+if [ ! -f "$SETTINGS" ]; then
+  warn "settings.json not found at $SETTINGS"
+  exit 1
+fi
 
+# ---------------------------------------------------------------------------
+# 1. Marketplaces (from settings.json extraKnownMarketplaces)
+# ---------------------------------------------------------------------------
 log "Adding marketplaces..."
-for src in "${MARKETPLACES[@]}"; do
+while IFS= read -r src; do
+  [ "$src" = "" ] && continue
   log "  marketplace add $src"
   claude plugin marketplace add "$src" || warn "    (already present or failed: $src)"
-done
+done < <(jq -r '.extraKnownMarketplaces // {} | to_entries[] | .value.source | (.repo // .path // empty)' "$SETTINGS")
 
 # ---------------------------------------------------------------------------
-# 2. Plugins (name@marketplace)
+# 2. Plugins (from settings.json enabledPlugins where value == true)
 # ---------------------------------------------------------------------------
-PLUGINS=(
-  # Anthropic official plugins
-  "claude-code-setup@claude-plugins-official"
-  "frontend-design@claude-plugins-official"
-  "mcp-server-dev@claude-plugins-official"
-  "skill-creator@claude-plugins-official"
-
-  # Posit Dev skills (data science / R / Quarto)
-  "posit-dev@posit-dev-skills"
-  "r-lib@posit-dev-skills"
-  "open-source@posit-dev-skills"
-  "quarto@posit-dev-skills"
-
-  # R-focused skills
-  "r-skills@r-skills"
-  "r-lsp@r-skills"
-
-  # Ouroboros (spec-first workflow engine)
-  "ouroboros@ouroboros"
-
-  # Hebstr (workflow + audit skills)
-  "workflow@hebstr"
-  "audit@hebstr"
-)
-
 log "Installing plugins..."
-for plugin in "${PLUGINS[@]}"; do
+while IFS= read -r plugin; do
+  [ "$plugin" = "" ] && continue
   log "  plugin install $plugin"
   claude plugin install "$plugin" || warn "    (already installed or failed: $plugin)"
-done
+done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$SETTINGS")
 
 # ---------------------------------------------------------------------------
 # 3. Skills antigravity (pas disponibles comme plugins individuels)
@@ -85,11 +60,11 @@ if ! command -v gh >/dev/null 2>&1; then
 else
   log "Updating antigravity skills..."
   for skill in "${ANTIGRAVITY_SKILLS[@]}"; do
-    mkdir -p ~/.claude/skills/"${skill}"/resources
+    mkdir -p ~/.claude/skills/"$skill"/resources
     gh api "repos/sickn33/antigravity-awesome-skills/contents/skills/${skill}/SKILL.md" \
-      --jq '.content' | base64 -d >~/.claude/skills/"${skill}"/SKILL.md
+      --jq '.content' | base64 -d >~/.claude/skills/"$skill"/SKILL.md
     gh api "repos/sickn33/antigravity-awesome-skills/contents/skills/${skill}/resources/implementation-playbook.md" \
-      --jq '.content' | base64 -d >~/.claude/skills/"${skill}"/resources/implementation-playbook.md
+      --jq '.content' | base64 -d >~/.claude/skills/"$skill"/resources/implementation-playbook.md
     log "  updated: ${skill}"
   done
 fi
