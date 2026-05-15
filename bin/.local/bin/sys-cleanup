@@ -225,11 +225,18 @@ clean_jedi() {
 clean_apt() {
   local before
   before=$(bytes_of /var/cache/apt/archives)
+  local rc_count=0
+  local rc_pkgs=()
+  mapfile -t rc_pkgs < <(dpkg -l | awk '/^rc/ {print $2}')
+  if [[ ${#rc_pkgs[@]} -gt 0 ]]; then
+    rc_count=${#rc_pkgs[@]}
+    run_or_dry sudo dpkg --purge "${rc_pkgs[@]}"
+  fi
   run_or_dry sudo apt-get clean -y
   run_or_dry sudo apt-get autoremove --purge -y
   local after
   after=$(bytes_of /var/cache/apt/archives)
-  record apt $((before - after)) "OK (archives only)"
+  record apt $((before - after)) "OK (archives + ${rc_count} rc purged)"
 }
 
 clean_journal() {

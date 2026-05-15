@@ -47,18 +47,18 @@ setup() {
   for cmd in cat paste du awk find grep sort tail rm; do
     ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
   done
-  ln -s "${BASH}" "${STUBS}/bash"
+  ln -s "$BASH" "${STUBS}/bash"
 }
 
 # Invoke the script under a PATH that contains only ${STUBS}, with HOME
 # pointed at a clean temp dir so cache directories under $HOME default to
 # "absent" unless the test explicitly creates them.
 _run() {
-  run env PATH="${STUBS}" HOME="${FAKE_HOME}" "$BASH" "${SCRIPT}" "$@"
+  run env PATH="$STUBS" HOME="$FAKE_HOME" "$BASH" "$SCRIPT" "$@"
 }
 
 teardown() {
-  rm -rf "${STUBS}" "${FAKE_HOME}"
+  rm -rf "$STUBS" "$FAKE_HOME"
 }
 
 # ─── help / usage ───────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ teardown() {
   [ "$status" -eq 0 ]
   for m in trash uv prek go r-cache claude-versions flatpak \
     claude-cli jedi apt journal snap r-renv; do
-    [[ "$output" == *"${m}"* ]] || {
+    [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
     }
@@ -164,6 +164,70 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] sudo apt-get clean -y"* ]]
   [[ "$output" == *"[dry-run] sudo apt-get autoremove --purge -y"* ]]
+}
+
+@test "--dry-run apt prints dpkg --purge for residual rc packages" {
+  cat >"${STUBS}/dpkg" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+    -l)
+        printf 'rc  pkg-one        1.0  amd64        old config\n'
+        printf 'rc  pkg-two:i386   2.0  i386         old config\n'
+        printf 'ii  alive-pkg      3.0  amd64        installed\n'
+        ;;
+esac
+EOF
+  chmod +x "${STUBS}/dpkg"
+  _run --dry-run apt
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] sudo dpkg --purge pkg-one pkg-two:i386"* ]]
+}
+
+@test "--dry-run apt skips dpkg --purge when no rc packages remain" {
+  cat >"${STUBS}/dpkg" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+    -l)
+        printf 'ii  alive-pkg      3.0  amd64        installed\n'
+        ;;
+esac
+EOF
+  chmod +x "${STUBS}/dpkg"
+  _run --dry-run apt
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[dry-run] sudo dpkg --purge"* ]]
+}
+
+@test "apt summary reports the rc purge count" {
+  cat >"${STUBS}/dpkg" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+    -l)
+        printf 'rc  pkg-one    1.0  amd64  old\n'
+        printf 'rc  pkg-two    2.0  amd64  old\n'
+        printf 'rc  pkg-three  3.0  amd64  old\n'
+        ;;
+esac
+EOF
+  chmod +x "${STUBS}/dpkg"
+  _run --dry-run apt
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"(archives + 3 rc purged)"* ]]
+}
+
+@test "apt summary reports 0 rc purged when none are present" {
+  cat >"${STUBS}/dpkg" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+    -l)
+        printf 'ii  alive  1.0  amd64  installed\n'
+        ;;
+esac
+EOF
+  chmod +x "${STUBS}/dpkg"
+  _run --dry-run apt
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"(archives + 0 rc purged)"* ]]
 }
 
 @test "--dry-run journal prints the journalctl vacuum command" {
