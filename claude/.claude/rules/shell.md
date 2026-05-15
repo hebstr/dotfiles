@@ -27,25 +27,24 @@ Orthogonal roles:
 After writing or editing any shell script, run the full pipeline in one shot before marking the task done. Order matters: shellharden fixes quoting, shfmt formats, shellcheck validates.
 
 ```sh
-shellharden --replace script.sh && shfmt -w -i 2 -ci -sr script.sh && shellcheck script.sh
+shellharden --replace script.sh && shfmt -w -i 2 script.sh && shellcheck script.sh
 ```
 
 Running only one or two tools is not sufficient, all three are complementary.
 
+The shfmt flags above match the prek hook in `prek.toml` (source of truth at commit gate). Running with extra flags locally (e.g. `-ci`, `-sr`) reformats files in ways the hook will revert.
+
 ## Useful shfmt flags
 
-| Flag | Effect |
-|---|---|
-| `-w` | write in place |
-| `-i 2` | 2-space indentation |
-| `-ci` | indent `case` branches |
-| `-sr` | space after redirections (`> file`) |
-| `-bn` | `&&` / `\|` at start of line |
+| Flag | Effect | Used in pipeline |
+|---|---|---|
+| `-w` | write in place | yes |
+| `-i 2` | 2-space indentation | yes |
+| `-ci` | indent `case` branches | no (prek does not set it) |
+| `-sr` | space after redirections (`> file`) | no (prek does not set it) |
+| `-bn` | `&&` / `\|` at start of line | no |
 
-Combined example:
-```sh
-shfmt -w -i 2 -ci -sr script.sh
-```
+Note: Positron's Bash IDE is currently configured with `caseIndent: true` and `spaceRedirects: true` (`positron/.config/Positron/User/profiles/*/settings.json`), which diverges from prek. Either align the editor settings to `false` or align `prek.toml` args to `["-w", "-i", "2", "-ci", "-sr"]` so on-save formatting and the commit hook agree.
 
 ## Positron extensions
 
@@ -63,7 +62,7 @@ Active configuration is checked in at `positron/.config/Positron/User/profiles/*
 [[repos]]
 repo = "https://github.com/scop/pre-commit-shfmt"
 rev = "v3.13.0-1"
-hooks = [{ id = "shfmt" }]
+hooks = [{ id = "shfmt", args = ["-w", "-i", "2"], exclude = '^bash/' }]
 
 [[repos]]
 repo = "https://github.com/shellcheck-py/shellcheck-py"

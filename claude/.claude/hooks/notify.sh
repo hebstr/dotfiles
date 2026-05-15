@@ -20,11 +20,12 @@ project="${cwd##*/}"
 
 conv=""
 if [[ -n $transcript && -r $transcript ]] && command -v jq >/dev/null 2>&1; then
-  raw=$(jq -r '
+  raw=$({ jq -r '
     select(.type == "user")
     | .message.content
     | select(type == "string")
-  ' "$transcript" 2>/dev/null | head -n 1 | tr -d '\n')
+    | gsub("\n"; " ")
+  ' "$transcript" 2>/dev/null || true; } | head -n 1 | tr -d '\n')
   if ((${#raw} > 50)); then
     conv="${raw:0:49}…"
   else
