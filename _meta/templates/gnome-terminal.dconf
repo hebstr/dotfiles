@@ -1,0 +1,24 @@
+[legacy]
+shortcuts-enabled=true
+theme-variant='dark'
+
+[legacy/keybindings]
+copy='<Primary><Shift>c'
+paste='<Primary><Shift>v'
+reset='<Primary><Shift>k'
+reset-and-clear='disabled'
+select-all='<Primary><Shift>a'
+
+[legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
+background-color='#181818'
+cell-height-scale=1.2
+cursor-shape='ibeam'
+custom-command=''
+default-size-columns=120
+default-size-rows=30
+font='Fira Code 9'
+foreground-color='#FFF'
+login-shell=true
+use-custom-command=false
+use-system-font=false
+use-theme-colors=false

@@ -26,11 +26,10 @@ command -v jq >/dev/null 2>&1 || {
 # ---------------------------------------------------------------------------
 MARKETPLACES=(
   "posit-dev/skills"
-  "anthropics/claude-plugins-official"
   "Q00/ouroboros"
   "ab604/claude-code-r-skills"
-  "hebstr/claude-code-litrev"
-  # "tw93/Waza"
+  "hebstr/claude-code-plugins"
+  "anthropics/claude-plugins-official"
 )
 
 log "Adding marketplaces..."
@@ -43,16 +42,6 @@ done
 # 2. Plugins (name@marketplace)
 # ---------------------------------------------------------------------------
 PLUGINS=(
-  # Waza - tw93's skill pack
-  # "think@waza"
-  # "check@waza"
-  # "hunt@waza"
-  # "design@waza"
-  # "read@waza"
-  # "write@waza"
-  # "learn@waza"
-  # "health@waza"
-
   # Anthropic official plugins
   "claude-code-setup@claude-plugins-official"
   "frontend-design@claude-plugins-official"
@@ -72,8 +61,9 @@ PLUGINS=(
   # Ouroboros (spec-first workflow engine)
   "ouroboros@ouroboros"
 
-  # Litrev (literature review pipeline)
-  "litrev@litrev"
+  # Hebstr (workflow + audit skills)
+  "workflow@hebstr"
+  "audit@hebstr"
 )
 
 log "Installing plugins..."

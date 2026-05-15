@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DCONF_PATH="/org/gnome/terminal/"
+DUMP_FILE="${HOME}/dotfiles/_meta/templates/gnome-terminal.dconf"
+
+usage() {
+  cat <<'EOF'
+Usage: gnome-terminal-config <command>
+
+Commands:
+  dump        Export current gnome-terminal config to dotfiles
+  restore     Apply the saved config (backs up current state first)
+  diff        Show what restore would change
+EOF
+  exit "${1:-0}"
+}
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$1" >&2
+    exit 1
+  }
+}
+
+cmd_dump() {
+  require dconf
+  mkdir -p "$(dirname "$DUMP_FILE")"
+  dconf dump "$DCONF_PATH" >"$DUMP_FILE"
+  echo "Dumped to ${DUMP_FILE} ($(wc -l <"$DUMP_FILE") lines)"
+}
+
+cmd_restore() {
+  require dconf
+  [ -f "$DUMP_FILE" ] || {
+    echo "No dump file at ${DUMP_FILE}" >&2
+    exit 1
+  }
+  BACKUP="/tmp/gnome-terminal-backup-$(date +%Y%m%d-%H%M%S).dconf"
+  dconf dump "$DCONF_PATH" >"$BACKUP"
+  echo "Current state backed up to ${BACKUP}"
+  dconf load "$DCONF_PATH" <"$DUMP_FILE"
+  echo "Restored from ${DUMP_FILE}"
+  echo "Open a new gnome-terminal tab to see the changes."
+}
+
+cmd_diff() {
+  require dconf
+  require diff
+  [ -f "$DUMP_FILE" ] || {
+    echo "No dump file at ${DUMP_FILE}" >&2
+    exit 1
+  }
+  diff -u <(dconf dump "$DCONF_PATH") "$DUMP_FILE"
+}
+
+case "${1:-}" in
+dump) cmd_dump ;;
+restore) cmd_restore ;;
+diff) cmd_diff ;;
+-h | --help | "") usage ;;
+*)
+  echo "Unknown command: $1" >&2
+  usage 1
+  ;;
+esac

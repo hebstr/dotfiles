@@ -120,10 +120,9 @@
     "mcp-server-dev@claude-plugins-official": true,
     "r-skills@r-skills": true,
     "frontend-design@claude-plugins-official": true,
-    "workflow@hebstr": true,
-    "litrev@litrev": true,
+    "ggsql@posit-dev-skills": true,
     "audit@hebstr": true,
-    "ggsql@posit-dev-skills": true
+    "workflow@hebstr": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -138,18 +137,6 @@
         "repo": "jsperger/llm-r-skills"
       }
     },
-    "hebstr": {
-      "source": {
-        "source": "directory",
-        "path": "/home/julien/Documents/pro/packages/claude-code-plugins"
-      }
-    },
-    "litrev": {
-      "source": {
-        "source": "github",
-        "repo": "hebstr/claude-code-litrev"
-      }
-    },
     "posit-dev-skills": {
       "source": {
         "source": "github",
@@ -160,6 +147,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "hebstr": {
+      "source": {
+        "source": "github",
+        "repo": "hebstr/claude-code-plugins"
       }
     }
   },
