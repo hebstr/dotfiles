@@ -51,7 +51,8 @@
     "files.trimTrailingWhitespace": true,
     "files.associations": {
         "renv.lock": "json",
-        "**/SKILL.md": "markdown"
+        "**/SKILL.md": "markdown",
+        ".stignore": "ignore",
     },
 
 // EXCLUSIONS DE FICHIERS ------------------------------------------------------

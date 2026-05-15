@@ -22,7 +22,7 @@ Options:
 Examples:
   st-add-folder ~/.claude
   st-add-folder ~/.claude --id claude-config --versioning 5
-  st-add-folder ~/TODO --ignore ~/dotfiles/syncthing/.stignore/todo
+  st-add-folder ~/TODO --ignore ~/dotfiles/syncthing/TODO/.stignore
   st-add-folder ~/snap/zotero-snap --devices "AQG7RA4-...,C2N42ZX-..."
 EOF
   exit 0

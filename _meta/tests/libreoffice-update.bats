@@ -24,6 +24,10 @@ setup() {
   export PATH="$TMPDIR_TEST/bin:$PATH"
   mkdir -p "$TMPDIR_TEST/bin"
 
+  # Default: TDF key is already in the keyring — tests that exercise the
+  # import branch remove this flag in their own body.
+  : >"$TMPDIR_TEST/.gpg_has_key"
+
   _make_uname_stub x86_64
   _make_curl_stub
   _make_gpg_stub
@@ -86,19 +90,34 @@ EOF
 }
 
 # _make_gpg_stub
+# Stateful mock — keyring state lives in $TMPDIR_TEST/.gpg_has_key (created by
+# setup() by default; tests that want to exercise the import branch rm it).
+#
 # Behavior controlled by env vars set per test:
-#   GPG_LIST_RC   (default 0) — exit code of `gpg --list-keys <fpr>`
-#   GPG_RECV_RC   (default 0) — exit code of `gpg --keyserver ... --recv-keys`
-#   GPG_VERIFY_OK (default 1) — when 1, prints GOODSIG line for --verify; when 0, prints BADSIG
+#   GPG_RECV_RC    (default 0) — exit code of `gpg --keyserver ... --recv-keys`
+#                                When 0 AND GPG_RECV_LIES != 1, the call also
+#                                creates the keyring flag (= key imported).
+#   GPG_RECV_LIES  (default 0) — when 1, recv-keys exits 0 but does NOT create
+#                                the keyring flag. Simulates keys.openpgp.org
+#                                stripping UIDs from keys whose owner has not
+#                                verified their email there: gpg reports success
+#                                but the key is silently dropped.
+#   GPG_VERIFY_OK  (default 1) — when 1, prints GOODSIG+VALIDSIG for --verify;
+#                                when 0, prints BADSIG and exits 1.
 _make_gpg_stub() {
   cat >"$TMPDIR_TEST/bin/gpg" <<'EOF'
 #!/usr/bin/env bash
+KEYRING_FLAG="$TMPDIR_TEST/.gpg_has_key"
 case "$1" in
   --list-keys)
-    exit "${GPG_LIST_RC:-0}"
+    [ -e "$KEYRING_FLAG" ] && exit 0 || exit 1
     ;;
   --keyserver)
-    exit "${GPG_RECV_RC:-0}"
+    rc="${GPG_RECV_RC:-0}"
+    if [ "$rc" -eq 0 ] && [ "${GPG_RECV_LIES:-0}" != "1" ]; then
+      : >"$KEYRING_FLAG"
+    fi
+    exit "$rc"
     ;;
   --batch)
     status_fd=1
@@ -107,6 +126,14 @@ case "$1" in
       [ "$prev" = "--status-fd" ] && status_fd="$arg"
       prev="$arg"
     done
+    # Real gpg --verify fails with "No public key" when the signing key isn't
+    # in the keyring. Mirror that here so tests catch the bug end-to-end, not
+    # just the post-import sanity check.
+    if [ ! -e "$KEYRING_FLAG" ]; then
+      printf '[GNUPG:] ERRSIG F434A1EFAFEEAEA3 1 10 00 0 9\n' >&"$status_fd"
+      printf '[GNUPG:] NO_PUBKEY F434A1EFAFEEAEA3\n' >&"$status_fd"
+      exit 2
+    fi
     if [ "${GPG_VERIFY_OK:-1}" = "1" ]; then
       printf '[GNUPG:] GOODSIG F434A1EFAFEEAEA3 The Document Foundation\n' >&"$status_fd"
       printf '[GNUPG:] VALIDSIG C2839ECAD9408FBE9531C3E9F434A1EFAFEEAEA3 2024-01-01\n' >&"$status_fd"
@@ -125,21 +152,51 @@ EOF
 }
 
 # _make_tar_stub
-# Parses `tar -xzf <tarball> -C <dir>` and creates <dir>/<basename>/DEBS/dummy.deb
+# Models TDF's two-name quirk: tarballs are named by marketing version
+# (e.g. LibreOffice_26.2.3_Linux_x86-64_deb.tar.gz) but extract to a
+# directory using the build version (e.g. LibreOffice_26.2.3.2_Linux_x86-64_deb/).
+# The inner-dir name is derived by inserting TAR_BUILD_SUFFIX before `_Linux_`.
+#
+# Supports:
+#   tar -tzf <tarball>            → prints the inner dir (one line per entry)
+#   tar -xzf <tarball> -C <dir>   → creates <dir>/<inner>/DEBS/dummy.deb
+#
+# Env vars:
+#   TAR_BUILD_SUFFIX  (default ".2") — string inserted before `_Linux_` to form
+#                                       the inner-dir name. Set to "" to model
+#                                       a tarball whose inner-dir matches the
+#                                       filename exactly.
 _make_tar_stub() {
   cat >"$TMPDIR_TEST/bin/tar" <<'EOF'
 #!/usr/bin/env bash
+mode=""
 target_dir="" tarball="" prev=""
 for arg in "$@"; do
+  case "$arg" in
+    -tzf | -tz) mode=list ;;
+    -xzf | -xz) mode=extract ;;
+  esac
   case "$prev" in
     -C) target_dir="$arg" ;;
-    *f) tarball="$arg" ;;
+    -tzf | -xzf | -tz | -xz) tarball="$arg" ;;
   esac
   prev="$arg"
 done
+
 base=$(basename "$tarball" .tar.gz)
-mkdir -p "$target_dir/$base/DEBS"
-: >"$target_dir/$base/DEBS/dummy.deb"
+inner="${base/_Linux_/${TAR_BUILD_SUFFIX-.2}_Linux_}"
+
+case "$mode" in
+  list)
+    printf '%s/\n' "$inner"
+    printf '%s/DEBS/\n' "$inner"
+    printf '%s/DEBS/dummy.deb\n' "$inner"
+    ;;
+  extract)
+    mkdir -p "$target_dir/$inner/DEBS"
+    : >"$target_dir/$inner/DEBS/dummy.deb"
+    ;;
+esac
 exit 0
 EOF
   chmod +x "$TMPDIR_TEST/bin/tar"
@@ -285,8 +342,7 @@ EOF
 # ---------------------------------------------------------------------------
 
 @test "auto-imports TDF GPG key when not in keyring" {
-  export GPG_LIST_RC=1
-  export GPG_RECV_RC=0
+  rm -f "$TMPDIR_TEST/.gpg_has_key"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Importing TDF signing key ${TDF_FPR}"* ]]
@@ -294,11 +350,24 @@ EOF
 }
 
 @test "exits 1 when GPG key import fails on all keyservers" {
-  export GPG_LIST_RC=1
+  rm -f "$TMPDIR_TEST/.gpg_has_key"
   export GPG_RECV_RC=1
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Failed to import TDF signing key"* ]]
+}
+
+# Regression test for the keys.openpgp.org UID-stripping bug:
+# the keyserver returns exit 0 (success) but silently drops the key because
+# the owner hasn't verified their email there ("new key but contains no user
+# ID - skipped"). Without a post-import sanity check, the script would
+# proceed and fail later at --verify with a confusing "No public key" error.
+@test "exits 1 when recv-keys lies (openpgp.org UID-stripping case)" {
+  rm -f "$TMPDIR_TEST/.gpg_has_key"
+  export GPG_RECV_LIES=1
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"TDF signing key not present in keyring after import"* ]]
 }
 
 @test "exits 1 when GPG signature verification fails" {
@@ -311,6 +380,25 @@ EOF
 # ---------------------------------------------------------------------------
 # Installation paths
 # ---------------------------------------------------------------------------
+
+# Regression test for TDF's two-name quirk: tarballs named ..._26.2.3_... but
+# extracting to ..._26.2.3.X_..._deb/. An earlier version of the script
+# reconstructed the inner-dir path from ${VER} and failed with "Missing or
+# empty DEBS directory" when X != "" (which is the actual TDF convention).
+@test "handles tarballs whose inner dir uses build version not filename version" {
+  export TAR_BUILD_SUFFIX=".5"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Installing LibreOffice ${FAKE_LATEST} core .deb packages"* ]]
+  [[ "$output" == *"Installed version:"* ]]
+}
+
+@test "handles tarballs whose inner dir matches filename exactly" {
+  export TAR_BUILD_SUFFIX=""
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Installed version:"* ]]
+}
 
 @test "exits 0 on happy path with installed-version and rollback hint" {
   run "$SCRIPT"

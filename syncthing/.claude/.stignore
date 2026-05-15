@@ -28,6 +28,10 @@ ide/
 .venv/
 venv/
 .env/
+.quarto/
+_freeze/
+_site/
+_book/
 __pycache__/
 *.pyc
 *.pyo
@@ -42,6 +46,8 @@ target/
 .Rproj.user/
 .Rhistory
 .RData
+rv/library/
+rv/staging/
 renv/library/
 renv/staging/
 

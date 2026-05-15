@@ -65,12 +65,20 @@ fi
 
 if ! gpg --list-keys "${TDF_FPR}" >/dev/null 2>&1; then
   echo "Importing TDF signing key ${TDF_FPR}..."
-  gpg --keyserver hkps://keys.openpgp.org --recv-keys "${TDF_FPR}" ||
-    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "${TDF_FPR}" ||
+  # keyserver.ubuntu.com first: keys.openpgp.org strips UIDs from keys whose
+  # owner has not verified their email there, which makes gpg silently skip
+  # the import ("new key but contains no user ID - skipped") while still
+  # exiting 0 — so we must verify the key actually landed after import.
+  gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "${TDF_FPR}" ||
+    gpg --keyserver hkps://keys.openpgp.org --recv-keys "${TDF_FPR}" ||
     {
       echo "Failed to import TDF signing key" >&2
       exit 1
     }
+  if ! gpg --list-keys "${TDF_FPR}" >/dev/null 2>&1; then
+    echo "TDF signing key not present in keyring after import (likely stripped of UID by the keyserver)" >&2
+    exit 1
+  fi
 fi
 
 sudo -v
@@ -115,11 +123,28 @@ fetch_and_verify "${TARBALL}"
 fetch_and_verify "${LANGPACK}"
 
 echo "Extracting tarballs..."
+# TDF tarballs are named by marketing version (e.g. 26.2.3) but extract to a
+# directory named by build version (e.g. LibreOffice_26.2.3.2_Linux_..._deb/).
+# Read the actual top-level directory from each tarball's index before
+# extracting, rather than reconstructing the path from ${VER}.
+# Capture the full listing (no `| head` — SIGPIPE on tar would trip pipefail).
+read_tarball_basedir() {
+  local listing first
+  listing=$(tar -tzf "$1")
+  first=${listing%%$'\n'*}
+  printf '%s\n' "${first%%/*}"
+}
+MAIN_BASEDIR=$(read_tarball_basedir "${TMP}/${TARBALL}")
+LANG_BASEDIR=$(read_tarball_basedir "${TMP}/${LANGPACK}")
+if [ -z "${MAIN_BASEDIR}" ] || [ -z "${LANG_BASEDIR}" ]; then
+  echo "Failed to read top-level directory from tarball index" >&2
+  exit 1
+fi
 tar -xzf "${TMP}/${TARBALL}" -C "${TMP}"
 tar -xzf "${TMP}/${LANGPACK}" -C "${TMP}"
 
-MAIN_DEBS="${TMP}/LibreOffice_${VER}_Linux_${ARCH_FILE}_deb/DEBS"
-LANG_DEBS="${TMP}/LibreOffice_${VER}_Linux_${ARCH_FILE}_deb_langpack_${LANGPACK_LANG}/DEBS"
+MAIN_DEBS="${TMP}/${MAIN_BASEDIR}/DEBS"
+LANG_DEBS="${TMP}/${LANG_BASEDIR}/DEBS"
 
 for d in "${MAIN_DEBS}" "${LANG_DEBS}"; do
   if [ ! -d "${d}" ] || ! compgen -G "${d}/*.deb" >/dev/null; then
