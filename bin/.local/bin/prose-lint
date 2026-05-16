@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# prose-lint: mechanical anti-AI-slop checks for .md / .qmd files.
+#
+# Rules from ~/.claude/CLAUDE.md:
+#   L132 — no em dashes in prose; en dashes only for numeric ranges
+#   L140 — no ritual openers (EN/FR)
+#   L53  — no manual soft wraps
+#
+# Rhetorical self-questions (L139) and negative parallelism (L138) are too
+# noisy to check mechanically; defer to /write.
+#
+# Skips fenced code blocks, inline backtick spans, and any line containing
+# the marker `<!-- prose-lint:ignore -->` (use the marker for rule-meta lines
+# that document a forbidden pattern verbatim).
+
+set -Eeuo pipefail
+
+if [ "$#" -eq 0 ]; then
+  echo "usage: prose-lint <file> [<file>...]" >&2
+  exit 2
+fi
+
+violations=0
+
+strip_code() {
+  awk '
+    /^```/ { fence = !fence; print NR "\t"; next }
+    fence  { print NR "\t"; next }
+    /<!-- prose-lint:ignore -->/ { print NR "\t"; next }
+    {
+      gsub(/`[^`]*`/, "")
+      print NR "\t" $0
+    }
+  ' "$1"
+}
+
+flag() {
+  printf '%s:%s: [%s] %s\n' "$1" "$2" "$3" "$4"
+  violations=$((violations + 1))
+}
+
+check_em_dash() {
+  local file=$1 lineno content
+  while IFS=$'\t' read -r lineno content; do
+    [ "$content" = "" ] && continue
+    if printf '%s' "$content" | grep -q '—'; then
+      flag "$file" "$lineno" "em-dash" "em dash in prose (CLAUDE.md L132)"
+    fi
+  done < <(strip_code "$file")
+}
+
+check_en_dash() {
+  local file=$1 lineno content
+  while IFS=$'\t' read -r lineno content; do
+    [ "$content" = "" ] && continue
+    if printf '%s' "$content" | grep -q '–'; then
+      flag "$file" "$lineno" "en-dash" "en dash outside code (CLAUDE.md L132; numeric ranges OK, verify)"
+    fi
+  done < <(strip_code "$file")
+}
+
+check_ritual() {
+  local file=$1 lineno content
+  while IFS=$'\t' read -r lineno content; do
+    [ "$content" = "" ] && continue
+    if printf '%s' "$content" |
+      grep -qiE '\b(notably|importantly|it.?s worth noting|il convient de noter|force est de constater|à noter que|il importe de souligner)\b'; then
+      flag "$file" "$lineno" "ritual" "ritual opener (CLAUDE.md L140)"
+    fi
+  done < <(strip_code "$file")
+}
+
+check_soft_wrap() {
+  local file=$1 row
+  while IFS= read -r row; do
+    printf '%s\n' "$row"
+    violations=$((violations + 1))
+  done < <(awk -v file="$file" '
+    /^```/ { fence = !fence; lines[NR] = ""; next }
+    fence  { lines[NR] = ""; next }
+    /<!-- prose-lint:ignore -->/ { lines[NR] = ""; n = NR; next }
+    { lines[NR] = $0; n = NR }
+    END {
+      for (i = 2; i < n; i++) {
+        line = lines[i]
+        prev = lines[i-1]
+        nxt  = lines[i+1]
+        if (length(line) == 0)                              continue
+        if (length(line) >= 60)                             continue
+        if (line ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<)/)    continue
+        if (prev ~ /^[ \t]*$/)                              continue
+        if (prev ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<)/)    continue
+        if (nxt  ~ /^[ \t]*$/)                              continue
+        printf "%s:%d: [soft-wrap] possible soft wrap (%d chars; CLAUDE.md L53)\n", file, i, length(line)
+      }
+    }
+  ' "$file")
+}
+
+for f in "$@"; do
+  if [ ! -f "$f" ]; then
+    echo "prose-lint: not a file: $f" >&2
+    exit 2
+  fi
+  case "$f" in
+  *.md | *.qmd) ;;
+  *)
+    echo "prose-lint: skipping (not .md/.qmd): $f" >&2
+    continue
+    ;;
+  esac
+  check_em_dash "$f"
+  check_en_dash "$f"
+  check_ritual "$f"
+  check_soft_wrap "$f"
+done
+
+if [ "$violations" -gt 0 ]; then
+  printf '\nprose-lint: %d violation(s) found\n' "$violations" >&2
+  exit 1
+fi
+
+exit 0

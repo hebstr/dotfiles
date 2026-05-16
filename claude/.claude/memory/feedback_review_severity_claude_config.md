@@ -4,7 +4,7 @@ description: When auditing ~/.claude config artifacts (settings.json, hooks/*.sh
 type: feedback
 ---
 
-When reviewing or auditing the user's personal Claude Code harness config (`~/.claude/settings.json`, `~/.claude/hooks/*.sh`, `~/.claude/CLAUDE.md`, etc., or their real paths under `~/dotfiles/claude/...`), do **not** propose any of the following:
+When reviewing or auditing the user's personal Claude Code harness config (`~/.claude/settings.json`, `~/.claude/hooks/*.sh`, etc., or their real paths under `~/dotfiles/claude/...`), do **not** propose any of the following. CLAUDE.md content audits live in [[feedback_review_severity_claude_md_content]] (separate scope).
 
 1. **Expanding the scope of `[[ "$REAL" == "$PWD"/* ]]` style guards in PostToolUse hooks.** The PWD + extension gate (e.g. in `format-on-edit.sh`) is the deliberate scoping primitive. Suggestions like "add a `~/dotfiles | ~/Documents/pro/` allowlist" introduce brittle coupling to a specific repo layout for rare edge cases (Claude editing third-party plugin sources, vendored shell scripts under $HOME). The user almost never edits those directly.
 
@@ -20,4 +20,4 @@ When reviewing or auditing the user's personal Claude Code harness config (`~/.c
 
 **How to apply:** in any future `/health`, code-review, or audit pass over `~/.claude/` config artifacts, skip these five categories of suggestion immediately. They are recurring false positives. Real findings still apply: leaked credentials in committed settings, hooks that fail open and corrupt files, scope guards that demonstrably don't gate what they claim to gate, structural drift between CLAUDE.md and `rules/*.md` content, and logic bugs in hook scripts that produce wrong results within the script's stated contract.
 
-Related: [[feedback_review_severity_claude_rules]] covers `.claude/rules/*.md` content; this memory covers harness config artifacts (settings, hooks, CLAUDE.md itself).
+Related: [[feedback_review_severity_claude_rules]] covers `.claude/rules/*.md` content; [[feedback_review_severity_claude_md_content]] covers CLAUDE.md content audits; this memory covers harness config artifacts (settings, hooks).
