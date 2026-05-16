@@ -1,6 +1,6 @@
 ---
 name: Review workflow remaining backlog
-description: Implementation backlog from the March 2026 code review glowup audit (practices section removed — already covered by walkthrough and CLAUDE.md L110)
+description: Implementation backlog from the March 2026 code review glowup audit (practices section removed — already covered by walkthrough and CLAUDE.md L104)
 type: project
 ---
 
@@ -21,5 +21,5 @@ Listed here for reference — they belong in a proper issue tracker.
 
 - ~~Human triage 2 min between reviewer and walkthrough~~ — handled by `/audit:walkthrough` severity reordering + author's defense gating
 - ~~Pre-mortem 3-5 lines~~ — overlaps with CLAUDE.md "Before marking any step done, verify the output is usable" + walkthrough author's defense
-- ~~ADR (Architecture Decision Records)~~ — covered by CLAUDE.md L110 named anchor pattern ("Decision: X because Y")
-- ~~Reviewer prompt variants by code type~~ — adopted via CLAUDE.md L93-96 (`critical-code-reviewer` / `skill-adversary` / `blindspot`)
+- ~~ADR (Architecture Decision Records)~~ — covered by CLAUDE.md L104 named anchor pattern ("Decision: X because Y")
+- ~~Reviewer prompt variants by code type~~ — adopted via CLAUDE.md L88-91 (`critical-code-reviewer` / `skill-adversary` / `blindspot`)

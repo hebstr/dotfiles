@@ -4,6 +4,7 @@
 **/credentials.toml
 **/*token*
 **/*secret*
+!claude/.claude/rules/secrets.md
 
 # State files (auto-generated, not config)
 **/history.jsonl

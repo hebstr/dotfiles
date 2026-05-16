@@ -18,10 +18,10 @@ Prefer `uv run ruff` inside a project (picks up `pyproject.toml`); use global `r
 ## Mandatory pipeline after every create/edit
 
 ```sh
-ruff format script.py && ruff check --fix script.py
+ruff check --fix script.py && ruff format script.py && ruff check script.py
 ```
 
-Both are required: `ruff format` formats only, `ruff check` lints and fixes.
+Order matters: `ruff check --fix` first (auto-fix may leave whitespace), then `ruff format` cleans it, then a final `ruff check` confirms no residual violations. Per ruff docs.
 
 ## Useful flags
 
@@ -47,7 +47,24 @@ Both are required: `ruff format` formats only, `ruff check` lints and fixes.
 python -m py_compile script.py
 ```
 
+## Standalone scripts: PEP 723 inline metadata
+
+For single-file Python tools under `~/dotfiles/bin/.local/bin/` or any reusable standalone script, declare deps inline and run via `uv run --script`:
+
+```python
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.13"
+# dependencies = ["polars", "rich"]
+# ///
+```
+
+Self-contained, no venv to manage, deps versioned in the file. Make the file executable (`chmod +x`) and uv resolves/installs deps on first run.
+
+Scope: standalone scripts only. Package code stays in `pyproject.toml`; project analysis notebooks use the project's `uv` env.
+
 ## References
 
 - ruff: https://docs.astral.sh/ruff
 - uv: https://docs.astral.sh/uv
+- PEP 723: https://peps.python.org/pep-0723/

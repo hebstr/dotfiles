@@ -27,7 +27,7 @@ Orthogonal roles:
 After writing or editing any shell script, run the full pipeline in one shot before marking the task done. Order matters: shellharden fixes quoting, shfmt formats, shellcheck validates.
 
 ```sh
-shellharden --replace script.sh && shfmt -w -i 2 script.sh && shellcheck script.sh
+shellharden --replace script.sh && shfmt -i 2 -ci -w script.sh && shellcheck script.sh
 ```
 
 Running only one or two tools is not sufficient, all three are complementary.

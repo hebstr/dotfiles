@@ -25,6 +25,7 @@
 	algorithm = histogram
 [rebase]
 	autoStash = true
+	autosquash = true
 [rerere]
 	enabled = true
 [tag]

@@ -1,6 +1,6 @@
 ---
 name: Review calibration for .claude/rules/ files
-description: When auditing path-scoped rule files in .claude/rules/, do not propose duplication of CLAUDE.md content, deduplication of structurally-local boilerplate, per-file version traces, or mixing review-calibration into writing rules
+description: When auditing path-scoped rule files in .claude/rules/, do not propose duplication of CLAUDE.md content, deduplication of structurally-local boilerplate, per-file version traces, mixing review-calibration into writing rules, or removal of alternate tools because of partial overlap with the main pipeline tool
 type: feedback
 ---
 
@@ -14,6 +14,8 @@ When reviewing or auditing `.claude/rules/*.md` files (path-scoped rule files lo
 
 4. **Mixing review-calibration content into writing-rule files.** Review tolerance and severity calibration belong in `feedback_*.md` memories (e.g., `feedback_review_severity_shell_installers.md`). The `rules/*.md` files describe how to write/edit code, not how to review it. The two scopes are orthogonal; mixing them dilutes both.
 
-**Why:** the 2026-05-10 walkthrough on `claude/.claude/rules/` produced 14 findings, 6 of which (43%) were false positives matching exactly these four patterns. They sound disciplined but produce bloat, duplication, or rotten lines.
+5. **Proposing removal of an alternate tool because it partially overlaps with the main pipeline tool.** Rule files often document a primary tool plus auxiliary commands (e.g. `python -m py_compile` next to `ruff check`; `--check` next to `ruff format`). Auxiliary tools in their own section signal "use when X, not as part of the mandatory pipeline" — they are intentional optionality, not redundancy. Suggestions like "ruff check already does syntax parsing, remove py_compile" treat documented alternatives as bloat and narrow the toolchain for no gain.
 
-**How to apply:** in any future audit of `.claude/rules/`, skip these four categories of suggestion immediately. They are recurring false positives, not actionable findings. Real findings still apply: factual errors in commands/flags, content stale relative to checked-in configs, scope mismatches (e.g., IDE setup polluting per-edit rules).
+**Why:** the 2026-05-10 walkthrough on `claude/.claude/rules/` produced 14 findings, 6 of which (43%) were false positives matching exactly the first four patterns. The 2026-05-16 walkthrough on `rules/python.md` added pattern 5: a Suggestion to remove `python -m py_compile` because `ruff check` covers syntax parsing. These patterns sound disciplined but produce bloat, duplication, or rotten lines.
+
+**How to apply:** in any future audit of `.claude/rules/`, skip these five categories of suggestion immediately. They are recurring false positives, not actionable findings. Real findings still apply: factual errors in commands/flags, content stale relative to checked-in configs, scope mismatches (e.g., IDE setup polluting per-edit rules).
