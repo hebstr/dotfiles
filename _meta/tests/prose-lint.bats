@@ -40,20 +40,6 @@ _fixture() {
   [ "$status" -eq 0 ]
 }
 
-@test "ritual opener inside inline backtick: exit 0" {
-  local f
-  f=$(_fixture quoted-ritual.md "Avoid \`Notably,\` in prose.")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "prose-lint:ignore marker suppresses ritual opener flag: exit 0" {
-  local f
-  f=$(_fixture marker.md "Notably, this would flag. <!-- prose-lint:ignore -->")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
 @test "prose-lint:ignore marker suppresses em dash flag: exit 0" {
   local f
   f=$(_fixture marker-em.md "This has an em dash — really. <!-- prose-lint:ignore -->")
@@ -95,6 +81,20 @@ _fixture() {
   [ "$status" -eq 0 ]
 }
 
+@test "soft-wrap exception: YAML frontmatter fields: exit 0" {
+  local f
+  f=$(_fixture frontmatter.md "$(printf '%s\n' \
+    "---" \
+    "name: short-slug" \
+    "description: A longer description that is well over sixty characters to avoid flagging." \
+    "type: feedback" \
+    "---" \
+    "" \
+    "Body content here that is longer than sixty characters to stay quiet.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
 # ─── exit 1: violations ─────────────────────────────────────────────────────
 
 @test "em dash in prose: flag em-dash, exit 1" {
@@ -111,22 +111,6 @@ _fixture() {
   run "$SCRIPT" "$f"
   [ "$status" -eq 1 ]
   [[ "$output" == *"[en-dash]"* ]]
-}
-
-@test "ritual opener EN (Notably): flag ritual, exit 1" {
-  local f
-  f=$(_fixture ritual-en.md "Notably, this triggers the rule.")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"[ritual]"* ]]
-}
-
-@test "ritual opener FR (Force est de constater): flag ritual, exit 1" {
-  local f
-  f=$(_fixture ritual-fr.md "Force est de constater que cela déclenche.")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"[ritual]"* ]]
 }
 
 @test "soft wrap: short line sandwiched: flag soft-wrap, exit 1" {
@@ -169,6 +153,14 @@ _fixture() {
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
   [[ "$output" == *"skipping"* ]]
+}
+
+@test ".qmd file: accepted (not skipped), exit 0" {
+  local f
+  f=$(_fixture clean.qmd "")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"skipping"* ]]
 }
 
 # ─── smoke ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-# gnome-terminal-config — tutoriel
+# gnome-terminal-config : tutoriel
 
 *2026-05-15T14:24:41Z by Showboat 0.6.1*
 <!-- showboat-id: c0c1e57f-97d6-4f3b-a7ad-4f5ebb282871 -->
@@ -7,7 +7,7 @@
 
 Script utilitaire pour sauvegarder, restaurer, et comparer la configuration de gnome-terminal (profil par défaut, couleurs, font, raccourcis clavier, scrollback, etc.) entre machines.
 
-Stocke un dump `dconf` complet de `/org/gnome/terminal/` dans `~/dotfiles/_meta/templates/gnome-terminal.dconf` — versionné avec le reste des dotfiles.
+Stocke un dump `dconf` complet de `/org/gnome/terminal/` dans `~/dotfiles/_meta/templates/gnome-terminal.dconf`, versionné avec le reste des dotfiles.
 
 Cas d'usage typiques :
 
@@ -32,7 +32,7 @@ Commands:
   diff        Show what restore would change
 ```
 
-## 1. Capturer la config actuelle — `dump`
+## 1. Capturer la config actuelle : `dump`
 
 Exporte tout l'arbre dconf `/org/gnome/terminal/` vers `~/dotfiles/_meta/templates/gnome-terminal.dconf`. À relancer chaque fois qu'un réglage à conserver est modifié (puis commit).
 
@@ -68,7 +68,7 @@ cell-height-scale=1.2
 cursor-shape='ibeam'
 ```
 
-## 2. Vérifier la dérive — `diff`
+## 2. Vérifier la dérive : `diff`
 
 Affiche un diff unifié entre l'état dconf courant et le dump versionné. Exit 0 si identique, diff non vide sinon. Utile avant un `dump` (pour voir ce qu'on s'apprête à figer) ou avant un `restore` (pour voir ce qu'on s'apprête à écraser).
 
@@ -80,7 +80,7 @@ gnome-terminal-config diff && echo '(aucune dérive)'
 (aucune dérive)
 ```
 
-## 3. Restaurer sur une nouvelle machine — `restore`
+## 3. Restaurer sur une nouvelle machine : `restore`
 
 Workflow type sur une machine vierge :
 

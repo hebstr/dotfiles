@@ -50,11 +50,9 @@ Last updated: 2026-05-02.
 - Use when a single CLAUDE.md exceeds ~100 lines
 - One file per theme: `r-style.md`, `testing.md`, `data-safety.md`
 - Path-scoped rules via YAML frontmatter (load only when Claude reads a matching file):
-  ```markdown
-  ---
-  paths:
-    - "src/api/**/*.ts"
-  ---
+  ```yaml
+  # frontmatter: paths:
+  #   - "src/api/**/*.ts"
   ```
 
 ## Best practices
@@ -182,7 +180,7 @@ JSON schema for IDE validation: `"$schema": "https://json.schemastore.org/claude
 
 ### `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`
 
-Moves compaction threshold **earlier only**: the internal cap is ~83–85%. Values above that have no effect. Community sweet spot: `75` for general dev, `65–70` for debugging-heavy sessions.
+Moves compaction threshold **earlier only**: the internal cap is ~83-85%. Values above that have no effect. Community sweet spot: `75` for general dev, `65-70` for debugging-heavy sessions.
 
 ## Gaps identified in current setup
 

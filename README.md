@@ -6,7 +6,7 @@ Personal stow-managed dotfiles.
 
 ```
 bash/ bin/ claude/ gh/ git/ positron/ R/ Rstudio/ syncthing/   # stow packages
-prek.toml                  # pre-commit hooks (shellcheck, shfmt, check-yaml)
+prek.toml                  # pre-commit hooks (shellcheck, shfmt, check-yaml, prose-lint)
 _meta/
 ├── notes/       # internal docs
 ├── profiles/    # exportable Positron / VS Code profiles

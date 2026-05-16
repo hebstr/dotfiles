@@ -11,12 +11,12 @@ type: reference
 | `PreToolUse` | Before tool execution | tool name: `Bash`, `Edit\|Write`, etc. |
 | `PostToolUse` | After successful tool execution | same |
 | `PostToolUseFailure` | After tool failure | same |
-| `Stop` | Claude finishes a response | — |
+| `Stop` | Claude finishes a response | (none) |
 | `Notification` | Claude needs attention | `permission_prompt`, `idle_prompt` |
 | `SubagentStart` / `SubagentStop` | Agent launch/end | agent type |
-| `PreCompact` / `PostCompact` | Before/after compaction | — |
+| `PreCompact` / `PostCompact` | Before/after compaction | (none) |
 | `ConfigChange` | settings.json change | `user_settings`, `project_settings` |
-| `SessionEnd` | Session end | — |
+| `SessionEnd` | Session end | (none) |
 
 Hook types: `command` (shell, exit 0 = OK, exit 2 = blocks), `prompt` (mini-LLM returns `{"ok": true/false}`), `agent` (subagent with tools), `http` (POST to external endpoint).
 
@@ -24,7 +24,7 @@ Hook types: `command` (shell, exit 0 = OK, exit 2 = blocks), `prompt` (mini-LLM 
 
 | MCP | Verdict | Reason |
 |---|---|---|
-| **Filesystem** | Rejected | Redundant — Claude already has full filesystem access via Read/Glob/Grep/Bash |
+| **Filesystem** | Rejected | Redundant: Claude already has full filesystem access via Read/Glob/Grep/Bash |
 | **GitHub** | Passed on | Only MCP with real added value (issues, PRs, CI); no immediate need at the time |
 | **PostgreSQL/DuckDB** | Rejected | No Claude-based data analysis use case at the time |
 | **Brave Search** | Rejected | Redundant with native WebSearch/WebFetch |

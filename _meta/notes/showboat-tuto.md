@@ -1,4 +1,4 @@
-# Showboat — tutoriel
+# Showboat : tutoriel
 
 Outil CLI pour créer des documents Markdown qui mélangent texte, code exécuté, et sortie capturée. Conçu pour que les agents IA documentent leur travail, mais utilisable manuellement.
 

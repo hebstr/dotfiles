@@ -4,7 +4,7 @@ description: Before importing a pattern, format, or rule from an external Claude
 type: feedback
 ---
 
-When evaluating a pattern, format, or rule extracted from an external Claude Code config audit (aaddrick, vsbuffalo, solatis, etc.), do **not** import it without first identifying the **consumer in the source system that justifies the format**. Imports without a downstream consumer add friction without gain — they alter inputs without altering behavior.
+When evaluating a pattern, format, or rule extracted from an external Claude Code config audit (aaddrick, vsbuffalo, solatis, etc.), do **not** import it without first identifying the **consumer in the source system that justifies the format**. Imports without a downstream consumer add friction without gain: they alter inputs without altering behavior.
 
 Concrete sub-patterns flagged in audits to date:
 

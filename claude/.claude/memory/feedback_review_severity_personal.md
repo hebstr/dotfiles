@@ -1,6 +1,6 @@
 ---
 name: Review severity for personal packages
-description: Calibrate code review severity down for personal/internal packages — skip defensive patterns appropriate for public CRAN libs
+description: Calibrate code review severity down for personal/internal packages: skip defensive patterns appropriate for public CRAN libs
 type: feedback
 ---
 
@@ -13,5 +13,5 @@ For personal utility packages (not public CRAN libraries), calibrate review seve
 - Do not suggest tryCatch wrapping when a fallback path already exists
 - Do not flag variable name shadowing when R's scoping rules resolve it unambiguously
 - Do not flag missing namespace prefixes for functions already in NAMESPACE imports
-- Do not flag testthat test isolation as "missing mutualisation" — self-sufficient tests are the recommended testthat 3 pattern
-- Project-level memory files may contain package-specific examples of dismissed findings — check those before reviewing
+- Do not flag testthat test isolation as "missing mutualisation" (self-sufficient tests are the recommended testthat 3 pattern)
+- Project-level memory files may contain package-specific examples of dismissed findings: check those before reviewing

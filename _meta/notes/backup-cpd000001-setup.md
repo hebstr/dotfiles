@@ -95,7 +95,7 @@ backup-cpd000001
 
 ## Automatisation
 
-Planificateur de tâches Windows (Task Scheduler) — lancer `bash.exe ~/bin/backup-cpd000001` quotidiennement.
+Planificateur de tâches Windows (Task Scheduler) : lancer `bash.exe ~/bin/backup-cpd000001` quotidiennement.
 Les fichiers `.service` et `.timer` du paquet sont des références Linux non utilisés sur WS-CAR.
 
 ## Fichiers du paquet dotfiles

@@ -103,7 +103,7 @@ When reading or editing a file whose path matches `~/.secrets`, `.env*`, `creden
   - **Python**: `ruff check --fix <file>` → `ruff format <file>` → `ruff check <file>` (final pass) → `pytest <test-file>` if tests exist. Ruff `--fix` may leave whitespace that `format` then cleans, hence this order (per ruff docs).
   - **R**: `air format <file>` → `jarl <file>` → `testthat::test_file(<test-file>)` if a test exists.
   - **Quarto/Typst**: render the document and check exit code.
-  - **Markdown / Quarto prose**: `prose-lint <file>` (em dashes, en dashes, ritual openers, soft wraps). For deeper polish, invoke `/write` on demand.
+  - **Markdown / Quarto prose**: `prose-lint <file>` (em dashes, en dashes, soft wraps). For deeper polish, invoke `/write` on demand.
 - Scope: applies to any non-trivial edit (new file, public function, script under `bin/`, modified logic). Skip for one-line typo fixes in prose. If the user pushes back ("skip the gate", "I'll lint myself"), comply but state explicitly that the discipline is being bypassed at the user's request. If a tool is missing on the machine (`command -v` fails), say so and skip; don't silently omit. SC2030/SC2031 in bats files (`export` in `setup()`) are documented false positives; note and continue.
 - For complex tasks (multiple interdependent features or unclear scope): before the design bullet list, propose decomposition (produce a feature breakdown ordered by dependencies with a minimal viable core identified). User validates before any code is written.
 - For tasks on an existing codebase: before the design bullet list, scan the relevant files to identify the gap between current state and the goal. Build on what exists, don't duplicate it.
@@ -137,7 +137,7 @@ Anti-AI-slop essentials, always-on. Applies to both English and French. Full ref
 
 - **No negative parallelism.** "Not X. Y." / "Ce n'est pas X. C'est Y." is the most common AI tell. State Y directly.
 - **No rhetorical self-questions.** "The result? Devastating." / "Le résultat ? Spectaculaire." State the answer.
-- **No ritual openers.** Drop "It's worth noting", "Notably,", "Importantly," / "Il convient de noter", "Force est de constater", "À noter que", "Il importe de souligner". <!-- prose-lint:ignore -->
+- **No ritual openers.** Drop "It's worth noting", "Notably,", "Importantly," / "Il convient de noter", "Force est de constater", "À noter que", "Il importe de souligner".
 - **For deep polish or full prose review, invoke `/write`**: auto-loads the full EN or FR reference. Don't try to recall the full skill from memory.
 
 ## Agents

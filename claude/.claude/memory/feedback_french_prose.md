@@ -18,7 +18,7 @@ When editing or producing French prose for the user, apply these decisions. Do n
 - *Structural calques to translate*: adresser un problème → traiter ; supporter une feature → prendre en charge ; définitivement (au sens *certainly*) → certainement ; ça fait du sens → c'est cohérent ; compléter une tâche → terminer ; en charge de → chargé de.
 
 **Typography:**
-- No em-dash (—) or en-dash (–) as internal punctuation. Use comma, colon, parentheses, or restructure. En-dash for numeric ranges (`5–15 %`) is fine.
+- No em-dash or en-dash as internal punctuation. Use comma, colon, parentheses, or restructure. En-dash for numeric ranges (`5–15 %`) is fine.
 - Non-breaking space before `:`, `;`, `!`, `?`, `»`; after `«`.
 - Capitales accentuées obligatoires (État, École, À).
 - Quotation marks `« »` with non-breaking space inside, never `" "` in running French prose.

@@ -9,6 +9,6 @@ type: project
 
 **How to apply:**
 - Threat model: assume multi-user host, unprivileged attackers (no root). Per-file permissions matter (`mktemp` mode `0600` blocks modification), but blast-radius arguments for upstream-trust issues (`curl | bash`, missing GPG verification) are *broader* than for a single-user laptop.
-- Portability: do not assume amd64. Multi-user server fleets may include ARM (Graviton, Ampere) — install scripts must detect via `uname -m` rather than hardcode the architecture.
-- Do not reject security findings on these scripts with "personal machine, no attackers" — that framing is wrong for this artifact class.
+- Portability: do not assume amd64. Multi-user server fleets may include ARM (Graviton, Ampere); install scripts must detect via `uname -m` rather than hardcode the architecture.
+- Do not reject security findings on these scripts with "personal machine, no attackers": that framing is wrong for this artifact class.
 - Pinning installer URLs to a release tag (rather than `main` or `latest` without verification) is more valuable here than on a laptop: a single upstream compromise window affects every user the script bootstraps for.

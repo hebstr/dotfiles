@@ -1,4 +1,10 @@
 [[repos]]
+repo = "local"
+hooks = [
+  { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "prose-lint", language = "system", files = '\.(md|qmd)$' },
+]
+
+[[repos]]
 repo = "https://github.com/pre-commit/pre-commit-hooks"
 rev = "v6.0.0"
 hooks = [
