@@ -5,7 +5,7 @@
 
 ## Project
 - [project_qmd_format_hook.md](project_qmd_format_hook.md) — Add .qmd to PostToolUse format hook when air supports it
-- [project_review_workflow_backlog.md](project_review_workflow_backlog.md) — Practices and backlog items from the 2026-03 code review glowup audit
+- [project_review_workflow_backlog.md](project_review_workflow_backlog.md) — Implementation backlog from the 2026-03 code review glowup audit (hebstr tests, CI, data validation)
 - [project_rv_install_deployment.md](project_rv_install_deployment.md) — rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability (no amd64 assumption)
 
 ## Reference

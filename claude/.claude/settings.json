@@ -28,6 +28,7 @@
       "WebFetch(domain:pola.rs)",
       "WebFetch(domain:docs.python.org)",
       "Skill(posit-dev:critical-code-reviewer)",
+      "mcp__plugin_ouroboros_ouroboros__ouroboros_session_status",
       "mcp__plugin_ouroboros_ouroboros__ouroboros_evaluate"
     ],
     "deny": [
