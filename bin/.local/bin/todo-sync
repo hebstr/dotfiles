@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+scan_root="$HOME"
+perso="$HOME/Documents/pro/notes/TODO.md"
+
+pretty=0
+color=0
+if [ -t 1 ]; then
+  pretty=1
+  if [ "${NO_COLOR:-}" = "" ]; then
+    color=1
+  fi
+fi
+
+if ! command -v fdfind >/dev/null 2>&1; then
+  echo "todo-sync: fdfind is required" >&2
+  exit 1
+fi
+
+rows=$(mktemp)
+trap 'rm -f "$rows"' EXIT
+
+mapfile -t todos < <(
+  fdfind --type f --no-ignore-vcs '^TODO\.md$' "$scan_root" \
+    --exclude '*library*' \
+    --exclude 'node_modules' \
+    --exclude '.venv' \
+    --exclude 'venv' \
+    --exclude 'site-packages' \
+    --exclude 'vendor' |
+    sort
+)
+
+parse_items() {
+  local file=$1 project=$2
+  awk -v project="$project" '
+    BEGIN { tier = ""; idx = 0 }
+    /^## P0[[:space:]]*$/ { tier = "P0"; next }
+    /^## P1[[:space:]]*$/ { tier = "P1"; next }
+    /^## P2[[:space:]]*$/ { tier = "P2"; next }
+    /^## /                { tier = ""; next }
+    tier == ""            { next }
+    /^- \[x\]/            { next }
+    /^- \[.\]/ {
+      sub(/^- \[.\][ \t]*/, "")
+      statut = ""
+      if (match($0, /\*\([^)]+\)\*[ \t]*$/)) {
+        ann = substr($0, RSTART + 2, RLENGTH - 4)
+        split(ann, a, " : ")
+        statut = a[1]
+        $0 = substr($0, 1, RSTART - 1)
+        sub(/[ \t]+$/, "", $0)
+      }
+      gsub(/\|/, "\\|", $0)
+      gsub(/\|/, "\\|", statut)
+      idx++
+      printf "%s\t%s\t%06d\t%s\t%s\n", tier, project, idx, $0, statut
+    }
+  ' "$file"
+}
+
+empty=()
+nonconforme=()
+
+for todo in "${todos[@]}"; do
+  rel=${todo#"$HOME"/}
+  project=${rel%/TODO.md}
+  if [ "$todo" = "$perso" ]; then
+    project="Perso"
+  elif [[ $project == */*/* ]]; then
+    current=${project##*/}
+    rest=${project%/*}
+    parent=${rest##*/}
+    project="$parent/$current"
+  fi
+  if [ ! -s "$todo" ]; then
+    empty+=("$project")
+    continue
+  fi
+  before=$(wc -l <"$rows")
+  parse_items "$todo" "$project" >>"$rows"
+  after=$(wc -l <"$rows")
+  if [ "$before" -eq "$after" ]; then
+    nonconforme+=("$project")
+  fi
+done
+
+sort -t$'\t' -k1,1 -k2,2 -k3,3n "$rows" -o "$rows"
+
+if [ "$pretty" -eq 1 ]; then
+  awk -F'\t' -v color="$color" '
+    BEGIN {
+      if (color == 1) {
+        c_bold   = "\033[1m"
+        c_red    = "\033[31m"
+        c_yellow = "\033[38;2;255;255;0m"
+        c_cyan   = "\033[36m"
+        c_reset  = "\033[0m"
+      }
+      n = 0; w_prio = 0; w_proj = 0
+    }
+    {
+      n++
+      prio[n] = $1
+      proj[n] = $2
+      item[n] = $4
+      statut[n] = $5
+      if (length($1) > w_prio) w_prio = length($1)
+      if (length($2) > w_proj) w_proj = length($2)
+    }
+    END {
+      prev_key = ""
+      for (i = 1; i <= n; i++) {
+        p = prio[i]; s = statut[i]
+        key = p "\t" proj[i]
+        if (i > 1 && key != prev_key) print ""
+        prev_key = key
+        if      (p == "P0") cp = c_bold c_red
+        else if (p == "P1") cp = c_yellow
+        else                cp = ""
+        end = (cp != "") ? c_reset : ""
+        printf "%s%-*s  %-*s  %s", cp, w_prio, p, w_proj, proj[i], item[i]
+        if (s != "") printf "  [%s]", s
+        printf "%s\n", end
+      }
+    }
+  ' "$rows"
+
+  c_cyan=""
+  c_reset=""
+  if [ "$color" -eq 1 ]; then
+    c_cyan=$'\033[36m'
+    c_reset=$'\033[0m'
+  fi
+
+  if [ ${#empty[@]} -gt 0 ]; then
+    printf '\n%sFichiers vides :%s\n' "$c_cyan" "$c_reset"
+    for path in "${empty[@]}"; do
+      printf '  %s%s%s\n' "$c_cyan" "$path" "$c_reset"
+    done
+  fi
+
+  if [ ${#nonconforme[@]} -gt 0 ]; then
+    printf '\n%sFichiers non conformes (pas de section P0/P1/P2) :%s\n' "$c_cyan" "$c_reset"
+    for path in "${nonconforme[@]}"; do
+      printf '  %s%s%s\n' "$c_cyan" "$path" "$c_reset"
+    done
+  fi
+else
+  printf '| Prio | Projet | Item | Statut |\n'
+  printf '|------|--------|------|--------|\n'
+  if [ -s "$rows" ]; then
+    while IFS=$'\t' read -r tier project _idx item statut; do
+      printf '| %s | %s | %s | %s |\n' "$tier" "$project" "$item" "$statut"
+    done <"$rows"
+  fi
+
+  if [ ${#empty[@]} -gt 0 ]; then
+    printf '\n## Fichiers vides\n\n'
+    # shellcheck disable=SC2016
+    for path in "${empty[@]}"; do
+      printf -- '- `%s`\n' "$path"
+    done
+  fi
+
+  if [ ${#nonconforme[@]} -gt 0 ]; then
+    printf '\n## Fichiers non conformes (pas de section P0/P1/P2)\n\n'
+    # shellcheck disable=SC2016
+    for path in "${nonconforme[@]}"; do
+      printf -- '- `%s`\n' "$path"
+    done
+  fi
+fi

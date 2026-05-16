@@ -12,6 +12,7 @@
 - [reference_editorconfig.md](reference_editorconfig.md): EditorConfig for team/multi-editor formatting consistency
 - [reference_claude_hooks.md](reference_claude_hooks.md): Claude Code harness event types, hook kinds, and MCP rejection rationale (2026-03-26)
 - [reference_claude_code_best_practices.md](reference_claude_code_best_practices.md): Claude Code internals: CLAUDE.md scopes, hook events, auto-memory, notable settings.json keys (2026-05-02)
+- [reference_todo_sync.md](reference_todo_sync.md): `todo-sync` shell command prints aggregated TODO.md items to stdout as a markdown table
 
 ## Feedback
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md): 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
