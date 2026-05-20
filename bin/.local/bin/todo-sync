@@ -52,6 +52,8 @@ parse_items() {
         $0 = substr($0, 1, RSTART - 1)
         sub(/[ \t]+$/, "", $0)
       }
+      gsub(/\t/, " ", $0)
+      gsub(/\t/, " ", statut)
       gsub(/\|/, "\\|", $0)
       gsub(/\|/, "\\|", statut)
       idx++
