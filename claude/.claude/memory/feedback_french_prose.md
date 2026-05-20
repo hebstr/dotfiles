@@ -14,6 +14,7 @@ When editing or producing French prose for the user, apply these decisions. Do n
 
 **Anglicism policy:**
 - *Idiomatic technical anglicisms preserved as-is* (FR is the running prose): framework, runtime, deploy, debug, push, ship, refactor, mock, scope, log, parser, build, embedding, pipeline, stack, commit, merge, rollback, prompt, token, backend, frontend, benchmark, week-end. Target is anti-AI-slop, not anti-English.
+- *Reformulation zeal trap.* When rewriting bureaucratic FR for idiomatic feel, do not additionally re-translate preserved anglicisms. Concrete example (2026-05-18): renamed chapter title "Pipeline log" → "Journal du pipeline" while reformulating a Quarto book chapter; user reverted to "Pipeline logs". The gain from FR reformulation lives in nominalisation reduction and bureaucratic-opener removal, not in lexical purification; those are two different passes and the second is already covered by the preserved-list rule above. If a term appears in the preserved list, leave it alone even when the surrounding sentence is being rewritten.
 - *Corporate francised verbs to translate back to French*: leverager, actionner, onboarder, scaler (en métaphore floue), pusher (une idée), driver, challenger.
 - *Structural calques to translate*: adresser un problème → traiter ; supporter une feature → prendre en charge ; définitivement (au sens *certainly*) → certainement ; ça fait du sens → c'est cohérent ; compléter une tâche → terminer ; en charge de → chargé de.
 
