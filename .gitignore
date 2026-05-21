@@ -14,7 +14,7 @@
 
 **/node_modules/
 
-.claude/
+/.claude/
 !claude/.claude/rules/secrets.md
 
 /.stfolder
