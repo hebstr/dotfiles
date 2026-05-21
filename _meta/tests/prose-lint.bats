@@ -81,6 +81,44 @@ _fixture() {
   [ "$status" -eq 0 ]
 }
 
+@test "em dash in table row: exit 0" {
+  local f
+  f=$(_fixture table-em.md "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "" \
+    "| flag | meaning |" \
+    "| --- | --- |" \
+    "| /foo | does foo — really |" \
+    "" \
+    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "em dash in markdown header: exit 0" {
+  local f
+  f=$(_fixture header-em.md "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "" \
+    "### Section — Subtitle" \
+    "" \
+    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "en dash in alphanumeric range: exit 0" {
+  local f
+  f=$(_fixture range-en.md "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "" \
+    "- See pages 12–18 and version v2.1–v2.2 for details." \
+    "" \
+    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
 @test "soft-wrap exception: YAML frontmatter fields: exit 0" {
   local f
   f=$(_fixture frontmatter.md "$(printf '%s\n' \
@@ -165,7 +203,7 @@ _fixture() {
 
 # ─── smoke ──────────────────────────────────────────────────────────────────
 
-@test "smoke: real CLAUDE.md is clean" {
-  run "$SCRIPT" "${BATS_TEST_DIRNAME}/../../claude/.claude/CLAUDE.md"
+@test "smoke: real README.md is clean" {
+  run "$SCRIPT" "${BATS_TEST_DIRNAME}/../../README.md"
   [ "$status" -eq 0 ]
 }

@@ -6,7 +6,7 @@ Personal stow-managed dotfiles.
 
 ```
 bash/ bin/ claude/ gh/ git/ positron/ R/ Rstudio/ syncthing/   # stow packages
-prek.toml                  # pre-commit hooks (shellcheck, shfmt, check-yaml, prose-lint)
+prek.toml                  # pre-commit hooks
 _meta/
 ├── notes/       # internal docs
 ├── profiles/    # exportable Positron / VS Code profiles
@@ -14,9 +14,9 @@ _meta/
 └── tests/       # bats test suites for bin/ scripts
 ```
 
-Packages follow stow conventions: each top-level dir maps its tree relative to `~`. For example `bash/.bashrc` → `~/.bashrc`, `Rstudio/.config/rstudio/rstudio-prefs.json` → `~/.config/rstudio/rstudio-prefs.json`.
+Packages follow stow conventions: each top-level dir maps its tree relative to `~` (`bash/.bashrc` → `~/.bashrc`).
 
-## Bootstrap a new machine
+## Bootstrap
 
 ```sh
 sudo apt install -y stow

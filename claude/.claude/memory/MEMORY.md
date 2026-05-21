@@ -34,5 +34,6 @@
 - [feedback_external_pattern_imports.md](feedback_external_pattern_imports.md): Filter for external Claude Code config imports: identify the consumer that justifies the format before importing (4 false positives in solatis audit 2026-05-16)
 - [feedback_verify_after_install.md](feedback_verify_after_install.md): Smoke-test new tools/hooks/integrations end-to-end before marking done; never suppress stderr on fresh config
 - [feedback_shell_grep_pipefail.md](feedback_shell_grep_pipefail.md): `grep` as filter under `set -Eeuo pipefail` crashes on no-match; idiomatic fixes + audit grep
-- [feedback_prose-lint-write.md](feedback_prose-lint-write.md): invoke /write only when the fix requires judgment, not on every prose-lint violation
+- [feedback_prose-lint-write.md](feedback_prose-lint-write.md): typographic vs rhetorical em/en dash distinction in prose-lint scope, when to invoke /write, and never replace typographic glyphs with words
 - [feedback-no-bulk-regex-for-contextual-skills.md](feedback-no-bulk-regex-for-contextual-skills.md): Don't substitute a contextual editing skill (workflow:write, audit reviewers) with a bulk regex when per-case Edit is blocked; surface the blocker instead
+- [feedback_edit_proposal_format.md](feedback_edit_proposal_format.md): Propose edits via the Edit tool directly; don't duplicate diffs as prose before/after blocks in chat

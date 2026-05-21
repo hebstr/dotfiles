@@ -2,7 +2,13 @@
 # prose-lint: mechanical anti-AI-slop checks for .md / .qmd files.
 #
 # Rules from ~/.claude/CLAUDE.md (Prose hygiene + Communication sections):
-#   - no em dashes in prose; en dashes only for numeric ranges
+#   - no em dashes in prose (rhetorical use); typographic em dashes in
+#     markdown table cells and markdown headers are exempt
+#   - en dashes flagged outside numeric ranges (token–token between
+#     alphanumerics is exempt: 2–4, v2.1–v2.2, 5–15 %, pages 12–18)
+#   - table rows (lines starting with |) and markdown headers (lines
+#     starting with #) are exempt from em/en dash checks: em/en dashes
+#     in those contexts are typographic separators, not rhetorical prose
 #   - no manual soft wraps in .md/.qmd (one sentence per line)
 #
 # Semantic checks (ritual openers, rhetorical self-questions, negative
@@ -40,10 +46,15 @@ flag() {
   violations=$((violations + 1))
 }
 
+is_typographic_context() {
+  printf '%s' "$1" | grep -qE '^[ \t]*(\||#)'
+}
+
 check_em_dash() {
   local file=$1 lineno content
   while IFS=$'\t' read -r lineno content; do
     [ "$content" = "" ] && continue
+    is_typographic_context "$content" && continue
     if printf '%s' "$content" | grep -q '—'; then
       flag "$file" "$lineno" "em-dash" "em dash in prose (CLAUDE.md: Prose hygiene)"
     fi
@@ -51,11 +62,13 @@ check_em_dash() {
 }
 
 check_en_dash() {
-  local file=$1 lineno content
+  local file=$1 lineno content stripped
   while IFS=$'\t' read -r lineno content; do
     [ "$content" = "" ] && continue
-    if printf '%s' "$content" | grep -q '–'; then
-      flag "$file" "$lineno" "en-dash" "en dash outside code (CLAUDE.md: Prose hygiene; numeric ranges OK, verify)"
+    is_typographic_context "$content" && continue
+    stripped=$(printf '%s' "$content" | sed -E 's/[A-Za-z0-9.]+–[A-Za-z0-9.]+//g')
+    if printf '%s' "$stripped" | grep -q '–'; then
+      flag "$file" "$lineno" "en-dash" "en dash in prose (CLAUDE.md: Prose hygiene)"
     fi
   done < <(strip_code "$file")
 }

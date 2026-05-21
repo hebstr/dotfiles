@@ -1,26 +1,22 @@
-# Credentials / tokens
 **/hosts.yml
 **/.credentials.json
 **/credentials.toml
 **/*token*
 **/*secret*
-!claude/.claude/rules/secrets.md
 
-# State files (auto-generated, not config)
 **/history.jsonl
 **/*-cache.json
 **/*-receipt.json
 
-# Python
 **/.venv/
 **/__pycache__/
 *.pyc
 
-# Node
 **/node_modules/
 
-# Claude
-/.claude/
-TODO.md
+.claude/
+!claude/.claude/rules/secrets.md
 
 /.stfolder
+
+TODO.md
