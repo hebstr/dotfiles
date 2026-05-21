@@ -10,12 +10,29 @@ setup() {
   export TMPDIR_TEST STUB_DIR CAPTURE TRANSCRIPT
 
   mkdir -p "$STUB_DIR"
-  for cmd in cat jq head tr; do
+  for cmd in cat jq head tr sed; do
     real=$(command -v "$cmd")
     ln -sf "$real" "$STUB_DIR/$cmd"
   done
 
   make_notify_stub 0
+}
+
+make_gdbus_stub() {
+  local output="$1"
+  cat >"$STUB_DIR/gdbus" <<STUB
+#!/bin/bash
+printf '%s\n' "$output"
+STUB
+  chmod +x "$STUB_DIR/gdbus"
+}
+
+make_gdbus_stub_failing() {
+  cat >"$STUB_DIR/gdbus" <<'STUB'
+#!/bin/bash
+exit 1
+STUB
+  chmod +x "$STUB_DIR/gdbus"
 }
 
 teardown() {
@@ -27,12 +44,14 @@ teardown() {
 
 make_notify_stub() {
   local exit_code="${1:-0}"
+  local print_id="${2:-42}"
   cat >"$STUB_DIR/notify-send" <<STUB
 #!/bin/bash
 : > "$CAPTURE"
 for arg in "\$@"; do
   printf '%s\n' "\$arg" >> "$CAPTURE"
 done
+printf '%s\n' "$print_id"
 exit $exit_code
 STUB
   chmod +x "$STUB_DIR/notify-send"
@@ -56,7 +75,7 @@ write_transcript() {
 run_hook() {
   local payload="$1"
   # shellcheck disable=SC2016 # intentional: $1/$2 expand inside the inner shell
-  run env PATH="$STUB_DIR" CAPTURE="$CAPTURE" \
+  run env PATH="$STUB_DIR" CAPTURE="$CAPTURE" XDG_RUNTIME_DIR="$TMPDIR_TEST" \
     /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$payload" "$SCRIPT"
 }
 
@@ -71,8 +90,10 @@ build_payload() {
 capture_app_name() { sed -n '1p' "$CAPTURE"; }
 capture_urgency() { sed -n '2p' "$CAPTURE"; }
 capture_category() { sed -n '3p' "$CAPTURE"; }
-capture_title() { sed -n '4p' "$CAPTURE"; }
-capture_message() { sed -n '5p' "$CAPTURE"; }
+capture_print_id() { sed -n '4p' "$CAPTURE"; }
+capture_title() { sed -n '5p' "$CAPTURE"; }
+capture_message() { sed -n '6p' "$CAPTURE"; }
+capture_replace_id() { grep -m1 -E '^--replace-id=' "$CAPTURE" || true; }
 
 # ---------------------------------------------------------------------------
 # Guard: notify-send absent
@@ -282,4 +303,110 @@ capture_message() { sed -n '5p' "$CAPTURE"; }
   payload=$(build_payload "hi" "/home/user/proj" "")
   run_hook "$payload"
   [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Idle gate (skip notification when user is actively at the keyboard)
+# ---------------------------------------------------------------------------
+
+@test "emits notification when gdbus is absent" {
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -f "$CAPTURE" ]
+}
+
+@test "skips notification when user idle time is below threshold" {
+  make_gdbus_stub "(uint64 5000,)"
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ ! -f "$CAPTURE" ]
+}
+
+@test "emits notification when user idle time is at threshold" {
+  make_gdbus_stub "(uint64 10000,)"
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -f "$CAPTURE" ]
+}
+
+@test "emits notification when user idle time is well above threshold" {
+  make_gdbus_stub "(uint64 60000,)"
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -f "$CAPTURE" ]
+}
+
+@test "parses idle value from gdbus output, not the digits in 'uint64'" {
+  make_gdbus_stub "(uint64 60000,)"
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -f "$CAPTURE" ]
+}
+
+@test "emits notification when gdbus output is malformed" {
+  make_gdbus_stub "unexpected output"
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -f "$CAPTURE" ]
+}
+
+@test "emits notification when gdbus fails" {
+  make_gdbus_stub_failing
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -f "$CAPTURE" ]
+}
+
+# ---------------------------------------------------------------------------
+# Replace previous notification instead of stacking
+# ---------------------------------------------------------------------------
+
+@test "passes --print-id on every invocation" {
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ "$(capture_print_id)" = "--print-id" ]
+}
+
+@test "first invocation does not pass --replace-id" {
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -z "$(capture_replace_id)" ]
+}
+
+@test "second invocation in same project passes --replace-id of previous id" {
+  make_notify_stub 0 7
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ "$(capture_replace_id)" = "--replace-id=7" ]
+}
+
+@test "second invocation in a different project does not reuse previous id" {
+  make_notify_stub 0 7
+  payload_a=$(build_payload "hi" "/home/user/projA" "")
+  run_hook "$payload_a"
+  [ "$status" -eq 0 ]
+  payload_b=$(build_payload "hi" "/home/user/projB" "")
+  run_hook "$payload_b"
+  [ "$status" -eq 0 ]
+  [ -z "$(capture_replace_id)" ]
+}
+
+@test "ignores stale state file with non-numeric content" {
+  printf 'garbage\n' >"$TMPDIR_TEST/claude-code-notify-_home_user_proj.id"
+  payload=$(build_payload "hi" "/home/user/proj" "")
+  run_hook "$payload"
+  [ "$status" -eq 0 ]
+  [ -z "$(capture_replace_id)" ]
 }
