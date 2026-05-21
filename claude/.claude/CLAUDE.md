@@ -3,7 +3,7 @@
 ## Profile
 
 - Data engineering, data science, biostatistics, web design
-- R stack: tidyverse idiomatic, tidyeval, R base when warranted
+- R stack: tidyverse idiomatic, tidy evaluation (data masking), R base when warranted
 - Python stack: uv, pandas, polars, streamlit
 - Publishing : Quarto, Typst
 - IDE: Positron
@@ -25,7 +25,7 @@ For language-specific toolchain conventions (formatters, linters, CLI flags), se
 
 - Dotfiles live in `~/dotfiles`, organized as stow packages (`bin`, `bash`, `claude`, `gh`, `git`, `positron`, `R`, `Rstudio`, `syncthing`).
 - Always use `stow` to create symlinks from `~/dotfiles`. Never `ln -s` directly. Place files inside the package using the target-relative layout (e.g. `~/dotfiles/bin/.local/bin/foo.sh`), then `cd ~/dotfiles && stow <package>`. If a manual symlink or file already exists at the target, `rm` it before stowing.
-- **Stow-managed paths** (any file under `$HOME` whose `readlink -e` resolves into `~/dotfiles/`): always edit the resolved path under `~/dotfiles/<package>/...`, never the symlink. Examples in scope: `~/.bashrc`, `~/.gitconfig`, `~/.Rprofile`, files under `~/.claude/`, `~/.config/`, `~/.local/bin/`. Before editing any file under `$HOME`, run `readlink -e <path>` if uncertain. The harness refuses writes through stow symlinks, but Read should also go to the real path when the next step is an edit, to avoid confusion about where the change lands.
+- **Stow-managed paths** (any file under `$HOME` whose `readlink -e` resolves into `~/dotfiles/`): always edit the resolved path under `~/dotfiles/<package>/...`, never the symlink. Examples in scope: `~/.bashrc`, `~/.gitconfig`, `~/.Rprofile`, files under `~/.claude/`, `~/.config/`, `~/.local/bin/`. Before editing any file under `$HOME`, run `readlink -e <path>` if uncertain. Edits through stow symlinks may be refused; resolve to the real path for both Read and Edit to avoid confusion about where the change lands.
 - **Other symlinks** (`.venv/`, build artifacts, vendored deps, etc.): do not preempt with `readlink`. If Edit/Write fails with "Refusing to write through symlink", resolve with `readlink -f <path>` and retry against the resolved path. No defensive `readlink` in the common case.
 
 ### Claude Code plugin/skill repos
@@ -47,7 +47,7 @@ For language-specific toolchain conventions (formatters, linters, CLI flags), se
 - R: format with `air` (config: `air.toml`), lint with `jarl` (config: `jarl.toml`)
 - R: never use `renv`; `rv` replaces it for all project types; `DESCRIPTION` is canonical for packages
 - R: for list-building from repeated calls, lead with purrr (`set_names()` + `map()`); base R only if asked or for a concrete performance reason
-- R: before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "pkg::fn_name"`
+- R: before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "'fn_name' %in% getNamespaceExports('pkg')"` (returns `TRUE`/`FALSE`; more robust than `pkg::fn`, which can trigger package load side effects)
 - Python: prefer polars over pandas unless the project already uses pandas
 - Only modify code directly related to the task. "Directly related" includes cascading edits required for correctness (call sites of a renamed function, imports of a moved module, type updates after a signature change). It does not include surrounding cleanup, style fixes, or unrelated refactors found in passing; flag those separately if they matter.
 - No manual soft wraps in .md/.qmd files: one sentence or logical unit per line, no artificial line breaks
@@ -119,7 +119,7 @@ When reading or editing a file whose path matches `~/.secrets`, `.env*`, `creden
 - Straightforward and blunt, without overplaying it
 - No corporate jargon or marketing speak
 - No emojis in any output unless explicitly requested
-- Never state a verifiable fact without checking it first (tool call, file read, search)
+- Never state a verifiable fact without checking it first (tool call, file read, search). If verification is impossible (offline, tool missing, source unreachable), say so explicitly rather than asserting from memory.
 - **Never write an external URL to a file without verifying it first** (WebFetch or `gh api` for GitHub repos). Training-data assumptions about URLs are unreliable. If verification is impossible, omit the link and say so. Subagent exception: subagents (Explore, general-purpose) without WebFetch return URL placeholders (`{{URL: <description>}}`) for the parent to verify and substitute; never fabricate URLs from training data.
 - If uncertain or unverifiable, say so explicitly; never fabricate or present assumptions as facts
 - Never say "fix appliqué" / "fix applied" unless an Edit/Write has actually modified a file. When the change requires user action (git command to run, manual edit), phrase it as "à appliquer par toi" / "voici la commande à exécuter"; the user manages their own git operations and needs accurate status
@@ -132,7 +132,7 @@ When reading or editing a file whose path matches `~/.secrets`, `.env*`, `creden
 - "Show me how to X" means a tutorial to follow, not execution; if intent is ambiguous, ask
 - At a natural session boundary (context limit, different working directory): proactively provide a ready-to-paste continuation prompt; do not wait for the user to ask
 - Anticipate idiomatic R/Python pitfalls
-- Avoid em dashes (`—`) and en dashes used as punctuation in prose. They are an AI tic that makes text feel synthetic and unpleasant for humans. Use colons, parentheses, periods, or simply restructure the sentence. En dashes for numeric ranges (`1–2 min`) are fine. This applies in every language
+- Avoid em dashes (`—`) and en dashes used as punctuation in prose. They disrupt reading rhythm and introduce ambiguity over whether the clause is a parenthetical, a continuation, or a list separator. Use colons, parentheses, periods, or simply restructure the sentence. En dashes for numeric ranges (`1–2 min`) are fine. This applies in every language
 
 ## Prose hygiene
 
