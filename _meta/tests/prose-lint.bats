@@ -133,6 +133,51 @@ _fixture() {
   [ "$status" -eq 0 ]
 }
 
+@test "soft-wrap exception: Quarto fenced div markers: exit 0" {
+  local f
+  f=$(_fixture fenced-div.qmd "$(printf '%s\n' \
+    "---" \
+    "title: test" \
+    "---" \
+    "" \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "" \
+    ":::: {.columns}" \
+    "::: {.column width=\"50%\"}" \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    ":::" \
+    "::: {.column width=\"50%\"}" \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    ":::" \
+    "::::")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "soft-wrap exception: Quarto fragment div between content lines: exit 0" {
+  local f
+  f=$(_fixture fragment-div.qmd "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "::: {.fragment}" \
+    "Outro paragraph here, also longer than sixty chars to stay quiet." \
+    ":::" \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "soft-wrap exception: nested Quarto divs (column + fragment): exit 0" {
+  local f
+  f=$(_fixture nested-div.qmd "$(printf '%s\n' \
+    "::: {.column width=\"50%\"}" \
+    "::: {.fragment}" \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    ":::" \
+    ":::")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
 # ─── exit 1: violations ─────────────────────────────────────────────────────
 
 @test "em dash in prose: flag em-dash, exit 1" {

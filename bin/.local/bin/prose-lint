@@ -93,10 +93,10 @@ check_soft_wrap() {
         nxt  = lines[i+1]
         if (length(line) == 0)                              continue
         if (length(line) >= 60)                             continue
-        if (line ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<)/)    continue
-        if (prev ~ /^[ \t]*$/)                              continue
-        if (prev ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<)/)    continue
-        if (nxt  ~ /^[ \t]*$/)                              continue
+        if (line ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<|:{3,})/)  continue
+        if (prev ~ /^[ \t]*$/)                                continue
+        if (prev ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<|:{3,})/)  continue
+        if (nxt  ~ /^[ \t]*$/)                                continue
         printf "%s:%d: [soft-wrap] possible soft wrap (%d chars; CLAUDE.md: Coding preferences, no manual soft wraps)\n", file, i, length(line)
       }
     }
