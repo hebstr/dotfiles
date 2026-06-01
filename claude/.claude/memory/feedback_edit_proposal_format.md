@@ -22,3 +22,5 @@ DO:
 **How to apply**: every edit, every file, every project (code, config, prose, memory). No exception for "important" files like CLAUDE.md: the gate for high-impact files is *still* user approval, but approval flows through the permission prompt, not through duplicated prose blocks in chat. The CLAUDE.md rule for editing Claude-config files (ligne 82) defers to the universal format rule in the Communication section.
 
 Related: [[feedback-claude-md-edits]] (if/when written).
+
+**Drift pattern to resist**: when the user requests sequential, case-by-case review of edits, this is **not** a license to write before/after prose blocks. It licenses sequential Edit calls (one tool call per edit, paced by user validation), not prose duplication. The validation gate remains the permission prompt regardless of pacing.

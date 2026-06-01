@@ -19,6 +19,16 @@
 # containing the marker `<!-- prose-lint:ignore -->` (use the marker for
 # rule-meta lines that document a forbidden pattern verbatim). Tilde fences
 # (~~~) and 4-space indented code blocks are NOT recognized.
+#
+# Files under any `.claude/memory/` path are skipped entirely: memory files
+# are Claude-facing instructions, not user-facing prose, so the rhetorical
+# dash rules do not apply. Other `.claude/` files (CLAUDE.md, rules/) are
+# still checked.
+#
+# Working/backlog files are skipped by basename (case-sensitive, any depth):
+# PLAN.md, DEFERRED.md, CONTEXT.md, MEMORY.md (Claude operational state) and
+# TODO.md (per-project backlog). Case-sensitivity matters: `CONTEXT.md` is
+# skipped but `context.md` (skill documentation) is still checked.
 
 set -Eeuo pipefail
 
@@ -108,6 +118,18 @@ for f in "$@"; do
     echo "prose-lint: not a file: $f" >&2
     exit 2
   fi
+  case "$f" in
+  */.claude/memory/* | .claude/memory/*)
+    echo "prose-lint: skipping (.claude/memory is Claude-facing, not user prose): $f" >&2
+    continue
+    ;;
+  esac
+  case "${f##*/}" in
+  PLAN.md | DEFERRED.md | CONTEXT.md | MEMORY.md | TODO.md)
+    echo "prose-lint: skipping (working/backlog file, exempt from prose hygiene): $f" >&2
+    continue
+    ;;
+  esac
   case "$f" in
   *.md | *.qmd) ;;
   *)

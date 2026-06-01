@@ -246,6 +246,60 @@ _fixture() {
   [[ "$output" != *"skipping"* ]]
 }
 
+@test ".claude/memory file: skipped despite em dash, exit 0" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude/memory"
+  mkdir -p "$dir"
+  f="${dir}/mem.md"
+  printf '%s' "This memory has an em dash — and stays unflagged." >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skipping"* ]]
+}
+
+@test ".claude non-memory file: still checked, em dash flagged, exit 1" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/CLAUDE.md"
+  printf '%s' "This rule has an em dash — and gets flagged." >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
+}
+
+@test "working/backlog basenames: skipped despite em dash, exit 0" {
+  local name f
+  for name in PLAN.md DEFERRED.md CONTEXT.md MEMORY.md TODO.md; do
+    f=$(_fixture "$name" "Has an em dash — and stays unflagged.")
+    run "$SCRIPT" "$f"
+    [ "$status" -eq 0 ] || {
+      echo "expected exit 0 for $name, got $status" >&2
+      return 1
+    }
+    [[ "$output" == *"skipping"* ]] || {
+      echo "expected skip message for $name" >&2
+      return 1
+    }
+  done
+}
+
+@test "basename exclusion is case-sensitive: context.md still checked, exit 1" {
+  local f
+  f=$(_fixture context.md "Skill doc with an em dash — gets flagged.")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
+}
+
+@test "unrelated basename: not excluded, em dash flagged, exit 1" {
+  local f
+  f=$(_fixture NOTES.md "Generic doc with an em dash — gets flagged.")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
+}
+
 # ─── smoke ──────────────────────────────────────────────────────────────────
 
 @test "smoke: real README.md is clean" {
