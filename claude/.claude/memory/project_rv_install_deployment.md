@@ -1,7 +1,8 @@
 ---
 name: dotfiles install scripts deployment context
 description: rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability requirements
-type: project
+metadata:
+  type: project
 ---
 `bin/.local/bin/rv-install` (rv R-package-manager installer wrapper) and `bin/.local/bin/quarto-update` (Quarto release updater) are stored in this dotfiles repo but are deployed and executed in practice on multi-user servers, single ad-hoc execution per host.
 

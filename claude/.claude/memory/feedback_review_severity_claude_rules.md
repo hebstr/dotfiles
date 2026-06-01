@@ -1,12 +1,13 @@
 ---
 name: Review calibration for .claude/rules/ files
-description: When auditing path-scoped rule files in .claude/rules/, do not propose duplication of CLAUDE.md content, deduplication of structurally-local boilerplate, per-file version traces, mixing review-calibration into writing rules, or removal of alternate tools because of partial overlap with the main pipeline tool
-type: feedback
+description: When auditing path-scoped rule files in .claude/rules/, do not propose relocating glob-scoped R/Python idioms back into CLAUDE.md, deduplication of structurally-local boilerplate, per-file version traces, mixing review-calibration into writing rules, or removal of alternate tools because of partial overlap with the main pipeline tool
+metadata:
+  type: feedback
 ---
 
 When reviewing or auditing `.claude/rules/*.md` files (path-scoped rule files loaded by glob via `paths:` frontmatter), do **not** propose any of the following:
 
-1. **Duplicating CLAUDE.md style/convention rules into rule files.** CLAUDE.md is loaded globally on every conversation; rule files are loaded only when their glob matches. Adding R or Python idiomatic conventions (pipe `|>`, `here::here()`, polars-over-pandas, etc.) to `rules/r.md` or `rules/python.md` creates a sync burden for zero signal gain (Claude already has CLAUDE.md in context).
+1. **Flagging the R/Python idioms in rule files as CLAUDE.md duplication, or proposing to move them back.** CLAUDE.md is loaded globally on every conversation; rule files are loaded only when their glob matches. The idiomatic conventions (pipe `|>`, `here::here()`, polars-over-pandas, etc.) now live canonically in `rules/r.md` and `rules/python.md`, removed from CLAUDE.md so the global file stays lean and the idioms load only when an R/Python edit matches the glob. They no longer duplicate CLAUDE.md. Do not propose relocating them back into CLAUDE.md or deleting them as redundant.
 
 2. **Deduplicating boilerplate phrasing across rule files.** Patterns like "Mandatory pipeline after every create/edit" appear in multiple files with slight phrasing variation. This is intentional locality: each rule file is self-contained by design. A reader (Claude) sees one file at a time, not three. Normalization buys nothing.
 

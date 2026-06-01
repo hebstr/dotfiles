@@ -2,7 +2,7 @@
 # Claude Code statusline: Context % | 5h: % (reset) | 7d: % (reset)
 exec 2>/dev/null
 
-CACHE_DIR="$HOME/.cache/waza-statusline"
+CACHE_DIR="$HOME/.cache/claude-statusline"
 CACHE_FILE="$CACHE_DIR/last.json"
 CACHE_MAX_AGE=21600 # 6 hours: one full rate_limit window
 
@@ -32,7 +32,7 @@ cache_file_mtime() {
   local path="$1"
   local ts=""
   ts=$(stat -c %Y "$path" 2>/dev/null || true)
-  if [ -z "$ts" ]; then
+  if [ "$ts" = "" ]; then
     ts=$(stat -f %m "$path" 2>/dev/null || true)
   fi
   printf '%s\n' "${ts:-0}"
@@ -40,7 +40,7 @@ cache_file_mtime() {
 
 # Single jq pass for live input
 parsed=""
-[ -n "$input" ] && parsed=$(printf '%s' "$input" | jq -r "$jq_full" 2>/dev/null)
+[ "$input" != "" ] && parsed=$(printf '%s' "$input" | jq -r "$jq_full" 2>/dev/null)
 
 IFS="$tab" read -r used_tokens window_size live_five_pct live_five_reset live_seven_pct live_seven_reset <<EOF
 $parsed
@@ -52,7 +52,7 @@ seven_pct="${live_seven_pct:-}"
 seven_reset="${live_seven_reset:-}"
 
 # If rate_limits missing from live input, read from cache
-if [ "$five_pct" = "null" ] || [ -z "$five_pct" ]; then
+if [ "$five_pct" = "null" ] || [ "$five_pct" = "" ]; then
   if [ -f "$CACHE_FILE" ]; then
     cache_mtime=$(cache_file_mtime "$CACHE_FILE")
     cache_age=$(($(date +%s) - cache_mtime))
@@ -66,7 +66,7 @@ EOF
 fi
 
 # Persist live rate_limits only when present (atomic write)
-if [ "${live_five_pct:-}" != "null" ] && [ -n "${live_five_pct:-}" ] && [ -n "$input" ]; then
+if [ "${live_five_pct:-}" != "null" ] && [ "${live_five_pct:-}" != "" ] && [ "$input" != "" ]; then
   mkdir -p "$CACHE_DIR"
   # shellcheck disable=SC2015
   printf '%s' "$input" | jq '{rate_limits: .rate_limits}' \
@@ -87,10 +87,10 @@ MAGENTA="\033[95m"
 # Format seconds remaining as "4h23m" or "1d21h"
 format_reset() {
   local ts="$1"
-  [ -z "$ts" ] && return
+  [ "$ts" = "" ] && return
   local epoch now diff
   epoch=$(printf '%s' "$ts" | tr -dc '0-9')
-  [ -z "$epoch" ] && return
+  [ "$epoch" = "" ] && return
   now=$(date +%s)
   diff=$((epoch - now))
   [ "$diff" -le 0 ] && return
@@ -133,10 +133,10 @@ usage_color() {
 }
 
 # 5h part
-if [ "$five_pct" != "null" ] && [ -n "$five_pct" ]; then
+if [ "$five_pct" != "null" ] && [ "$five_pct" != "" ]; then
   color=$(usage_color "$five_pct")
   reset_str=$(format_reset "$five_reset")
-  if [ -n "$reset_str" ]; then
+  if [ "$reset_str" != "" ]; then
     five_part="${DIM}5h:${RESET} ${color}${five_pct}%${RESET} ${DIM}(${reset_str})${RESET}"
   else
     five_part="${DIM}5h:${RESET} ${color}${five_pct}%${RESET}"
@@ -146,10 +146,10 @@ else
 fi
 
 # 7d part
-if [ "$seven_pct" != "null" ] && [ -n "$seven_pct" ]; then
+if [ "$seven_pct" != "null" ] && [ "$seven_pct" != "" ]; then
   color=$(usage_color "$seven_pct")
   reset_str=$(format_reset "$seven_reset")
-  if [ -n "$reset_str" ]; then
+  if [ "$reset_str" != "" ]; then
     seven_part="${DIM}7d:${RESET} ${color}${seven_pct}%${RESET} ${DIM}(${reset_str})${RESET}"
   else
     seven_part="${DIM}7d:${RESET} ${color}${seven_pct}%${RESET}"

@@ -1,7 +1,8 @@
 ---
 name: Verify tools after install or config
 description: After installing a tool, creating a hook, or configuring a new integration, always verify it actually works end-to-end before considering the task done
-type: feedback
+metadata:
+  type: feedback
 ---
 
 After setting up any new tool, hook, or integration, always run a smoke test to verify it works end-to-end. Never consider the task complete without verification.

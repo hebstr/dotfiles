@@ -82,6 +82,33 @@ if [[ -z "${VAR:-}" ]]; then
 fi
 ```
 
+### 6. Pitfalls of `set -e`
+
+`set -e` (errexit) is mandated above, but it is silently suppressed in several contexts. Know them, or strict mode will fail to catch errors you expect it to.
+
+```bash
+# Suppressed inside a condition: a failing command in if/while/until,
+# after && or ||, or negated with !, does NOT trigger exit.
+if grep -q pattern file; then ...; fi   # grep failure here is fine, not an error
+
+# Suppressed for the WHOLE function body when the function is called
+# in a conditional context:
+my_func() { false; echo "still runs under set -e if called as 'if my_func'"; }
+if my_func; then ...; fi                 # errexit off for all of my_func
+
+# Masked by local/declare/export: the declaration command succeeds,
+# so a failing substitution is not caught.
+local v=$(failing_cmd)                   # exit code of failing_cmd is lost
+local v; v=$(failing_cmd) || return 1    # correct: assign on its own line
+
+# Arithmetic returning 0 triggers exit: ((i++)) evaluates to the old value;
+# when that is 0, the command returns non-zero.
+((i++))                                  # aborts the script when i was 0
+i=$((i + 1))                             # safe alternative
+```
+
+`set -e` alone does not catch failures in the non-final stage of a pipeline; that is what `pipefail` (also in the strict-mode line) is for.
+
 ## Fundamental Patterns
 
 ### Pattern 1: Safe Script Directory Detection
@@ -97,7 +124,7 @@ SCRIPT_NAME="$(basename -- "${BASH_SOURCE[0]}")"
 echo "Script location: $SCRIPT_DIR/$SCRIPT_NAME"
 ```
 
-### Pattern 2: Comprehensive Function Templat
+### Pattern 2: Comprehensive Function Template
 
 ```bash
 #!/bin/bash
@@ -266,19 +293,21 @@ cleanup() {
     log_info "Shutting down..."
 
     # Terminate all background processes
-    for pid in "${PIDS[@]}"; do
+    for pid in "${PIDS[@]+"${PIDS[@]}"}"; do
         if kill -0 "$pid" 2>/dev/null; then
             kill -TERM "$pid" 2>/dev/null || true
         fi
     done
 
     # Wait for graceful shutdown
-    for pid in "${PIDS[@]}"; do
+    for pid in "${PIDS[@]+"${PIDS[@]}"}"; do
         wait "$pid" 2>/dev/null || true
     done
 }
 
-trap cleanup SIGTERM SIGINT
+trap cleanup EXIT
+trap 'exit 143' SIGTERM
+trap 'exit 130' SIGINT
 
 # Start background tasks
 background_task &
@@ -297,7 +326,7 @@ wait
 #!/bin/bash
 set -Eeuo pipefail
 
-# Use -i flag to move safely without overwriting
+# Refuse to overwrite via explicit pre-check; mv -n guards the residual check-to-mv race
 safe_move() {
     local -r source="$1"
     local -r dest="$2"
@@ -312,7 +341,7 @@ safe_move() {
         return 1
     fi
 
-    mv "$source" "$dest"
+    mv -n "$source" "$dest"
 }
 
 # Safe directory cleanup
@@ -324,21 +353,22 @@ safe_rmdir() {
         return 1
     fi
 
-    # Use -I flag to prompt before rm (BSD/GNU compatible)
+    # -I (GNU coreutils) prompts once before recursive removal; BSD/macOS rm lacks -I
     rm -rI -- "$dir"
 }
 
 # Atomic file writes
 atomic_write() {
     local -r target="$1"
-    local -r tmpfile
-    tmpfile=$(mktemp) || return 1
+    local tmpfile
+    # Temp file must share the target's filesystem so mv is a rename(2), not copy+unlink
+    tmpfile=$(mktemp "$(dirname -- "$target")/.tmp.XXXXXX") || return 1
 
     # Write to temp file first
-    cat > "$tmpfile"
+    cat > "$tmpfile" || { rm -f "$tmpfile"; return 1; }
 
     # Atomic rename
-    mv "$tmpfile" "$target"
+    mv "$tmpfile" "$target" || { rm -f "$tmpfile"; return 1; }
 }
 ```
 
@@ -514,4 +544,4 @@ check_dependencies
 
 - **Bash Strict Mode**: http://redsymbol.net/articles/unofficial-bash-strict-mode/
 - **Google Shell Style Guide**: https://google.github.io/styleguide/shellguide.html
-- **Defensive BASH Programming**: https://www.lifepipe.net/
+- **BashFAQ 105 (pitfalls of `set -e`)**: https://mywiki.wooledge.org/BashFAQ/105

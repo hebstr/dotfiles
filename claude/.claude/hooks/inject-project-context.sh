@@ -13,7 +13,7 @@ if [ -f _quarto.yml ]; then
   if [ "$(ls -A _extensions/ 2>/dev/null)" ]; then
     echo "Quarto extensions: $(ls _extensions/)"
   fi
-  if echo "$FORMAT" | grep -qi 'typst'; then
+  if grep -qi 'typst' _quarto.yml; then
     echo "Typst output format. Use Typst syntax, not LaTeX."
   fi
 fi

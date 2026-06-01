@@ -1,7 +1,8 @@
 ---
 name: Review workflow remaining backlog
 description: Implementation backlog from the March 2026 code review glowup audit (practices section removed, already covered by walkthrough and CLAUDE.md "Build discipline" section)
-type: project
+metadata:
+  type: project
 ---
 
 Remaining implementation items from the multi-agent code review audit (2026-03-25).

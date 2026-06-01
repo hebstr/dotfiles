@@ -1,7 +1,8 @@
 ---
 name: External config pattern import discipline
 description: Before importing a pattern, format, or rule from an external Claude Code config (audit communautaire), identify the consumer that justifies it. If the consumer doesn't exist locally, the format adds friction without gain
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When evaluating a pattern, format, or rule extracted from an external Claude Code config audit (aaddrick, vsbuffalo, solatis, etc.), do **not** import it without first identifying the **consumer in the source system that justifies the format**. Imports without a downstream consumer add friction without gain: they alter inputs without altering behavior.

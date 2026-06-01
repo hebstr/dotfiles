@@ -1,7 +1,8 @@
 ---
 name: French prose conventions
 description: Authorities, anglicism policy, typography, and registration rules for French prose work
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When editing or producing French prose for the user, apply these decisions. Do not relitigate them.

@@ -1,7 +1,8 @@
 ---
 name: audit:sweep / workflow:sync — checkup scope is directory-wide
 description: "audit complet du répertoire" means scan ALL files in the working directory, not just the active file
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When the user asks for an "audit complet du répertoire", "scan complet du répertoire", or similar, scan every file in the CWD (and subdirectories) for staleness. Do not limit scope to the file being actively edited.

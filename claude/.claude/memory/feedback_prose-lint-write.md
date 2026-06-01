@@ -1,7 +1,8 @@
 ---
 name: feedback_prose-lint-write
 description: prose-lint scope (user-facing only, typographic vs rhetorical em/en dash), when to use /write, and what to never touch
-type: feedback
+metadata:
+  type: feedback
 ---
 
 ## Scope: user-facing prose only

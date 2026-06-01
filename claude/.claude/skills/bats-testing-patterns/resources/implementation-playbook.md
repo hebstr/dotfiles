@@ -40,7 +40,7 @@ project/
 │   └── helper.sh
 ├── tests/
 │   ├── test_script.bats
-│   ├── test_helper.sh
+│   ├── test_helper.bash
 │   ├── fixtures/
 │   │   ├── input.txt
 │   │   └── expected_output.txt
@@ -89,6 +89,8 @@ teardown() {
 ```
 
 ## Assertion Patterns
+
+The patterns below use Bats' built-in `[ ]`/`[[ ]]` assertions, which need no external dependency and run on any Bats install. For richer failure diagnostics (showing actual vs expected on failure), the community libraries `bats-support` + `bats-assert` add helpers like `assert_success`, `assert_output --partial`, and `assert_line`; vendor them as git submodules and `load` them in `setup`. When a suite relies on Bats ≥ 1.5 behaviour (e.g. `run` return-code assertions `run -N` / `run !`), pin it at the top of the file with `bats_require_minimum_version 1.5.0`.
 
 ### Exit Code Assertions
 
@@ -176,11 +178,11 @@ line3" ]
 @test "File has correct permissions" {
     touch "$TMPDIR/test.txt"
     chmod 644 "$TMPDIR/test.txt"
-    [ "$(stat -f %OLp "$TMPDIR/test.txt")" = "644" ]
+    [ "$(stat -c %a "$TMPDIR/test.txt" 2>/dev/null || stat -f %OLp "$TMPDIR/test.txt")" = "644" ]
 }
 
 @test "File size is correct" {
-    echo -n "12345" > "$TMPDIR/test.txt"
+    printf '12345' > "$TMPDIR/test.txt"
     [ "$(wc -c < "$TMPDIR/test.txt")" -eq 5 ]
 }
 ```
@@ -248,7 +250,7 @@ teardown() {
 ```bash
 #!/usr/bin/env bats
 
-# Load shared setup from test_helper.sh
+# Load shared setup from test_helper.bash (load appends .bash)
 load test_helper
 
 # setup_file runs once before all tests
@@ -446,7 +448,7 @@ setup() {
 }
 
 @test "JSON parsing works" {
-    skip_if ! command -v jq &>/dev/null
+    command -v jq &>/dev/null || skip "jq is not installed"
     run my_json_parser '{"key": "value"}'
     [ "$status" -eq 0 ]
 }
@@ -499,7 +501,7 @@ setup() {
 
 ## Test Helper Pattern
 
-### test_helper.sh
+### test_helper.bash
 
 ```bash
 #!/usr/bin/env bash
@@ -557,7 +559,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
       - name: Install Bats
         run: |

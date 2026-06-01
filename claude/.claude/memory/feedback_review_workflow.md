@@ -1,7 +1,8 @@
 ---
 name: Preferred review workflow
 description: When reviewing a package/project, launch 3 background specialists + 2-3 foreground agents by facet, synthesize, then offer /audit:walkthrough
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When the user asks for a comprehensive review of a project, use this workflow:

@@ -55,3 +55,4 @@ On-demand reference for the machine's installed toolchain. Load when a runtime v
 | shfmt       | Shell formatter (indentation, spacing)       |
 | prek        | Pre-commit hooks runner (Rust, replaces pre-commit) |
 | bats        | Bash TDD framework |
+| prose-lint  | Mechanical anti-AI-slop checks for `.md`/`.qmd` (em/en dashes, soft wraps); local script (`~/.local/bin/prose-lint`) |

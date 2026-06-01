@@ -1,7 +1,8 @@
 ---
 name: QMD format hook pending
 description: Add .qmd formatting to PostToolUse hook once air supports chunk formatting
-type: project
+metadata:
+  type: project
 ---
 
 PostToolUse hook currently formats .R and .py files after Claude edits. .qmd files are not covered because air does not yet support formatting R chunks inside .qmd files.

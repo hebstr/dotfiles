@@ -1,7 +1,8 @@
 ---
 name: Review calibration for ~/.claude harness config
 description: When auditing ~/.claude config artifacts (settings.json, hooks/*.sh, format-on-edit), do not flag intentional minimalism as defects requiring defensive expansion
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing or auditing the user's personal Claude Code harness config (`~/.claude/settings.json`, `~/.claude/hooks/*.sh`, etc., or their real paths under `~/dotfiles/claude/...`), do **not** propose any of the following. CLAUDE.md content audits live in [[feedback_review_severity_claude_md_content]] (separate scope).

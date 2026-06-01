@@ -1,7 +1,8 @@
 ---
 name: Walkthrough process for review findings
 description: Validated interactive walkthrough approach: point-by-point with terse summaries, inline corrections on ACCEPTED, recap at end
-type: feedback
+metadata:
+  type: feedback
 ---
 
 Interactive point-by-point walkthrough of review findings works well: present each finding with severity, summary, opinion, then 4 choices (ACCEPTED/NOTED/DEFERRED/REJECTED). Apply corrections inline immediately after each ACCEPTED.

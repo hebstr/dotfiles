@@ -1,7 +1,8 @@
 ---
 name: Review severity for personal shell installers
 description: Calibration rules for code reviews of shell scripts in ~/dotfiles/bin/.local/bin/ (installers and personal CLI tooling on a single-user workstation)
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing personal shell installers (e.g. `quarto-update`, `positron-update`, `rv-update`) under `~/dotfiles/bin/.local/bin/`, do NOT raise the following finding patterns:

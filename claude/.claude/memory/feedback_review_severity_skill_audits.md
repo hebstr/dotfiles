@@ -1,7 +1,8 @@
 ---
 name: Review calibration for Claude Code skill audits
 description: When auditing SKILL.md files (skill-adversary, blindspot, walkthrough on skills), reject four recurring false-positive patterns: harness portability hedging, declared-prior anchoring concerns, CLAUDE.md duplication for tool-call narration, and explicit-invocation false-negatives
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing or auditing `SKILL.md` files in `claude-code-plugins/` (and similar Claude Code skill repos), do **not** apply the following patterns from external/cross-model reviewers:

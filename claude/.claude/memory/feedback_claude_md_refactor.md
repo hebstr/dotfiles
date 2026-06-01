@@ -1,7 +1,8 @@
 ---
 name: CLAUDE.md Progressive Disclosure refactor calibration
 description: When refactoring CLAUDE.md under HumanLayer's instruction-budget framework (extraction to rules/*.md), do not extract always-on safety-net checklists coupled to inline triggers, and prefer prose pointers over hook automation when operational behavior is identical
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When refactoring `~/.claude/CLAUDE.md` to reduce its instruction count toward the HumanLayer "uniform decay" budget (~`150–200` for thinking models, see [[reference_claude_code_best_practices]]), do **not** propose any of the following:

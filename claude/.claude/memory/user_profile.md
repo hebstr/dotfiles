@@ -1,7 +1,8 @@
 ---
 name: user_profile
 description: Environment details and accounts not covered in CLAUDE.md
-type: user
+metadata:
+  type: user
 ---
 
 - GitHub account: hebstr

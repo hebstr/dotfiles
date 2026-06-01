@@ -1,7 +1,8 @@
 ---
 name: EditorConfig for team consistency
 description: EditorConfig standardizes formatting (indent, EOL, trim) across editors, relevant when collaborating or using multi-editor setups
-type: reference
+metadata:
+  type: reference
 ---
 
 EditorConfig (`.editorconfig` at project root) enforces indent style/size, end-of-line, trailing whitespace across all editors. Extension for Positron/VSCode: `EditorConfig.EditorConfig`.

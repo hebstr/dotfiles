@@ -1,7 +1,8 @@
 ---
 name: xdg-open local files fails in this environment
 description: xdg-open on file:// paths silently fails in Positron/VSCode terminal — use python http.server instead
-type: feedback
+metadata:
+  type: feedback
 ---
 
 `xdg-open /path/to/file.html` exits silently without launching a browser in this environment (Positron / VSCode terminal).

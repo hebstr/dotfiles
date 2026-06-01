@@ -1,6 +1,6 @@
 ---
 name: bash-defensive-patterns
-description: "Master defensive Bash programming techniques for production-grade scripts. Use when writing robust shell scripts, CI/CD pipelines, or system utilities requiring fault tolerance and safety."
+description: "Use when writing or hardening shell scripts, CI/CD pipelines, or system utilities that need fault tolerance: strict mode, traps and cleanup, defensive quoting, safe temp files, or signal handling."
 risk: safe
 source: community
 date_added: "2026-02-27"
@@ -39,13 +39,6 @@ Comprehensive guidance for writing production-ready Bash scripts using defensive
 - Avoid destructive commands without confirmation or dry-run flags.
 - Do not run scripts as root unless strictly required.
 
-Refer to `resources/implementation-playbook.md` for detailed patterns, checklists, and templates.
-
 ## Resources
 
 - `resources/implementation-playbook.md` for detailed patterns, checklists, and templates.
-
-## Limitations
-- Use this skill only when the task clearly matches the scope described above.
-- Do not treat the output as a substitute for environment-specific validation, testing, or expert review.
-- Stop and ask for clarification if required inputs, permissions, safety boundaries, or success criteria are missing.

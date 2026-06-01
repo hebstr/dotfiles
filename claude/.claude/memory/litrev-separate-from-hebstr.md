@@ -1,8 +1,9 @@
 ---
 name: litrev stays a separate plugin from hebstr marketplace
 description: Decision (2026-04-26) to NOT bundle the litrev plugin into the hebstr marketplace, with the three reasons — prevents re-proposing the merge in future sessions
-type: project
-originSessionId: e3cb33c3-05ad-4318-aa10-31d456904d95
+metadata:
+  type: project
+  originSessionId: e3cb33c3-05ad-4318-aa10-31d456904d95
 ---
 `litrev` was briefly migrated into the `hebstr` marketplace, then rolled back. It is permanently a separate plugin with its own repo (`hebstr/claude-code-litrev` → `claude-code-litrev/`). Do not propose merging it back into `hebstr` without new evidence.
 

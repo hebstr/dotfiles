@@ -1,7 +1,8 @@
 ---
 name: skill-adversary calibration for workflow:sync
 description: False positives to filter when running skill-adversary on workflow:sync SKILL.md
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing workflow:sync with skill-adversary, do not flag:

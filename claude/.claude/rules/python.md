@@ -6,6 +6,10 @@ paths:
 
 # Python toolchain
 
+## Code style conventions
+
+- Prefer polars over pandas unless the project already uses pandas
+
 ## CLI tools
 
 | Tool | Role |
@@ -21,7 +25,7 @@ Prefer `uv run ruff` inside a project (picks up `pyproject.toml`); use global `r
 ruff check --fix script.py && ruff format script.py && ruff check script.py
 ```
 
-Order matters: `ruff check --fix` first (auto-fix may leave whitespace), then `ruff format` cleans it, then a final `ruff check` confirms no residual violations. Per ruff docs.
+Order matters: `ruff check --fix` first (auto-fix may leave whitespace), then `ruff format` cleans it, then a final `ruff check` confirms no residual violations. Per ruff docs. If the project has tests, run `pytest <test-file>` after the format+lint gate.
 
 ## Useful flags
 

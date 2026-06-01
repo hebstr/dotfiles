@@ -1,8 +1,9 @@
 ---
 name: skills with explicit-invocation gate
 description: Skills in this marketplace whose SKILL.md description explicitly states "user-invocable only via /<command>; does not auto-trigger" use a strict invocation gate by design. Applies to workflow:* AND audit:* AND any future family. Do not propose broadening the trigger, adding synonyms, oblique-request fallbacks, FR triggers, or auto-trigger logic.
-type: feedback
-originSessionId: 4ec4f715-2af2-4db8-982d-6cadb4c684c9
+metadata:
+  type: feedback
+  originSessionId: 4ec4f715-2af2-4db8-982d-6cadb4c684c9
 ---
 
 Skills in this marketplace whose `SKILL.md` description explicitly declares "User-invocable only via `/<command>`" or "User-invocable ONLY via `/<command>`. Does not auto-trigger ..." use a strict invocation gate **by design**. Applies regardless of skill family.

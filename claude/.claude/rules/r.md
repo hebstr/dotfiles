@@ -19,7 +19,17 @@ paths:
 air format script.R && jarl check script.R
 ```
 
-Both are required: `air` formats only, `jarl` lints only.
+Both are required: `air` formats only, `jarl` lints only. If the project has tests, run them after the format+lint gate: `testthat::test_file('tests/testthat/test-foo.R')`.
+
+## Code style conventions
+
+- Use the native pipe `|>`
+- Use the lambda shorthand `\()` instead of `function()`; inside purrr map/walk, prefer tilde formula `~ .x` for simple expressions
+- Use `here::here()` for paths, never absolute paths
+- Outside an `rv`-managed project, install packages with `pak::pak()`, never `install.packages()`. Inside an `rv` project (presence of `rv.lock` or `rproject.toml`), use `rv add <pkg>` to keep the lockfile authoritative; never call `pak::pak()` against the project library
+- Never use `renv`; `rv` replaces it for all project types; `DESCRIPTION` is canonical for packages
+- For list-building from repeated calls, lead with purrr (`set_names()` + `map()`); base R only if asked or for a concrete performance reason
+- Before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "'fn_name' %in% getNamespaceExports('pkg')"` (returns `TRUE`/`FALSE`; more robust than `pkg::fn`, which can trigger package load side effects)
 
 ## Useful flags
 

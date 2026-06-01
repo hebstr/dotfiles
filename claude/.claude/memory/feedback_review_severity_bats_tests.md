@@ -1,7 +1,8 @@
 ---
 name: Review severity for personal bats test files
 description: Calibration rules for code reviews of bats test files covering personal shell tooling (single-user workstation context)
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing bats `.bats` test files for personal shell tooling (e.g. `_meta/tests/*.bats` covering scripts under `~/dotfiles/bin/.local/bin/`), do NOT raise the following finding patterns:

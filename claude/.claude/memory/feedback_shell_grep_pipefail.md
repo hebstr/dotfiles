@@ -1,7 +1,8 @@
 ---
 name: Shell pipelines: grep as filter under set -Eeuo pipefail
 description: Latent crash pattern when grep is used as a filter (not a test) inside a captured pipeline; how to spot it and fix it
-type: feedback
+metadata:
+  type: feedback
 ---
 
 In any shell script with `set -Eeuo pipefail`, `grep` used as a **filter** mid-pipeline (not as a test) crashes the script when it matches nothing.

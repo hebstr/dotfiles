@@ -1,7 +1,8 @@
 ---
 name: Review scope for third-party / vendored content
 description: CLAUDE.md prose style rules (em-dashes, AI tics, etc.) target Claude's own output, not third-party skill descriptions, plugin docs, or forked content
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing a Claude Code config audit or a skill/plugin directory, do not flag style violations (em-dashes, AI-slop patterns, marketing tone) in content written by upstream authors: frontmatter `context: fork`, plugin descriptions from `~/.claude/plugins/`, or any third-party material read as input by Claude.

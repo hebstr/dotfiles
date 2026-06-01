@@ -1,7 +1,8 @@
 ---
 name: Claude Code hook event types
 description: Reference table of all hook event types in the Claude Code harness, with trigger conditions and matcher scope
-type: reference
+metadata:
+  type: reference
 ---
 
 | Event | Trigger | Matcher on |

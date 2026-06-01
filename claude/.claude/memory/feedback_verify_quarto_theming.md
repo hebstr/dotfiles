@@ -1,7 +1,8 @@
 ---
 name: Quarto theming changes: always render and scan output to verify
 description: For any SCSS/CSS/theme edit in a Quarto project or extension, render and inspect the compiled CSS before claiming the change is applied
-type: feedback
+metadata:
+  type: feedback
 ---
 
 For any theming change in a Quarto project or extension (SCSS, CSS, `_brand.yml`, theme variables, custom selectors), do not stop at writing the rule. Render the target document and inspect the compiled output to confirm the rule lands and wins specificity against Quarto/Bootstrap defaults.

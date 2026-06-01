@@ -1,7 +1,8 @@
 ---
 name: Review calibration for CLAUDE.md content audits
 description: When auditing the rules/instructions in CLAUDE.md (not config artifacts), do not flag intentional trade-offs as gaps, demand opt-outs against the user's stated preference, re-document triggers owned by upstream systems, or treat harness-backstopped efficiency hints as correctness bugs
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When reviewing or auditing the *content* of `~/.claude/CLAUDE.md` (the rules and instructions text, as opposed to settings.json / hooks / config artifacts), do **not** propose any of the following:

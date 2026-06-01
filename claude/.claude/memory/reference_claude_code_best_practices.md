@@ -1,7 +1,8 @@
 ---
 name: Claude Code best practices reference
 description: Curated reference on Claude Code internals: CLAUDE.md scopes, hook events and exit codes, auto-memory system, notable settings.json keys, autocompact override
-type: reference
+metadata:
+  type: reference
 ---
 
 # Claude Code: CLAUDE.md Best Practices
@@ -154,7 +155,7 @@ Claude persists information across sessions via memory files in `~/.claude/memor
 - `MEMORY.md` index: first 200 lines or 25 KB loaded at every session start; keep concise
 - Topic files (e.g. `debugging.md`) are NOT loaded at startup; Claude reads them on demand
 - `project` memories must be deleted once the work is complete
-- Each memory lives in its own file with frontmatter (name, description, type) + pointer in `~/.claude/memory/MEMORY.md` (the canonical index; per-project `MEMORY.md` is a redirect stub only)
+- Each memory lives in its own file with frontmatter (name, description, and `metadata.type` nested under a `metadata:` key) + pointer in `~/.claude/memory/MEMORY.md` (the canonical index; per-project `MEMORY.md` is a redirect stub only)
 - Don't save what code or git already tells you (architecture, history, visible conventions)
 - Don't duplicate what's in CLAUDE.md
 - `autoMemoryEnabled: false` in settings to disable; or `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`

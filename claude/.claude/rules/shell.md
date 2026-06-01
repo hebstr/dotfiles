@@ -27,10 +27,10 @@ Orthogonal roles:
 After writing or editing any shell script, run the full pipeline in one shot before marking the task done. Order matters: shellharden fixes quoting, shfmt formats, shellcheck validates.
 
 ```sh
-shellharden --replace script.sh && shfmt -i 2 -ci -w script.sh && shellcheck script.sh
+shellharden --replace script.sh && shfmt -w -i 2 script.sh && shellcheck script.sh
 ```
 
-Running only one or two tools is not sufficient, all three are complementary.
+Running only one or two tools is not sufficient, all three are complementary. If a Bats test exists, run `bats <test-file>` after the format+lint gate.
 
 The shfmt flags above match the prek hook in `prek.toml` (source of truth at commit gate). Running with extra flags locally (e.g. `-ci`, `-sr`) reformats files in ways the hook will revert.
 
@@ -44,7 +44,7 @@ The shfmt flags above match the prek hook in `prek.toml` (source of truth at com
 | `-sr` | space after redirections (`> file`) | no (prek does not set it) |
 | `-bn` | `&&` / `\|` at start of line | no |
 
-Note: Positron's Bash IDE is currently configured with `caseIndent: true` and `spaceRedirects: true` (`positron/.config/Positron/User/profiles/*/settings.json`), which diverges from prek. Either align the editor settings to `false` or align `prek.toml` args to `["-w", "-i", "2", "-ci", "-sr"]` so on-save formatting and the commit hook agree.
+Note: Positron's Bash IDE is set to `caseIndent: false` and `spaceRedirects: false` (`positron/.config/Positron/User/profiles/*/settings.json`), matching prek's `-w -i 2`. On-save formatting and the commit hook agree. Do not add `-ci`/`-sr` to the local pipeline or the `format-on-edit` hook: they produce formatting the commit gate reverts.
 
 ## Positron extensions
 

@@ -1,7 +1,8 @@
 ---
 name: feedback_verify_before_claiming
 description: Always verify any factual claim with tools before stating it. Never reason from assumptions, never reason from absence
-type: feedback
+metadata:
+  type: feedback
 ---
 
 When making any factual claim about the codebase, tool behavior, API semantics, CLI flags, file formats, ecosystem conventions, or anything else, verify it with the **authoritative source** before stating it. Use the appropriate tool (Grep, Read, Glob, Bash, WebFetch on official docs) or explicitly flag uncertainty. **No exceptions, no shortcuts, no rationalization to fill gaps.**

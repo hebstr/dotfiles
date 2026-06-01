@@ -1,7 +1,8 @@
 ---
 name: audit:walkthrough specific feedback
 description: Triage table format and review severity calibration for personal scripts in audit:walkthrough
-type: feedback
+metadata:
+  type: feedback
 ---
 
 **Triage table format:** In Step 1b.2 (batch triage), present manual findings in a table — same format as auto-fix findings — with columns: #, Finding, File, Reason for manual review.

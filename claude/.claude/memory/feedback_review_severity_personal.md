@@ -1,7 +1,8 @@
 ---
 name: Review severity for personal packages
 description: Calibrate code review severity down for personal/internal packages: skip defensive patterns appropriate for public CRAN libs
-type: feedback
+metadata:
+  type: feedback
 ---
 
 For personal utility packages (not public CRAN libraries), calibrate review severity accordingly. Do not suggest overly defensive patterns that are appropriate for public-facing code.

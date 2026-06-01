@@ -1,8 +1,9 @@
 ---
 name: Claude Code marketplace install mechanics
 description: When `claude plugin install` is required vs skippable, when cache is populated, and how `extraKnownMarketplaces` relates to `marketplace add`. Verified 2026-04-26 against the actual hebstr/claude-code-litrev cache state.
-type: reference
-originSessionId: e3cb33c3-05ad-4318-aa10-31d456904d95
+metadata:
+  type: reference
+  originSessionId: e3cb33c3-05ad-4318-aa10-31d456904d95
 ---
 Three non-obvious mechanics about the marketplace + plugin lifecycle, verified by inspection of `~/.claude/plugins/cache/` against `~/.claude/settings.json` (2026-04-26).
 
