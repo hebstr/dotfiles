@@ -11,7 +11,7 @@ On-demand reference for the machine's installed toolchain. Load when a runtime v
 | Tool   | Version | Usage |
 |--------|---------|-------|
 | R      | 4.6.0   | Data processing, statistical analysis |
-| Python | 3.13.9  | NLP pipeline (langchain + ollama), data manipulation |
+| Python | 3.13.9  | NLP pipeline (langchain + llama.cpp), data manipulation |
 | Quarto | 1.9.37  | Book generation (HTML via `quarto render`) |
 | Typst  | 0.14.2  | PDF typesetting (via Quarto) |
 

@@ -2,10 +2,11 @@
 
 ## Profile
 
-- Data engineering, data science, biostatistics, web design
-- R stack: tidyverse idiomatic, tidy evaluation (data masking), R base when warranted
-- Python stack: uv, pandas, polars, streamlit
-- Publishing : Quarto, Typst
+- Profession: data science, biostatistics, data engineering. Analysis, modeling, and statistics are the user's domain, not Claude's.
+- Claude Code's role here: infrastructure, code quality, web design, and tooling around that work. Treat data science/biostatistics analysis code as existing code to preserve (see "Preserving analysis code" in `rules/r.md` and `rules/python.md`), not to write.
+- R stack: idiomatic tidyverse, tidy evaluation (data masking), base R when warranted
+- Python stack: uv, polars, streamlit
+- Publishing: Quarto
 - IDE: Positron
 
 ## Environment
@@ -46,12 +47,8 @@ For language-specific conventions (idioms and style, formatters, linters, CLI fl
 - No cosmetic whitespace padding for alignment (e.g. aligning inline comments with extra spaces) unless explicitly requested
 - Never use deprecated config keys, syntax, APIs, or CLI flags: always use the current recommended form. When unsure, verify against current docs before writing
 
-## Data & review pitfalls
+## Git
 
-- Joins: always use explicit keys, check for NA on join keys after every join
-- Domain-specific regex or business rules: do not "fix" or tighten without explicit domain validation
-- LLM inference parameters (temperature, top_p, seed): do not change without documented justification (breaks reproducibility of existing results)
-- Calculated approximations (e.g. age from date diff / 365.25): flag but do not auto-correct, often intentional for consistency with institutional conventions
 - Never run git write commands (commit, add, push, reset, branch, tag, merge, rebase, PR creation). User manages all git operations. A "y" or "ok" in conversation is not authorization. Note: auto-formatters in the lint/format gate (air, ruff format, shellharden) rewrite tracked files in place; that file mutation is part of the gate, not a git operation. If a rewrite produces an unwanted diff, surface it explicitly and let the user revert with their own git command.
 
 ## Plan & memory discipline
@@ -72,7 +69,7 @@ For language-specific conventions (idioms and style, formatters, linters, CLI fl
 - Memory level: before saving any memory, ask "would this apply in a different project?" Yes → global (`~/.claude/memory/`); No → project. Feedback on behavior or workflow is almost always global.
 - **A general behavioral rule (applies unconditionally, in all projects) goes directly into `~/.claude/CLAUDE.md`, not into a feedback memory file.** Feedback memory is for nuanced, contextual guidance that supplements CLAUDE.md. When a correction is absolute (no exceptions, no context-dependence), it belongs in CLAUDE.md. When uncertain which side of the line a correction falls on, default to feedback memory: a misplaced memory rule can be promoted to CLAUDE.md later, but a misplaced CLAUDE.md rule has system-wide blast radius.
 - **For substantive changes to CLAUDE.md, `rules/*.md`, or memory files**, propose `/audit:blindspot <path>` after the edit. These files influence behavior across every project, so an extra adversarial pass on rule changes is worth the cost. Substantive = new behavioral bullet, modified trigger/skip condition, changed scope (global ↔ contextual), or rule removal. Not substantive (skip audit) = typo, reformulation preserving semantics, illustrative example added, reordering. When uncertain, treat as substantive.
-- Before marking any step done, verify the output is usable by the next step. Concrete checks by output type: file edit (re-read the modified region, confirm the change landed verbatim); data extraction (sample rows present, no NA on join keys, expected row count); generated text (no placeholder markers like `<TODO>` / `<FILL>` / `{{...}}`, matches the requested format); API response (expected schema, non-empty payload, no error field). Field presence alone is not sufficient.
+- Before marking any step done, verify the output is usable by the next step. Concrete checks by output type: file edit (re-read the modified region, confirm the change landed verbatim); data extraction (sample rows present, expected row count); generated text (no placeholder markers like `<TODO>` / `<FILL>` / `{{...}}`, matches the requested format); API response (expected schema, non-empty payload, no error field). Field presence alone is not sufficient.
 - "audit du répertoire" / scan requests = scope is ALL files in the working directory; use `/workflow:sync` rather than ad-hoc single-file checks.
 
 ## Secret files handling
@@ -93,7 +90,7 @@ When reading or editing a file whose path matches `~/.secrets`, `.env*`, `creden
 - **Bug-fix TDD**: when fixing a reported bug in code that already has a test framework configured (existing `tests/` directory, `testthat/`, `*.bats`, etc.), write a failing test that reproduces the bug **before** applying the fix, then fix, then verify the test passes. Reproducing the bug is already required by the "any error must be investigated" rule; the test formalizes that reproduction and prevents regression. Skip when: (a) no test framework exists in the project, (b) the bug is in one-shot analysis code or exploratory scripts, (c) the fix is a one-line typo or trivial rename, (d) the bug is in prose/docs (no executable behavior to test). If the user pushes back ("just fix it", "skip the test"), comply but state that the discipline is being bypassed.
 - **Red/green TDD for new package exports**: when adding a new function to a tested R/Python package AND the function will be part of the public API, write a failing test specifying the expected behavior **before** implementing. Triggers (all must hold): (1) project is a package (R: `DESCRIPTION` + `tests/testthat/`; Python: `pyproject.toml` with pytest configured + `tests/` directory), (2) function will be exported (R: `@export` in roxygen, listed in NAMESPACE; Python: in `__all__` or documented as public), (3) behavior is specifiable upfront (clear inputs/outputs, not exploratory). Skip when: (a) internal helper not exported, (b) prototype still iterating on the API shape, (c) one-shot script even if it lives in a package directory, (d) refactor of an existing exported function (tests should already cover it; if not, add tests first as a separate step). When uncertain whether the function is genuinely public API, skip red/green and fall back to the propose-tests-after rule above. If the user pushes back, comply but state that the discipline is being bypassed.
 - After writing or modifying code, run the project's lint + format + test gate before reporting the task as done; never wait to be asked. Treat it as part of the task, not as an optional follow-up. Order: format → lint → tests. Stop at the first hard failure, fix, then re-run from the top. The exact per-language command sequences (shell, Python, R) live in `rules/{shell,python,r}.md`, auto-loaded on matching files. Formats with no language rule file:
-  - **Quarto/Typst**: render the document and check exit code.
+  - **Quarto**: render the document and check exit code.
   - **Markdown / Quarto prose**: `prose-lint <file>` (em dashes, en dashes, soft wraps). For deeper polish, invoke `/write` on demand.
 - Scope: applies to any non-trivial edit (new file, public function, script under `bin/`, modified logic). Skip for one-line typo fixes in prose. If the user pushes back ("skip the gate", "I'll lint myself"), comply but state explicitly that the discipline is being bypassed at the user's request. If a tool is missing on the machine (`command -v` fails), say so and skip; don't silently omit. SC2030/SC2031 in bats files (`export` in `setup()`) are documented false positives; note and continue.
 - For complex tasks (multiple interdependent features or unclear scope): before the design bullet list, propose decomposition (produce a feature breakdown ordered by dependencies with a minimal viable core identified). User validates before any code is written.

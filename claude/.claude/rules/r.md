@@ -31,6 +31,15 @@ Both are required: `air` formats only, `jarl` lints only. If the project has tes
 - For list-building from repeated calls, lead with purrr (`set_names()` + `map()`); base R only if asked or for a concrete performance reason
 - Before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "'fn_name' %in% getNamespaceExports('pkg')"` (returns `TRUE`/`FALSE`; more robust than `pkg::fn`, which can trigger package load side effects)
 
+## Preserving analysis code
+
+This code exists for a data science/biostatistics purpose. When editing it for infrastructure, code-quality, or refactoring reasons, do not alter its analysis semantics:
+
+- Joins: always use explicit keys; check for NA on join keys after every join
+- Domain-specific regex or business rules: do not "fix" or tighten without explicit domain validation
+- LLM inference parameters (temperature, top_p, seed): do not change without documented justification (breaks reproducibility of existing results)
+- Calculated approximations (e.g. age from date diff / 365.25): flag but do not auto-correct, often intentional for consistency with institutional conventions
+
 ## Useful flags
 
 **air format**
