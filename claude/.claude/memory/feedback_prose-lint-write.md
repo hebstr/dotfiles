@@ -1,6 +1,6 @@
 ---
 name: feedback_prose-lint-write
-description: prose-lint scope (user-facing only, typographic vs rhetorical em/en dash), when to use /write, and what to never touch
+description: prose-lint scope (user-facing only, typographic vs rhetorical em/en dash), when to use /workflow:write, and what to never touch
 metadata:
   type: feedback
 ---
@@ -16,7 +16,7 @@ Prose hygiene rules (anti-AI-slop, em/en dash, soft-wraps) apply only to text **
 - The hard guarantee is `.gitignore`; the pre-commit skip is a consequence, not an independent layer.
 
 **How to apply:**
-- Before scanning a directory with prose-lint or /write, check whether the path is `.claude/`, `~/.claude/`, or another working-notes location. Skip if yes.
+- Before scanning a directory with prose-lint or /workflow:write, check whether the path is `.claude/`, `~/.claude/`, or another working-notes location. Skip if yes.
 - When in doubt: "does a human other than the author read this?" If no, it's a working note.
 - If you find working-note content in a user-facing path (session logs inside a SKILL.md sibling, dated test runs in a CONTEXT.md), trim or migrate to `.claude/` before applying prose hygiene to the surrounding files. Concrete precedent: `audit/sweep/CONTEXT.md`, `audit/blindspot/CONTEXT.md`, `audit/walkthrough/DEFERRED.md` migrated to `.claude/` on 2026-05-20.
 
@@ -36,10 +36,10 @@ The `prose-lint` AI-tell rule targets em dashes used as **rhetorical punctuation
 - Never "fix" a typographic em dash by replacing the glyph with a word (`n/a`, `none`, `for`, etc.) or converting a `### X — Y` header to `### X : Y`. If the linter flags such cases, the linter rule is wrong and should be tightened at the source.
 - The source of prose-lint is at `~/dotfiles/bin/.local/bin/prose-lint`. Stow-managed; edit the dotfiles path, never the `~/.local/bin/` symlink.
 
-## When to invoke /write
+## When to invoke /workflow:write
 
-Invoke `/write` to fix prose-lint violations only when the replacement requires judgment (e.g. choosing between colon, comma, parentheses, or restructure for a genuine prose em-dash). Do not invoke it as a reflex on every prose-lint output, and especially not on bulk runs across many files: the cost of an over-aggressive pass (see incident above) is higher than the cost of leaving a few rhetorical em dashes in place.
+Invoke `/workflow:write` to fix prose-lint violations only when the replacement requires judgment (e.g. choosing between colon, comma, parentheses, or restructure for a genuine prose em-dash). Do not invoke it as a reflex on every prose-lint output, and especially not on bulk runs across many files: the cost of an over-aggressive pass (see incident above) is higher than the cost of leaving a few rhetorical em dashes in place.
 
 **Why:** mechanical violations with a single obvious fix (an isolated soft-wrap, an em-dash that can only be a colon) don't need the reference. Bulk passes amplify any misclassification across the whole repo.
 
-**How to apply:** before invoking `/write` on a prose-lint finding, ask whether the replacement choice is unambiguous AND whether the finding is actually rhetorical (not typographic per above). If yes to both, fix directly. If no on judgment, invoke `/write`. If no on rhetorical classification, fix the linter at the source.
+**How to apply:** before invoking `/workflow:write` on a prose-lint finding, ask whether the replacement choice is unambiguous AND whether the finding is actually rhetorical (not typographic per above). If yes to both, fix directly. If no on judgment, invoke `/workflow:write`. If no on rhetorical classification, fix the linter at the source.

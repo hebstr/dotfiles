@@ -234,7 +234,6 @@
     "workbench.editor.empty.hint": "hidden",
     "workbench.tree.renderIndentGuides": "always",
     "workbench.keybindings.rstudioKeybindings": true,
-    "workbench.layoutControl.enabled": false,
 
     "window.title": "${activeEditorFull}${separator}${rootName}",
 
