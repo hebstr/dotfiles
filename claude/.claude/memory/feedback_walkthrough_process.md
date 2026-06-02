@@ -1,6 +1,6 @@
 ---
 name: Walkthrough process for review findings
-description: Validated interactive walkthrough approach: point-by-point with terse summaries, inline corrections on ACCEPTED, recap at end
+description: "Validated interactive walkthrough approach: point-by-point with terse summaries, inline corrections on ACCEPTED, recap at end"
 metadata:
   type: feedback
 ---

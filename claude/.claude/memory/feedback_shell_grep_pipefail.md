@@ -1,5 +1,5 @@
 ---
-name: Shell pipelines: grep as filter under set -Eeuo pipefail
+name: "Shell pipelines: grep as filter under set -Eeuo pipefail"
 description: Latent crash pattern when grep is used as a filter (not a test) inside a captured pipeline; how to spot it and fix it
 metadata:
   type: feedback

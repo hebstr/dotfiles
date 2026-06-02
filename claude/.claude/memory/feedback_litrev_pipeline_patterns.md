@@ -1,6 +1,6 @@
 ---
 name: feedback_litrev_pipeline_patterns
-description: Recurring decisions on `/litrev` scoping runs: corpus sizing, snowball skip heuristic, audit_claims false positives, validate_gate workaround, pseudo-GRADE detection, post-generation prose cleanup.
+description: "Recurring decisions on `/litrev` scoping runs: corpus sizing, snowball skip heuristic, audit_claims false positives, validate_gate workaround, pseudo-GRADE detection, post-generation prose cleanup."
 metadata:
   type: feedback
 ---

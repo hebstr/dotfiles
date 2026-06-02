@@ -1,5 +1,5 @@
 ---
-name: Quarto theming changes: always render and scan output to verify
+name: "Quarto theming changes: always render and scan output to verify"
 description: For any SCSS/CSS/theme edit in a Quarto project or extension, render and inspect the compiled CSS before claiming the change is applied
 metadata:
   type: feedback

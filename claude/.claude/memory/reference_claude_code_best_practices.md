@@ -1,6 +1,6 @@
 ---
 name: Claude Code best practices reference
-description: Curated reference on Claude Code internals: CLAUDE.md scopes, hook events and exit codes, auto-memory system, notable settings.json keys, autocompact override
+description: "Curated reference on Claude Code internals: CLAUDE.md scopes, hook events and exit codes, auto-memory system, notable settings.json keys, autocompact override"
 metadata:
   type: reference
 ---

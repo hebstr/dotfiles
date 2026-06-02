@@ -173,7 +173,7 @@
     "console.fontLigatures": true,
     "debug.console.fontSize": 11,
 
-    "positron-r-package-manager.defaultInstaller": "pak",
+    "packages.r.installer": "pak",
     "positron.r.quietMode": true,
     "positron.assistant.enable": false,
     "plots.darkFilter": "off",

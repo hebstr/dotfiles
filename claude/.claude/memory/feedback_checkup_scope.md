@@ -1,6 +1,6 @@
 ---
 name: audit:sweep / workflow:sync — checkup scope is directory-wide
-description: "audit complet du répertoire" means scan ALL files in the working directory, not just the active file
+description: '"audit complet du répertoire" means scan ALL files in the working directory, not just the active file'
 metadata:
   type: feedback
 ---

@@ -1,6 +1,6 @@
 ---
 name: Review severity for personal packages
-description: Calibrate code review severity down for personal/internal packages: skip defensive patterns appropriate for public CRAN libs
+description: "Calibrate code review severity down for personal/internal packages: skip defensive patterns appropriate for public CRAN libs"
 metadata:
   type: feedback
 ---

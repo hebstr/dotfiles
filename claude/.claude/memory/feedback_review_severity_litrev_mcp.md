@@ -1,6 +1,6 @@
 ---
 name: feedback_review_severity_litrev_mcp
-description: Calibrate adversarial review severity for the litrev-mcp MCP server: five established design choices recurring reviewers misread as defects.
+description: "Calibrate adversarial review severity for the litrev-mcp MCP server: five established design choices recurring reviewers misread as defects."
 metadata:
   type: feedback
 ---
