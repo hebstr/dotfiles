@@ -12,10 +12,12 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 
 | Tool   | Version | Usage |
 |--------|---------|-------|
+| bash   | 5.2     | Scripting; system shell. `/bin/sh` is dash (POSIX), so `#!/bin/sh` lacks bash idioms. Tooling/gate in `rules/shell.md` |
 | R      | 4.6     | Data processing, statistical analysis |
-| Python | 3.13    | NLP pipeline (langchain + llama.cpp), data manipulation |
-| Quarto | 1.9     | Book generation (HTML via `quarto render`) |
+| Python | 3.13    | NLP pipeline (langchain + llama.cpp). uv-managed (3.13.x, the authoring version); system `python3` is 3.12 (Ubuntu default) |
+| Quarto | 1.9     | Docs generation (HTML via `quarto render`) |
 | Typst  | 0.14    | PDF typesetting (via Quarto) |
+| Rust   | 1.96    | Learning (systems/CLI programming); managed via `rustup` |
 
 ## Package management
 
@@ -33,6 +35,13 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | Tool | Notes |
 |------|-------|
 | uv   | Lockfile: `uv.lock`, config: `pyproject.toml` |
+
+**Rust**
+
+| Tool   | Notes |
+|--------|-------|
+| cargo  | Build system + package manager. Lockfile: `Cargo.lock`, config: `Cargo.toml`. `cargo add` is built in. Registry: crates.io |
+| rustup | Toolchain manager (`rustup show`, `rustup component add`) |
 
 ## CLI tools available
 
@@ -58,3 +67,7 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | prek        | Pre-commit hooks runner (Rust, replaces pre-commit) |
 | bats        | Bash TDD framework |
 | prose-lint  | Mechanical anti-AI-slop checks for `.md`/`.qmd` (em/en dashes, soft wraps); local script (`~/.local/bin/prose-lint`) |
+| cargo       | Rust build system / package manager (toolchain via `rustup`) |
+| cargo clippy | Rust linter (binary `cargo-clippy`, run via `cargo clippy`; no standalone `clippy` command) |
+| rustfmt     | Rust formatter (`cargo fmt`)                 |
+| bacon       | Rust background checker (`cargo install bacon`) |

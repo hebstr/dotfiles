@@ -56,19 +56,7 @@ Active configuration is checked in at `positron/.config/Positron/User/profiles/*
 
 ## Pre-commit hook (prek)
 
-`prek.toml`:
-
-```toml
-[[repos]]
-repo = "https://github.com/scop/pre-commit-shfmt"
-rev = "v3.13.0-1"
-hooks = [{ id = "shfmt", args = ["-w", "-i", "2"], exclude = '^bash/' }]
-
-[[repos]]
-repo = "https://github.com/shellcheck-py/shellcheck-py"
-rev = "v0.10.0.1"
-hooks = [{ id = "shellcheck" }]
-```
+The repo-root `~/dotfiles/prek.toml` is authoritative for the pinned hook revisions and the full hook set; do not copy its `rev` values here (they drift). The relevant behavior: the `shfmt` hook runs `-w -i 2` (matching the local pipeline) and the `shellcheck` hook runs with defaults, and both exclude `^bash/` (the `bash/` package holds hand-maintained dotfiles like `.bashrc`/`.profile`, not standalone scripts, so it is kept out of auto-format and lint; reusable scripts live in `bin/.local/bin/` and are covered).
 
 ## Check a script without executing it
 
