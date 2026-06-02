@@ -2,6 +2,9 @@
 paths:
   - "**/*.rs"
   - "**/Cargo.toml"
+  - "**/rustfmt.toml"
+  - "**/clippy.toml"
+  - "**/rust-toolchain.toml"
 ---
 
 # Rust toolchain
@@ -40,9 +43,9 @@ paths:
 cargo fmt && cargo clippy --all-targets && cargo test
 ```
 
-Order: `cargo fmt` first (formats in place), then `cargo clippy` (reports idiom/correctness lints; it compiles, so a separate `cargo check` is redundant), then tests last. clippy runs in **report mode** by default: read each lint's rationale and fix idiomatically rather than auto-applying. `cargo clippy --fix` exists for batch auto-fix but requires a clean VCS tree (`--allow-dirty` otherwise) and rewrites logic, so it is opt-in, not the default gate; if you do use it, run `cargo fmt` afterward.
+Order: `cargo fmt` first (formats in place), then `cargo clippy` (reports idiom/correctness lints; it compiles, so a separate `cargo check` in the gate is redundant), then tests last. clippy runs in **report mode** by default: read each lint's rationale and fix idiomatically rather than auto-applying. `cargo clippy --fix` exists for batch auto-fix but requires a clean VCS tree (`--allow-dirty` otherwise) and rewrites logic, so it is opt-in, not the default gate; if you do use it, re-run the gate afterward (it rewrote code, so re-format, re-lint, and re-test).
 
-Stay on default clippy. Do **not** gate on `clippy::pedantic` (false-positive prone); use it occasionally as an idiom teacher, never as a build gate. A clippy *warning* does not fail the gate; only compile errors (or `-D warnings`, which is not set by default) do.
+Stay on default clippy. Do **not** gate on `clippy::pedantic` (false-positive prone); use it occasionally as an idiom teacher, never as a build gate. A clippy *warning* does not fail the gate (only compile errors do, or `-D warnings`, which is not set by default): apply idiomatic fixes where the lint is correct, but residual advisory warnings do not block reporting the task done.
 
 ## Useful flags
 
@@ -56,8 +59,8 @@ Stay on default clippy. Do **not** gate on `clippy::pedantic` (false-positive pr
 
 | Flag | Effect |
 |---|---|
-| `--all-targets` | Lint tests, examples, benches too |
-| `--fix` | Auto-apply machine-applicable suggestions (needs clean VCS tree) |
+| `--all-targets` | Lint tests, examples, benches too (part of the mandatory gate, not optional) |
+| `--fix` | Auto-apply machine-applicable suggestions (needs clean VCS tree; implies `--all-targets` and `--no-deps`, so it skips dependency lints) |
 | `-- -D warnings` | Treat warnings as errors (strict CI gate; not the local default) |
 | `-- -W clippy::pedantic` | Enable the pedantic group (occasional idiom discovery only) |
 
@@ -71,6 +74,7 @@ cargo check              # full validity analysis, no binary produced
 
 - `src/main.rs` (default binary), `src/lib.rs` (default library), `src/bin/` (extra binaries), `tests/` (integration tests), `examples/`, `benches/`.
 - `Cargo.toml` (you write it: package metadata + `[dependencies]`) and `Cargo.lock` (Cargo maintains it: pinned versions) live at the package root.
+- `rust-toolchain.toml` (optional, package root): pins the toolchain version/components; rustup applies it automatically. Add it when a project needs a specific toolchain instead of the rustup default.
 - `target/` holds build artifacts; keep it in `.gitignore`, never commit it.
 - Binaries, examples, benches, integration tests use `kebab-case`; modules within them use `snake_case`.
 

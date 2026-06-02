@@ -137,7 +137,8 @@
     "ggsql@posit-dev-skills": true,
     "audit@hebstr": true,
     "workflow@hebstr": true,
-    "litrev@litrev": true
+    "litrev@litrev": true,
+    "rust-analyzer-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {

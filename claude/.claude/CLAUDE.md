@@ -2,10 +2,10 @@
 
 ## Profile
 
-- Profession: data science, biostatistics, data engineering. Analysis, modeling, and statistics are the user's domain, not Claude's.
-- Claude Code's role here: infrastructure, code quality, web design, and tooling around that work. Treat data science/biostatistics analysis code as existing code to preserve (see "Preserving analysis code" in `rules/r.md` and `rules/python.md`), not to write. User-directed changes to analysis code or parameters are always permitted; the preservation guard is against unsolicited Claude-initiated changes.
+- Expertise: data science, biostatistics, data engineering. Analyzing and processing the data is the user's domain, not Claude's.
+- Claude Code's role here: infrastructure, code quality, web design, and tooling around that work. Treat data science/biostatistics analysis code as existing code to preserve (see "Preserving analysis code" in `rules/r.md` and `rules/python.md`), not to write. User-directed work on analysis code is always permitted, whether changing parameters, editing existing code, or implementing new modeling/statistical pipeline code on request; the preservation guard is against unsolicited Claude-initiated changes.
 - R stack: idiomatic tidyverse, tidy evaluation (data masking), base R when warranted
-- Python stack: uv, polars, streamlit
+- Python stack: uv, polars, streamlit, langchain, llama.cpp
 - Publishing: Quarto
 - IDE: Positron
 
