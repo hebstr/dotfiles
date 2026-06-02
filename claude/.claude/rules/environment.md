@@ -8,12 +8,14 @@ On-demand reference for the machine's installed toolchain. Load when a runtime v
 
 ## Runtimes
 
+Versions are major.minor (stable enough to gate idiom/feature choices: native pipe, `match`, `_brand.yml`). For the exact patch, query the binary (`R --version`, `python --version`, `quarto --version`, `typst --version`); do not rely on this table for patch-level decisions.
+
 | Tool   | Version | Usage |
 |--------|---------|-------|
-| R      | 4.6.0   | Data processing, statistical analysis |
-| Python | 3.13.9  | NLP pipeline (langchain + llama.cpp), data manipulation |
-| Quarto | 1.9.37  | Book generation (HTML via `quarto render`) |
-| Typst  | 0.14.2  | PDF typesetting (via Quarto) |
+| R      | 4.6     | Data processing, statistical analysis |
+| Python | 3.13    | NLP pipeline (langchain + llama.cpp), data manipulation |
+| Quarto | 1.9     | Book generation (HTML via `quarto render`) |
+| Typst  | 0.14    | PDF typesetting (via Quarto) |
 
 ## Package management
 

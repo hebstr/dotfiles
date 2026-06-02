@@ -2,6 +2,7 @@
 
 ## User
 - [user_profile.md](user_profile.md): Environment, accounts, and context not in CLAUDE.md
+- [user_quarto_typst_only.md](user_quarto_typst_only.md): Quarto PDF via Typst only; user does not use LaTeX (do not suggest the `format: pdf` LaTeX path)
 
 ## Project
 - [project_qmd_format_hook.md](project_qmd_format_hook.md): Add .qmd to PostToolUse format hook when air supports it
