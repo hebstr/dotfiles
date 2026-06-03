@@ -9,6 +9,7 @@ paths:
 ## Code style conventions
 
 - Prefer polars over pandas unless the project already uses pandas
+- Before recommending `from pkg import fn` or `pkg.fn`, verify the symbol exists and is importable: `python -c "from pkg import fn"` (exits non-zero if the name is absent or the import path is wrong). Inside a project, run it through the project env: `uv run python -c "from pkg import fn"`. This is the Python analog of the R `getNamespaceExports` export check in `rules/r.md`
 
 ## Preserving analysis code
 
@@ -59,6 +60,10 @@ Order matters: `ruff check --fix` first (auto-fix may leave whitespace), then `r
 ```sh
 python -m py_compile script.py
 ```
+
+## Streamlit
+
+Streamlit apps follow the same `ruff` gate as any Python file; there is no Streamlit-specific linter, and the gate does not run the app. For a manual smoke check, `streamlit run app.py` launches the dev server, but it stays in the foreground serving until interrupted, so it is not exit-code-testable: run it optionally while iterating, never as part of the automated gate.
 
 ## Standalone scripts: PEP 723 inline metadata
 
