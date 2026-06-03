@@ -181,6 +181,16 @@ JSON schema for IDE validation: `"$schema": "https://json.schemastore.org/claude
 
 Moves compaction threshold **earlier only**: the internal cap is ~83-85%. Values above that have no effect. Community sweet spot: `75` for general dev, `65-70` for debugging-heavy sessions.
 
+## MCP servers evaluated (2026-03-26)
+
+| MCP | Verdict | Reason |
+|---|---|---|
+| **Filesystem** | Rejected | Redundant: Claude already has full filesystem access via Read/Glob/Grep/Bash |
+| **GitHub** | Passed on | Only MCP with real added value (issues, PRs, CI); no immediate need at the time |
+| **PostgreSQL/DuckDB** | Rejected | No Claude-based data analysis use case at the time |
+| **Brave Search** | Rejected | Redundant with native WebSearch/WebFetch |
+| **Memory (knowledge graph)** | Rejected | Redundant with auto-memory (markdown files) |
+
 ## Gaps identified in current setup
 
 - No build/test/lint commands → add to each project's `.claude/CLAUDE.md`

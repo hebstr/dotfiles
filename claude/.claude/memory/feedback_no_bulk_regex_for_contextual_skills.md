@@ -1,5 +1,5 @@
 ---
-name: feedback-no-bulk-regex-for-contextual-skills
+name: No bulk regex for contextual editing skills
 description: Don't substitute a contextual editing skill (workflow:write, audit reviewers, similar) with a bulk regex pass. The skill exists because the edit requires per-case judgment a regex cannot make
 metadata:
   type: feedback

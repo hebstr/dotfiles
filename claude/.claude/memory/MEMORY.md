@@ -8,14 +8,13 @@
 - [project_qmd_format_hook.md](project_qmd_format_hook.md): Add .qmd to PostToolUse format hook when air supports it
 - [project_review_workflow_backlog.md](project_review_workflow_backlog.md): Implementation backlog from the 2026-03 code review glowup audit (hebstr tests, CI, data validation)
 - [project_rv_install_deployment.md](project_rv_install_deployment.md): rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability (no amd64 assumption)
-- [litrev-separate-from-hebstr.md](litrev-separate-from-hebstr.md): Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
+- [project_litrev_separate_from_hebstr.md](project_litrev_separate_from_hebstr.md): Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
 
 ## Reference
 - [reference_editorconfig.md](reference_editorconfig.md): EditorConfig for team/multi-editor formatting consistency
-- [reference_claude_hooks.md](reference_claude_hooks.md): Claude Code harness event types, hook kinds, and MCP rejection rationale (2026-03-26)
-- [reference_claude_code_best_practices.md](reference_claude_code_best_practices.md): Claude Code internals: CLAUDE.md scopes, hook events, auto-memory, notable settings.json keys (2026-05-02)
+- [reference_claude_code_best_practices.md](reference_claude_code_best_practices.md): Claude Code internals: CLAUDE.md scopes, hook events, auto-memory, MCP rejection rationale, notable settings.json keys (2026-05-02)
 - [reference_todo_sync.md](reference_todo_sync.md): `todo-sync` shell command prints aggregated TODO.md items to stdout as a markdown table
-- [claude-code-marketplace-mechanics.md](claude-code-marketplace-mechanics.md): Marketplace + plugin lifecycle; cache vs live edits for directory-source plugins
+- [reference_claude_code_marketplace_mechanics.md](reference_claude_code_marketplace_mechanics.md): Marketplace + plugin lifecycle; cache vs live edits for directory-source plugins
 
 ## Feedback
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md): 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
@@ -25,7 +24,7 @@
 - [feedback_review_severity_bats_tests.md](feedback_review_severity_bats_tests.md): Calibrate review severity for bats `.bats` test files covering personal shell tooling
 - [feedback_review_severity_claude_rules.md](feedback_review_severity_claude_rules.md): Calibrate review of `.claude/rules/` files: skip duplication-from-CLAUDE.md, dedup-of-boilerplate, version-trace headers, review-calibration-as-writing-rule, alternate-tool-removal-due-to-overlap (5 recurring false positives)
 - [feedback_review_severity_claude_config.md](feedback_review_severity_claude_config.md): Calibrate `/health` and audits of `~/.claude` harness config (settings.json, hooks): skip PWD-guard expansion, rg-in-hook-scripts, message-aware notifications, WebFetch allow-list expansion, race-condition hardening on best-effort cleanup hooks (5 recurring false positives)
-- [feedback_review_severity_claude_md_content.md](feedback_review_severity_claude_md_content.md): Calibrate content audits of CLAUDE.md instructions: skip under-defined-term-with-anchored-criteria, opt-out-against-user-preference, trigger-owned-upstream, deliberate-bias-catching-cost, harness-backstopped-efficiency-hint, length-offload-as-walking-fix (6 recurring false positives)
+- [feedback_review_severity_claude_md_content.md](feedback_review_severity_claude_md_content.md): Calibrate content audits of CLAUDE.md instructions: skip under-defined-term-with-anchored-criteria, opt-out-against-user-preference, trigger-owned-upstream, deliberate-bias-catching-cost, harness-backstopped-efficiency-hint, length-offload-as-walking-fix, already-closed-by-existing-wording, mechanism-misread (8 recurring false positives)
 - [feedback_claude_md_refactor.md](feedback_claude_md_refactor.md): CLAUDE.md Progressive Disclosure refactor: do not extract always-on safety-net checklists (silent-failure), do not automate via hook what prose pointers already cover (2 recurring false positives)
 - [feedback_review_severity_skill_audits.md](feedback_review_severity_skill_audits.md): Calibrate skill-adversary/blindspot/sweep on SKILL.md files: skip harness portability, declared-prior anchoring, CLAUDE.md duplication, explicit-invocation FN concerns (4 recurring false positives)
 - [feedback_explicit_invocation_gate.md](feedback_explicit_invocation_gate.md): Explicit-only invocation gate for hebstr/claude-code-plugins skills; reject reviewer trigger-breadth findings
@@ -39,8 +38,7 @@
 - [feedback_verify_after_install.md](feedback_verify_after_install.md): Smoke-test new tools/hooks/integrations end-to-end before marking done; never suppress stderr on fresh config
 - [feedback_shell_grep_pipefail.md](feedback_shell_grep_pipefail.md): `grep` as filter under `set -Eeuo pipefail` crashes on no-match; idiomatic fixes + audit grep
 - [feedback_prose-lint-write.md](feedback_prose-lint-write.md): typographic vs rhetorical em/en dash distinction in prose-lint scope, when to invoke /workflow:write, and never replace typographic glyphs with words
-- [feedback-no-bulk-regex-for-contextual-skills.md](feedback-no-bulk-regex-for-contextual-skills.md): Don't substitute a contextual editing skill (workflow:write, audit reviewers) with a bulk regex when per-case Edit is blocked; surface the blocker instead
-- [feedback_edit_proposal_format.md](feedback_edit_proposal_format.md): Propose edits via the Edit tool directly; don't duplicate diffs as prose before/after blocks in chat
+- [feedback_no_bulk_regex_for_contextual_skills.md](feedback_no_bulk_regex_for_contextual_skills.md): Don't substitute a contextual editing skill (workflow:write, audit reviewers) with a bulk regex when per-case Edit is blocked; surface the blocker instead
 - [feedback_audit_walkthrough.md](feedback_audit_walkthrough.md): audit:walkthrough triage table format; lenient severity for personal scripts (locale/portability); calibration loader contract (redirect-follow + scoped-filename glob)
 - [feedback_checkup_scope.md](feedback_checkup_scope.md): "audit complet du répertoire" = scan ALL files in CWD, not just the active file
 - [feedback_ouroboros_tools.md](feedback_ouroboros_tools.md): Only `ouroboros_evaluate` supports `trigger_consensus`; `ouroboros_qa` silently ignores it

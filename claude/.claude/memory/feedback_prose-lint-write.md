@@ -7,7 +7,7 @@ metadata:
 
 ## Scope: user-facing prose only
 
-Prose hygiene rules (anti-AI-slop, em/en dash, soft-wraps) apply only to text **rendered to a human user**: READMEs, public docs, SKILL.md/CONTEXT.md content shipped with skills, marketplace-distributed markdown, articles, release notes. They do **not** apply to internal Claude working files: `.claude/**` (PLAN.md, DEFERRED.md, *-context.md, etc.), `~/.claude/memory/**`, and any working note Claude reads but no user does.
+Prose hygiene rules (anti-AI-slop, em/en dash, soft-wraps) apply only to text **rendered to a human user**: READMEs, public docs, SKILL.md/CONTEXT.md content shipped with skills, marketplace-distributed markdown, articles, release notes. They do **not** apply to transient Claude working notes: `.claude/` working files (PLAN.md, DEFERRED.md, *-context.md, etc.), `~/.claude/memory/**`, and any working note Claude reads but no user does. The curated instruction files CLAUDE.md and `rules/*.md` are NOT exempt: they get `prose-lint` per the CLAUDE.md gate (the user enforces the dash/soft-wrap rules on them, and CLAUDE.md content audits reject em dashes in its prose).
 
 **Why:** the AI-tell rule is about audience perception. Internal notes are read by Claude only, where the rules' purpose (avoiding the AI register tells when humans read the output) does not apply. Enforcing them on working notes is busywork.
 
