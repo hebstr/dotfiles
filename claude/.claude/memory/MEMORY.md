@@ -41,7 +41,7 @@
 - [feedback_prose-lint-write.md](feedback_prose-lint-write.md): typographic vs rhetorical em/en dash distinction in prose-lint scope, when to invoke /workflow:write, and never replace typographic glyphs with words
 - [feedback-no-bulk-regex-for-contextual-skills.md](feedback-no-bulk-regex-for-contextual-skills.md): Don't substitute a contextual editing skill (workflow:write, audit reviewers) with a bulk regex when per-case Edit is blocked; surface the blocker instead
 - [feedback_edit_proposal_format.md](feedback_edit_proposal_format.md): Propose edits via the Edit tool directly; don't duplicate diffs as prose before/after blocks in chat
-- [feedback_audit_walkthrough.md](feedback_audit_walkthrough.md): audit:walkthrough triage table format; lenient severity for personal scripts (locale/portability)
+- [feedback_audit_walkthrough.md](feedback_audit_walkthrough.md): audit:walkthrough triage table format; lenient severity for personal scripts (locale/portability); calibration loader contract (redirect-follow + scoped-filename glob)
 - [feedback_checkup_scope.md](feedback_checkup_scope.md): "audit complet du répertoire" = scan ALL files in CWD, not just the active file
 - [feedback_ouroboros_tools.md](feedback_ouroboros_tools.md): Only `ouroboros_evaluate` supports `trigger_consensus`; `ouroboros_qa` silently ignores it
 - [feedback_skill_adversary_sync.md](feedback_skill_adversary_sync.md): skill-adversary on workflow:sync: 7 false-positive patterns to pre-filter

@@ -2,6 +2,12 @@
 
 On-demand reference for using showboat to record reproducible traces. Load when bootstrapping tools, installing packages, or making persistent env/system changes (see trigger in CLAUDE.md).
 
+## Qualities of a good trace
+
+- **Minimal**: every entry earns its place. Capture the commands that change system state and their output, not exploratory dead ends or noise.
+- **Replayable**: each `exec` block must re-run cleanly from the document alone (`showboat extract` then replay, or `showboat verify` to re-run and diff). No reliance on un-recorded prior state.
+- **Self-explaining**: a `note` before each step states the why (what the step is for), so a reader reproducing it later understands intent, not just keystrokes.
+
 ## Output path
 
 - `<project>/_meta/notes/<task-name>.md` for project-scoped tasks

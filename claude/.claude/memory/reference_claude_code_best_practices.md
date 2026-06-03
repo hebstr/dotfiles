@@ -7,8 +7,6 @@ metadata:
 
 # Claude Code: CLAUDE.md Best Practices
 
-Last updated: 2026-05-02.
-
 ## How CLAUDE.md works
 
 - Loaded into Claude's context at session start: advisory, not enforced
