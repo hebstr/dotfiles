@@ -19,7 +19,7 @@ paths:
 | `quarto render` | Render a document or project to its output (HTML, or PDF via Typst) |
 | `quarto check` | Verify the installation. Targets: `install`, `knitr`, `jupyter`, `julia`, `versions`, `all` (no `typst` target; the bundled Typst version shows under `versions`) |
 
-Quarto has no formatter or linter equivalent to `air`/`ruff`. The gate is a clean render plus the language gate on chunk code.
+Quarto has no formatter or linter equivalent to `air`/`ruff`. The gate is a clean render plus the language gate on chunk code; for a user-facing `.qmd`, it also includes `prose-lint` for the always-on dash and soft-wrap rules (mechanical enforcement, not optional polish: see Prose conventions below).
 
 ## Mandatory pipeline after every create/edit
 
@@ -43,14 +43,14 @@ For a fast pass while iterating, `quarto render <file>.qmd --no-execute` skips c
 
 ## Code chunks
 
-R and Python chunks inside a `.qmd` follow their own language rules: see `rules/r.md` and `rules/python.md` (idioms, and the `air`/`ruff` format+lint gate). Quarto tooling cannot lint chunk contents in place. For a substantive chunk (same threshold as the file-edit gate in `CLAUDE.md`: more than ~10 lines or a new conditional branch), copy the chunk body to a scratch `.R`/`.py` file, run the language gate from `rules/r.md`/`rules/python.md`, then paste the formatted result back. After paste-back, re-render *without* `--no-execute` to confirm the chunk still executes: the scratch-file round trip can shift the chunk's indentation or disturb the fence boundaries, and a `--no-execute` pass validates YAML but not chunk execution, so it would give a false pass on exactly that breakage. Skip for trivial chunks (a single plot or `mutate` call). Do not duplicate those conventions here.
+R and Python chunks inside a `.qmd` follow their own language rules: see `rules/r.md` and `rules/python.md` (idioms, and the `air`/`ruff` format+lint gate). Quarto tooling cannot lint chunk contents in place. For a substantive chunk (same threshold as the file-edit gate in `CLAUDE.md`), copy the chunk body to a scratch `.R`/`.py` file, run the language gate from `rules/r.md`/`rules/python.md`, then paste the formatted result back. After paste-back, re-render *without* `--no-execute` to confirm the chunk still executes: the scratch-file round trip can shift the chunk's indentation or disturb the fence boundaries, and a `--no-execute` pass validates YAML but not chunk execution, so it would give a false pass on exactly that breakage. Skip for trivial chunks (a single plot or `mutate` call). Do not duplicate those conventions here.
 
 The engine is set per project or per document (`engine: knitr` for R, `engine: jupyter` for Python); read it from the document YAML front matter or the project `_quarto.yml` `engine:` key. Match `quarto check <engine>` to whichever the document uses.
 
 ## Prose conventions
 
 - One sentence or logical unit per line; no manual soft wraps (matches the global Markdown rule). Quarto renders a single source newline as a soft break, so source line breaks do not change the output.
-- For prose polish and anti-AI-slop on a user-facing `.qmd`: `prose-lint <file>`, then `/workflow:write` for deeper review. These apply to authored documents, not to this rules file.
+- On a user-facing `.qmd`, `prose-lint <file>` is the mandatory mechanical check (dashes, soft wraps); `/workflow:write` is optional deeper polish and anti-AI-slop review. Both apply to authored documents, not to this rules file.
 
 ## Feature syntax: defer to skills
 

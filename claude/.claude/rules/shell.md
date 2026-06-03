@@ -5,6 +5,7 @@ paths:
   - "**/.bashrc"
   - "**/.bash_profile"
   - "**/.bash_aliases"
+  - "**/.profile"
 ---
 
 # Shell scripting toolchain
@@ -44,7 +45,7 @@ The shfmt flags above match the prek hook in `prek.toml` (source of truth at com
 | `-sr` | space after redirections (`> file`) | no (prek does not set it) |
 | `-bn` | `&&` / `\|` at start of line | no |
 
-Note: Positron's Bash IDE is set to `caseIndent: false` and `spaceRedirects: false` (`positron/.config/Positron/User/profiles/*/settings.json`), matching prek's `-w -i 2`. On-save formatting and the commit hook agree. Do not add `-ci`/`-sr` to the local pipeline or the `format-on-edit` hook: they produce formatting the commit gate reverts.
+Note: Positron's Bash IDE is configured to match prek's `-w -i 2` (no case-indent, no space-after-redirect); if a formatting conflict ever appears, the checked-in settings file is authoritative (see below). On-save formatting and the commit hook agree. Do not add `-ci`/`-sr` to the local pipeline or the `format-on-edit` hook: they produce formatting the commit gate reverts.
 
 ## Positron extensions
 

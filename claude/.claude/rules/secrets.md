@@ -1,6 +1,6 @@
 # Secret files handling
 
-On-demand reference for handling files containing credentials. Load when a file path matches the scope patterns declared in CLAUDE.md or the user flags a file as containing a secret.
+On-demand reference for handling files containing credentials. Load when a file path matches the scope patterns declared in CLAUDE.md or the user flags a file as containing a secret. CLAUDE.md's dotfiles allowlist and the `*.example`/`*.template`/`*.sample` exemptions decide whether a matching file is in scope at all; the rules below apply only once a file is confirmed to hold, or plausibly holds, a credential.
 
 ## Why
 
