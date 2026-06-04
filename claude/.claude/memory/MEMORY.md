@@ -15,6 +15,7 @@
 - [reference_claude_code_best_practices.md](reference_claude_code_best_practices.md): Claude Code internals: CLAUDE.md scopes, hook events, auto-memory, MCP rejection rationale, notable settings.json keys (2026-05-02)
 - [reference_todo_sync.md](reference_todo_sync.md): `todo-sync` shell command prints aggregated TODO.md items to stdout as a markdown table
 - [reference_claude_code_marketplace_mechanics.md](reference_claude_code_marketplace_mechanics.md): Marketplace + plugin lifecycle; cache vs live edits for directory-source plugins
+- [reference_modern_r_model_tooling.md](reference_modern_r_model_tooling.md): Current-practice R packages for model eval/comparison/effect interpretation (easystats, broom, yardstick, marginaleffects); tool-selection reference, surface on user request, not spontaneously on analysis code
 
 ## Feedback
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md): 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"

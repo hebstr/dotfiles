@@ -764,5 +764,6 @@
         ]
     },
     "workbench.panel.showLabels": false,
+    "quarto.symbols.showCodeCellsInOutline": false,
 
 }
