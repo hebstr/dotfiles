@@ -765,5 +765,6 @@
     },
     "workbench.panel.showLabels": false,
     "quarto.symbols.showCodeCellsInOutline": false,
+    "python.createEnvironment.trigger": "off",
 
 }

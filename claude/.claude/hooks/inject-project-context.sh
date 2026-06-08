@@ -25,3 +25,13 @@ if [ -f pyproject.toml ] && { [ -f uv.lock ] || grep -q '\[tool\.uv\]' pyproject
 elif [ -f uv.lock ]; then
   echo "uv environment detected."
 fi
+
+if [ -f "$HOME/.claude/memory/MEMORY.md" ]; then
+  echo "=== Global memory index (~/.claude/memory/) — read a file's body on demand when its description is relevant ==="
+  cat "$HOME/.claude/memory/MEMORY.md"
+fi
+
+if [ -f .claude/memory/MEMORY.md ]; then
+  echo "=== Project memory index (.claude/memory/) — read a file's body on demand when relevant ==="
+  cat .claude/memory/MEMORY.md
+fi

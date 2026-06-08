@@ -16,8 +16,10 @@
 - [reference_todo_sync.md](reference_todo_sync.md): `todo-sync` shell command prints aggregated TODO.md items to stdout as a markdown table
 - [reference_claude_code_marketplace_mechanics.md](reference_claude_code_marketplace_mechanics.md): Marketplace + plugin lifecycle; cache vs live edits for directory-source plugins
 - [reference_modern_r_model_tooling.md](reference_modern_r_model_tooling.md): Current-practice R packages for model eval/comparison/effect interpretation (easystats, broom, yardstick, marginaleffects); tool-selection reference, surface on user request, not spontaneously on analysis code
+- [reference_regex_engine_accented_text.md](reference_regex_engine_accented_text.md): Big regex alternations over accented text: ICU backtracking vs re2 automaton (615x), RE2 \b is ASCII-only (misses méningé), 1:1 NFD fold + re2_locate_all + byte→char recovers ICU-identical output ~100x; edstr step 8
 
 ## Feedback
+- [feedback_r_environment.md](feedback_r_environment.md): R environment idioms (rv not renv, `system2` over `system`, rv sync auto-runs at R startup via .Rprofile)
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md): 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
 - [feedback_review_workflow.md](feedback_review_workflow.md): Preferred review workflow: 3 background specialists + 2-3 foreground agents by facet, consolidated report, then `/audit:walkthrough`
 - [feedback_review_severity_personal.md](feedback_review_severity_personal.md): Calibrate review severity down for personal/internal packages
