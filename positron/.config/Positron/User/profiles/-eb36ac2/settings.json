@@ -127,10 +127,14 @@
 
     "[quarto]": {
         "files.trimTrailingWhitespace": false,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "jolars.panache",
         // "editor.wordWrap": "off"
     },
 
     "quarto.render.previewType": "external",
+
+    "panache.executableStrategy": "environment",
 
     "python.createEnvironment.contentButton": "show",
     "python.installModulesInTerminal": true,
@@ -153,6 +157,14 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
     },
+
+    "[typst]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "myriad-dreamin.tinymist",
+    },
+    "tinymist.formatterMode": "typstyle",
+    "tinymist.lint.enabled": true,
+    "tinymist.formatterPrintWidth": 100,
 
 // GIT -------------------------------------------------------------------------
 

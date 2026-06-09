@@ -5,7 +5,7 @@
 - [user_quarto_typst_only.md](user_quarto_typst_only.md): Quarto PDF via Typst only; user does not use LaTeX (do not suggest the `format: pdf` LaTeX path)
 
 ## Project
-- [project_qmd_format_hook.md](project_qmd_format_hook.md): Add .qmd to PostToolUse format hook when air supports it
+- [project_qmd_format_hook.md](project_qmd_format_hook.md): Quarto/.qmd formatting via panache (Rust formatter, wrap=semantic), config stowed; supersedes the wait-for-air plan
 - [project_review_workflow_backlog.md](project_review_workflow_backlog.md): Implementation backlog from the 2026-03 code review glowup audit (hebstr tests, CI, data validation)
 - [project_rv_install_deployment.md](project_rv_install_deployment.md): rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability (no amd64 assumption)
 - [project_litrev_separate_from_hebstr.md](project_litrev_separate_from_hebstr.md): Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
@@ -17,6 +17,8 @@
 - [reference_claude_code_marketplace_mechanics.md](reference_claude_code_marketplace_mechanics.md): Marketplace + plugin lifecycle; cache vs live edits for directory-source plugins
 - [reference_modern_r_model_tooling.md](reference_modern_r_model_tooling.md): Current-practice R packages for model eval/comparison/effect interpretation (easystats, broom, yardstick, marginaleffects); tool-selection reference, surface on user request, not spontaneously on analysis code
 - [reference_regex_engine_accented_text.md](reference_regex_engine_accented_text.md): Big regex alternations over accented text: ICU backtracking vs re2 automaton (615x), RE2 \b is ASCII-only (misses méningé), 1:1 NFD fold + re2_locate_all + byte→char recovers ICU-identical output ~100x; edstr step 8
+- [reference_tool_update_routines.md](reference_tool_update_routines.md): devtools-update (cargo-dist installers → /usr/local/bin) vs cargo install-update (crates.io → ~/.cargo/bin); match routine to install method, don't conflate
+- [reference_positron_extension_registries.md](reference_positron_extension_registries.md): Positron profile vs global extensions.json; profile is authoritative, never delete folders judged orphan by global alone; jq-based recovery when registries point to missing folders
 
 ## Feedback
 - [feedback_r_environment.md](feedback_r_environment.md): R environment idioms (rv not renv, `system2` over `system`, rv sync auto-runs at R startup via .Rprofile)

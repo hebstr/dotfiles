@@ -19,7 +19,7 @@ paths:
 | `quarto render` | Render a document or project to its output (HTML, or PDF via Typst) |
 | `quarto check` | Verify the installation. Targets: `install`, `knitr`, `jupyter`, `julia`, `versions`, `all` (no `typst` target; the bundled Typst version shows under `versions`) |
 
-Quarto has no formatter or linter equivalent to `air`/`ruff`. The gate is a clean render plus the language gate on chunk code; for a user-facing `.qmd`, it also includes `prose-lint` for the always-on dash and soft-wrap rules (mechanical enforcement, not optional polish: see Prose conventions below).
+Quarto ships no formatter or linter of its own. `panache` (Rust LSP + formatter + linter for Markdown/Quarto/Rmd) fills that gap when installed: it formats Pandoc/Quarto prose and delegates chunk formatting to `air` (R) and `ruff` (Python). Global config is stowed at `~/.config/panache/config.toml` with `wrap = "semantic"` (one sentence per line, no reflow); a per-project `panache.toml` overrides it. panache does NOT handle Typst, so a Typst-raw `.qmd` gains little and its `{=typst}` blocks should be checked to survive verbatim. The render gate is unchanged: a clean render plus the language gate on chunk code, plus `prose-lint` on a user-facing `.qmd` for the always-on dash and soft-wrap rules (mechanical enforcement, not optional polish: see Prose conventions below). `prose-lint` stays mandatory; panache covers Markdown structure, not the em/en dash anti-AI-slop rules.
 
 ## Mandatory pipeline after every create/edit
 

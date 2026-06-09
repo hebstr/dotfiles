@@ -1,0 +1,15 @@
+flavor = "quarto"
+
+exclude = [".quarto/**"]
+
+[format]
+wrap = "semantic"
+math-delimiter-style = "preserve"
+
+[formatters]
+r = "air"
+python = "ruff"
+
+[linters]
+r = "jarl"
+python = "ruff"

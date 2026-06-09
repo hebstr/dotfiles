@@ -56,6 +56,13 @@ hooks = [
   { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^bash/' }
 ]
 
+[[repos]]
+repo = "https://github.com/typstyle-rs/pre-commit-typstyle"
+rev = "v0.14.4"
+hooks = [
+  { id = "typstyle", args = ["-i", "-l", "100"] }
+]
+
 ### ATTENTE SUPPORT
 # [[repos]]
 # repo = "https://github.com/lorenzwalthert/precommit"

@@ -16,7 +16,7 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | R      | 4.6     | Data processing, statistical analysis |
 | Python | 3.13    | NLP pipeline (langchain + llama.cpp). uv-managed (3.13.x, the authoring version); system `python3` is 3.12 (Ubuntu default) |
 | Quarto | 1.9     | Docs generation (HTML via `quarto render`) |
-| Typst  | 0.14    | PDF typesetting (via Quarto) |
+| Typst  | 0.14    | PDF typesetting, via Quarto and standalone (`/snap/bin/typst`); tooling/gate in `rules/typst.md` |
 | Rust   | 1.96    | Learning (systems/CLI programming); managed via `rustup` |
 
 ## Package management
@@ -71,3 +71,6 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | cargo clippy | Rust linter (binary `cargo-clippy`, run via `cargo clippy`; no standalone `clippy` command) |
 | rustfmt     | Rust formatter (`cargo fmt`)                 |
 | bacon       | Rust background checker (`cargo install bacon`) |
+| typst       | Typst compiler (`/snap/bin/typst`); `typst compile`/`watch`. Gate in `rules/typst.md` |
+| typstyle    | Typst formatter (`~/.cargo/bin/typstyle`; `--check`/`-i`)  |
+| tinymist    | Typst language server, bundled in the Positron extension `myriad-dreamin.tinymist` (editor-only, not a PATH CLI) |
