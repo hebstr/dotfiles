@@ -2,7 +2,7 @@
 set -euo pipefail
 
 DCONF_PATH="/org/gnome/terminal/"
-DUMP_FILE="${HOME}/dotfiles/_meta/templates/gnome-terminal.dconf"
+DUMP_FILE="${HOME}/dotfiles/_meta/profiles/gnome-terminal.dconf"
 
 usage() {
   cat <<'EOF'

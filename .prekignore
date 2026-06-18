@@ -1,0 +1,3 @@
+# Profiles/templates storage: not a project to lint, and its prek.toml is a
+# template, not a live config. Keep prek from discovering it as a sub-project.
+_meta/profiles/

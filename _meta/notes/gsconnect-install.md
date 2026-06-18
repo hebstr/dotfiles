@@ -159,7 +159,7 @@ true
 | Appairage S89 | OK | OK (même device ID, nouveau matériel crypto bureau) |
 | Conf utilisateur | `~/.config/kdeconnect/` (fichiers) | dconf `/org/gnome/shell/extensions/gsconnect/` |
 
-Pour vérifier la cohérence du trace plus tard : `showboat verify ~/dotfiles/_meta/notes/kdeconnect-to-gsconnect.md` re-roule tous les blocs exec et diff la sortie.
+Pour vérifier la cohérence du trace plus tard : `showboat verify ~/dotfiles/_meta/notes/gsconnect-install.md` re-roule tous les blocs exec et diff la sortie.
 
 ## Purge complète
 

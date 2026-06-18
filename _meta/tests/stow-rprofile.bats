@@ -9,8 +9,8 @@ setup() {
   mkdir -p "$TMPDIR_TEST/bin"
 
   export HOME="$TMPDIR_TEST/home"
-  mkdir -p "$HOME/dotfiles/_meta/templates"
-  touch "$HOME/dotfiles/_meta/templates/Rprofile.site"
+  mkdir -p "$HOME/dotfiles/_meta/profiles"
+  touch "$HOME/dotfiles/_meta/profiles/Rprofile.site"
 
   export OPT_R="$TMPDIR_TEST/opt/R"
   mkdir -p "$OPT_R"
@@ -47,7 +47,7 @@ make_r_dir() {
 # ---------------------------------------------------------------------------
 
 @test "exits 1 when Rprofile.site template is missing" {
-  rm "$HOME/dotfiles/_meta/templates/Rprofile.site"
+  rm "$HOME/dotfiles/_meta/profiles/Rprofile.site"
   run "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Template not found"* ]]
@@ -120,7 +120,7 @@ make_r_dir() {
   make_r_dir "4.5.3"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  [ "$(readlink "$OPT_R/4.5.3/lib/R/etc/Rprofile.site")" = "$HOME/dotfiles/_meta/templates/Rprofile.site" ]
+  [ "$(readlink "$OPT_R/4.5.3/lib/R/etc/Rprofile.site")" = "$HOME/dotfiles/_meta/profiles/Rprofile.site" ]
 }
 
 @test "overwrites an existing symlink on re-run" {
@@ -129,7 +129,7 @@ make_r_dir() {
   ln -sf /dev/null "$OPT_R/4.5.3/lib/R/etc/Rprofile.site"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  [ "$(readlink "$OPT_R/4.5.3/lib/R/etc/Rprofile.site")" = "$HOME/dotfiles/_meta/templates/Rprofile.site" ]
+  [ "$(readlink "$OPT_R/4.5.3/lib/R/etc/Rprofile.site")" = "$HOME/dotfiles/_meta/profiles/Rprofile.site" ]
 }
 
 # ---------------------------------------------------------------------------

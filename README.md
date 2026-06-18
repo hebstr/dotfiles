@@ -10,8 +10,7 @@ prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
 ├── notes/       # internal docs
-├── profiles/    # exportable Positron / VS Code profiles
-├── templates/   # reusable config templates
+├── profiles/    # exportable app profiles + reusable config templates
 └── tests/       # bats test suites for bin/ scripts
 ```
 

@@ -1,0 +1,214 @@
+{
+  "main": {
+    "id": "1cd20d046d9ae168",
+    "type": "split",
+    "children": [
+      {
+        "id": "e94f0e9692d8cf73",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "72c8fa8bc40c296d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "edstr/extract.md",
+                "mode": "source",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "extract"
+            }
+          },
+          {
+            "id": "3c5ae12c7402ee1b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Paris.md",
+                "mode": "source",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "Paris"
+            }
+          },
+          {
+            "id": "731c7aa82f2f7912",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "perso/admin.md",
+                "mode": "source",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "admin"
+            }
+          }
+        ],
+        "currentTab": 2
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "b7378008c3898499",
+    "type": "mobile-drawer",
+    "children": [
+      {
+        "id": "8fb487cd2ffc5727",
+        "type": "leaf",
+        "state": {
+          "type": "file-explorer",
+          "state": {
+            "sortOrder": "alphabetical",
+            "autoReveal": false
+          },
+          "icon": "lucide-folder-closed",
+          "title": "Explorateur de fichiers"
+        }
+      },
+      {
+        "id": "3f3c4f4105a9f139",
+        "type": "leaf",
+        "state": {
+          "type": "search",
+          "state": {
+            "query": "",
+            "matchingCase": false,
+            "explainSearch": false,
+            "collapseAll": false,
+            "extraContext": false,
+            "sortOrder": "alphabetical"
+          },
+          "icon": "lucide-search",
+          "title": "Search"
+        }
+      },
+      {
+        "id": "563029b8b9c1e914",
+        "type": "leaf",
+        "state": {
+          "type": "tag",
+          "state": {
+            "sortOrder": "frequency",
+            "useHierarchy": true,
+            "showSearch": false,
+            "searchQuery": ""
+          },
+          "icon": "lucide-tags",
+          "title": "Tags"
+        }
+      },
+      {
+        "id": "2c2010fcc2a6ee75",
+        "type": "leaf",
+        "state": {
+          "type": "bookmarks",
+          "state": {},
+          "icon": "lucide-bookmark",
+          "title": "Bookmarks"
+        }
+      }
+    ],
+    "currentTab": 0
+  },
+  "right": {
+    "id": "cd056e717f5760b0",
+    "type": "mobile-drawer",
+    "children": [
+      {
+        "id": "4f250a16b7381e99",
+        "type": "leaf",
+        "state": {
+          "type": "backlink",
+          "state": {
+            "collapseAll": false,
+            "extraContext": false,
+            "sortOrder": "alphabetical",
+            "showSearch": false,
+            "searchQuery": "",
+            "backlinkCollapsed": false,
+            "unlinkedCollapsed": true
+          },
+          "icon": "links-coming-in",
+          "title": "Backlinks"
+        }
+      },
+      {
+        "id": "c1af2a087c2026d4",
+        "type": "leaf",
+        "state": {
+          "type": "outgoing-link",
+          "state": {
+            "linksCollapsed": false,
+            "unlinkedCollapsed": true
+          },
+          "icon": "links-going-out",
+          "title": "Outgoing links"
+        }
+      },
+      {
+        "id": "4db459c4e889856e",
+        "type": "leaf",
+        "state": {
+          "type": "outline",
+          "state": {
+            "followCursor": false,
+            "showSearch": false,
+            "searchQuery": ""
+          },
+          "icon": "lucide-list",
+          "title": "Outline"
+        }
+      }
+    ],
+    "currentTab": 0
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:Créer une nouvelle base": false,
+      "switcher:Ouvrir le sélecteur rapide": false,
+      "graph:Ouvrir la vue graphique": false,
+      "templates:Insérer le modèle": false,
+      "command-palette:Ouvrir la palette de commandes": false
+    }
+  },
+  "active": "731c7aa82f2f7912",
+  "lastOpenFiles": [
+    "perso/trajets/Nantes.md",
+    "perso/admin.md",
+    "SKILL.md",
+    "perso/trajets/Lille.md",
+    "code/global.md",
+    "code/edstr/_global.md",
+    "admin/Id.md",
+    "ains/diapo.md",
+    "admin/Compensation SNCF.md",
+    "ains/index.md",
+    "diapo/couleurs.md",
+    "admin.md",
+    "admin",
+    "Paris.md",
+    "Lille.md",
+    "edstr/extract.md",
+    "Trajets",
+    "edstr/_global.md",
+    "edstr/import.md",
+    "cours/analyse_spatiale.md",
+    "ains/intro.md",
+    "prompts/def.md",
+    "ains/biblio.md",
+    "autre_doc.md",
+    "test.md",
+    "Sans titre.canvas",
+    "dossier/nouvelle.md",
+    "dossier/nouvelle.sync-conflict-20250316-130912-C2N42ZX.md",
+    "dossier",
+    "nouvelle.md"
+  ]
+}

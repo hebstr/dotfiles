@@ -3,7 +3,7 @@ repo = "local"
 hooks = [
   { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
   { id = "bats-tests", name = "check bats tests", entry = "bats _meta/tests/", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/)' },
-  { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$' },
+  { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '^_meta/profiles/' },
 ]
 
 [[repos]]

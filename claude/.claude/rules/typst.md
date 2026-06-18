@@ -50,13 +50,13 @@ The chosen value is **100**, set in all three:
 
 - editor: `tinymist.formatterPrintWidth` in the active Positron profile (typstyle's default is 80, so this must be set explicitly)
 - manual gate: `typstyle -l 100` (see the pipeline above)
-- commit hook: `args = ["-i", "-l", "100"]` in `_meta/templates/prek.toml`
+- commit hook: `args = ["-i", "-l", "100"]` in `_meta/profiles/prek.toml`
 
 Changing the width means changing all three together.
 
 ## Pre-commit hook (prek)
 
-The `_meta/templates/prek.toml` scaffold carries a `typstyle` hook (`typstyle-rs/pre-commit-typstyle`, scoped to `\.typ$`).
+The `_meta/profiles/prek.toml` scaffold carries a `typstyle` hook (`typstyle-rs/pre-commit-typstyle`, scoped to `\.typ$`).
 It runs `-i -l 100` (format in place at width 100; see Line width above), matching the formatter convention of the other hooks (`ruff-format`, `air-format`, `shfmt -w`), not a non-mutating `--check`.
 Do not copy its `rev` here (it drifts; the template is the source of truth).
 The dotfiles repo's own root `prek.toml` has no typstyle hook by design: that repo contains no `.typ` files.

@@ -7,7 +7,7 @@
 
 Script utilitaire pour sauvegarder, restaurer, et comparer la configuration de gnome-terminal (profil par défaut, couleurs, font, raccourcis clavier, scrollback, etc.) entre machines.
 
-Stocke un dump `dconf` complet de `/org/gnome/terminal/` dans `~/dotfiles/_meta/templates/gnome-terminal.dconf`, versionné avec le reste des dotfiles.
+Stocke un dump `dconf` complet de `/org/gnome/terminal/` dans `~/dotfiles/_meta/profiles/gnome-terminal.dconf`, versionné avec le reste des dotfiles.
 
 Cas d'usage typiques :
 
@@ -34,20 +34,20 @@ Commands:
 
 ## 1. Capturer la config actuelle : `dump`
 
-Exporte tout l'arbre dconf `/org/gnome/terminal/` vers `~/dotfiles/_meta/templates/gnome-terminal.dconf`. À relancer chaque fois qu'un réglage à conserver est modifié (puis commit).
+Exporte tout l'arbre dconf `/org/gnome/terminal/` vers `~/dotfiles/_meta/profiles/gnome-terminal.dconf`. À relancer chaque fois qu'un réglage à conserver est modifié (puis commit).
 
 ```bash
 gnome-terminal-config dump
 ```
 
 ```output
-Dumped to /home/julien/dotfiles/_meta/templates/gnome-terminal.dconf (24 lines)
+Dumped to /home/julien/dotfiles/_meta/profiles/gnome-terminal.dconf (24 lines)
 ```
 
 Vérification : le fichier de dump contient bien le profil par défaut, les couleurs, la font, et les raccourcis (extrait des 15 premières lignes) :
 
 ```bash
-head -15 ~/dotfiles/_meta/templates/gnome-terminal.dconf
+head -15 ~/dotfiles/_meta/profiles/gnome-terminal.dconf
 ```
 
 ```output
@@ -93,7 +93,7 @@ gnome-terminal-config restore
 `restore` :
 
 1. dump l'état dconf actuel dans `/tmp/gnome-terminal-backup-<timestamp>.dconf` (filet de sécurité)
-2. charge `~/dotfiles/_meta/templates/gnome-terminal.dconf` via `dconf load /org/gnome/terminal/`
+2. charge `~/dotfiles/_meta/profiles/gnome-terminal.dconf` via `dconf load /org/gnome/terminal/`
 3. les changements sont visibles dans un **nouvel onglet** gnome-terminal (les onglets existants gardent leur état hérité)
 
 Si le dump versionné est cassé ou indésirable, restaurer depuis le backup :

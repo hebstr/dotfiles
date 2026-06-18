@@ -1,0 +1,10 @@
+{
+  "interfaceFontFamily": "Luciole",
+  "monospaceFontFamily": "Fira Code",
+  "textFontFamily": "Fira Code",
+  "baseFontSizeAction": false,
+  "nativeMenus": false,
+  "accentColor": "#0099ff",
+  "baseFontSize": 12,
+  "cssTheme": ""
+}

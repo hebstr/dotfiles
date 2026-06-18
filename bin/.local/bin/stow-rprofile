@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RPROFILE="$HOME/dotfiles/_meta/templates/Rprofile.site"
+RPROFILE="$HOME/dotfiles/_meta/profiles/Rprofile.site"
 OPT_R="${OPT_R:-/opt/R}"
 
 if [[ ! -f "$RPROFILE" ]]; then

@@ -192,6 +192,10 @@
 
     "packages.r.installer": "pak",
     "positron.r.quietMode": true,
+    "positron.r.customBinaries": [
+        "/opt/R/4.6.0/bin/R"
+    ],
+    "positron.r.interpreters.default": "/opt/R/4.6.0/bin/R",
     "positron.assistant.enable": false,
     "plots.darkFilter": "off",
     "positron.viewer.interactivePlotsInViewer": true,

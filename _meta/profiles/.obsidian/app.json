@@ -1,0 +1,17 @@
+{
+  "promptDelete": false,
+  "showLineNumber": true,
+  "propertiesInDocument": "source",
+  "livePreview": false,
+  "showInlineTitle": false,
+  "foldHeading": true,
+  "rightToLeft": false,
+  "tabSize": 2,
+  "vimMode": false,
+  "pdfExportSettings": {
+    "pageSize": "A4",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  }
+}
