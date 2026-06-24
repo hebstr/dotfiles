@@ -10,7 +10,8 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/anki-update"
 # override the relevant variable before calling `run`.
 #
 # Variables and their defaults:
-#   GH_API_OUTPUT           string returned by the gh api --jq call (post-jq tag_name)
+#   GH_API_OUTPUT           JSON release object returned by the gh api --jq call
+#                           (the script extracts tag_name and asset fields from it)
 #   CURL_CHECKSUMS_CONTENT  content written to the downloaded checksums file
 #   SHA256SUM_HASH          first field printed by the sha256sum stub
 #   TAR_STUB_MODE           full | no_install
@@ -109,9 +110,12 @@ setup() {
   FAKE_MARKER="$(mktemp)"
   export STUBS FAKE_MARKER
 
-  export GH_API_OUTPUT='25.02'
-  export CURL_CHECKSUMS_CONTENT='aabbccdd  anki-launcher-25.02-linux.tar.zst'
-  export SHA256SUM_HASH=aabbccdd
+  # gh api --jq returns one release object; the checksums file lists both linux
+  # tarballs so the suite is arch-agnostic (x86_64 and aarch64 both resolve)
+  export GH_API_OUTPUT='{"tag_name":"25.02","assets":[{"name":"anki-25.02-linux-x86_64.tar.zst","browser_download_url":"https://example.test/anki-25.02-linux-x86_64.tar.zst"},{"name":"anki-25.02-linux-aarch64.tar.zst","browser_download_url":"https://example.test/anki-25.02-linux-aarch64.tar.zst"},{"name":"anki-25.02-checksums.txt","browser_download_url":"https://example.test/anki-25.02-checksums.txt"}]}'
+  local hash='deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+  export CURL_CHECKSUMS_CONTENT="${hash}  anki-25.02-linux-x86_64.tar.zst"$'\n'"${hash}  anki-25.02-linux-aarch64.tar.zst"
+  export SHA256SUM_HASH="$hash"
   export TAR_STUB_MODE=full
   export ANKI_MARKER="${FAKE_MARKER}"
 
@@ -147,7 +151,7 @@ EOF
 # ─── version resolution ─────────────────────────────────────────────────────
 
 @test "exits 1 when GitHub API returns an empty tag_name" {
-  export GH_API_OUTPUT=''
+  export GH_API_OUTPUT='{"tag_name":"","assets":[{"name":"anki-25.02-linux-x86_64.tar.zst","browser_download_url":"https://example.test/x"}]}'
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Failed to resolve"* ]]
@@ -163,7 +167,7 @@ EOF
 @test "prints the version resolved from the GitHub API" {
   printf '25.02\n' >"${FAKE_MARKER}"
   run bash "${SCRIPT}"
-  [[ "$output" == *"Latest Anki launcher: 25.02"* ]]
+  [[ "$output" == *"Latest Anki release: 25.02"* ]]
 }
 
 # ─── up-to-date check ───────────────────────────────────────────────────────
@@ -198,17 +202,24 @@ EOF
 # ─── checksum verification ──────────────────────────────────────────────────
 
 @test "exits 1 when the tarball entry is absent from the checksums file" {
-  export CURL_CHECKSUMS_CONTENT='aabbccdd  some-other-package.tar.gz'
+  export CURL_CHECKSUMS_CONTENT='deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef  some-other-package.tar.gz'
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Checksum line missing"* ]]
 }
 
 @test "exits 1 when the sha256sum hash does not match the checksums file" {
-  export SHA256SUM_HASH=deadbeef
+  export SHA256SUM_HASH='cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe'
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Checksum mismatch"* ]]
+}
+
+@test "skips checksum verification when no checksums asset is published" {
+  export GH_API_OUTPUT='{"tag_name":"25.02","assets":[{"name":"anki-25.02-linux-x86_64.tar.zst","browser_download_url":"https://example.test/anki-25.02-linux-x86_64.tar.zst"},{"name":"anki-25.02-linux-aarch64.tar.zst","browser_download_url":"https://example.test/anki-25.02-linux-aarch64.tar.zst"}]}'
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skipping checksum verification"* ]]
 }
 
 # ─── install.sh discovery ───────────────────────────────────────────────────
@@ -236,19 +247,19 @@ EOF
 @test "prints the installed version on success" {
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Installed Anki launcher: 25.02"* ]]
+  [[ "$output" == *"Installed Anki: 25.02"* ]]
 }
 
 @test "prints previous version when upgrading from a known version" {
   printf '24.04\n' >"${FAKE_MARKER}"
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Previous launcher version: 24.04"* ]]
+  [[ "$output" == *"Previous version: 24.04"* ]]
 }
 
 @test "omits previous version line when marker file was absent" {
   rm "${FAKE_MARKER}"
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"Previous launcher version"* ]]
+  [[ "$output" != *"Previous version"* ]]
 }

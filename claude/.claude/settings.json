@@ -180,5 +180,6 @@
   },
   "effortLevel": "high",
   "autoDreamEnabled": true,
-  "showThinkingSummaries": true
+  "showThinkingSummaries": true,
+  "tui": "fullscreen"
 }

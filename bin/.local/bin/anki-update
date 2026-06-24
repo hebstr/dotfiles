@@ -8,40 +8,61 @@ for _cmd in jq curl gh; do
   }
 done
 
-VER=$(gh api "repos/ankitects/anki/releases?per_page=20" \
-  --jq 'map(select(.prerelease == false and (.assets | length > 0))) | .[0].tag_name // ""')
+case "$(uname -m)" in
+x86_64) ASSET_RE='linux.*x86_64\.tar\.zst$|linux\.tar\.zst$' ;;
+aarch64 | arm64) ASSET_RE='linux.*(aarch64|arm64)\.tar\.zst$' ;;
+*)
+  echo "Unsupported architecture: $(uname -m)" >&2
+  exit 1
+  ;;
+esac
 
-if [ -z "${VER}" ] || [ "${VER}" = "null" ]; then
-  echo "Failed to resolve latest Anki launcher version from GitHub API" >&2
+RELEASE=$(gh api "repos/ankitects/anki/releases?per_page=20" \
+  --jq 'map(select(.prerelease == false and (.assets | length > 0))) | .[0]')
+
+if [ "$RELEASE" = "" ] || [ "$RELEASE" = "null" ]; then
+  echo "Failed to resolve latest Anki release from GitHub API" >&2
   exit 1
 fi
 
-echo "Latest Anki launcher: ${VER}"
+VER=$(jq -r '.tag_name // ""' <<<"$RELEASE")
+TARBALL=$(jq -r --arg re "$ASSET_RE" 'first(.assets[] | select(.name | test($re))) | .name // ""' <<<"$RELEASE")
+TARBALL_URL=$(jq -r --arg re "$ASSET_RE" 'first(.assets[] | select(.name | test($re))) | .browser_download_url // ""' <<<"$RELEASE")
+CHECKSUMS=$(jq -r 'first(.assets[] | select(.name | test("checksums"))) | .name // ""' <<<"$RELEASE")
+CHECKSUMS_URL=$(jq -r 'first(.assets[] | select(.name | test("checksums"))) | .browser_download_url // ""' <<<"$RELEASE")
 
-MARKER="${ANKI_MARKER:-/usr/local/share/anki/launcher-version}"
-CURRENT=$(cat "${MARKER}" 2>/dev/null || true)
-[ -n "${CURRENT}" ] || CURRENT=unknown
+if [ "$VER" = "" ]; then
+  echo "Failed to resolve latest Anki version from GitHub API" >&2
+  exit 1
+fi
+if [ "$TARBALL" = "" ] || [ "$TARBALL_URL" = "" ]; then
+  echo "No Linux $(uname -m) tarball found in Anki release ${VER}" >&2
+  exit 1
+fi
 
-if [ "${CURRENT}" = "${VER}" ]; then
+echo "Latest Anki release: ${VER}"
+
+MARKER="${ANKI_MARKER:-/usr/local/share/anki/version}"
+CURRENT=$(cat "$MARKER" 2>/dev/null || true)
+[ "$CURRENT" != "" ] || CURRENT=unknown
+
+if [ "$CURRENT" = "$VER" ]; then
   echo "Already on ${VER} — nothing to do."
   exit 0
 fi
 
 sudo -v
 
-TARBALL="anki-launcher-${VER}-linux.tar.zst"
-CHECKSUMS="anki-launcher-${VER}-checksums.txt"
-BASE_URL="https://github.com/ankitects/anki/releases/download/${VER}"
 TMP=$(mktemp -d)
 SUDO_KEEPALIVE_PID=
 
 cleanup() {
   rc=$?
-  if [ -n "${SUDO_KEEPALIVE_PID}" ]; then
-    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+  if [ "$SUDO_KEEPALIVE_PID" != "" ]; then
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   fi
-  rm -rf "${TMP}"
-  exit "${rc}"
+  rm -rf "$TMP"
+  exit "$rc"
 }
 trap cleanup EXIT
 
@@ -54,37 +75,41 @@ SUDO_KEEPALIVE_PID=$!
 echo "Checking prerequisites..."
 sudo apt-get install -y -qq libxcb-xinerama0 libxcb-cursor0 libnss3 zstd
 
-echo "Downloading Anki ${VER}..."
-curl -fL --progress-bar -o "${TMP}/${TARBALL}" "${BASE_URL}/${TARBALL}"
-curl -fsSL -o "${TMP}/${CHECKSUMS}" "${BASE_URL}/${CHECKSUMS}"
+echo "Downloading Anki ${VER} (${TARBALL})..."
+curl -fL --progress-bar -o "${TMP}/${TARBALL}" "$TARBALL_URL"
 
-echo "Verifying checksum..."
-LINE=$(grep -F "  ${TARBALL}" "${TMP}/${CHECKSUMS}") || {
-  echo "Checksum line missing for ${TARBALL} in ${CHECKSUMS}" >&2
-  exit 1
-}
-EXPECTED=$(awk '{print $1}' <<<"${LINE}")
-ACTUAL=$(sha256sum "${TMP}/${TARBALL}" | awk '{print $1}')
-if [ "${EXPECTED}" != "${ACTUAL}" ]; then
-  echo "Checksum mismatch for ${TARBALL}" >&2
-  printf '  expected: %s\n  actual:   %s\n' "${EXPECTED}" "${ACTUAL}" >&2
-  exit 1
+if [ "$CHECKSUMS" != "" ] && [ "$CHECKSUMS_URL" != "" ]; then
+  curl -fsSL -o "${TMP}/${CHECKSUMS}" "$CHECKSUMS_URL"
+  echo "Verifying checksum..."
+  LINE=$(grep -E -- "^[0-9a-f]{64}  ${TARBALL//./\\.}$" "${TMP}/${CHECKSUMS}") || {
+    echo "Checksum line missing for ${TARBALL} in ${CHECKSUMS}" >&2
+    exit 1
+  }
+  EXPECTED=$(awk '{print $1}' <<<"$LINE")
+  ACTUAL=$(sha256sum "${TMP}/${TARBALL}" | awk '{print $1}')
+  if [ "$EXPECTED" != "$ACTUAL" ]; then
+    echo "Checksum mismatch for ${TARBALL}" >&2
+    printf '  expected: %s\n  actual:   %s\n' "$EXPECTED" "$ACTUAL" >&2
+    exit 1
+  fi
+else
+  echo "No checksums asset published for ${VER} — skipping checksum verification." >&2
 fi
 
 echo "Extracting..."
-tar -xf "${TMP}/${TARBALL}" -C "${TMP}"
-INSTALL_SH=$(find "${TMP}" -maxdepth 3 -name install.sh | head -1)
-if [ -z "${INSTALL_SH}" ]; then
+tar -xf "${TMP}/${TARBALL}" -C "$TMP"
+INSTALL_SH=$(find "$TMP" -maxdepth 3 -name install.sh -print -quit)
+if [ "$INSTALL_SH" = "" ]; then
   echo "install.sh missing from extracted archive — aborting" >&2
   exit 1
 fi
 
 echo "Installing..."
-(cd "$(dirname "${INSTALL_SH}")" && sudo ./install.sh)
+(cd "$(dirname "$INSTALL_SH")" && sudo ./install.sh)
 
-sudo mkdir -p "$(dirname "${MARKER}")"
-printf '%s\n' "${VER}" | sudo tee "${MARKER}" >/dev/null
+sudo mkdir -p "$(dirname "$MARKER")"
+printf '%s\n' "$VER" | sudo tee "$MARKER" >/dev/null
 
 echo
-echo "Installed Anki launcher: ${VER}"
-[ "${CURRENT}" = "unknown" ] || echo "Previous launcher version: ${CURRENT}"
+echo "Installed Anki: ${VER}"
+[ "$CURRENT" = "unknown" ] || echo "Previous version: ${CURRENT}"

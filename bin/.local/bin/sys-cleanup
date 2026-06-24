@@ -8,6 +8,7 @@ SELECTED_MODULES=()
 ALL_MODULES=(
   trash
   uv
+  rv
   prek
   go
   r-cache
@@ -108,6 +109,26 @@ clean_uv() {
   local after
   after=$(bytes_of "${HOME}/.cache/uv")
   record uv $((before - after)) OK
+}
+
+clean_rv() {
+  local target="${HOME}/.cache/rv"
+  [[ -d "$target" ]] || {
+    record rv 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$target")
+  # rv has no native cache GC. Cached packages are hardlinked into project
+  # libraries, so a file with link count >1 is still live (deleting it frees no
+  # disk and forces a re-download). Only link-count-1 entries (orphaned versions,
+  # git clones, logs) are genuinely reclaimable; removing them never breaks a
+  # project library.
+  run_or_dry find "$target" -type f -links 1 -delete
+  run_or_dry find "$target" -mindepth 1 -type d -empty -delete
+  local after
+  after=$(bytes_of "$target")
+  record rv $((before - after)) OK
 }
 
 clean_prek() {
@@ -276,6 +297,9 @@ clean_r_renv() {
   }
   local before
   before=$(bytes_of "$target")
+  # renv locks its sandbox dirs read-only (no owner write bit), which blocks rm
+  # from removing their entries; restore write before deleting.
+  [[ -d "${target}/sandbox" ]] && run_or_dry chmod -R u+w "${target}/sandbox"
   run_or_dry rm -rf "$target"
   local after
   after=$(bytes_of "$target")

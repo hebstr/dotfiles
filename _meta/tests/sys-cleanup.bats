@@ -81,7 +81,7 @@ teardown() {
 @test "--help lists every available module" {
   _run --help
   [ "$status" -eq 0 ]
-  for m in trash uv prek go r-cache claude-versions flatpak \
+  for m in trash uv rv prek go r-cache claude-versions flatpak \
     claude-cli jedi apt journal snap r-renv; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
@@ -340,6 +340,20 @@ EOF
   [[ "$output" == *"r-renv"*"skipped (not found)"* ]]
 }
 
+@test "rv module is skipped when ~/.cache/rv is absent" {
+  _run --dry-run rv
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"rv"*"skipped (not found)"* ]]
+}
+
+@test "rv module prints both find passes in dry-run when the cache exists" {
+  mkdir -p "${FAKE_HOME}/.cache/rv"
+  _run --dry-run rv
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] find ${FAKE_HOME}/.cache/rv -type f -links 1 -delete"* ]]
+  [[ "$output" == *"[dry-run] find ${FAKE_HOME}/.cache/rv -mindepth 1 -type d -empty -delete"* ]]
+}
+
 @test "claude-versions module is skipped when versions dir is absent" {
   _run --dry-run claude-versions
   [ "$status" -eq 0 ]
@@ -459,7 +473,7 @@ EOF
 @test "no module argument selects all modules" {
   _run --dry-run
   [ "$status" -eq 0 ]
-  for m in trash uv prek go r-cache claude-versions flatpak \
+  for m in trash uv rv prek go r-cache claude-versions flatpak \
     claude-cli jedi apt journal snap r-renv; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
@@ -547,6 +561,19 @@ EOF
   _run claude-cli
   [ "$status" -eq 0 ]
   [ ! -d "${FAKE_HOME}/.cache/claude-cli-nodejs" ]
+}
+
+@test "non-dry-run rv deletes link-count-1 files but preserves hardlinked ones" {
+  mkdir -p "${FAKE_HOME}/.cache/rv/pkg"
+  echo orphan >"${FAKE_HOME}/.cache/rv/pkg/orphan.tar"
+  echo live >"${FAKE_HOME}/.cache/rv/pkg/live.tar"
+  # A second hardlink (the live project library) lifts the link count above 1,
+  # marking the cache entry as still in use.
+  ln "${FAKE_HOME}/.cache/rv/pkg/live.tar" "${FAKE_HOME}/project-lib-hardlink"
+  _run rv
+  [ "$status" -eq 0 ]
+  [ ! -f "${FAKE_HOME}/.cache/rv/pkg/orphan.tar" ]
+  [ -f "${FAKE_HOME}/.cache/rv/pkg/live.tar" ]
 }
 
 @test "non-dry-run journal invokes journalctl with the configured vacuum size" {
