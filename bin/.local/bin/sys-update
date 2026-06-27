@@ -23,9 +23,10 @@ ALL_MODULES=(
   positron
   anki
   libreoffice
+  syncthing
 )
 
-SUDO_MODULES=(apt snap libreoffice)
+SUDO_MODULES=(apt snap libreoffice syncthing)
 
 usage() {
   cat <<EOF
@@ -224,6 +225,14 @@ update_libreoffice() {
     return
   fi
   run_or_dry libreoffice-update && record libreoffice OK
+}
+
+update_syncthing() {
+  if ! command -v syncthing-update >/dev/null 2>&1; then
+    record syncthing "skipped (not found)"
+    return
+  fi
+  run_or_dry syncthing-update && record syncthing OK
 }
 
 needs_sudo() {

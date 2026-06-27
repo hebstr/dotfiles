@@ -55,6 +55,7 @@
     ],
     "defaultMode": "default"
   },
+  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -179,7 +180,7 @@
     }
   },
   "effortLevel": "high",
+  "tui": "fullscreen",
   "autoDreamEnabled": true,
-  "showThinkingSummaries": true,
-  "tui": "fullscreen"
+  "showThinkingSummaries": true
 }

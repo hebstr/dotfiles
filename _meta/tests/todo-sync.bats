@@ -36,7 +36,7 @@ _p() {
   _write proj/TODO.md "$(_p '## P0' '- [ ] do thing')"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"| P0 | proj | do thing |  |"* ]]
+  [[ "$output" == *"| P0 | ~/proj | do thing |  |"* ]]
 }
 
 @test "checked item is skipped" {
@@ -70,9 +70,9 @@ _p() {
     '## P1' '- [ ] p1a' \
     '## P2' '- [ ] p2a')"
   run "$SCRIPT"
-  [[ "$output" == *"| P0 | proj | p0a |"* ]]
-  [[ "$output" == *"| P1 | proj | p1a |"* ]]
-  [[ "$output" == *"| P2 | proj | p2a |"* ]]
+  [[ "$output" == *"| P0 | ~/proj | p0a |"* ]]
+  [[ "$output" == *"| P1 | ~/proj | p1a |"* ]]
+  [[ "$output" == *"| P2 | ~/proj | p2a |"* ]]
 }
 
 @test "near-miss headings (## P10, ## P0a) are not tiers" {
@@ -108,10 +108,10 @@ _p() {
 
 # ─── project naming ────────────────────────────────────────────────────────
 
-@test "one-level path: project is directory name" {
+@test "one-level path: project is ~/dirname" {
   _write alpha/TODO.md "$(_p '## P0' '- [ ] a')"
   run "$SCRIPT"
-  [[ "$output" == *"| P0 | alpha | a |"* ]]
+  [[ "$output" == *"| P0 | ~/alpha | a |"* ]]
 }
 
 @test "two-level path: project keeps both segments" {
@@ -126,29 +126,84 @@ _p() {
   [[ "$output" == *"| P0 | beta/gamma | c |"* ]]
 }
 
-@test "perso file: project label is 'Perso'" {
-  _write Documents/pro/notes/TODO.md "$(_p '## P0' '- [ ] perso item')"
+@test "notes file: project label is '~/notes'" {
+  _write notes/TODO.md "$(_p '## P0' '- [ ] notes item')"
   run "$SCRIPT"
-  [[ "$output" == *"| P0 | Perso | perso item |"* ]]
+  [[ "$output" == *"| P0 | ~/notes | notes item |"* ]]
+}
+
+@test "admin file: project label is '~/admin'" {
+  _write admin/TODO.md "$(_p '## P0' '- [ ] admin item')"
+  run "$SCRIPT"
+  [[ "$output" == *"| P0 | ~/admin | admin item |"* ]]
+}
+
+@test "admin items sort before all other projects" {
+  _write admin/TODO.md "$(_p '## P0' '- [ ] admin p0')"
+  _write alpha/TODO.md "$(_p '## P0' '- [ ] alpha p0')"
+  run "$SCRIPT"
+  local l_admin l_alpha
+  l_admin=$(printf '%s\n' "$output" | grep -n 'admin p0' | head -1 | cut -d: -f1)
+  l_alpha=$(printf '%s\n' "$output" | grep -n 'alpha p0' | head -1 | cut -d: -f1)
+  [ "$l_admin" -lt "$l_alpha" ]
+}
+
+@test "delimiter between admin todos and project todos" {
+  _write admin/TODO.md "$(_p '## P0' '- [ ] admin item')"
+  _write proj/TODO.md "$(_p '## P0' '- [ ] proj item')"
+  run "$SCRIPT"
+  [[ "$output" == *"admin item"*"---"*"proj item"* ]]
+}
+
+@test "notes items sort after all other projects" {
+  _write notes/TODO.md "$(_p '## P0' '- [ ] notes p0')"
+  _write zeta/TODO.md "$(_p '## P2' '- [ ] zeta p2')"
+  run "$SCRIPT"
+  local l_notes l_zeta
+  l_notes=$(printf '%s\n' "$output" | grep -n 'notes p0' | head -1 | cut -d: -f1)
+  l_zeta=$(printf '%s\n' "$output" | grep -n 'zeta p2' | head -1 | cut -d: -f1)
+  [ "$l_zeta" -lt "$l_notes" ]
+}
+
+@test "delimiter between project todos and notes todos" {
+  _write notes/TODO.md "$(_p '## P0' '- [ ] notes item')"
+  _write proj/TODO.md "$(_p '## P0' '- [ ] proj item')"
+  run "$SCRIPT"
+  [[ "$output" == *"proj item"*"---"*"notes item"* ]]
+}
+
+@test "delimiter between todos and empty/non-conformant section" {
+  _write proj/TODO.md "$(_p '## P0' '- [ ] proj item')"
+  mkdir -p "$HOME/empty-proj"
+  : >"$HOME/empty-proj/TODO.md"
+  run "$SCRIPT"
+  [[ "$output" == *"proj item"*"---"*"## VIDE"* ]]
 }
 
 # ─── empty / non-conformant files ──────────────────────────────────────────
 
-@test "empty file: listed under 'Fichiers vides'" {
+@test "empty file: listed under 'VIDE'" {
   mkdir -p "$HOME/empty-proj"
   : >"$HOME/empty-proj/TODO.md"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"## Fichiers vides"* ]]
+  [[ "$output" == *"## VIDE"* ]]
   [[ "$output" == *"empty-proj"* ]]
 }
 
-@test "file without P0/P1/P2 section: listed under 'Fichiers non conformes'" {
+@test "file without P0/P1/P2 section: listed under 'À FORMATER'" {
   _write no-tier/TODO.md "$(_p '## Notes' '- [ ] just a note')"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"## Fichiers non conformes"* ]]
+  [[ "$output" == *"## À FORMATER"* ]]
   [[ "$output" == *"no-tier"* ]]
+}
+
+@test "file with P0/P1/P2 section but all items checked: not flagged non-conformant" {
+  _write done-proj/TODO.md "$(_p '## P0' '- [x] finished')"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"done-proj"* ]]
 }
 
 # ─── exclusions ────────────────────────────────────────────────────────────
@@ -178,7 +233,7 @@ _p() {
   _write proj/TODO.md "$(_p '## P0' $'- [ ] before\tafter')"
   run "$SCRIPT"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"| P0 | proj | before after |  |"* ]]
+  [[ "$output" == *"| P0 | ~/proj | before after |  |"* ]]
 }
 
 @test "tab in status annotation: normalized to space" {

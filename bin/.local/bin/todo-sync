@@ -2,7 +2,8 @@
 set -Eeuo pipefail
 
 scan_root="$HOME"
-perso="$HOME/Documents/pro/notes/TODO.md"
+admin="$HOME/admin/TODO.md"
+notes="$HOME/notes/TODO.md"
 
 pretty=0
 color=0
@@ -33,8 +34,8 @@ mapfile -t todos < <(
 )
 
 parse_items() {
-  local file=$1 project=$2
-  awk -v project="$project" '
+  local file=$1 project=$2 group=$3
+  awk -v project="$project" -v group="$group" '
     BEGIN { tier = ""; idx = 0 }
     /^## P0[[:space:]]*$/ { tier = "P0"; next }
     /^## P1[[:space:]]*$/ { tier = "P1"; next }
@@ -57,7 +58,7 @@ parse_items() {
       gsub(/\|/, "\\|", $0)
       gsub(/\|/, "\\|", statut)
       idx++
-      printf "%s\t%s\t%06d\t%s\t%s\n", tier, project, idx, $0, statut
+      printf "%s\t%s\t%06d\t%s\t%s\t%s\n", tier, project, idx, $0, statut, group
     }
   ' "$file"
 }
@@ -67,31 +68,96 @@ nonconforme=()
 
 for todo in "${todos[@]}"; do
   rel=${todo#"$HOME"/}
-  project=${rel%/TODO.md}
-  if [ "$todo" = "$perso" ]; then
-    project="Perso"
-  elif [[ $project == */*/* ]]; then
+  fullpath=${rel%/TODO.md}
+  project=$fullpath
+  group=1
+  if [ "$todo" = "$admin" ]; then
+    group=0
+  elif [ "$todo" = "$notes" ]; then
+    group=2
+  fi
+  if [[ $project == */*/* ]]; then
     current=${project##*/}
     rest=${project%/*}
     parent=${rest##*/}
     project="$parent/$current"
+  elif [[ $project != */* ]]; then
+    project=\~/"$project"
   fi
   if [ ! -s "$todo" ]; then
-    empty+=("$project")
+    empty+=("$fullpath")
     continue
   fi
   before=$(wc -l <"$rows")
-  parse_items "$todo" "$project" >>"$rows"
+  parse_items "$todo" "$project" "$group" >>"$rows"
   after=$(wc -l <"$rows")
-  if [ "$before" -eq "$after" ]; then
-    nonconforme+=("$project")
+  if [ "$before" -eq "$after" ] && ! grep -qE '^## P[012][[:space:]]*$' "$todo"; then
+    nonconforme+=("$fullpath")
   fi
 done
 
-sort -t$'\t' -k1,1 -k2,2 -k3,3n "$rows" -o "$rows"
+sort -t$'\t' -k6,6 -k1,1 -k2,2 -k3,3n "$rows" -o "$rows"
+
+lbl_admin="ADMIN"
+lbl_pro="PRO"
+lbl_notes="NOTES"
+lbl_diag="NON CONFORME"
+sep_admin="--- $lbl_admin ---"
+sep_pro="--- $lbl_pro ---"
+sep_notes="--- $lbl_notes ---"
+sep_diag="--- $lbl_diag ---"
+sep_plain="---"
+c_cyan=""
+c_reset=""
+
+titled_sep() {
+  local title="$1" width="$2"
+  local prefix="─ $title "
+  local n i
+  n=$((width - ${#prefix}))
+  [ "$n" -lt 1 ] && n=1
+  printf '%s' "$prefix"
+  for ((i = 0; i < n; i++)); do printf '─'; done
+}
+
+print_list() {
+  local label="$1"
+  local -n _list="$2"
+  if [ ${#_list[@]} -eq 0 ]; then return; fi
+  if [ "$pretty" -eq 1 ]; then
+    printf '\n  %s%s :%s\n' "$c_cyan" "$label" "$c_reset"
+    for path in "${_list[@]}"; do
+      printf '    %s%s%s\n' "$c_cyan" "$path" "$c_reset"
+    done
+  else
+    printf '\n## %s\n\n' "$label"
+    # shellcheck disable=SC2016
+    for path in "${_list[@]}"; do
+      printf -- '  - `%s`\n' "$path"
+    done
+  fi
+}
 
 if [ "$pretty" -eq 1 ]; then
-  awk -F'\t' -v color="$color" '
+  sep_width=80
+  sep_admin=$(titled_sep "$lbl_admin" "$sep_width")
+  sep_pro=$(titled_sep "$lbl_pro" "$sep_width")
+  sep_plain=$(for ((i = 0; i < sep_width; i++)); do printf '─'; done)
+  sep_notes=$(titled_sep "$lbl_notes" "$sep_width")
+  sep_diag=$(titled_sep "$lbl_diag" "$sep_width")
+  if [ "$color" -eq 1 ]; then
+    sep_admin=$'\033[38;5;245m'"$sep_admin"$'\033[0m'
+    sep_pro=$'\033[38;5;245m'"$sep_pro"$'\033[0m'
+    sep_plain=$'\033[38;5;245m'"$sep_plain"$'\033[0m'
+    sep_notes=$'\033[38;5;245m'"$sep_notes"$'\033[0m'
+    sep_diag=$'\033[38;5;245m'"$sep_diag"$'\033[0m'
+    c_cyan=$'\033[36m'
+    c_reset=$'\033[0m'
+  fi
+
+  printf '%s\n\n' "$sep_admin"
+
+  awk -F'\t' -v color="$color" -v sep_pro="$sep_pro" -v sep_notes="$sep_notes" '
     BEGIN {
       if (color == 1) {
         c_bold   = "\033[1m"
@@ -108,69 +174,60 @@ if [ "$pretty" -eq 1 ]; then
       proj[n] = $2
       item[n] = $4
       statut[n] = $5
+      grp[n] = $6
       if (length($1) > w_prio) w_prio = length($1)
       if (length($2) > w_proj) w_proj = length($2)
     }
     END {
       prev_key = ""
+      prev_grp = ""
       for (i = 1; i <= n; i++) {
         p = prio[i]; s = statut[i]
         key = p "\t" proj[i]
-        if (i > 1 && key != prev_key) print ""
+        if (i > 1) {
+          if (grp[i] != prev_grp) { print ""; print (grp[i] == "1") ? sep_pro : sep_notes; print "" }
+          else if (key != prev_key) print ""
+        }
         prev_key = key
+        prev_grp = grp[i]
         if      (p == "P0") cp = c_bold c_red
         else if (p == "P1") cp = c_yellow
         else                cp = ""
         end = (cp != "") ? c_reset : ""
-        printf "%s%-*s  %-*s  %s", cp, w_prio, p, w_proj, proj[i], item[i]
+        printf "%s  %-*s  %-*s  %s", cp, w_prio, p, w_proj, proj[i], item[i]
         if (s != "") printf "  [%s]", s
         printf "%s\n", end
       }
     }
   ' "$rows"
 
-  c_cyan=""
-  c_reset=""
-  if [ "$color" -eq 1 ]; then
-    c_cyan=$'\033[36m'
-    c_reset=$'\033[0m'
-  fi
-
-  if [ ${#empty[@]} -gt 0 ]; then
-    printf '\n%sFichiers vides :%s\n' "$c_cyan" "$c_reset"
-    for path in "${empty[@]}"; do
-      printf '  %s%s%s\n' "$c_cyan" "$path" "$c_reset"
-    done
-  fi
-
-  if [ ${#nonconforme[@]} -gt 0 ]; then
-    printf '\n%sFichiers non conformes (pas de section P0/P1/P2) :%s\n' "$c_cyan" "$c_reset"
-    for path in "${nonconforme[@]}"; do
-      printf '  %s%s%s\n' "$c_cyan" "$path" "$c_reset"
-    done
+  if [ -s "$rows" ] && { [ ${#empty[@]} -gt 0 ] || [ ${#nonconforme[@]} -gt 0 ]; }; then
+    printf '\n%s\n' "$sep_diag"
   fi
 else
+  printf '# TODO\n\n'
+  printf '\n%s\n\n' "$sep_admin"
   printf '| Prio | Projet | Item | Statut |\n'
   printf '|------|--------|------|--------|\n'
   if [ -s "$rows" ]; then
-    while IFS=$'\t' read -r tier project _idx item statut; do
-      printf '| %s | %s | %s | %s |\n' "$tier" "$project" "$item" "$statut"
-    done <"$rows"
+    awk -F'\t' -v sep_pro="$sep_pro" -v sep_notes="$sep_notes" '
+      NR > 1 && $6 != prev {
+        print ""
+        print ($6 == "1") ? sep_pro : sep_notes
+        print ""
+        print "| Prio | Projet | Item | Statut |"
+        print "|------|--------|------|--------|"
+      }
+      { prev = $6; printf "| %s | %s | %s | %s |\n", $1, $2, $4, $5 }
+    ' "$rows"
   fi
 
-  if [ ${#empty[@]} -gt 0 ]; then
-    printf '\n## Fichiers vides\n\n'
-    # shellcheck disable=SC2016
-    for path in "${empty[@]}"; do
-      printf -- '- `%s`\n' "$path"
-    done
-  fi
-
-  if [ ${#nonconforme[@]} -gt 0 ]; then
-    printf '\n## Fichiers non conformes (pas de section P0/P1/P2)\n\n'
-    # shellcheck disable=SC2016
-    for path in "${nonconforme[@]}"; do
-      printf -- '- `%s`\n' "$path"
-    done
+  if [ -s "$rows" ] && { [ ${#empty[@]} -gt 0 ] || [ ${#nonconforme[@]} -gt 0 ]; }; then
+    printf '\n%s\n' "$sep_diag"
   fi
 fi
+
+print_list "VIDE" empty
+print_list "À FORMATER" nonconforme
+
+printf '\n'

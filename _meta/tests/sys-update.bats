@@ -86,7 +86,7 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice; do
+    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -111,6 +111,7 @@ teardown() {
   echo "$output" | grep -E '^apt[[:space:]]+yes$'
   echo "$output" | grep -E '^snap[[:space:]]+yes$'
   echo "$output" | grep -E '^libreoffice[[:space:]]+yes$'
+  echo "$output" | grep -E '^syncthing[[:space:]]+yes$'
   echo "$output" | grep -E '^npm[[:space:]]+no$'
   echo "$output" | grep -E '^quarto[[:space:]]+no$'
 }
@@ -258,7 +259,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice; do
+    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1
