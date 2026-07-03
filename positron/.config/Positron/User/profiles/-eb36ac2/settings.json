@@ -107,7 +107,9 @@
 // LANGAGE SPÉCIFIQUE ----------------------------------------------------------
 
     "[r]": {
-        "editor.tabSize": 2
+        "editor.tabSize": 2,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "Posit.air-vscode",
     },
 
     "[python]": {
@@ -121,14 +123,15 @@
     },
 
     "[markdown]": {
-        "files.trimTrailingWhitespace": false
+        "files.trimTrailingWhitespace": false,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "jolars.panache",
     },
 
     "[quarto]": {
         "files.trimTrailingWhitespace": false,
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "jolars.panache",
-        // "editor.wordWrap": "off"
     },
 
     "quarto.render.previewType": "external",
