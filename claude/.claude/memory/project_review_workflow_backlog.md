@@ -11,7 +11,7 @@ Listed here for reference; they belong in a proper issue tracker.
 
 ## Backlog
 
-- Tests for `hebstr` R package (`~/Documents/pro/packages/R/hebstr/`): `test-easy_fct.R` done; remaining: `str_helpers.R`, `easy_descr.R`, `gt_heatmap.R`
+- Tests for `hebstr` R package (`~/Documents/pro/packages/R/hebstr/`): `test-easy_fct.R` done; remaining: `str_helpers.R`, `easy_descr.R`, `gt_heatmap.R`. Superseded by the fuller 2026-07-03 scan: prioritized plan (bugs, sanitization, test targets) lives in `hebstr/.claude/PLAN.md`
 - CI/CD: GitHub Actions with lint + tests + quarto render on `hebstr` (no `.github/workflows/` as of 2026-05-16)
 - Runtime data validation: pointblank (R) / pandera (Python) in pipelines
 - Occasional human review: rOpenSci community, biostat peers (quarterly on critical code)
