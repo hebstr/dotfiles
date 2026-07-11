@@ -1,0 +1,22 @@
+[compression]
+default-compression-format='zip'
+
+[icon-view]
+default-zoom-level='extra-large'
+
+[list-view]
+default-column-order=['name', 'size', 'type', 'owner', 'group', 'permissions', 'date_modified', 'date_accessed', 'date_created', 'recency', 'detailed_type']
+default-visible-columns=['name', 'size', 'date_modified']
+default-zoom-level='medium'
+
+[preferences]
+default-folder-viewer='list-view'
+migrated-gtk-settings=true
+search-filter-time-type='last_modified'
+search-view='list-view'
+
+[window-state]
+initial-size=(1920, 1156)
+maximized=true
+sidebar-width=276
+start-with-sidebar=true

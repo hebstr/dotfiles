@@ -1,0 +1,10 @@
+[keyboard]
+numlock-state=true
+
+[mouse]
+speed=0.0
+
+[touchpad]
+click-method='fingers'
+speed=0.30000000000000004
+two-finger-scrolling-enabled=true

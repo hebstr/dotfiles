@@ -9,6 +9,7 @@
 - [project_review_workflow_backlog.md](project_review_workflow_backlog.md): Implementation backlog from the 2026-03 code review glowup audit (hebstr tests, CI, data validation)
 - [project_rv_install_deployment.md](project_rv_install_deployment.md): rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability (no amd64 assumption)
 - [project_litrev_separate_from_hebstr.md](project_litrev_separate_from_hebstr.md): Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
+- [project_hebstr_doc_adaptive_figures.md](project_hebstr_doc_adaptive_figures.md): Theme-adaptive ggplot figures in quarto-hebstr-doc (sentinel ink + svglite transparent + Lua inline filter); lightbox incompatible; productization backlog
 
 ## Reference
 - [reference_editorconfig.md](reference_editorconfig.md): EditorConfig for team/multi-editor formatting consistency
@@ -20,6 +21,7 @@
 - [reference_regex_engine_accented_text.md](reference_regex_engine_accented_text.md): Big regex alternations over accented text: ICU backtracking vs re2 automaton (615x), RE2 \b is ASCII-only (misses méningé), 1:1 NFD fold + re2_locate_all + byte→char recovers ICU-identical output ~100x; edstr step 8
 - [reference_tool_update_routines.md](reference_tool_update_routines.md): devtools-update (cargo-dist installers → /usr/local/bin) vs cargo install-update (crates.io → ~/.cargo/bin); match routine to install method, don't conflate
 - [reference_positron_extension_registries.md](reference_positron_extension_registries.md): Positron profile vs global extensions.json; profile is authoritative, never delete folders judged orphan by global alone; jq-based recovery when registries point to missing folders
+- [reference_hebstr_outdec_locale_flag.md](reference_hebstr_outdec_locale_flag.md): hebstr uses global options(OutDec) as its EN/FR locale flag; leaks the comma into third-party numeric round-trips (tidycmprsk::cuminc breaks). Force OutDec="." around the fit; do not refactor hebstr (decided 2026-07-10)
 
 ## Feedback
 - [feedback_r_environment.md](feedback_r_environment.md): R environment idioms (rv not renv, `system2` over `system`, rv sync auto-runs at R startup via .Rprofile)

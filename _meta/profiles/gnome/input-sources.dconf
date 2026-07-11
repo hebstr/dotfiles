@@ -1,0 +1,5 @@
+[/]
+mru-sources=[('xkb', 'fr'), ('xkb', 'ch+fr')]
+per-window=false
+sources=[('xkb', 'fr')]
+xkb-options=@as []

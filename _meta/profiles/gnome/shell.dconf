@@ -1,0 +1,3 @@
+[/]
+enabled-extensions=['just-perfection-desktop@just-perfection', 'system-monitor@gnome-shell-extensions.gcampax.github.com', 'ubuntu-dock@ubuntu.com', 'tiling-assistant@ubuntu.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'apps-menu@gnome-shell-extensions.gcampax.github.com', 'gsconnect@andyholmes.github.io', 'ubuntu-appindicators@ubuntu.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+favorite-apps=['org.gnome.Nautilus.desktop', 'firefox.desktop', 'proton-mail.desktop', 'positron.desktop', 'code.desktop', 'obsidian.desktop', 'zotero-snap_zotero-snap.desktop', 'com.mastermindzh.tidal-hifi.desktop']

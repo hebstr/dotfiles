@@ -1,0 +1,5 @@
+[/]
+ignored-directories=['po', 'CVS', 'core-dumps', 'lost+found', '.git', '.venv', 'venv', '.env', '.quarto', '_freeze', '_site', '_book', '__pycache__', '.ruff_cache', '.mypy_cache', '.pytest_cache', '.ipynb_checkpoints', '.tox', '.nox', 'node_modules', 'target', '.Rproj.user', 'rv', 'renv']
+ignored-directories-with-content=['.trackerignore', '.hg', '.nomedia']
+ignored-files=['*~', '*.o', '*.la', '*.lo', '*.loT', '*.in', '*.m4', '*.rej', '*.gmo', '*.orig', '*.pc', '*.omf', '*.aux', '*.tmp', '*.vmdk', '*.vm*', '*.nvram', '*.part', '*.rcore', '*.lzo', 'autom4te', 'conftest', 'confstat', 'Makefile', 'SCCS', 'ltmain.sh', 'libtool', 'config.status', 'confdefs.h', 'configure', '#*#', '~$*.doc?', '~$*.dot?', '~$*.xls?', '~$*.xlt?', '~$*.xlam', '~$*.ppt?', '~$*.pot?', '~$*.ppam', '~$*.ppsm', '~$*.ppsx', '~$*.vsd?', '~$*.vss?', '~$*.vst?', '*.directory', '*.pyc', '*.pyo', '.Rhistory', '.RData', '.DS_Store', 'Thumbs.db', '*.swp', '*.swo']
+index-recursive-directories=['&DESKTOP', '&DOCUMENTS', '&MUSIC', '&PICTURES', '&VIDEOS', '/home/julien/notes', '/home/julien/dotfiles', '/home/julien/archive', '/home/julien/admin']

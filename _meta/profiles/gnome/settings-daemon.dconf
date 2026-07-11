@@ -1,0 +1,15 @@
+[color]
+night-light-enabled=false
+night-light-schedule-automatic=true
+night-light-schedule-from=17.5
+night-light-temperature=uint32 2428
+
+[media-keys]
+custom-keybindings=@as []
+
+[power]
+ambient-enabled=false
+power-button-action='interactive'
+sleep-inactive-ac-timeout=900
+sleep-inactive-ac-type='nothing'
+sleep-inactive-battery-type='nothing'

@@ -13,9 +13,10 @@ case "$FILE" in
 *) exit 0 ;;
 esac
 
-# Reconstruct the full post-edit file. prose-lint skips fenced code blocks, so
-# it must see the whole file with fences intact; linting the bare Edit fragment
-# (new_string) misreads code lines as prose. Write carries full content; Edit
+# Reconstruct the full post-edit file. prose-lint skips fenced code blocks and
+# display-math blocks, so it must see the whole file with those intact; linting
+# the bare Edit fragment (new_string) misreads such lines as prose. Write
+# carries full content; Edit
 # carries old_string/new_string applied against the current on-disk file.
 CONTENT=$(
   HOOK_INPUT="$INPUT" python3 - "$FILE" <<'PY'

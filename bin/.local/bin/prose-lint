@@ -15,10 +15,11 @@
 # parallelism) are context-dependent and noisy to verify mechanically;
 # defer to /write.
 #
-# Skips triple-backtick fenced blocks, inline backtick spans, and any line
-# containing the marker `<!-- prose-lint:ignore -->` (use the marker for
-# rule-meta lines that document a forbidden pattern verbatim). Tilde fences
-# (~~~) and 4-space indented code blocks are NOT recognized.
+# Skips triple-backtick fenced blocks, `$$…$$` display-math blocks, inline
+# backtick spans, and any line containing the marker
+# `<!-- prose-lint:ignore -->` (use the marker for rule-meta lines that
+# document a forbidden pattern verbatim). Tilde fences (~~~) and 4-space
+# indented code blocks are NOT recognized.
 #
 # Files under any `.claude/memory/` path are skipped entirely: memory files
 # are Claude-facing instructions, not user-facing prose, so the rhetorical
@@ -43,6 +44,9 @@ strip_code() {
   awk '
     /^```/ { fence = !fence; print NR "\t"; next }
     fence  { print NR "\t"; next }
+    /^\$\$.*\$\$/ { print NR "\t"; next }
+    /^\$\$/ { math = !math; print NR "\t"; next }
+    math   { print NR "\t"; next }
     /<!-- prose-lint:ignore -->/ { print NR "\t"; next }
     {
       gsub(/`[^`]*`/, "")
@@ -94,6 +98,9 @@ check_soft_wrap() {
     in_front { lines[NR] = ""; next }
     /^```/ { fence = !fence; lines[NR] = ""; next }
     fence  { lines[NR] = ""; next }
+    /^\$\$.*\$\$/ { lines[NR] = ""; next }
+    /^\$\$/ { math = !math; lines[NR] = ""; next }
+    math   { lines[NR] = ""; next }
     /<!-- prose-lint:ignore -->/ { lines[NR] = ""; n = NR; next }
     { lines[NR] = $0; n = NR }
     END {

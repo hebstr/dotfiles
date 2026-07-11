@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# shellcheck disable=SC2030,SC2031
+# shellcheck disable=SC2030,SC2031,SC2016
 # Tests for bin/.local/bin/prose-lint
 
 SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/prose-lint"
@@ -36,6 +36,32 @@ _fixture() {
     "code with — em dash" \
     '```' \
     "more prose.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "em dash inside single-line display math: exit 0" {
+  local f
+  f=$(_fixture math-oneline.md "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "" \
+    '$$a — b$$' \
+    "" \
+    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "em dash inside multi-line display math block: exit 0" {
+  local f
+  f=$(_fixture math-block.md "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "" \
+    '$$' \
+    "x — y" \
+    '$$' \
+    "" \
+    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
 }
@@ -194,6 +220,27 @@ _fixture() {
   run "$SCRIPT" "$f"
   [ "$status" -eq 1 ]
   [[ "$output" == *"[en-dash]"* ]]
+}
+
+@test "em dash in inline single-dollar math: flagged as prose, exit 1" {
+  local f
+  f=$(_fixture math-dollar.md "Inline math like \$a — b\$ stays flagged as prose.")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
+}
+
+@test "em dash after closed display math block: flagged, exit 1" {
+  local f
+  f=$(_fixture math-resume.md "$(printf '%s\n' \
+    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    '$$' \
+    "x + y" \
+    '$$' \
+    "Closing prose with an em dash — must still be flagged after math.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
 }
 
 @test "soft wrap: short line sandwiched: flag soft-wrap, exit 1" {

@@ -1,0 +1,6 @@
+[keybindings]
+maximize=@as []
+unmaximize=@as []
+
+[preferences]
+num-workspaces=1

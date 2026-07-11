@@ -1,0 +1,4 @@
+[/]
+lock-delay=uint32 0
+lock-enabled=false
+ubuntu-lock-on-suspend=false

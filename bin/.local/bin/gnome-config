@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILE_DIR="${HOME}/dotfiles/_meta/profiles/gnome"
+
+# Ordered domains and their dconf root paths (single source of truth).
+DOMAINS=(
+  desktop-interface input-sources peripherals privacy screensaver
+  session wm mutter nautilus settings-daemon shell shell-extensions
+  terminal tracker
+)
+declare -A DPATH=(
+  ["desktop-interface"]="/org/gnome/desktop/interface/"
+  ["input-sources"]="/org/gnome/desktop/input-sources/"
+  ["peripherals"]="/org/gnome/desktop/peripherals/"
+  ["privacy"]="/org/gnome/desktop/privacy/"
+  ["screensaver"]="/org/gnome/desktop/screensaver/"
+  ["session"]="/org/gnome/desktop/session/"
+  ["wm"]="/org/gnome/desktop/wm/"
+  ["mutter"]="/org/gnome/mutter/"
+  ["nautilus"]="/org/gnome/nautilus/"
+  ["settings-daemon"]="/org/gnome/settings-daemon/plugins/"
+  ["shell"]="/org/gnome/shell/"
+  ["shell-extensions"]="/org/gnome/shell/extensions/"
+  ["terminal"]="/org/gnome/terminal/"
+  ["tracker"]="/org/freedesktop/tracker/miner/files/"
+)
+
+usage() {
+  cat <<EOF
+Usage: gnome-config <command> [domain...]
+
+Commands:
+  dump     [domain...]   Export current dconf state to _meta/profiles/gnome/
+  restore  [domain...]   Apply the saved state (adds/overwrites keys, never deletes; backs up to /tmp first)
+  diff     [domain...]   Show drift between live and saved state (exit 1 if any drift)
+
+With no domain, the command applies to all domains. Domains:
+  ${DOMAINS[*]}
+EOF
+  exit "${1:-0}"
+}
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$1" >&2
+    exit 1
+  }
+}
+
+# Drop keyfile groups whose header starts with a hardware/state-specific prefix.
+drop_groups() {
+  awk -v pat="$1" '/^\[/ { skip = ($0 ~ pat) } !skip'
+}
+
+# Per-domain curation applied to a raw `dconf dump`.
+domain_filter() {
+  case "$1" in
+  peripherals) drop_groups '^\[tablets' ;;        # hardware-specific tablet blocks
+  shell-extensions) drop_groups '^\[gsconnect' ;; # device-pairing state (certs, IPs)
+  *) cat ;;
+  esac
+}
+
+# Canonical representation of a domain's live state, matching what is stored
+# on disk so `diff` is empty when in sync.
+live_dump() {
+  local d="$1" p="${DPATH[$1]}"
+  if [ "$d" = shell ]; then
+    local ext fav
+    ext=$(dconf read "${p}enabled-extensions")
+    fav=$(dconf read "${p}favorite-apps")
+    printf '[/]\n'
+    [ -n "$ext" ] && printf 'enabled-extensions=%s\n' "$ext"
+    [ -n "$fav" ] && printf 'favorite-apps=%s\n' "$fav"
+  else
+    dconf dump "$p" | domain_filter "$d"
+  fi
+}
+
+TARGETS=()
+resolve_targets() {
+  TARGETS=()
+  if [ "$#" -eq 0 ]; then
+    TARGETS=("${DOMAINS[@]}")
+    return 0
+  fi
+  local t
+  for t in "$@"; do
+    if [ "${DPATH[$t]:-}" = "" ]; then
+      printf 'Unknown domain: %s\n' "$t" >&2
+      printf 'Known domains: %s\n' "${DOMAINS[*]}" >&2
+      exit 1
+    fi
+    TARGETS+=("$t")
+  done
+}
+
+cmd_dump() {
+  require dconf
+  resolve_targets "$@"
+  mkdir -p "$PROFILE_DIR"
+  local d
+  for d in "${TARGETS[@]}"; do
+    live_dump "$d" >"$PROFILE_DIR/$d.dconf"
+    printf 'dumped %s\n' "$d"
+  done
+}
+
+cmd_restore() {
+  require dconf
+  resolve_targets "$@"
+  local d f backup ts
+  ts=$(date +%Y%m%d-%H%M%S)
+  for d in "${TARGETS[@]}"; do
+    f="$PROFILE_DIR/$d.dconf"
+    [ -f "$f" ] || {
+      printf 'No dump file for %s (%s)\n' "$d" "$f" >&2
+      exit 1
+    }
+    backup="/tmp/gnome-config-backup-${d}-${ts}.dconf"
+    dconf dump "${DPATH[$d]}" >"$backup"
+    printf 'backed up %s to %s\n' "$d" "$backup"
+    dconf load "${DPATH[$d]}" <"$f"
+    printf 'restored %s\n' "$d"
+  done
+  printf 'Some changes need a new terminal tab or a shell restart to show.\n'
+}
+
+cmd_diff() {
+  require dconf
+  require diff
+  resolve_targets "$@"
+  local d f rc=0
+  for d in "${TARGETS[@]}"; do
+    f="$PROFILE_DIR/$d.dconf"
+    [ -f "$f" ] || {
+      printf 'No dump file for %s (%s)\n' "$d" "$f" >&2
+      exit 1
+    }
+    if ! diff -u --label "live:$d" --label "saved:$d" <(live_dump "$d") "$f"; then
+      rc=1
+    fi
+  done
+  return "$rc"
+}
+
+case "${1:-}" in
+dump)
+  shift
+  cmd_dump "$@"
+  ;;
+restore)
+  shift
+  cmd_restore "$@"
+  ;;
+diff)
+  shift
+  cmd_diff "$@"
+  ;;
+-h | --help | "") usage ;;
+*)
+  printf 'Unknown command: %s\n' "$1" >&2
+  usage 1
+  ;;
+esac

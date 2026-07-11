@@ -1,0 +1,16 @@
+[/]
+clock-format='24h'
+clock-show-seconds=false
+clock-show-weekday=true
+color-scheme='prefer-dark'
+enable-animations=true
+enable-hot-corners=true
+font-antialiasing='rgba'
+font-hinting='slight'
+font-name='Ubuntu Light 11'
+font-rgba-order='rgb'
+gtk-theme='Yaru-dark'
+icon-theme='Yaru'
+locate-pointer=false
+show-battery-percentage=true
+text-scaling-factor=1.3500000000000001

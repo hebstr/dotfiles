@@ -9,6 +9,10 @@ reset='<Primary><Shift>k'
 reset-and-clear='disabled'
 select-all='<Primary><Shift>a'
 
+[legacy/profiles:]
+default='b1dcc9dd-5262-4d8d-a863-c897e6d979b9'
+list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9']
+
 [legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
 background-color='#282828'
 cell-height-scale=1.2
