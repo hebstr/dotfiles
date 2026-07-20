@@ -8,7 +8,7 @@ metadata:
 The user has two separate tool-update routines. Match the routine to how the tool is installed; never add a tool to the wrong one.
 
 - **`devtools-update`** (`~/dotfiles/bin/.local/bin/devtools-update`): handles **cargo-dist binaries only**, via each repo's `<tool>-installer.sh` on GitHub `releases/latest`, piped through `sudo env <VAR>=<prefix> sh`, installed **system-wide to `/usr/local/bin`**. Eligibility is mechanical: the repo must publish `<tool>-installer.sh`. Current set: air, jarl, uv, ruff, prek. Adding a tool that has no cargo-dist installer produces a 404 URL.
-- **`cargo install-update`** (the `cargo-update` crate, binary `cargo-install-update`): updates everything in `~/.cargo/bin` from crates.io. Covers: cargo-update, bacon, filter-repo-rs, ggsql-cli, shellharden, typstyle, panache. No wrapper script automates it; the user runs `cargo install-update -a` manually.
+- **`cargo install-update`** (the `cargo-update` crate, binary `cargo-install-update`): updates everything in `~/.cargo/bin` from crates.io. Covers: cargo-update, bacon, filter-repo-rs, ggsql-cli, shellharden, typstyle, panache. `sys-update`'s `cargo` module runs `cargo install-update -a` (or run it directly to update just these).
 
 Decision rule when a new Rust tool appears: does its repo ship `<tool>-installer.sh`? Yes and you want it system-wide → `devtools-update`. No, or it is `cargo install`-ed into `~/.cargo/bin` → it is already covered by `cargo install-update`, add nothing.
 

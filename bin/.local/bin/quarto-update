@@ -29,7 +29,7 @@ echo "Latest Quarto release: ${VER}"
 CURRENT=$(quarto --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
 [ -n "${CURRENT}" ] || CURRENT=unknown
 if [ "${CURRENT}" = "${VER}" ]; then
-  echo "Already on ${VER} — nothing to do."
+  echo "Already on ${VER}: nothing to do."
   exit 0
 fi
 
@@ -49,8 +49,8 @@ cleanup() {
     kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
   fi
   if [ "${SWAPPED}" = "1" ] && [ ! -d "${PREFIX}" ] && [ -d "${BACKUP}" ]; then
-    echo "Install failed after backup — restoring ${BACKUP} to ${PREFIX}" >&2
-    sudo mv "${BACKUP}" "${PREFIX}" || echo "Rollback failed — ${BACKUP} still holds the previous install" >&2
+    echo "Install failed after backup: restoring ${BACKUP} to ${PREFIX}" >&2
+    sudo mv "${BACKUP}" "${PREFIX}" || echo "Rollback failed: ${BACKUP} still holds the previous install" >&2
   fi
   rm -rf "${TMP}"
   exit "${rc}"
@@ -64,7 +64,7 @@ done) &
 SUDO_KEEPALIVE_PID=$!
 
 if [ -e "${BACKUP}" ]; then
-  echo "Backup path ${BACKUP} already exists — remove it first or rename it." >&2
+  echo "Backup path ${BACKUP} already exists: remove it first or rename it." >&2
   exit 1
 fi
 
@@ -85,12 +85,12 @@ mkdir -p "${STAGE}"
 tar -xzf "${TMP}/${TARBALL}" -C "${STAGE}" --strip-components=1
 
 if [ ! -x "${STAGE}/bin/quarto" ]; then
-  echo "Extracted tree missing bin/quarto — aborting before touching ${PREFIX}" >&2
+  echo "Extracted tree missing bin/quarto: aborting before touching ${PREFIX}" >&2
   exit 1
 fi
 
 if ! "${STAGE}/bin/quarto" --version >/dev/null 2>&1; then
-  echo "Staged quarto fails to execute — aborting before touching ${PREFIX}" >&2
+  echo "Staged quarto fails to execute: aborting before touching ${PREFIX}" >&2
   exit 1
 fi
 
@@ -105,4 +105,4 @@ echo "Installed version:"
 "${PREFIX}/bin/quarto" --version
 echo
 echo "Run 'quarto check' to validate the install."
-echo "Backup kept at ${BACKUP} — remove with: sudo rm -rf ${BACKUP}"
+echo "Backup kept at ${BACKUP}. Remove with: sudo rm -rf ${BACKUP}"

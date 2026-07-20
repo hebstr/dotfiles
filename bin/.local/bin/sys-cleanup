@@ -26,7 +26,7 @@ SUDO_MODULES=(apt journal snap)
 
 usage() {
   cat <<EOF
-sys-cleanup — modular disk cleanup
+sys-cleanup: modular disk cleanup
 
 Usage:
   sys-cleanup [options] [module...]

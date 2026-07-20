@@ -1,0 +1,205 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Installs/updates the two binaries backing the Lua lint/format gate (rules/lua.md)
+# to the latest GitHub release, user-local under ~/.local. Neither publishes
+# release checksums, so TLS to GitHub is the integrity boundary (as in duckdb-update).
+
+BIN_DIR="${HOME}/.local/bin"
+SHARE_DIR="${HOME}/.local/share"
+
+FORCE=0
+
+TMPDIRS=()
+cleanup() {
+  local d
+  for d in "${TMPDIRS[@]+"${TMPDIRS[@]}"}"; do
+    rm -rf "$d"
+  done
+}
+trap cleanup EXIT
+
+usage() {
+  cat <<EOF
+lua-toolchain-update: update StyLua and lua-language-server to latest release
+
+USAGE:
+  lua-toolchain-update [--force]
+  lua-toolchain-update -h | --help
+
+OPTIONS:
+  --force      Reinstall even if already on the latest version
+  -h, --help   Show this help
+
+Installs stylua to ~/.local/bin, lua-language-server runtime to
+~/.local/share with a launcher symlink in ~/.local/bin.
+EOF
+}
+
+resolve_latest() {
+  local repo="$1"
+  gh api "repos/${repo}/releases/latest" --jq '(.tag_name // "") | sub("^v"; "")'
+}
+
+installed_semver() {
+  local bin="$1"
+  command -v "$bin" >/dev/null 2>&1 || {
+    echo ""
+    return 0
+  }
+  "$bin" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo ""
+}
+
+detect_arch() {
+  case "$(uname -m)" in
+  x86_64) STYLUA_ARCH=x86_64 LUALS_ARCH=x64 ;;
+  aarch64) STYLUA_ARCH=aarch64 LUALS_ARCH=arm64 ;;
+  *)
+    echo "lua-toolchain-update: unsupported architecture: $(uname -m)" >&2
+    return 1
+    ;;
+  esac
+}
+
+update_stylua() {
+  local latest current
+  latest=$(resolve_latest JohnnyMorganz/StyLua)
+  if [[ -z "$latest" || "$latest" == "null" ]]; then
+    echo "lua-toolchain-update: failed to resolve latest StyLua version" >&2
+    return 1
+  fi
+  current=$(installed_semver stylua)
+
+  if [[ "$FORCE" != "1" && -n "$current" && "$current" == "$latest" ]]; then
+    echo "  stylua ${current}: already up to date"
+    return 0
+  fi
+
+  local url="https://github.com/JohnnyMorganz/StyLua/releases/download/v${latest}/stylua-linux-${STYLUA_ARCH}.zip"
+  local tmp
+  tmp=$(mktemp -d) || return 1
+  TMPDIRS+=("$tmp")
+
+  echo "→ ${current:-installing} → ${latest}: downloading stylua"
+  curl -fL --progress-bar -o "${tmp}/stylua.zip" "$url"
+  unzip -o -q "${tmp}/stylua.zip" -d "$tmp"
+
+  if [[ ! -f "${tmp}/stylua" ]]; then
+    echo "lua-toolchain-update: stylua binary missing from archive" >&2
+    return 1
+  fi
+  chmod +x "${tmp}/stylua"
+  if ! "${tmp}/stylua" --version >/dev/null 2>&1; then
+    echo "lua-toolchain-update: extracted stylua fails to execute" >&2
+    return 1
+  fi
+
+  mkdir -p "$BIN_DIR"
+  install -m 0755 "${tmp}/stylua" "${BIN_DIR}/stylua"
+  echo "✓ $("${BIN_DIR}/stylua" --version)"
+}
+
+update_luals() {
+  local latest current
+  latest=$(resolve_latest LuaLS/lua-language-server)
+  if [[ -z "$latest" || "$latest" == "null" ]]; then
+    echo "lua-toolchain-update: failed to resolve latest lua-language-server version" >&2
+    return 1
+  fi
+  current=$(installed_semver lua-language-server)
+
+  if [[ "$FORCE" != "1" && -n "$current" && "$current" == "$latest" ]]; then
+    echo "  lua-language-server ${current}: already up to date"
+    return 0
+  fi
+
+  local url="https://github.com/LuaLS/lua-language-server/releases/download/${latest}/lua-language-server-${latest}-linux-${LUALS_ARCH}.tar.gz"
+  local dest="${SHARE_DIR}/lua-language-server"
+  local link="${BIN_DIR}/lua-language-server"
+  local tmp
+  tmp=$(mktemp -d) || return 1
+  TMPDIRS+=("$tmp")
+
+  echo "→ ${current:-installing} → ${latest}: downloading lua-language-server"
+  curl -fL --progress-bar -o "${tmp}/luals.tar.gz" "$url"
+
+  local stage="${tmp}/luals"
+  mkdir -p "$stage"
+  tar -xzf "${tmp}/luals.tar.gz" -C "$stage"
+
+  if [[ ! -x "${stage}/bin/lua-language-server" ]]; then
+    echo "lua-toolchain-update: bin/lua-language-server missing from archive" >&2
+    return 1
+  fi
+  if ! "${stage}/bin/lua-language-server" --version >/dev/null 2>&1; then
+    echo "lua-toolchain-update: staged lua-language-server fails to execute" >&2
+    return 1
+  fi
+
+  mkdir -p "$SHARE_DIR" "$BIN_DIR"
+  local backup=""
+  if [[ -d "$dest" ]]; then
+    backup="${dest}.bak-${current:-unknown}-$(date +%Y%m%d-%H%M%S)"
+    mv "$dest" "$backup"
+  fi
+  if ! mv "$stage" "$dest"; then
+    echo "lua-toolchain-update: failed to install runtime to ${dest}" >&2
+    [[ -n "$backup" && -d "$backup" ]] && mv "$backup" "$dest"
+    return 1
+  fi
+  ln -sfn "${dest}/bin/lua-language-server" "$link"
+
+  if [[ -n "$backup" ]]; then
+    find "$SHARE_DIR" -maxdepth 1 -type d -name 'lua-language-server.bak-*' \
+      ! -path "$backup" -exec rm -rf {} +
+  fi
+
+  echo "✓ lua-language-server $("$link" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
+  [[ -n "$backup" ]] && echo "  previous runtime kept at ${backup}"
+  return 0
+}
+
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --force)
+      FORCE=1
+      shift
+      ;;
+    -*)
+      echo "lua-toolchain-update: unknown option '$1'" >&2
+      usage >&2
+      return 2
+      ;;
+    *)
+      echo "lua-toolchain-update: unexpected argument '$1'" >&2
+      usage >&2
+      return 2
+      ;;
+    esac
+  done
+
+  for cmd in gh curl unzip tar; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "lua-toolchain-update: missing required command '$cmd'" >&2
+      return 1
+    }
+  done
+
+  detect_arch
+
+  local failed=()
+  update_stylua || failed+=(stylua)
+  update_luals || failed+=(lua-language-server)
+
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    echo "lua-toolchain-update: failed for: ${failed[*]}" >&2
+    return 1
+  fi
+}
+
+main "$@"

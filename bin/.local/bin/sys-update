@@ -18,19 +18,21 @@ ALL_MODULES=(
   rv
   rig
   duckdb
+  lua-toolchain
   claude-plugins
   quarto
+  pandoc
   positron
   anki
   libreoffice
   syncthing
 )
 
-SUDO_MODULES=(apt snap libreoffice syncthing)
+SUDO_MODULES=(apt snap libreoffice syncthing pandoc)
 
 usage() {
   cat <<EOF
-sys-update — system and devtools updates
+sys-update: system and devtools updates
 
 Usage:
   sys-update [options] [module...]
@@ -187,6 +189,14 @@ update_duckdb() {
   run_or_dry duckdb-update && record duckdb OK
 }
 
+update_lua_toolchain() {
+  if ! command -v lua-toolchain-update >/dev/null 2>&1; then
+    record lua-toolchain "skipped (not found)"
+    return
+  fi
+  run_or_dry lua-toolchain-update && record lua-toolchain OK
+}
+
 update_claude_plugins() {
   if ! command -v claude-plugins-update >/dev/null 2>&1; then
     record claude-plugins "skipped (not found)"
@@ -201,6 +211,14 @@ update_quarto() {
     return
   fi
   run_or_dry quarto-update && record quarto OK
+}
+
+update_pandoc() {
+  if ! command -v pandoc-update >/dev/null 2>&1; then
+    record pandoc "skipped (not found)"
+    return
+  fi
+  run_or_dry pandoc-update && record pandoc OK
 }
 
 update_positron() {

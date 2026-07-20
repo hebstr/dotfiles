@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Installs/updates the system pandoc from the upstream jgm/pandoc .deb to the
+# latest release. Ubuntu 24.04 freezes pandoc at 3.1.3, so the upstream deb is
+# the only path forward. The Lua gate (rules/lua.md) needs >= 3.10 for
+# pandoc.utils.run_lua_filter. No checksums are published, so TLS to GitHub is
+# the integrity boundary (as in duckdb-update).
+#
+# Uses sudo, matching quarto-update. From a session with no TTY for sudo (e.g.
+# Claude Code), run the dpkg step manually via pkexec instead.
+
+FORCE=0
+
+TMPDIRS=()
+cleanup() {
+  local d
+  for d in "${TMPDIRS[@]+"${TMPDIRS[@]}"}"; do
+    rm -rf "$d"
+  done
+}
+trap cleanup EXIT
+
+usage() {
+  cat <<EOF
+pandoc-update: update the system pandoc to the latest upstream .deb release
+
+USAGE:
+  pandoc-update [--force]
+  pandoc-update -h | --help
+
+OPTIONS:
+  --force      Reinstall even if already on the latest version
+  -h, --help   Show this help
+
+Installs the jgm/pandoc .deb system-wide via 'sudo apt-get install'.
+EOF
+}
+
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --force)
+      FORCE=1
+      shift
+      ;;
+    -*)
+      echo "pandoc-update: unknown option '$1'" >&2
+      usage >&2
+      return 2
+      ;;
+    *)
+      echo "pandoc-update: unexpected argument '$1'" >&2
+      usage >&2
+      return 2
+      ;;
+    esac
+  done
+
+  for cmd in gh apt-get sudo dpkg; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "pandoc-update: missing required command '$cmd'" >&2
+      return 1
+    }
+  done
+
+  local debarch
+  case "$(uname -m)" in
+  x86_64) debarch=amd64 ;;
+  aarch64) debarch=arm64 ;;
+  *)
+    echo "pandoc-update: unsupported architecture: $(uname -m)" >&2
+    return 1
+    ;;
+  esac
+
+  local latest
+  latest=$(gh api repos/jgm/pandoc/releases/latest --jq '(.tag_name // "") | sub("^v"; "")')
+  if [[ -z "$latest" || "$latest" == "null" ]]; then
+    echo "pandoc-update: failed to resolve latest pandoc version from GitHub API" >&2
+    return 1
+  fi
+  echo "Latest pandoc release: ${latest}"
+
+  # pandoc tags vary in component count (3.10, 3.1.3), so a fixed X.Y.Z regex
+  # would miss two-component versions.
+  local current
+  current=$(pandoc --version 2>/dev/null | head -1 | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1 || true)
+  [[ -n "$current" ]] || current=unknown
+
+  if [[ "$FORCE" != "1" && "$current" == "$latest" ]]; then
+    echo "Already on ${latest}: nothing to do."
+    return 0
+  fi
+
+  local tmp
+  tmp=$(mktemp -d) || return 1
+  TMPDIRS+=("$tmp")
+
+  echo "Downloading pandoc ${latest} (${debarch})..."
+  gh release download "$latest" -R jgm/pandoc -p "pandoc-${latest}-*-${debarch}.deb" -D "$tmp" --clobber
+
+  local debs=()
+  mapfile -t debs < <(find "$tmp" -maxdepth 1 -type f -name '*.deb')
+  if [[ ${#debs[@]} -ne 1 ]]; then
+    echo "pandoc-update: expected exactly one .deb, found ${#debs[@]}" >&2
+    return 1
+  fi
+  local deb="${debs[0]}"
+
+  echo "Installing ${deb##*/} (resolves dependencies via apt)..."
+  sudo -v
+  sudo apt-get install -y "$deb"
+
+  echo
+  echo "Installed version:"
+  pandoc --version | head -1
+  if ! pandoc lua -e 'os.exit(pandoc.utils.run_lua_filter ~= nil and 0 or 1)' 2>/dev/null; then
+    echo "pandoc-update: warning: installed pandoc lacks pandoc.utils.run_lua_filter" >&2
+  fi
+  echo "Previous version was: ${current}"
+
+  if dpkg -l pandoc-data 2>/dev/null | grep -q '^ii'; then
+    echo "note: pandoc-data is still installed (apt reliquat, dead once the upstream deb is in place)."
+    echo "      remove with: sudo apt-get remove pandoc-data"
+  fi
+}
+
+main "$@"

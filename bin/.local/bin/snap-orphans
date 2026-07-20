@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# snap-orphans — find snaps with no remaining consumer and optionally remove them.
+# snap-orphans: find snaps with no remaining consumer and optionally remove them.
 #
 # Flags structural orphans:
 #   - base snaps (coreXX, bare) not declared as `base:` by any installed snap
 #   - content-interface providers (themes, runtimes, GPU stacks, etc.) whose slots have zero external plug
-# Apps (leaves of the dependency graph) are never flagged — user decides.
+# Apps (leaves of the dependency graph) are never flagged: user decides.
 
 set -Eeuo pipefail
 
@@ -17,7 +17,7 @@ SNAP_META_ROOT=${SNAP_META_ROOT:-/snap}
 
 usage() {
   cat <<'EOF'
-snap-orphans — list and optionally remove snaps with no remaining consumer
+snap-orphans: list and optionally remove snaps with no remaining consumer
 
 Usage:
   snap-orphans                       Scan and report orphans (read-only, default)
@@ -171,7 +171,7 @@ mode_remove() {
       log "No more orphans (after $((pass - 1)) pass(es))"
       break
     fi
-    log "Pass $pass — ${#orphans[@]} orphan(s)"
+    log "Pass $pass: ${#orphans[@]} orphan(s)"
     local s
     for s in "${orphans[@]}"; do
       printf '  %-50s %10s\n' "$s" "$(snap_size "$s")"
@@ -188,7 +188,7 @@ mode_remove() {
     done
     pass=$((pass + 1))
     if [[ $DRY_RUN -eq 1 ]]; then
-      log "(dry-run cannot iterate further — re-run without --dry-run to cascade)"
+      log "(dry-run cannot iterate further: re-run without --dry-run to cascade)"
       break
     fi
   done

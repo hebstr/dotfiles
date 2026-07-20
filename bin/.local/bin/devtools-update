@@ -21,7 +21,7 @@ declare -A REPOS=(
 
 usage() {
   cat <<EOF
-devtools-update — install cargo-dist-style binaries system-wide
+devtools-update: install cargo-dist-style binaries system-wide
 
 USAGE:
   devtools-update [--prefix DIR] [--force] TOOL [TOOL...]
@@ -95,7 +95,7 @@ install_one() {
   current=$(get_installed_version "$tool" "$prefix")
 
   if [[ "$force" != "1" && -n "$current" && "$current" == "$latest" ]]; then
-    echo "  $tool ${current} — already up to date, nothing to do" >&2
+    echo "  $tool ${current}: already up to date, nothing to do" >&2
     return 0
   fi
 

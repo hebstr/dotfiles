@@ -35,7 +35,7 @@ else
   CURRENT_TAG=unknown
 fi
 if [ "${CURRENT_TAG}" = "${VER}" ]; then
-  echo "Already on ${VER} — nothing to do."
+  echo "Already on ${VER}: nothing to do."
   exit 0
 fi
 
@@ -73,7 +73,7 @@ fi
 
 echo "Installing via dpkg..."
 if ! sudo dpkg -i "${TMP}/${DEB}"; then
-  echo "dpkg install failed — attempting to fix dependencies" >&2
+  echo "dpkg install failed: attempting to fix dependencies" >&2
   if ! sudo apt-get install -f -y; then
     echo "Dependency fix failed." >&2
     if [ -n "${CURRENT_DEB}" ]; then

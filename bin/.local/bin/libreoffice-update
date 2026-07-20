@@ -38,7 +38,7 @@ CURRENT=$(libreoffice --version 2>/dev/null | awk '{print $2}' | head -n1 || tru
 
 CURRENT_TRIPLE=$(awk -F. 'NF>=3 {print $1"."$2"."$3}' <<<"${CURRENT}")
 if [ "${CURRENT_TRIPLE}" = "${VER}" ]; then
-  echo "Already on ${VER} — nothing to do."
+  echo "Already on ${VER}: nothing to do."
   exit 0
 fi
 
@@ -68,7 +68,7 @@ if ! gpg --list-keys "${TDF_FPR}" >/dev/null 2>&1; then
   # keyserver.ubuntu.com first: keys.openpgp.org strips UIDs from keys whose
   # owner has not verified their email there, which makes gpg silently skip
   # the import ("new key but contains no user ID - skipped") while still
-  # exiting 0 — so we must verify the key actually landed after import.
+  # exiting 0: so we must verify the key actually landed after import.
   gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "${TDF_FPR}" ||
     gpg --keyserver hkps://keys.openpgp.org --recv-keys "${TDF_FPR}" ||
     {
@@ -127,7 +127,7 @@ echo "Extracting tarballs..."
 # directory named by build version (e.g. LibreOffice_26.2.3.2_Linux_..._deb/).
 # Read the actual top-level directory from each tarball's index before
 # extracting, rather than reconstructing the path from ${VER}.
-# Capture the full listing (no `| head` — SIGPIPE on tar would trip pipefail).
+# Capture the full listing (no `| head`: SIGPIPE on tar would trip pipefail).
 read_tarball_basedir() {
   local listing first
   listing=$(tar -tzf "$1")
@@ -156,7 +156,7 @@ done
 install_debs() {
   local dir=$1
   if ! sudo dpkg -i "${dir}"/*.deb; then
-    echo "dpkg install failed — attempting to fix dependencies" >&2
+    echo "dpkg install failed: attempting to fix dependencies" >&2
     if ! sudo apt-get install -f -y; then
       echo "Dependency fix failed." >&2
       if [ "${CURRENT}" != "unknown" ]; then

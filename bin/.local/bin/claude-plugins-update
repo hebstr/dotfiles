@@ -19,7 +19,7 @@ INSTALLED=~/.claude/plugins/installed_plugins.json
 claude plugin marketplace update
 
 if [ ! -f "$INSTALLED" ]; then
-  echo "No installed_plugins.json found — nothing else to update."
+  echo "No installed_plugins.json found: nothing else to update."
   exit 0
 fi
 

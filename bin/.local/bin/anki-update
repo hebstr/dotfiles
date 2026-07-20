@@ -47,7 +47,7 @@ CURRENT=$(cat "$MARKER" 2>/dev/null || true)
 [ "$CURRENT" != "" ] || CURRENT=unknown
 
 if [ "$CURRENT" = "$VER" ]; then
-  echo "Already on ${VER} — nothing to do."
+  echo "Already on ${VER}: nothing to do."
   exit 0
 fi
 
@@ -93,14 +93,14 @@ if [ "$CHECKSUMS" != "" ] && [ "$CHECKSUMS_URL" != "" ]; then
     exit 1
   fi
 else
-  echo "No checksums asset published for ${VER} — skipping checksum verification." >&2
+  echo "No checksums asset published for ${VER}: skipping checksum verification." >&2
 fi
 
 echo "Extracting..."
 tar -xf "${TMP}/${TARBALL}" -C "$TMP"
 INSTALL_SH=$(find "$TMP" -maxdepth 3 -name install.sh -print -quit)
 if [ "$INSTALL_SH" = "" ]; then
-  echo "install.sh missing from extracted archive — aborting" >&2
+  echo "install.sh missing from extracted archive: aborting" >&2
   exit 1
 fi
 

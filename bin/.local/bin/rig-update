@@ -57,7 +57,7 @@ main() {
   printf 'Current version:    %s\n' "$current"
 
   if [[ "$current" == "$latest" ]]; then
-    printf 'Already on %s — nothing to do.\n' "$latest"
+    printf 'Already on %s: nothing to do.\n' "$latest"
     exit 0
   fi
 

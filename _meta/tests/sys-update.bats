@@ -86,7 +86,7 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice syncthing; do
+    pnpm rv rig duckdb lua-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -114,6 +114,8 @@ teardown() {
   echo "$output" | grep -E '^syncthing[[:space:]]+yes$'
   echo "$output" | grep -E '^npm[[:space:]]+no$'
   echo "$output" | grep -E '^quarto[[:space:]]+no$'
+  echo "$output" | grep -E '^pandoc[[:space:]]+yes$'
+  echo "$output" | grep -E '^lua-toolchain[[:space:]]+no$'
 }
 
 # ─── argument parsing errors ────────────────────────────────────────────────
@@ -233,6 +235,20 @@ EOF
   [[ "$output" == *"skipped (not found)"* ]]
 }
 
+@test "lua-toolchain module dispatches to lua-toolchain-update" {
+  _stub_command lua-toolchain-update
+  _run --dry-run lua-toolchain
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] lua-toolchain-update"* ]]
+}
+
+@test "pandoc module dispatches to pandoc-update" {
+  _stub_command pandoc-update
+  _run --dry-run pandoc
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] pandoc-update"* ]]
+}
+
 # ─── apt always runs (no command check) ─────────────────────────────────────
 
 @test "apt module has no command-availability guard" {
@@ -259,7 +275,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb claude-plugins quarto positron anki libreoffice syncthing; do
+    pnpm rv rig duckdb lua-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1

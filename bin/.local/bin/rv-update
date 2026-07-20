@@ -41,7 +41,7 @@ if command -v rv >/dev/null 2>&1; then
     exit 0
   fi
 
-  echo "rv $current installed — upgrading to $latest_tag…" >&2
+  echo "rv $current installed: upgrading to $latest_tag…" >&2
   run_installer
 
   if ! command -v rv >/dev/null 2>&1; then
@@ -54,7 +54,7 @@ if command -v rv >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "rv not found on PATH — bootstrapping via A2-ai's official installer…" >&2
+echo "rv not found on PATH: bootstrapping via A2-ai's official installer…" >&2
 run_installer
 
 if ! command -v rv >/dev/null 2>&1; then

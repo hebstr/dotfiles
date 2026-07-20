@@ -44,6 +44,16 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | cargo  | Build system + package manager. Lockfile: `Cargo.lock`, config: `Cargo.toml`. `cargo add` is built in. Registry: crates.io |
 | rustup | Toolchain manager (`rustup show`, `rustup component add`) |
 
+## Keeping the toolchain current
+
+`sys-update` (in `bin/`) is the single entry point and orchestrates every updater as a module: `sys-update --list` for the current set, `sys-update <module>` to run one, no arguments for all.
+Prefer the module over an ad-hoc install or upgrade, so the maintained path stays authoritative.
+
+Coverage is transitive where a package manager already tracks the tool: apt packages (shellcheck, shfmt) via `apt`, snaps (typst) via `snap`, cargo binaries (typstyle, shellharden, panache, bacon) via `cargo`, cargo-dist installers (ruff, air, jarl, uv, prek) via `devtools`, uv tools via `uv-tools`.
+Tools with a bespoke distribution shape each have a dedicated `<tool>-update` script wired as its own module (quarto, pandoc, lua-toolchain = stylua + lua-language-server, duckdb, positron, rig, rv, ...); `sys-update --list` is the authority for the full set.
+
+Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist) update in-editor; they are not CLIs and not covered by `sys-update`.
+
 ## CLI tools available
 
 | Tool    | Role                                      |
