@@ -63,13 +63,22 @@ hooks = [
   { id = "typstyle", args = ["-i", "-l", "100"] }
 ]
 
-### ATTENTE SUPPORT
+[[repos]]
+repo = "https://github.com/JohnnyMorganz/StyLua"
+rev = "v2.5.2"
+hooks = [
+  { id = "stylua-github", files = '\.lua$' }
+]
+
+# lorenzwalthert/precommit R hooks run in an renv-sandboxed env whose bundled
+# lockfile does not build under R 4.6: v0.4.3 pins digest 0.6.36 (removed Calloc/Free
+# macros), and its main branch pulls V8 -> libnode.so.109 (absent on nodesource setups).
+# Overkill vs value: no-browser/no-debug catch stray debug calls, deps-in-desc duplicates R CMD check.
 # [[repos]]
 # repo = "https://github.com/lorenzwalthert/precommit"
 # rev = "v0.4.3"
 # hooks = [
-#   { id = "roxygenize" },
-#   { id = "no-browser-statement" },
-#   { id = "no-debug-statement" },
+#   { id = "no-browser-statement", files = '\.(R|r)$' },
+#   { id = "no-debug-statement", files = '\.(R|r)$' },
 #   { id = "deps-in-desc" },
 # ]

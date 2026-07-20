@@ -7,7 +7,7 @@ metadata:
 
 When reviewing or auditing the user's personal Claude Code harness config (`~/.claude/settings.json`, `~/.claude/hooks/*.sh`, etc., or their real paths under `~/dotfiles/claude/...`), do **not** propose any of the following. CLAUDE.md content audits live in [[feedback_review_severity_claude_md_content]] (separate scope).
 
-1. **Expanding the scope of `[[ "$REAL" == "$PWD"/* ]]` style guards in PostToolUse hooks.** The PWD + extension gate (e.g. in `format-on-edit.sh`) is the deliberate scoping primitive. Suggestions like "add a `~/dotfiles | ~/Documents/pro/` allowlist" introduce brittle coupling to a specific repo layout for rare edge cases (Claude editing third-party plugin sources, vendored shell scripts under $HOME). The user almost never edits those directly.
+1. **Expanding the scope of `[[ "$REAL" == "$PWD"/* ]]` style guards in PostToolUse hooks.** The PWD + extension gate (e.g. in `format-on-edit.sh`) is the deliberate scoping primitive. Suggestions like "add a `~/dotfiles | ~/Documents/` allowlist" introduce brittle coupling to a specific repo layout for rare edge cases (Claude editing third-party plugin sources, vendored shell scripts under $HOME). The user almost never edits those directly.
 
 2. **Applying the "prefer `rg` over `grep`" rule to user-authored hook scripts.** The CLAUDE.md rule targets Claude's *interactive Bash searches*, not Claude-authored shell scripts that ship as part of the harness (e.g. `inject-project-context.sh`). Those hooks parse 1-3 single-token fields from small known-format files (DESCRIPTION, _quarto.yml, pyproject.toml). `grep | cut -d' ' -f2` is POSIX-portable and has nothing to gain from `rg`.
 

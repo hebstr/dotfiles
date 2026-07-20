@@ -168,6 +168,13 @@
     "tinymist.lint.enabled": true,
     "tinymist.formatterPrintWidth": 100,
 
+    "[lua]": {
+        "editor.tabSize": 2,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+    },
+    "Lua.format.enable": false,
+
 // GIT -------------------------------------------------------------------------
 
     "git.openRepositoryInParentFolders": "always",

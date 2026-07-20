@@ -16,8 +16,9 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | R      | 4.6     | Data processing, statistical analysis |
 | Python | 3.13    | NLP pipeline (langchain + llama.cpp). uv-managed (3.13.x, the authoring version); system `python3` is 3.12 (Ubuntu default) |
 | Quarto | 1.9     | Docs generation (HTML via `quarto render`) |
-| Typst  | 0.14    | PDF typesetting, via Quarto and standalone (`/snap/bin/typst`); tooling/gate in `rules/typst.md` |
-| Rust   | 1.96    | Learning (systems/CLI programming); managed via `rustup` |
+| Pandoc | 3.10    | Markup conversion; Lua filters. Installed from the upstream `.deb` (Ubuntu 24.04 ships 3.1.3 and never advances). Quarto uses its own bundled copy, `quarto pandoc`, on a different version (1.9.38 bundles 3.8.3): for anything running inside a Quarto render, query that one, not `/usr/bin/pandoc` |
+| Typst  | 0.15    | PDF typesetting, via Quarto and standalone (`/snap/bin/typst`); tooling/gate in `rules/typst.md` |
+| Rust   | 1.97    | Learning (systems/CLI programming); managed via `rustup` |
 
 ## Package management
 
@@ -67,6 +68,7 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | prek        | Pre-commit hooks runner (Rust, replaces pre-commit) |
 | bats        | Bash TDD framework |
 | prose-lint  | Mechanical anti-AI-slop checks for `.md`/`.qmd` (em/en dashes, soft wraps); local script (`~/.local/bin/prose-lint`) |
+| panache     | Markdown/Quarto/Rmd formatter + LSP + linter (`~/.cargo/bin/panache`); delegates chunk formatting to `air`/`ruff`. Details in `rules/quarto.md` |
 | cargo       | Rust build system / package manager (toolchain via `rustup`) |
 | cargo clippy | Rust linter (binary `cargo-clippy`, run via `cargo clippy`; no standalone `clippy` command) |
 | rustfmt     | Rust formatter (`cargo fmt`)                 |
@@ -74,3 +76,5 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | typst       | Typst compiler (`/snap/bin/typst`); `typst compile`/`watch`. Gate in `rules/typst.md` |
 | typstyle    | Typst formatter (`~/.cargo/bin/typstyle`; `--check`/`-i`)  |
 | tinymist    | Typst language server, bundled in the Positron extension `myriad-dreamin.tinymist` (editor-only, not a PATH CLI) |
+| stylua      | Lua formatter (`~/.local/bin/stylua`; `--check`/in-place). Project settings via `stylua.toml`. Gate in `rules/lua.md` |
+| lua-language-server | Lua LSP + type checker (`~/.local/bin/lua-language-server` → `~/.local/share/lua-language-server/`); `--check <dir>` for CLI diagnostics against Quarto LuaCATS stubs. Gate in `rules/lua.md` |

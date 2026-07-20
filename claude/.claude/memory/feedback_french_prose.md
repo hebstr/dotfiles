@@ -26,13 +26,13 @@ When editing or producing French prose for the user, apply these decisions. Do n
 - Quotation marks `« »` with non-breaking space inside, never `" "` in running French prose.
 
 **Skill placement:**
-- The FR reference is split into `references/write-fr-core.md` (~230 lines, always loaded on FR input) and `references/write-fr-extended.md` (~680 lines, loaded on top for bilingual mode, deep-review requests, or specific registers). Both live under `~/Documents/pro/packages/claude-code-plugins/workflow/write/references/`. Loaded on-demand by the `/workflow:write` skill.
-- The skill is part of the `workflow` plugin in the public `hebstr` marketplace (`claude plugin install workflow@hebstr`). Edit in place at `~/Documents/pro/packages/claude-code-plugins/workflow/write/`.
+- The FR reference is split into `references/write-fr-core.md` (~230 lines, always loaded on FR input) and `references/write-fr-extended.md` (~680 lines, loaded on top for bilingual mode, deep-review requests, or specific registers). Both live under `~/Documents/packages/claude-code-plugins/workflow/write/references/`. Loaded on-demand by the `/workflow:write` skill.
+- The skill is part of the `workflow` plugin in the public `hebstr` marketplace (`claude plugin install workflow@hebstr`). Edit in place at `~/Documents/packages/claude-code-plugins/workflow/write/`.
 - Only an essentials distillation (~10 bullets) lives always-on in `~/.claude/CLAUDE.md` under `## Prose hygiene`. Do not promote the full FR reference into CLAUDE.md.
 
 **Why:** Without these guardrails, Claude reverts to slop-prone defaults: invoking the Académie as authority, "translating back" idiomatic anglicisms (cadriciel, étalonnage), inserting em-dashes by EN contagion, or letting calques pass the orthographic filter. Each of these has been explicitly corrected in prior sessions and validated empirically in the Apr 2026 `/workflow:write` test pass.
 
 **How to apply:**
 - When asked to edit, polish, or write French prose: invoke `/workflow:write` for full reference, or apply these rules directly for short edits.
-- Bilingual FR↔EN parity reviews: see `Bilingual Review Mode` in `~/Documents/pro/packages/claude-code-plugins/workflow/write/SKILL.md`.
+- Bilingual FR↔EN parity reviews: see `Bilingual Review Mode` in `~/Documents/packages/claude-code-plugins/workflow/write/SKILL.md`.
 - If the user contradicts a rule above, treat it as a new directive and update this memory accordingly. Do not silently re-derive the rejected position.

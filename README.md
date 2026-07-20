@@ -5,7 +5,7 @@ Personal stow-managed dotfiles.
 ## Structure
 
 ```
-bash/ bin/ claude/ gh/ git/ positron/ R/ Rstudio/ syncthing/   # config stow packages
+bash/ bin/ claude/ gh/ git/ obsidian/ panache/ positron/ R/ Rstudio/ syncthing/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
@@ -22,7 +22,7 @@ Packages follow stow conventions: each top-level dir maps its tree relative to `
 sudo apt install -y stow
 git clone https://github.com/hebstr/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow -R -t ~ bash bin claude gh git positron R Rstudio syncthing
+stow -R -t ~ bash bin claude gh git obsidian panache positron R Rstudio syncthing
 ```
 
 Hooks are run via [`prek`](https://github.com/j178/prek) (`prek install`, `prek run -a`).

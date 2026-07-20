@@ -10,8 +10,8 @@
       "Glob",
       "Grep",
       "Bash",
-      "Write(~/.claude/skills/**)",
-      "Write(/tmp/**)",
+      "Edit(~/.claude/skills/**)",
+      "Edit(/tmp/**)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.anthropic.com)",
@@ -139,7 +139,8 @@
     "audit@hebstr": true,
     "workflow@hebstr": true,
     "litrev@litrev": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "lua-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
