@@ -43,11 +43,11 @@ _fixture() {
 @test "em dash inside single-line display math: exit 0" {
   local f
   f=$(_fixture math-oneline.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "Intro paragraph for context." \
     "" \
     '$$a — b$$' \
     "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+    "Outro paragraph for context.")")
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
 }
@@ -55,13 +55,13 @@ _fixture() {
 @test "em dash inside multi-line display math block: exit 0" {
   local f
   f=$(_fixture math-block.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "Intro paragraph for context." \
     "" \
     '$$' \
     "x — y" \
     '$$' \
     "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+    "Outro paragraph for context.")")
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
 }
@@ -73,50 +73,16 @@ _fixture() {
   [ "$status" -eq 0 ]
 }
 
-@test "soft-wrap exception: short line after blank: exit 0" {
-  local f
-  f=$(_fixture short-para.md "$(printf '%s\n' \
-    "First paragraph." \
-    "" \
-    "Short.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "soft-wrap exception: short bullet: exit 0" {
-  local f
-  f=$(_fixture bullet.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    "" \
-    "- short bullet" \
-    "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "soft-wrap exception: short heading: exit 0" {
-  local f
-  f=$(_fixture heading.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    "" \
-    "# H1" \
-    "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
 @test "em dash in table row: exit 0" {
   local f
   f=$(_fixture table-em.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "Intro paragraph for context." \
     "" \
     "| flag | meaning |" \
     "| --- | --- |" \
     "| /foo | does foo — really |" \
     "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+    "Outro paragraph for context.")")
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
 }
@@ -124,11 +90,11 @@ _fixture() {
 @test "em dash in markdown header: exit 0" {
   local f
   f=$(_fixture header-em.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "Intro paragraph for context." \
     "" \
     "### Section — Subtitle" \
     "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
+    "Outro paragraph for context.")")
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
 }
@@ -136,70 +102,11 @@ _fixture() {
 @test "en dash in alphanumeric range: exit 0" {
   local f
   f=$(_fixture range-en.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "Intro paragraph for context." \
     "" \
     "- See pages 12–18 and version v2.1–v2.2 for details." \
     "" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "soft-wrap exception: YAML frontmatter fields: exit 0" {
-  local f
-  f=$(_fixture frontmatter.md "$(printf '%s\n' \
-    "---" \
-    "name: short-slug" \
-    "description: A longer description that is well over sixty characters to avoid flagging." \
-    "type: feedback" \
-    "---" \
-    "" \
-    "Body content here that is longer than sixty characters to stay quiet.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "soft-wrap exception: Quarto fenced div markers: exit 0" {
-  local f
-  f=$(_fixture fenced-div.qmd "$(printf '%s\n' \
-    "---" \
-    "title: test" \
-    "---" \
-    "" \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    "" \
-    ":::: {.columns}" \
-    "::: {.column width=\"50%\"}" \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    ":::" \
-    "::: {.column width=\"50%\"}" \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    ":::" \
-    "::::")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "soft-wrap exception: Quarto fragment div between content lines: exit 0" {
-  local f
-  f=$(_fixture fragment-div.qmd "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    "::: {.fragment}" \
-    "Outro paragraph here, also longer than sixty chars to stay quiet." \
-    ":::" \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 0 ]
-}
-
-@test "soft-wrap exception: nested Quarto divs (column + fragment): exit 0" {
-  local f
-  f=$(_fixture nested-div.qmd "$(printf '%s\n' \
-    "::: {.column width=\"50%\"}" \
-    "::: {.fragment}" \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
-    ":::" \
-    ":::")")
+    "Outro paragraph for context.")")
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
 }
@@ -233,7 +140,7 @@ _fixture() {
 @test "em dash after closed display math block: flagged, exit 1" {
   local f
   f=$(_fixture math-resume.md "$(printf '%s\n' \
-    "Intro paragraph here, longer than sixty chars to avoid soft-wrap flag." \
+    "Intro paragraph for context." \
     '$$' \
     "x + y" \
     '$$' \
@@ -241,17 +148,6 @@ _fixture() {
   run "$SCRIPT" "$f"
   [ "$status" -eq 1 ]
   [[ "$output" == *"[em-dash]"* ]]
-}
-
-@test "soft wrap: short line sandwiched: flag soft-wrap, exit 1" {
-  local f
-  f=$(_fixture wrap.md "$(printf '%s\n' \
-    "First paragraph line longer than sixty chars to avoid flag itself." \
-    "Short wrap" \
-    "Third paragraph line longer than sixty chars to keep things quiet.")")
-  run "$SCRIPT" "$f"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"[soft-wrap]"* ]]
 }
 
 @test "multi-file: 1 clean + 1 violation: exit 1, only violation reported" {

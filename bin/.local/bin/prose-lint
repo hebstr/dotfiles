@@ -9,7 +9,6 @@
 #   - table rows (lines starting with |) and markdown headers (lines
 #     starting with #) are exempt from em/en dash checks: em/en dashes
 #     in those contexts are typographic separators, not rhetorical prose
-#   - no manual soft wraps in .md/.qmd (one sentence per line)
 #
 # Semantic checks (ritual openers, rhetorical self-questions, negative
 # parallelism) are context-dependent and noisy to verify mechanically;
@@ -87,39 +86,6 @@ check_en_dash() {
   done < <(strip_code "$file")
 }
 
-check_soft_wrap() {
-  local file=$1 row
-  while IFS= read -r row; do
-    printf '%s\n' "$row"
-    violations=$((violations + 1))
-  done < <(awk -v file="$file" '
-    NR == 1 && /^---[ \t]*$/ { in_front = 1; lines[NR] = ""; next }
-    in_front && /^---[ \t]*$/ { in_front = 0; lines[NR] = ""; next }
-    in_front { lines[NR] = ""; next }
-    /^```/ { fence = !fence; lines[NR] = ""; next }
-    fence  { lines[NR] = ""; next }
-    /^\$\$.*\$\$/ { lines[NR] = ""; next }
-    /^\$\$/ { math = !math; lines[NR] = ""; next }
-    math   { lines[NR] = ""; next }
-    /<!-- prose-lint:ignore -->/ { lines[NR] = ""; n = NR; next }
-    { lines[NR] = $0; n = NR }
-    END {
-      for (i = 2; i < n; i++) {
-        line = lines[i]
-        prev = lines[i-1]
-        nxt  = lines[i+1]
-        if (length(line) == 0)                              continue
-        if (length(line) >= 60)                             continue
-        if (line ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<|:{3,})/)  continue
-        if (prev ~ /^[ \t]*$/)                                continue
-        if (prev ~ /^[ \t]*(- |\* |[0-9]+\. |#|>|\||<|:{3,})/)  continue
-        if (nxt  ~ /^[ \t]*$/)                                continue
-        printf "%s:%d: [soft-wrap] possible soft wrap (%d chars; CLAUDE.md: Coding preferences, no manual soft wraps)\n", file, i, length(line)
-      }
-    }
-  ' "$file")
-}
-
 for f in "$@"; do
   if [ ! -f "$f" ]; then
     echo "prose-lint: not a file: $f" >&2
@@ -146,7 +112,6 @@ for f in "$@"; do
   esac
   check_em_dash "$f"
   check_en_dash "$f"
-  check_soft_wrap "$f"
 done
 
 if [ "$violations" -gt 0 ]; then

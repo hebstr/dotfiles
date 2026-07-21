@@ -7,7 +7,7 @@ metadata:
 
 ## Scope: user-facing prose only
 
-Prose hygiene rules (anti-AI-slop, em/en dash, soft-wraps) apply only to text **rendered to a human user**: READMEs, public docs, SKILL.md/CONTEXT.md content shipped with skills, marketplace-distributed markdown, articles, release notes. They do **not** apply to transient Claude working notes: `.claude/` working files (PLAN.md, DEFERRED.md, *-context.md, etc.), `~/.claude/memory/**`, and any working note Claude reads but no user does. The curated instruction files CLAUDE.md and `rules/*.md` are NOT exempt: they get `prose-lint` per the CLAUDE.md gate (the user enforces the dash/soft-wrap rules on them, and CLAUDE.md content audits reject em dashes in its prose).
+Prose hygiene rules (anti-AI-slop, em/en dash, soft-wraps) apply only to text **rendered to a human user**: READMEs, public docs, SKILL.md/CONTEXT.md content shipped with skills, marketplace-distributed markdown, articles, release notes. They do **not** apply to transient Claude working notes: everything under a project's `.claude/` directory (PLAN.md, DEFERRED.md, DESIGN-*.md, REVIEW-*.md, *-context.md, the project `CLAUDE.md`, etc.), `~/.claude/memory/**`, and any working note Claude reads but no user does. The **global** instruction files `~/.claude/CLAUDE.md` and `rules/*.md` are the exception and are NOT exempt: they get `prose-lint` per the CLAUDE.md gate (the user enforces the dash rules on them, and CLAUDE.md content audits reject em dashes in its prose). The global config is told apart from a project's `.claude/` because its stow-managed files resolve into `~/dotfiles/claude/.claude/`; the `format-on-edit` hook keys on that resolved path (`$REAL`) to decide whether to run `prose-lint`, while the portable `prose-lint` tool stays generic and self-skips only `.claude/memory/` and the working-file basenames (decided 2026-07-21).
 
 **Why:** the AI-tell rule is about audience perception. Internal notes are read by Claude only, where the rules' purpose (avoiding the AI register tells when humans read the output) does not apply. Enforcing them on working notes is busywork.
 
@@ -16,7 +16,7 @@ Prose hygiene rules (anti-AI-slop, em/en dash, soft-wraps) apply only to text **
 - The hard guarantee is `.gitignore`; the pre-commit skip is a consequence, not an independent layer.
 
 **How to apply:**
-- Before scanning a directory with prose-lint or /workflow:write, check whether the path is `.claude/`, `~/.claude/`, or another working-notes location. Skip if yes.
+- Before scanning a directory with prose-lint or /workflow:write, skip a project's `.claude/`, `~/.claude/memory/`, or another working-notes location. Exception: the global config `~/.claude/CLAUDE.md` and `~/.claude/rules/*.md` (stowed under `~/dotfiles/claude/.claude/`) stays checked.
 - When in doubt: "does a human other than the author read this?" If no, it's a working note.
 - If you find working-note content in a user-facing path (session logs inside a SKILL.md sibling, dated test runs in a CONTEXT.md), trim or migrate to `.claude/` before applying prose hygiene to the surrounding files. Concrete precedent: `audit/sweep/CONTEXT.md`, `audit/blindspot/CONTEXT.md`, `audit/walkthrough/DEFERRED.md` migrated to `.claude/` on 2026-05-20.
 
@@ -40,6 +40,6 @@ The `prose-lint` AI-tell rule targets em dashes used as **rhetorical punctuation
 
 Invoke `/workflow:write` to fix prose-lint violations only when the replacement requires judgment (e.g. choosing between colon, comma, parentheses, or restructure for a genuine prose em-dash). Do not invoke it as a reflex on every prose-lint output, and especially not on bulk runs across many files: the cost of an over-aggressive pass (see incident above) is higher than the cost of leaving a few rhetorical em dashes in place.
 
-**Why:** mechanical violations with a single obvious fix (an isolated soft-wrap, an em-dash that can only be a colon) don't need the reference. Bulk passes amplify any misclassification across the whole repo.
+**Why:** mechanical violations with a single obvious fix (an em-dash that can only be a colon) don't need the reference. Bulk passes amplify any misclassification across the whole repo.
 
 **How to apply:** before invoking `/workflow:write` on a prose-lint finding, ask whether the replacement choice is unambiguous AND whether the finding is actually rhetorical (not typographic per above). If yes to both, fix directly. If no on judgment, invoke `/workflow:write`. If no on rhetorical classification, fix the linter at the source.
