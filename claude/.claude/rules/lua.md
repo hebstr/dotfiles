@@ -96,11 +96,11 @@ The pinned values are `indent_type = "Spaces"` and `indent_width = 2`; changing 
 
 ## Pre-commit hook (prek)
 
-Add StyLua's official hook to the `_meta/profiles/prek.toml` scaffold, scoped to `\.lua$`:
-use the `stylua-github` id from the `JohnnyMorganz/StyLua` repo, which downloads the release binary and so needs no Rust toolchain on the target (matching the multi-user deploy model of the other hooks).
-It formats in place and reads the project `stylua.toml`, so it needs no width or indent arguments, matching the mutating convention of `ruff-format` and `shfmt -w`.
+The `_meta/profiles/prek.toml` scaffold carries StyLua's official hook, `stylua-github` from the `JohnnyMorganz/StyLua` repo, scoped to `\.lua$`.
+It downloads the release binary, so the target needs no Rust toolchain, matching the multi-user deploy model of the other hooks.
+It formats in place and reads the project `stylua.toml`, so it takes no width or indent arguments, matching the mutating convention of `ruff-format` and `shfmt -w`.
 Do not copy the hook `rev` into this file (it drifts; the scaffold is the source of truth).
-Do not add the hook to the dotfiles repo's own root `prek.toml`: that repo contains no `.lua` files, following the precedent set for typstyle.
+The dotfiles repo's own root `prek.toml` carries no Lua hook: that repo contains no `.lua` files, following the precedent set for typstyle.
 
 There is no prek hook for `lua-language-server --check`: it needs the per-project `.luarc.json` and vendored stubs to mean anything, so it stays a local and CI gate step, not a commit hook.
 

@@ -78,7 +78,7 @@ Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist) upda
 | prek        | Pre-commit hooks runner (Rust, replaces pre-commit) |
 | bats        | Bash TDD framework |
 | prose-lint  | Mechanical anti-AI-slop checks for `.md`/`.qmd` (em/en dashes); local script (`~/.local/bin/prose-lint`) |
-| panache     | Markdown/Quarto/Rmd formatter + LSP + linter (`~/.cargo/bin/panache`); delegates chunk formatting to `air`/`ruff`. Details in `rules/quarto.md` |
+| panache     | Markdown/Quarto/Rmd formatter + LSP + linter (`~/.cargo/bin/panache`); delegates chunk formatting to `air`/`ruff` and chunk linting to `jarl`/`ruff`. Details in `rules/quarto.md` |
 | cargo       | Rust build system / package manager (toolchain via `rustup`) |
 | cargo clippy | Rust linter (binary `cargo-clippy`, run via `cargo clippy`; no standalone `clippy` command) |
 | rustfmt     | Rust formatter (`cargo fmt`)                 |

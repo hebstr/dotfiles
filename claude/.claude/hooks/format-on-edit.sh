@@ -17,8 +17,8 @@ case "$FILE" in
   # A .md beside a same-named .Rmd/.qmd is knitr/Quarto output (github_document):
   # reflowing it desynchronises it from the source it is regenerated from.
   *.md) [[ -f "${REAL%.md}.Rmd" || -f "${REAL%.md}.qmd" ]] ||
-    { command -v panache >/dev/null 2>&1 && panache format "$FILE"; } ;;
-  *) command -v panache >/dev/null 2>&1 && panache format "$FILE" ;;
+    { command -v panache >/dev/null 2>&1 && panache format --force-exclude "$FILE"; } ;;
+  *) command -v panache >/dev/null 2>&1 && panache format --force-exclude "$FILE" ;;
   esac
   # The stowed dotfiles config is curated user-facing prose (keep prose-lint);
   # any other .claude/ tree is a project's transient Claude notes (exempt).

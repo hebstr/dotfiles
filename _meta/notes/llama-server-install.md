@@ -7,7 +7,8 @@
 
 Installation d'un binaire `llama-server` (build CPU pur, x86_64) sur la machine perso `ju-TP` (Ubuntu 24.04, iGPU Intel uniquement, pas de CUDA).
 
-But : smoke-tester localement le pipeline LLM du projet `eds-avc` (script `note/auto/avc_note_auto_output_llama-server.py`, lanceur `note/auto/llama-server.sh`). L'inférence de production tourne sur le serveur CHU `cpd000001` avec 3 GPU NVIDIA (pas reproduit ici).
+But : smoke-tester localement le pipeline LLM du projet `eds-avc` (script `note/auto/avc_note_auto_output_llama-server.py`, lanceur `note/auto/llama-server.sh`).
+L'inférence de production tourne sur le serveur CHU `cpd000001` avec 3 GPU NVIDIA (pas reproduit ici).
 
 Source : releases pré-compilées du repo `ggml-org/llama.cpp` sur GitHub (asset `llama-bNNNN-bin-ubuntu-x64.tar.gz`).
 
@@ -85,11 +86,17 @@ LLAMA_PARALLEL=1
 
 ## Pièges CPU vs config GPU de prod
 
-Le script `note/auto/avc_note_auto_output_llama-server.py` passe inconditionnellement `--flash-attn on` et `--batch-size 4096` à `llama-server`. Ces flags ciblent la config GPU de `cpd000001`. Pour le smoke-test CPU local :
+Le script `note/auto/avc_note_auto_output_llama-server.py` passe inconditionnellement `--flash-attn on` et `--batch-size 4096` à `llama-server`.
+Ces flags ciblent la config GPU de `cpd000001`.
+Pour le smoke-test CPU local :
 
-- `--flash-attn on` : le backend CPU n'a pas d'implémentation FA dédiée. À vérifier au démarrage du serveur. Si llama-server refuse ou crashe, retirer le flag.
-- `--batch-size 4096` / `--ubatch-size 512` : surdimensionné en CPU, ralentit sans gain. Pas bloquant, mais à abaisser (ex: 512/128) pour un retour interactif.
-- Modèle : choisir un GGUF < 1B params (ex: `unsloth/Qwen2.5-0.5B-Instruct-GGUF:Q4_K_M`). Tout modèle ≥ 7B sera inutilisable en CPU pour un smoke-test.
+- `--flash-attn on` : le backend CPU n'a pas d'implémentation FA dédiée.
+  À vérifier au démarrage du serveur.
+  Si llama-server refuse ou crashe, retirer le flag.
+- `--batch-size 4096` / `--ubatch-size 512` : surdimensionné en CPU, ralentit sans gain.
+  Pas bloquant, mais à abaisser (ex: 512/128) pour un retour interactif.
+- Modèle : choisir un GGUF < 1B params (ex: `unsloth/Qwen2.5-0.5B-Instruct-GGUF:Q4_K_M`).
+  Tout modèle ≥ 7B sera inutilisable en CPU pour un smoke-test.
 - `CUDA_VISIBLE_DEVICES=0,1,2` (hardcodé dans `subprocess.Popen`) : sans impact si pas de GPU NVIDIA détecté, llama-server retombe sur CPU.
 
 Ces ajustements ne sont **pas** appliqués ici, laissés au lanceur ad-hoc côté projet (`note/auto/llama-server.sh` ou commande directe).
@@ -101,4 +108,3 @@ Pour passer à une release plus récente :
 1. Récupérer le tag : `gh api repos/ggml-org/llama.cpp/releases/latest --jq '.tag_name'`
 2. Modifier `VER=b9106` dans le bloc exec ci-dessus
 3. `showboat verify` ce fichier → re-exécute l'install et compare les sorties
-

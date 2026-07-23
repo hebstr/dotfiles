@@ -1,6 +1,7 @@
 # Showboat : tutoriel
 
-Outil CLI pour créer des documents Markdown qui mélangent texte, code exécuté, et sortie capturée. Conçu pour que les agents IA documentent leur travail, mais utilisable manuellement.
+Outil CLI pour créer des documents Markdown qui mélangent texte, code exécuté, et sortie capturée.
+Conçu pour que les agents IA documentent leur travail, mais utilisable manuellement.
 
 Cas d'usage dans ce repo : construire un bootstrap vérifiable pendant une installation sur une nouvelle machine.
 
@@ -48,7 +49,8 @@ showboat exec ~/dotfiles/_meta/notes/bootstrap.md bash \
   "dpkg -l stow git curl jq | awk 'NR>5 {print \$2, \$3}'"
 ```
 
-La commande est réellement exécutée. Le bloc `bash` et le bloc `output` apparaissent dans le `.md`.
+La commande est réellement exécutée.
+Le bloc `bash` et le bloc `output` apparaissent dans le `.md`.
 
 ### Annuler la dernière entrée
 
@@ -64,7 +66,8 @@ Utile quand une commande échoue ou produit une sortie indésirable.
 showboat verify ~/dotfiles/_meta/notes/bootstrap.md
 ```
 
-Relance tous les blocs `exec` et compare les sorties. À lancer après chaque mise à jour de l'environnement.
+Relance tous les blocs `exec` et compare les sorties.
+À lancer après chaque mise à jour de l'environnement.
 
 ### Voir les commandes qui ont construit le document
 

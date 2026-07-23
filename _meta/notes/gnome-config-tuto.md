@@ -60,7 +60,8 @@ Certains changements (extensions, thème) ne s'affichent qu'après un nouvel ong
 
 ## Ce que ça reproduit (et pas)
 
-Ces dumps reproduisent la *configuration*, pas l'*installation*. Sur la machine cible, il faut déjà :
+Ces dumps reproduisent la *configuration*, pas l'*installation*.
+Sur la machine cible, il faut déjà :
 
 - les applications référencées par `shell.dconf` `favorite-apps` (Positron, Obsidian, Zotero, Tidal, etc.)
 - les extensions GNOME Shell listées dans `shell.dconf` `enabled-extensions` (activées, pas installées, par le seed)

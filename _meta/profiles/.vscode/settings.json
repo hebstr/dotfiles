@@ -1,0 +1,17 @@
+{
+    "[r]": {
+        "editor.defaultFormatter": "Posit.air-vscode",
+        "editor.formatOnSave": true,
+    },
+    "[markdown]": {
+        "files.trimTrailingWhitespace": false,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "jolars.panache",
+    },
+    "[quarto]": {
+        "files.trimTrailingWhitespace": false,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "jolars.panache",
+    },
+    "panache.executableStrategy": "environment",
+}

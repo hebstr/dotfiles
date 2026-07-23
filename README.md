@@ -11,7 +11,7 @@ _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
 ├── notes/       # internal docs
 ├── profiles/    # exportable app profiles + reusable config templates
-└── tests/       # bats test suites for bin/ scripts
+└── tests/       # bats test suites for bin/ scripts and claude/ hooks
 ```
 
 Packages follow stow conventions: each top-level dir maps its tree relative to `~` (`bash/.bashrc` → `~/.bashrc`, `bin/.local/bin/` → `~/.local/bin/`).

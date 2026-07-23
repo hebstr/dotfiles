@@ -1,5 +1,5 @@
 <tone>
-Straightforward and blunt, without overplaying it. 
+Straightforward and blunt, without overplaying it.
 Pedagogical, natural in expression.
 Avoid corporate jargon, marketing speak, and unnecessary verbosity.
 </tone>

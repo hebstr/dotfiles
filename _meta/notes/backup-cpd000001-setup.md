@@ -37,13 +37,13 @@ rclone config
 
 Paramètres saisis :
 
-| Champ | Valeur |
-|-------|--------|
-| name | `cpd000001` |
-| type | `sftp` |
-| host | `cpd000001` |
-| user | `edjulien` |
-| auth | mot de passe |
+  | Champ | Valeur       |
+  | ----- | ------------ |
+  | name  | `cpd000001`  |
+  | type  | `sftp`       |
+  | host  | `cpd000001`  |
+  | user  | `edjulien`   |
+  | auth  | mot de passe |
 
 Vérification :
 
@@ -86,12 +86,12 @@ backup-cpd000001
 
 ## Comportement du sync
 
-| Cas | Comportement |
-|-----|-------------|
-| Fichier nouveau sur source | Copié vers destination |
-| Fichier modifié sur source | Mis à jour sur destination |
-| Fichier supprimé sur source | Supprimé de la destination |
-| Fichier correspondant à une exclusion | Supprimé de la destination (`--delete-excluded`) |
+  | Cas                                   | Comportement                                     |
+  | ------------------------------------- | ------------------------------------------------ |
+  | Fichier nouveau sur source            | Copié vers destination                           |
+  | Fichier modifié sur source            | Mis à jour sur destination                       |
+  | Fichier supprimé sur source           | Supprimé de la destination                       |
+  | Fichier correspondant à une exclusion | Supprimé de la destination (`--delete-excluded`) |
 
 ## Automatisation
 

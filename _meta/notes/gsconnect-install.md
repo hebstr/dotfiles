@@ -5,11 +5,14 @@
 
 ## Contexte
 
-Ubuntu 24.04 LTS (noble) gèle `kdeconnect` à 23.08.5, soit ~9 versions en retard sur l'upstream KDE Gear (26.04.x). KDE Connect n'est pas distribué via flathub/snap (intégration DBus/réseau incompatible avec le sandbox).
+Ubuntu 24.04 LTS (noble) gèle `kdeconnect` à 23.08.5, soit \~9 versions en retard sur l'upstream KDE Gear (26.04.x).
+KDE Connect n'est pas distribué via flathub/snap (intégration DBus/réseau incompatible avec le sandbox).
 
-Bascule vers **GSConnect**, extension GNOME Shell qui réimplémente le protocole KDE Connect en GJS. Canal de distribution indépendant d'apt (extensions.gnome.org), même app Android côté téléphone.
+Bascule vers **GSConnect**, extension GNOME Shell qui réimplémente le protocole KDE Connect en GJS.
+Canal de distribution indépendant d'apt (extensions.gnome.org), même app Android côté téléphone.
 
-Limite : pas de migration automatique de l'appairage (clés cryptographiques distinctes entre kdeconnect et gsconnect). Re-pairing requis.
+Limite : pas de migration automatique de l'appairage (clés cryptographiques distinctes entre kdeconnect et gsconnect).
+Re-pairing requis.
 
 ## État initial
 
@@ -42,7 +45,8 @@ flatpak install --user --noninteractive flathub com.mattjakeman.ExtensionManager
 error: No remote refs found for ‘flathub’
 ```
 
-Le remote flathub était configuré uniquement au niveau system, donc `flatpak install --user` ne le voit pas. Ajout au scope user :
+Le remote flathub était configuré uniquement au niveau system, donc `flatpak install --user` ne le voit pas.
+Ajout au scope user :
 
 ```bash
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo; flatpak --user remotes
@@ -74,7 +78,8 @@ flatpak run com.mattjakeman.ExtensionManager
 
 ## Étape 3 : Re-pairing S89 (action utilisateur)
 
-Côté téléphone, ouvrir l'app **KDE Connect** (Android). L'ancien appareil bureau (kdeconnect) reste listé tant que le daemon tourne ; un nouveau périphérique correspondant à GSConnect apparaîtra à la découverte.
+Côté téléphone, ouvrir l'app **KDE Connect** (Android).
+L'ancien appareil bureau (kdeconnect) reste listé tant que le daemon tourne ; un nouveau périphérique correspondant à GSConnect apparaîtra à la découverte.
 
 - Côté bureau : clic sur l'icône GSConnect → S89 listé en *Available* → **Request Pairing**
 - Côté téléphone : notification d'appairage → **Accept**
@@ -103,7 +108,9 @@ Une fois tout fini, re-roule la dernière exec ci-dessous (à ajouter par toi vi
 
 ## État intermédiaire : GSConnect actif, kdeconnect encore présent
 
-Re-pairing confirmé par l'utilisateur. Détail intéressant : l'ID device de S89 (`eb8640e8_006a_4bb6_bb96_1e238c06c73f`) est **identique** entre kdeconnect et GSConnect : l'ID est généré par le téléphone, partagé via le protocole, donc seul le matériel cryptographique côté bureau diffère. La conf est stockée par GSConnect dans dconf (`/org/gnome/shell/extensions/gsconnect/`), pas dans `~/.config/gsconnect/` (qui ne contient que cert + clé).
+Re-pairing confirmé par l'utilisateur.
+Détail intéressant : l'ID device de S89 (`eb8640e8_006a_4bb6_bb96_1e238c06c73f`) est **identique** entre kdeconnect et GSConnect : l'ID est généré par le téléphone, partagé via le protocole, donc seul le matériel cryptographique côté bureau diffère.
+La conf est stockée par GSConnect dans dconf (`/org/gnome/shell/extensions/gsconnect/`), pas dans `~/.config/gsconnect/` (qui ne contient que cert + clé).
 
 ```bash
 gnome-extensions list --enabled | grep -i gsconnect; echo "---"; pgrep -af gsconnect | grep -v claude | head -1; echo "---"; dconf read /org/gnome/shell/extensions/gsconnect/device/eb8640e8_006a_4bb6_bb96_1e238c06c73f/paired; dconf read /org/gnome/shell/extensions/gsconnect/device/eb8640e8_006a_4bb6_bb96_1e238c06c73f/name
@@ -122,7 +129,8 @@ true
 
 `sudo apt remove kdeconnect` + `sudo apt autoremove` exécutés ; conf user supprimée (`rm -rf ~/.config/kdeconnect/`).
 
-Le statut dpkg passe à `rc` (binaires retirés, conf système `/etc/` conservée). Pour purger complètement : `sudo apt purge kdeconnect` (non critique).
+Le statut dpkg passe à `rc` (binaires retirés, conf système `/etc/` conservée).
+Pour purger complètement : `sudo apt purge kdeconnect` (non critique).
 
 ```bash
 echo "## kdeconnect package status"; dpkg -l kdeconnect 2>/dev/null | tail -1 || echo "absent"; echo; echo "## kdeconnect binaries"; ls /usr/lib/x86_64-linux-gnu/libexec/kdeconnectd 2>&1; which kdeconnect-cli 2>&1 || echo "absent"; echo; echo "## kdeconnectd processes"; pgrep -af kdeconnectd | grep -v claude || echo "no kdeconnectd running"; echo; echo "## kdeconnect user config"; ls ~/.config/kdeconnect/ 2>&1; echo; echo "## gsconnect"; gnome-extensions list --enabled | grep gsconnect; pgrep -af gsconnect | grep -v claude | head -1; dconf read /org/gnome/shell/extensions/gsconnect/device/eb8640e8_006a_4bb6_bb96_1e238c06c73f/paired
@@ -150,20 +158,21 @@ true
 
 ## Bilan
 
-| | Avant | Après |
-|---|---|---|
-| Paquet apt `kdeconnect` | 23.08.5 (gelé sur noble) | retiré (`rc`) |
-| Daemon | `kdeconnectd` (PID 2443) | `gsconnect` (PID 33009) |
-| Canal de distribution | apt noble/universe | extensions.gnome.org (via Extension Manager) |
-| Version effective | 23.08.5 (~9 versions en retard) | suit l'upstream GSConnect |
-| Appairage S89 | OK | OK (même device ID, nouveau matériel crypto bureau) |
-| Conf utilisateur | `~/.config/kdeconnect/` (fichiers) | dconf `/org/gnome/shell/extensions/gsconnect/` |
+  |                         | Avant                              | Après                                               |
+  | ----------------------- | ---------------------------------- | --------------------------------------------------- |
+  | Paquet apt `kdeconnect` | 23.08.5 (gelé sur noble)           | retiré (`rc`)                                       |
+  | Daemon                  | `kdeconnectd` (PID 2443)           | `gsconnect` (PID 33009)                             |
+  | Canal de distribution   | apt noble/universe                 | extensions.gnome.org (via Extension Manager)        |
+  | Version effective       | 23.08.5 (~9 versions en retard)    | suit l'upstream GSConnect                           |
+  | Appairage S89           | OK                                 | OK (même device ID, nouveau matériel crypto bureau) |
+  | Conf utilisateur        | `~/.config/kdeconnect/` (fichiers) | dconf `/org/gnome/shell/extensions/gsconnect/`      |
 
 Pour vérifier la cohérence du trace plus tard : `showboat verify ~/dotfiles/_meta/notes/gsconnect-install.md` re-roule tous les blocs exec et diff la sortie.
 
 ## Purge complète
 
-`sudo apt purge kdeconnect` exécuté. Plus aucune trace du paquet.
+`sudo apt purge kdeconnect` exécuté.
+Plus aucune trace du paquet.
 
 ```bash
 dpkg -l kdeconnect 2>&1 | tail -1

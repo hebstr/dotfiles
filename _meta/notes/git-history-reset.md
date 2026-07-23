@@ -1,6 +1,7 @@
 # Reset repo history to a single v0.1.0 commit
 
-Procedure to squash all history of a solo repo into one root commit tagged `v0.1.0`, overwriting prior tags and remote history. Destructive; assumes no third-party users.
+Procedure to squash all history of a solo repo into one root commit tagged `v0.1.0`, overwriting prior tags and remote history.
+Destructive; assumes no third-party users.
 
 ## Prerequisites
 
@@ -11,7 +12,9 @@ Procedure to squash all history of a solo repo into one root commit tagged `v0.1
 
 ## Step 1: rewrite CHANGELOG
 
-The release workflow (see § Reference) extracts the section header via `awk "/^## \[$VERSION\]/"` with `VERSION=${GITHUB_REF_NAME#v}`. The header must match exactly. Target structure:
+The release workflow (see § Reference) extracts the section header via `awk "/^## \[$VERSION\]/"` with `VERSION=${GITHUB_REF_NAME#v}`.
+The header must match exactly.
+Target structure:
 
 ```markdown
 # Changelog
@@ -75,7 +78,8 @@ git push origin v0.1.0 --force            # overwrite existing remote tag
 
 ## Step 6: trigger or create the GitHub release
 
-A `git push --force` on an existing tag does not always re-trigger the `release.yml` workflow (GitHub may deduplicate the event). Check first:
+A `git push --force` on an existing tag does not always re-trigger the `release.yml` workflow (GitHub may deduplicate the event).
+Check first:
 
 ```bash
 gh run list -R <owner>/<repo> --workflow=release.yml --limit 3
@@ -98,7 +102,8 @@ gh run watch
 
 ## Step 7: clean up orphan releases
 
-Deleting a tag does not delete its associated GitHub Release. Orphan releases appear as `Draft` in `gh release list`.
+Deleting a tag does not delete its associated GitHub Release.
+Orphan releases appear as `Draft` in `gh release list`.
 
 ```bash
 gh release list -R <owner>/<repo>
@@ -119,12 +124,12 @@ gh release list -R <owner>/<repo>
 
 ## Reversibility
 
-| Step | Recoverable? | How |
-|---|---|---|
-| 3 (delete main) | Yes via reflog | `git branch main <old-sha>` (~30 days before GC) |
-| 4 (local tags) | Yes via reflog | Tagged commits aren't immediately destroyed |
-| 5 (push --force) | Difficult | Without a local backup, remote history is lost. Practical point of no return. |
-| 6-7 | Trivial | Re-tag and re-push from local |
+  | Step             | Recoverable?   | How                                                                           |
+  | ---------------- | -------------- | ----------------------------------------------------------------------------- |
+  | 3 (delete main)  | Yes via reflog | `git branch main <old-sha>` (~30 days before GC)                              |
+  | 4 (local tags)   | Yes via reflog | Tagged commits aren't immediately destroyed                                   |
+  | 5 (push --force) | Difficult      | Without a local backup, remote history is lost. Practical point of no return. |
+  | 6-7              | Trivial        | Re-tag and re-push from local                                                 |
 
 The `backup-old-main` from step 2 is the safety net until step 8 succeeds.
 
