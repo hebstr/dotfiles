@@ -1,6 +1,15 @@
 #!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031
 
+# Pins format-on-edit.sh's routing: which command each path class invokes and with
+# which flags, never what that command does to the file. Two traps drive the harness:
+#   1. $PWD is load-bearing. The hook's `[[ "$REAL" == "$PWD"/* ]] || exit 0` guard
+#      gates everything, so run_hook sets the working directory per test.
+#   2. realpath resolves the path before matching, so fixtures must be real files at
+#      real paths; the stowed-config discriminant needs a dir shaped .../dotfiles/claude/.claude/... .
+# The .py arm is grouped `{ ruff check --fix; ruff format; }`, not `check && format`, so
+# `ruff format` runs even when check exits non-zero on unfixable violations; one test pins that.
+
 SCRIPT="${FORMAT_ON_EDIT_HOOK:-$BATS_TEST_DIRNAME/../../claude/.claude/hooks/format-on-edit.sh}"
 
 setup() {
@@ -17,6 +26,10 @@ setup() {
   make_stub prose-lint
   make_stub air
   make_stub jarl
+  make_stub ruff
+  make_stub shellharden
+  make_stub shfmt
+  make_stub shellcheck
 }
 
 teardown() {
@@ -114,8 +127,18 @@ assert_not_ran() {
   assert_not_ran prose-lint
 }
 
-@test "skips panache but still calls prose-lint on a memory file" {
-  f=$(fixture "memory/note.md")
+@test "skips panache and prose-lint on a project .claude/memory file" {
+  f=$(fixture "projet/.claude/memory/note.md")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_not_ran panache
+  assert_not_ran prose-lint
+}
+
+@test "skips panache but lints a dotfiles .claude/memory file" {
+  f=$(fixture "dotfiles/claude/.claude/memory/note.md")
 
   run_hook "$f"
 
@@ -227,15 +250,86 @@ assert_not_ran() {
   assert_ran prose-lint
 }
 
-@test "leaves non-markdown extensions to the other dispatch arms" {
+@test "formats and lints an uppercase .R with the air/jarl arm" {
   f=$(fixture "script.R")
 
   run_hook "$f"
 
+  [ "$status" -eq 0 ]
   assert_ran air
   assert_ran jarl
   assert_not_ran panache
   assert_not_ran prose-lint
+}
+
+@test "formats and lints a lowercase .r with the air/jarl arm" {
+  f=$(fixture "script.r")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran air
+  assert_ran jarl
+}
+
+@test "formats and lints a .py with the ruff arm in order" {
+  f=$(fixture "mod.py")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran ruff
+  [[ $(cat "$CAPTURE_DIR/ruff") == *"check --fix $f"* ]]
+  [[ $(cat "$CAPTURE_DIR/ruff") == *"format $f"* ]]
+  assert_not_ran air
+}
+
+@test "formats and lints a .ipynb with the ruff arm" {
+  f=$(fixture "nb.ipynb")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran ruff
+}
+
+@test "still formats a .py when ruff check exits non-zero on unfixable violations" {
+  cat >"$STUB_DIR/ruff" <<STUB
+#!/bin/bash
+printf '%s\n' "\$*" >>"$CAPTURE_DIR/ruff"
+[ "\$1" = check ] && exit 1
+exit 0
+STUB
+  chmod +x "$STUB_DIR/ruff"
+  f=$(fixture "mod.py")
+
+  run_hook "$f"
+
+  assert_ran ruff
+  [[ $(cat "$CAPTURE_DIR/ruff") == *"format $f"* ]]
+}
+
+@test "formats and lints a .sh with the shellharden/shfmt/shellcheck arm" {
+  f=$(fixture "tool.sh")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran shellharden
+  assert_ran shfmt
+  assert_ran shellcheck
+  [[ $(cat "$CAPTURE_DIR/shfmt") == "-w -i 2 $f" ]]
+}
+
+@test "formats and lints a .bash with the shellharden/shfmt/shellcheck arm" {
+  f=$(fixture "tool.bash")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran shellharden
+  assert_ran shfmt
+  assert_ran shellcheck
 }
 
 @test "no-ops on a payload carrying no file_path" {

@@ -6,7 +6,10 @@ REAL=$(realpath "$FILE" 2>/dev/null || printf '%s' "$FILE")
 
 case "$FILE" in
 *.R | *.r) air format "$FILE" && jarl check "$FILE" 2>&1 | tail -30 ;;
-*.py | *.ipynb) ruff check --fix "$FILE" && ruff format "$FILE" 2>&1 | tail -30 ;;
+*.py | *.ipynb) {
+  ruff check --fix "$FILE"
+  ruff format "$FILE"
+} 2>&1 | tail -30 ;;
 *.sh | *.bash) shellharden --replace "$FILE" && shfmt -w -i 2 "$FILE" && shellcheck "$FILE" 2>&1 | tail -30 ;;
 *.md | *.qmd)
   # _snaps/ holds testthat snapshots: machine-written, compared verbatim, so any

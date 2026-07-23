@@ -2,6 +2,8 @@
 # shellcheck disable=SC2030,SC2031
 # Tests for bin/.local/bin/syncthing-update
 
+bats_require_minimum_version 1.5.0
+
 SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/syncthing-update"
 
 # ─── stub factory ───────────────────────────────────────────────────────────
