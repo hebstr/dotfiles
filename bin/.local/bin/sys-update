@@ -19,6 +19,7 @@ ALL_MODULES=(
   rig
   duckdb
   lua-toolchain
+  css-toolchain
   claude-plugins
   quarto
   pandoc
@@ -195,6 +196,14 @@ update_lua_toolchain() {
     return
   fi
   run_or_dry lua-toolchain-update && record lua-toolchain OK
+}
+
+update_css_toolchain() {
+  if ! command -v css-toolchain-update >/dev/null 2>&1; then
+    record css-toolchain "skipped (not found)"
+    return
+  fi
+  run_or_dry css-toolchain-update && record css-toolchain OK
 }
 
 update_claude_plugins() {

@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Updates the pinned npm toolchain backing the CSS/SCSS gate (rules/css.md).
+# Versions are pinned exactly rather than by range, so an update is a deliberate
+# rewrite of package.json plus its lockfile, not a silent semver drift.
+
+GATE_DIR="${CSS_GATE_DIR:-${HOME}/.local/share/css-gate}"
+PACKAGES=(prettier stylelint stylelint-config-standard-scss)
+
+CHECK_ONLY=0
+
+usage() {
+  cat <<EOF
+css-toolchain-update: update the pinned CSS/SCSS gate toolchain
+
+USAGE:
+  css-toolchain-update [--check]
+  css-toolchain-update -h | --help
+
+OPTIONS:
+  --check      Report available updates without installing
+  -h, --help   Show this help
+
+Installs into ${GATE_DIR}, pinning exact versions in package.json.
+Packages: ${PACKAGES[*]}
+EOF
+}
+
+# The pin in package.json is the comparison basis, never the installed tree:
+# node_modules is gitignored, so a fresh clone reads every package as absent and
+# comparing that against the registry would silently rewrite the pin to latest.
+pinned_version() {
+  local pkg="$1"
+  jq -r --arg p "$pkg" '.devDependencies[$p] // empty' "${GATE_DIR}/package.json"
+}
+
+installed_version() {
+  local pkg="$1" manifest="${GATE_DIR}/node_modules/$1/package.json"
+  [[ -f "$manifest" ]] || {
+    printf 'none'
+    return 0
+  }
+  jq -r '.version' "$manifest"
+}
+
+latest_version() {
+  curl -fsSL "https://registry.npmjs.org/$1/latest" | jq -r '.version'
+}
+
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --check)
+      CHECK_ONLY=1
+      shift
+      ;;
+    *)
+      echo "css-toolchain-update: unexpected argument '$1'" >&2
+      usage >&2
+      return 2
+      ;;
+    esac
+  done
+
+  for cmd in npm curl jq; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "css-toolchain-update: missing required command '$cmd'" >&2
+      return 1
+    }
+  done
+
+  [[ -f "${GATE_DIR}/package.json" ]] || {
+    echo "css-toolchain-update: no package.json in ${GATE_DIR}" >&2
+    echo "css-toolchain-update: the css stow package is not deployed" >&2
+    return 1
+  }
+
+  local outdated=() drifted=() pkg pinned installed latest
+  for pkg in "${PACKAGES[@]}"; do
+    pinned=$(pinned_version "$pkg")
+    [[ -n "$pinned" ]] || {
+      echo "css-toolchain-update: ${pkg} is not pinned in ${GATE_DIR}/package.json" >&2
+      return 1
+    }
+    latest=$(latest_version "$pkg") || {
+      echo "css-toolchain-update: failed to resolve latest version of ${pkg}" >&2
+      return 1
+    }
+    [[ -n "$latest" && "$latest" != null ]] || {
+      echo "css-toolchain-update: empty latest version for ${pkg}" >&2
+      return 1
+    }
+
+    installed=$(installed_version "$pkg")
+    [[ "$installed" == "$pinned" ]] || drifted+=("${pkg} (${installed})")
+
+    if [[ "$pinned" == "$latest" ]]; then
+      printf '= %s %s\n' "$pkg" "$pinned"
+    else
+      printf '↑ %s %s → %s\n' "$pkg" "$pinned" "$latest"
+      outdated+=("${pkg}@${latest}")
+    fi
+  done
+
+  if [[ ${#drifted[@]} -gt 0 ]]; then
+    echo "css-toolchain-update: tree does not match the pin: ${drifted[*]}" >&2
+    echo "css-toolchain-update: restore it with 'npm --prefix ${GATE_DIR} ci'" >&2
+  fi
+
+  if [[ ${#outdated[@]} -eq 0 ]]; then
+    echo "css-toolchain-update: already up to date"
+    return 0
+  fi
+
+  if ((CHECK_ONLY)); then
+    echo "css-toolchain-update: ${#outdated[@]} update(s) available, none installed"
+    return 0
+  fi
+
+  (cd "$GATE_DIR" && npm install --save-exact --save-dev --no-fund --no-audit "${outdated[@]}")
+
+  for pkg in "${PACKAGES[@]}"; do
+    printf '✓ %s %s\n' "$pkg" "$(installed_version "$pkg")"
+  done
+  echo "css-toolchain-update: commit package.json and package-lock.json in ~/dotfiles"
+}
+
+main "$@"

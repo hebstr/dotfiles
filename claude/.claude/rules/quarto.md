@@ -47,6 +47,13 @@ R and Python chunks inside a `.qmd` follow their own language rules: see `rules/
 
 The engine is set per project or per document (`engine: knitr` for R, `engine: jupyter` for Python); read it from the document YAML front matter or the project `_quarto.yml` `engine:` key. Match `quarto check <engine>` to whichever the document uses.
 
+## Stylesheets
+
+A theme or extension stylesheet (`.scss`, `.css`) has its own gate: see `rules/css.md`, which also documents why the Quarto region markers (`/*-- scss:defaults --*/` and friends) constrain what the linter may be allowed to rewrite.
+CSS written inside the `.qmd` itself, a `<style>` block or an inline chunk, stays under this file instead: the render is what validates it, and no stylesheet gate reaches it.
+Generated CSS is out of both scopes: `_site/`, `*_files/libs/` and `_freeze/` are build output, never linted and never formatted.
+A theme edit does not end at the CSS gate either. `stylelint` and `prettier` say nothing about whether a rule survives Quarto's own higher-specificity defaults, so the consuming document must still render and the compiled CSS be read back (see `feedback_verify_quarto_theming.md`).
+
 ## Prose conventions
 
 - One sentence or logical unit per line; no manual soft wraps (matches the global Markdown rule). Quarto renders a single source newline as a soft break, so source line breaks do not change the output.

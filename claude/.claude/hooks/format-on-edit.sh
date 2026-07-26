@@ -11,6 +11,21 @@ case "$FILE" in
   ruff format "$FILE"
 } 2>&1 | tail -30 ;;
 *.sh | *.bash) shellharden --replace "$FILE" && shfmt -w -i 2 "$FILE" && shellcheck "$FILE" 2>&1 | tail -30 ;;
+*.css | *.scss)
+  # Compiled Bootstrap and other render output: regenerated wholesale, so a rewrite
+  # is churn the next render discards. Mirrors the prek exclude in rules/css.md.
+  case "$REAL" in
+  */_site/* | */_freeze/* | *_files/libs/*) ;;
+  *) {
+    # The shared config lives beside its own node_modules, so "extends" resolves
+    # without --config-basedir; a project config would need that flag instead.
+    CSS_CONFIG="$HOME/.local/share/css-gate/stylelint.config.mjs"
+    stylelint --config "$CSS_CONFIG" --fix "$FILE"
+    prettier --write --log-level warn "$FILE"
+    stylelint --config "$CSS_CONFIG" "$FILE"
+  } 2>&1 | tail -30 ;;
+  esac
+  ;;
 *.md | *.qmd)
   # _snaps/ holds testthat snapshots: machine-written, compared verbatim, so any
   # reflow turns into a spurious diff on the next run.

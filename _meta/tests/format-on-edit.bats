@@ -30,6 +30,8 @@ setup() {
   make_stub shellharden
   make_stub shfmt
   make_stub shellcheck
+  make_stub stylelint
+  make_stub prettier
 }
 
 teardown() {
@@ -330,6 +332,73 @@ STUB
   assert_ran shellharden
   assert_ran shfmt
   assert_ran shellcheck
+}
+
+@test "formats and lints a .scss with the stylelint/prettier arm in order" {
+  f=$(fixture "theme.scss")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran stylelint
+  assert_ran prettier
+  [[ $(sed -n 1p "$CAPTURE_DIR/stylelint") == *"--fix $f" ]]
+  [[ $(sed -n 2p "$CAPTURE_DIR/stylelint") == *" $f" ]]
+  [[ $(sed -n 2p "$CAPTURE_DIR/stylelint") != *--fix* ]]
+  [[ $(cat "$CAPTURE_DIR/prettier") == "--write --log-level warn $f" ]]
+  assert_not_ran panache
+  assert_not_ran prose-lint
+}
+
+@test "passes the shared stylelint config on both passes" {
+  f=$(fixture "extra.css")
+
+  run_hook "$f"
+
+  [ "$(grep -c -- '--config .*css-gate/stylelint.config.mjs' "$CAPTURE_DIR/stylelint")" -eq 2 ]
+}
+
+@test "formats and lints a .css with the stylelint/prettier arm" {
+  f=$(fixture "site.css")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran stylelint
+  assert_ran prettier
+}
+
+@test "skips generated CSS under _site/, _freeze/ and *_files/libs/" {
+  for rel in _site/styles.css _freeze/theme.scss report_files/libs/bootstrap/bootstrap.min.css; do
+    f=$(fixture "$rel")
+    run_hook "$f"
+    [ "$status" -eq 0 ] || {
+      printf 'non-zero exit on: %s\n' "$rel" >&2
+      return 1
+    }
+    for tool in stylelint prettier; do
+      assert_not_ran "$tool" || {
+        printf 'leaked on generated path: %s\n' "$rel" >&2
+        return 1
+      }
+    done
+  done
+}
+
+@test "still formats a .scss when stylelint --fix exits non-zero on unfixable violations" {
+  cat >"$STUB_DIR/stylelint" <<STUB
+#!/bin/bash
+printf '%s\n' "\$*" >>"$CAPTURE_DIR/stylelint"
+[[ "\$*" == *--fix* ]] && exit 2
+exit 0
+STUB
+  chmod +x "$STUB_DIR/stylelint"
+  f=$(fixture "theme.scss")
+
+  run_hook "$f"
+
+  assert_ran prettier
+  [ "$(wc -l <"$CAPTURE_DIR/stylelint")" -eq 2 ]
 }
 
 @test "no-ops on a payload carrying no file_path" {

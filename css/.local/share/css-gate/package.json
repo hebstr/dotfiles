@@ -1,0 +1,11 @@
+{
+  "name": "css-gate",
+  "private": true,
+  "description": "Pinned toolchain backing the CSS/SCSS lint/format gate (rules/css.md)",
+  "type": "module",
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "stylelint": "17.14.1",
+    "stylelint-config-standard-scss": "17.0.0"
+  }
+}

@@ -86,7 +86,7 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb lua-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
+    pnpm rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -242,6 +242,13 @@ EOF
   [[ "$output" == *"[dry-run] lua-toolchain-update"* ]]
 }
 
+@test "css-toolchain module dispatches to css-toolchain-update" {
+  _stub_command css-toolchain-update
+  _run --dry-run css-toolchain
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] css-toolchain-update"* ]]
+}
+
 @test "pandoc module dispatches to pandoc-update" {
   _stub_command pandoc-update
   _run --dry-run pandoc
@@ -275,7 +282,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
-    pnpm rv rig duckdb lua-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
+    pnpm rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1
