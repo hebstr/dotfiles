@@ -181,6 +181,26 @@ JSON schema for IDE validation: `"$schema": "https://json.schemastore.org/claude
 
 Moves compaction threshold **earlier only**: the internal cap is ~83-85%. Values above that have no effect. Community sweet spot: `75` for general dev, `65-70` for debugging-heavy sessions.
 
+## Session transcript forensics
+
+Past sessions of a project live as one `.jsonl` per session in `~/.claude/projects/<slugified-cwd>/`.
+This is the authoritative record for "did X ever actually run?", which git history cannot answer for
+anything that produced no commit (an audit, a review, an abandoned attempt).
+
+- **Was a slash command invoked, and with what target?** Invocations are logged as `<command-name>/foo</command-name>`
+  plus a separate `<command-args>...</command-args>`. Listing the distinct arg strings is the reliable probe:
+  `rg -o "command-args>[^<]{0,150}" ~/.claude/projects/<proj>/*.jsonl | sed 's/.*command-args>//' | sort -u`.
+  Grepping the command name alone is useless: it matches every conversational mention of the command,
+  including skill descriptions and my own suggestions to run it.
+- **Date a session**: first and last `"timestamp"` fields of the file.
+- **Read the opening user turns** (what the session was actually for):
+  `jq -r 'select(.type=="user") | .message.content | if type=="string" then . else (.[]? | select(.type=="text") | .text) end' <file>.jsonl | head`.
+- **Caveat**: a review run in walkthrough-only mode, or a reviewer spawned as a subagent, leaves no
+  `command-args` trail. Absence of the marker means "not invoked as a targeted slash command", not
+  "never reviewed". Cross-check the opening user turns before concluding.
+
+Retention is bounded by `cleanupPeriodDays` (default 30), so this only works on recent history.
+
 ## MCP servers evaluated (2026-03-26)
 
 | MCP | Verdict | Reason |
