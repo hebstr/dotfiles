@@ -41,7 +41,7 @@ installed_version() {
     printf 'none'
     return 0
   }
-  jq -r '.version' "$manifest"
+  jq -r '.version' "$manifest" 2>/dev/null || printf 'none'
 }
 
 latest_version() {
@@ -107,7 +107,9 @@ main() {
     fi
   done
 
-  if [[ ${#drifted[@]} -gt 0 ]]; then
+  # `npm install <pkg>` reifies the whole tree from package.json, so the restore
+  # hint is only actionable on the paths that return without touching it.
+  if [[ ${#drifted[@]} -gt 0 ]] && { [[ ${#outdated[@]} -eq 0 ]] || ((CHECK_ONLY)); }; then
     echo "css-toolchain-update: tree does not match the pin: ${drifted[*]}" >&2
     echo "css-toolchain-update: restore it with 'npm --prefix ${GATE_DIR} ci'" >&2
   fi

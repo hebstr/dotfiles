@@ -52,18 +52,34 @@ printf '{"version":"%s"}\n' "$v"
 EOF
 
   # Mirrors what `npm install --save-exact` does to the tree, so the script's
-  # closing "✓ pkg version" lines read back a real manifest.
+  # closing "✓ pkg version" lines read back a real manifest. The target is
+  # asserted rather than inherited: a script that stops aiming npm at the gate
+  # directory would otherwise write node_modules into the caller's cwd, and
+  # `**/node_modules/` being gitignored makes that pollution invisible.
   cat >"${STUBS}/npm" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"${NPM_LOG}"
 [ "${NPM_EXIT:-0}" != 0 ] && exit "${NPM_EXIT}"
+target="${PWD}"
+prev=""
+for a in "$@"; do
+    case "$a" in
+        --prefix=*) target="${a#--prefix=}" ;;
+        *) [ "$prev" = "--prefix" ] && target="$a" ;;
+    esac
+    prev="$a"
+done
+if [ "$target" != "${CSS_GATE_DIR}" ]; then
+    printf 'npm stub: refusing to write outside the gate dir (target=%s)\n' "$target" >&2
+    exit 1
+fi
 for a in "$@"; do
     case "$a" in
         -*|install) continue ;;
         *@*)
             pkg="${a%@*}"; ver="${a##*@}"
-            mkdir -p "node_modules/${pkg}"
-            printf '{"version":"%s"}\n' "$ver" >"node_modules/${pkg}/package.json" ;;
+            mkdir -p "${target}/node_modules/${pkg}"
+            printf '{"version":"%s"}\n' "$ver" >"${target}/node_modules/${pkg}/package.json" ;;
     esac
 done
 exit 0
@@ -99,13 +115,13 @@ setup() {
   export STUBS
   export HOME="${STUBS}/home"
   export CSS_GATE_DIR="${HOME}/.local/share/css-gate"
-  export GATE_DIR="${CSS_GATE_DIR}"
-  mkdir -p "${GATE_DIR}"
+  export GATE_DIR="$CSS_GATE_DIR"
+  mkdir -p "$GATE_DIR"
 
   export NPM_LOG="${STUBS}/npm.log"
   export CURL_LOG="${STUBS}/curl.log"
-  : >"${NPM_LOG}"
-  : >"${CURL_LOG}"
+  : >"$NPM_LOG"
+  : >"$CURL_LOG"
 
   export LATEST_PRETTIER=3.9.6
   export LATEST_STYLELINT=17.14.1
@@ -125,40 +141,57 @@ setup() {
 }
 
 teardown() {
-  rm -rf "${STUBS}"
+  rm -rf "$STUBS"
+}
+
+# ─── manifest agreement ─────────────────────────────────────────────────────
+# The script's PACKAGES array is what gets version-checked; the stow package's
+# manifest is what gets installed. A package added to one and not the other is
+# silently never updated, so the two are pinned against each other here.
+
+@test "PACKAGES matches the devDependencies of the shipped gate manifest" {
+  local manifest="${BATS_TEST_DIRNAME}/../../css/.local/share/css-gate/package.json"
+  [ -f "$manifest" ]
+  local declared expected
+  declared=$(sed -n 's/^PACKAGES=(\(.*\))$/\1/p' "$SCRIPT" | tr ' ' '\n' | sort)
+  expected=$(jq -r '.devDependencies | keys[]' "$manifest" | sort)
+  if [ "$declared" != "$expected" ]; then
+    printf 'PACKAGES:\n%s\nmanifest devDependencies:\n%s\n' "$declared" "$expected" >&2
+    return 1
+  fi
 }
 
 # ─── argument parsing ───────────────────────────────────────────────────────
 
 @test "--help prints usage and exits 0" {
-  run bash "${SCRIPT}" --help
+  run bash "$SCRIPT" --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"css-toolchain-update"* ]]
   [[ "$output" == *"USAGE"* ]]
 }
 
 @test "-h is an alias for --help" {
-  run bash "${SCRIPT}" -h
+  run bash "$SCRIPT" -h
   [ "$status" -eq 0 ]
   [[ "$output" == *"USAGE"* ]]
 }
 
 @test "--help queries neither the registry nor npm" {
-  run bash "${SCRIPT}" --help
+  run bash "$SCRIPT" --help
   [ "$status" -eq 0 ]
-  [ ! -s "${CURL_LOG}" ]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$CURL_LOG" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "unexpected argument exits 2 and prints usage" {
-  run bash "${SCRIPT}" stylelint
+  run bash "$SCRIPT" stylelint
   [ "$status" -eq 2 ]
   [[ "$output" == *"unexpected argument 'stylelint'"* ]]
   [[ "$output" == *"USAGE"* ]]
 }
 
 @test "unknown option is rejected as an unexpected argument" {
-  run bash "${SCRIPT}" --nope
+  run bash "$SCRIPT" --nope
   [ "$status" -eq 2 ]
   [[ "$output" == *"unexpected argument '--nope'"* ]]
 }
@@ -174,7 +207,7 @@ _restricted_path_run() {
   ln -sf "$(command -v jq)" "${STUBS}/jq"
   ln -sf "$(command -v mktemp)" "${STUBS}/mktemp"
   rm -f "${STUBS}/${drop}"
-  run env PATH="${STUBS}" "$BASH" "${SCRIPT}"
+  run env PATH="$STUBS" "$BASH" "$SCRIPT"
 }
 
 @test "exits 1 when npm is missing" {
@@ -198,14 +231,14 @@ _restricted_path_run() {
 @test "a missing dependency stops before any registry call" {
   _restricted_path_run npm
   [ "$status" -eq 1 ]
-  [ ! -s "${CURL_LOG}" ]
+  [ ! -s "$CURL_LOG" ]
 }
 
 # ─── gate directory ─────────────────────────────────────────────────────────
 
 @test "exits 1 when the gate package.json is absent" {
   rm -f "${GATE_DIR}/package.json"
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"no package.json in ${GATE_DIR}"* ]]
   [[ "$output" == *"css stow package is not deployed"* ]]
@@ -213,9 +246,9 @@ _restricted_path_run() {
 
 @test "reads the gate directory from CSS_GATE_DIR, not the hardcoded default" {
   local elsewhere="${STUBS}/elsewhere"
-  mkdir -p "${elsewhere}"
-  export CSS_GATE_DIR="${elsewhere}"
-  run bash "${SCRIPT}"
+  mkdir -p "$elsewhere"
+  export CSS_GATE_DIR="$elsewhere"
+  run bash "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"no package.json in ${elsewhere}"* ]]
 }
@@ -224,87 +257,101 @@ _restricted_path_run() {
 
 @test "exits 1 when the registry is unreachable" {
   export CURL_EXIT=22
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"failed to resolve latest version of prettier"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "exits 1 when the registry reports a null version" {
   export VERSION_LITERAL=null
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"empty latest version for prettier"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "exits 1 when the registry reports an empty version" {
   export VERSION_LITERAL='""'
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 1 ]
   [[ "$output" == *"empty latest version for prettier"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 # ─── up-to-date behavior ────────────────────────────────────────────────────
 
 @test "all packages current: reports up to date and never calls npm" {
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"= prettier 3.9.6"* ]]
   [[ "$output" == *"= stylelint 17.14.1"* ]]
   [[ "$output" == *"= stylelint-config-standard-scss 17.0.0"* ]]
   [[ "$output" == *"already up to date"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "--check on a current tree reports up to date" {
-  run bash "${SCRIPT}" --check
+  run bash "$SCRIPT" --check
   [ "$status" -eq 0 ]
   [[ "$output" == *"already up to date"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 # ─── outdated behavior ──────────────────────────────────────────────────────
 
 @test "one outdated package is installed pinned, the others are left alone" {
   export LATEST_STYLELINT=17.15.0
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"↑ stylelint 17.14.1 → 17.15.0"* ]]
   [[ "$output" == *"= prettier 3.9.6"* ]]
-  [ "$(wc -l <"${NPM_LOG}")" -eq 1 ]
-  [[ "$(cat "${NPM_LOG}")" == *"--save-exact"* ]]
-  [[ "$(cat "${NPM_LOG}")" == *"--save-dev"* ]]
-  [[ "$(cat "${NPM_LOG}")" == *"stylelint@17.15.0"* ]]
-  [[ "$(cat "${NPM_LOG}")" != *"prettier@"* ]]
+  [ "$(wc -l <"$NPM_LOG")" -eq 1 ]
+  [[ "$(cat "$NPM_LOG")" == *"--save-exact"* ]]
+  [[ "$(cat "$NPM_LOG")" == *"--save-dev"* ]]
+  [[ "$(cat "$NPM_LOG")" == *"stylelint@17.15.0"* ]]
+  [[ "$(cat "$NPM_LOG")" != *"prettier@"* ]]
 }
 
 @test "several outdated packages go through a single npm invocation" {
   export LATEST_STYLELINT=17.15.0
   export LATEST_CONFIG=18.0.0
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
-  [ "$(wc -l <"${NPM_LOG}")" -eq 1 ]
-  [[ "$(cat "${NPM_LOG}")" == *"stylelint@17.15.0"* ]]
-  [[ "$(cat "${NPM_LOG}")" == *"stylelint-config-standard-scss@18.0.0"* ]]
+  [ "$(wc -l <"$NPM_LOG")" -eq 1 ]
+  [[ "$(cat "$NPM_LOG")" == *"stylelint@17.15.0"* ]]
+  [[ "$(cat "$NPM_LOG")" == *"stylelint-config-standard-scss@18.0.0"* ]]
 }
 
-@test "the closing report shows the versions installed" {
+@test "the install lands in the gate directory, not the caller's cwd" {
   export LATEST_STYLELINT=17.15.0
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  run jq -r '.version' "${GATE_DIR}/node_modules/stylelint/package.json"
+  [ "$output" = "17.15.0" ]
+}
+
+# prettier's tree version is seeded away from both its pin and its latest, so a
+# report echoing either instead of reading the tree fails here.
+@test "the closing report reads the tree, not the requested version" {
+  export LATEST_STYLELINT=17.15.0
+  _install_fixture prettier 3.9.5
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"✓ stylelint 17.15.0"* ]]
+  [[ "$output" == *"✓ prettier 3.9.5"* ]]
+  [[ "$output" != *"✓ prettier 3.9.6"* ]]
+  [[ "$output" == *"✓ stylelint-config-standard-scss 17.0.0"* ]]
   [[ "$output" == *"commit package.json and package-lock.json"* ]]
 }
 
 @test "--check reports available updates without installing" {
   export LATEST_STYLELINT=17.15.0
-  run bash "${SCRIPT}" --check
+  run bash "$SCRIPT" --check
   [ "$status" -eq 0 ]
   [[ "$output" == *"↑ stylelint 17.14.1 → 17.15.0"* ]]
   [[ "$output" == *"1 update(s) available, none installed"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 # ─── pin vs installed tree ──────────────────────────────────────────────────
@@ -313,18 +360,18 @@ _restricted_path_run() {
 
 @test "a fresh tree with no node_modules compares against the pin, not none" {
   rm -rf "${GATE_DIR}/node_modules"
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"= prettier 3.9.6"* ]]
   [[ "$output" != *"= prettier none"* ]]
   [[ "$output" != *"↑ prettier none"* ]]
   [[ "$output" == *"already up to date"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "a fresh tree reports the drift and points at npm ci" {
   rm -rf "${GATE_DIR}/node_modules"
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"does not match the pin"* ]]
   [[ "$output" == *"npm --prefix"* ]]
@@ -334,48 +381,79 @@ _restricted_path_run() {
 @test "a fresh tree with an outdated pin offers the pin as the basis, never none" {
   rm -rf "${GATE_DIR}/node_modules"
   export LATEST_PRETTIER=4.0.0
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"↑ prettier 3.9.6 → 4.0.0"* ]]
   [[ "$output" != *"↑ prettier none"* ]]
 }
 
+@test "the npm ci hint is suppressed when the install reifies the tree anyway" {
+  rm -rf "${GATE_DIR}/node_modules"
+  export LATEST_STYLELINT=17.15.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"does not match the pin"* ]]
+  [[ "$output" == *"commit package.json"* ]]
+}
+
+@test "--check still reports drift alongside available updates" {
+  rm -rf "${GATE_DIR}/node_modules"
+  export LATEST_STYLELINT=17.15.0
+  run bash "$SCRIPT" --check
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"does not match the pin"* ]]
+  [[ "$output" == *"1 update(s) available"* ]]
+}
+
 @test "a single package absent from the tree does not bump its pin" {
   rm -rf "${GATE_DIR}/node_modules/prettier"
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"= prettier 3.9.6"* ]]
-  [[ "$(cat "${NPM_LOG}")" != *"prettier@"* ]]
+  [[ "$(cat "$NPM_LOG")" != *"prettier@"* ]]
 }
 
 @test "an installed version ahead of the pin is drift, not an update" {
   _install_fixture stylelint 17.15.0
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" == *"= stylelint 17.14.1"* ]]
   [[ "$output" == *"does not match the pin"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [ ! -s "$NPM_LOG" ]
+}
+
+@test "a corrupt tree manifest is reported as drift, not a jq crash" {
+  printf '{"version":\n' >"${GATE_DIR}/node_modules/prettier/package.json"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"= prettier 3.9.6"* ]]
+  [[ "$output" == *"does not match the pin"* ]]
+  [[ "$output" == *"prettier (none)"* ]]
+  [[ "$output" != *"parse error"* ]]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "a tree in sync with the pin reports no drift note" {
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -eq 0 ]
   [[ "$output" != *"does not match the pin"* ]]
 }
 
+# jq's `// empty` collapses an absent key and an empty-string value onto the
+# same empty `pinned`, so only the realistic shape is covered here.
 @test "a package missing from devDependencies is a hard error" {
-  export PIN_PRETTIER=""
-  _write_manifest
-  run bash "${SCRIPT}"
+  jq 'del(.devDependencies.prettier)' "${GATE_DIR}/package.json" >"${GATE_DIR}/pruned.json"
+  mv "${GATE_DIR}/pruned.json" "${GATE_DIR}/package.json"
+  run bash "$SCRIPT"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"prettier"* ]]
-  [ ! -s "${NPM_LOG}" ]
+  [[ "$output" == *"prettier is not pinned in"* ]]
+  [ ! -s "$NPM_LOG" ]
 }
 
 @test "a failing npm install propagates a non-zero exit" {
   export LATEST_STYLELINT=17.15.0
   export NPM_EXIT=1
-  run bash "${SCRIPT}"
+  run bash "$SCRIPT"
   [ "$status" -ne 0 ]
   [[ "$output" != *"commit package.json"* ]]
 }

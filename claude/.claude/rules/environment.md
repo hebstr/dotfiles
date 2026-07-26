@@ -50,7 +50,7 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 Prefer the module over an ad-hoc install or upgrade, so the maintained path stays authoritative.
 
 Coverage is transitive where a package manager already tracks the tool: apt packages (shellcheck, shfmt) via `apt`, snaps (typst) via `snap`, cargo binaries (typstyle, shellharden, panache, bacon) via `cargo`, cargo-dist installers (ruff, air, jarl, uv, prek) via `devtools`, uv tools via `uv-tools`.
-Tools with a bespoke distribution shape each have a dedicated `<tool>-update` script wired as its own module (quarto, pandoc, lua-toolchain = stylua + lua-language-server, css-toolchain = stylelint + prettier, duckdb, positron, rig, rv, ...); `sys-update --list` is the authority for the full set.
+Tools with a bespoke distribution shape each have a dedicated `<tool>-update` script wired as its own module (quarto, pandoc, lua-toolchain = stylua + lua-language-server, css-toolchain = stylelint + prettier + stylelint-config-standard-scss, duckdb, positron, rig, rv, ...); `sys-update --list` is the authority for the full set.
 The `npm` module only updates globally installed packages, so it does not cover the pinned CSS gate toolchain: that one is the `css-toolchain` module's job.
 
 Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist, SomewhatStationery.some-sass, esbenp.prettier-vscode) update in-editor; they are not CLIs and not covered by `sys-update`.
