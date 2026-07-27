@@ -55,6 +55,20 @@ The `npm` module only updates globally installed packages, so it does not cover 
 
 Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist, SomewhatStationery.some-sass, esbenp.prettier-vscode) update in-editor; they are not CLIs and not covered by `sys-update`.
 
+### One tool, one binary
+
+Several extensions bundle a copy of a CLI that `sys-update` also maintains, and some push their copy onto the integrated terminal's PATH. The gate then runs a binary the editor updates and no module tracks, and since both copies work, the split shows up only as diagnostics or formatting that differ between the editor and the terminal. Each such extension is pinned to the managed binary instead:
+
+| Tool | Extension setting | Resolves to | Kept current by |
+|---|---|---|---|
+| pyrefly | `pyrefly.lspPath` | `~/.local/bin/pyrefly` | `uv-tools` |
+| air | `air.executableStrategy: "environment"` | `/usr/local/bin/air` | `devtools` |
+| panache | `panache.executableStrategy: "environment"` | `~/.cargo/bin/panache` | `cargo` |
+
+`rules/python.md` and `rules/r.md` carry the per-tool detail and the way back if a Positron upgrade ever outpaces the CLI.
+
+The same split can come from two installs rather than an extension: `uv` sat in both `~/.local/bin` and `/usr/local/bin`, with the PATH picking the copy `devtools-update` neither version-checks nor updates. Removed 2026-07-27, `/usr/local/bin/uv` kept, alongside ruff, jarl and prek. When a tool looks stale despite a green `sys-update`, run `command -v` on it before anything else.
+
 ## CLI tools available
 
 | Tool    | Role                                      |
@@ -64,6 +78,7 @@ Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist, Some
 | ripgrep | Fast code search (`rg`)                   |
 | uv      | Python package/project manager            |
 | ruff    | Python linter/formatter (via uv)          |
+| pyrefly | Python type checker (`uv tool install pyrefly`); the checker Positron bootstraps. Gate and config caveat in `rules/python.md` |
 | air     | R formatter                               |
 | jarl    | R linter                                  |
 | delta   | Structured diffs with line numbers        |

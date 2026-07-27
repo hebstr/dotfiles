@@ -7,8 +7,9 @@
 #      gates everything, so run_hook sets the working directory per test.
 #   2. realpath resolves the path before matching, so fixtures must be real files at
 #      real paths; the stowed-config discriminant needs a dir shaped .../dotfiles/claude/.claude/... .
-# The .py arm is grouped `{ ruff check --fix; ruff format; }`, not `check && format`, so
-# `ruff format` runs even when check exits non-zero on unfixable violations; one test pins that.
+# The .py arm is grouped `{ ruff check --fix; ruff format; ruff check; }`, not chained with
+# `&&`, so the formatter and the validating pass both run even when the fixer exits non-zero
+# on unfixable violations; one test pins that. Same three-step shape as the .scss arm.
 
 SCRIPT="${FORMAT_ON_EDIT_HOOK:-$BATS_TEST_DIRNAME/../../claude/.claude/hooks/format-on-edit.sh}"
 
@@ -281,8 +282,9 @@ assert_not_ran() {
 
   [ "$status" -eq 0 ]
   assert_ran ruff
-  [[ $(cat "$CAPTURE_DIR/ruff") == *"check --fix $f"* ]]
-  [[ $(cat "$CAPTURE_DIR/ruff") == *"format $f"* ]]
+  [[ $(sed -n 1p "$CAPTURE_DIR/ruff") == "check --fix $f" ]]
+  [[ $(sed -n 2p "$CAPTURE_DIR/ruff") == "format $f" ]]
+  [[ $(sed -n 3p "$CAPTURE_DIR/ruff") == "check $f" ]]
   assert_not_ran air
 }
 
@@ -295,7 +297,7 @@ assert_not_ran() {
   assert_ran ruff
 }
 
-@test "still formats a .py when ruff check exits non-zero on unfixable violations" {
+@test "still formats and validates a .py when ruff check exits non-zero on unfixable violations" {
   cat >"$STUB_DIR/ruff" <<STUB
 #!/bin/bash
 printf '%s\n' "\$*" >>"$CAPTURE_DIR/ruff"
@@ -309,6 +311,7 @@ STUB
 
   assert_ran ruff
   [[ $(cat "$CAPTURE_DIR/ruff") == *"format $f"* ]]
+  [ "$(wc -l <"$CAPTURE_DIR/ruff")" -eq 3 ]
 }
 
 @test "formats and lints a .sh with the shellharden/shfmt/shellcheck arm" {

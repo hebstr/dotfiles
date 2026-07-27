@@ -9,6 +9,10 @@ case "$FILE" in
 *.py | *.ipynb) {
   ruff check --fix "$FILE"
   ruff format "$FILE"
+  # Ends on a validating pass like the .R and .sh branches: the formatter runs after
+  # the fixer, so only this call sees the file as it lands. Type checking stays out,
+  # pyrefly analyses the whole project and is too slow for a per-edit hook.
+  ruff check "$FILE"
 } 2>&1 | tail -30 ;;
 *.sh | *.bash) shellharden --replace "$FILE" && shfmt -w -i 2 "$FILE" && shellcheck "$FILE" 2>&1 | tail -30 ;;
 *.css | *.scss)

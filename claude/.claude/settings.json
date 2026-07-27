@@ -140,7 +140,8 @@
     "workflow@hebstr": true,
     "litrev@litrev": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true
+    "lua-lsp@claude-plugins-official": true,
+    "astral@astral-sh": true
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -177,6 +178,12 @@
       "source": {
         "source": "directory",
         "path": "/home/julien/Documents/pro/packages/claude-code-litrev"
+      }
+    },
+    "astral-sh": {
+      "source": {
+        "source": "github",
+        "repo": "astral-sh/claude-code-plugins"
       }
     }
   },

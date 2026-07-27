@@ -137,11 +137,22 @@
 
   "panache.executableStrategy": "environment",
 
+  // The extension bundles its own air and prepends it to the integrated
+  // terminal PATH, which would shadow the devtools-managed /usr/local/bin/air
+  // and let the editor and the gate format with two independently updated
+  // binaries. "environment" falls back to the bundle when PATH has none.
+  "air.executableStrategy": "environment",
+
   "python.createEnvironment.contentButton": "show",
   "python.installModulesInTerminal": true,
   "python.globalModuleInstallation": true,
   "python.enableAutoReload": false,
   "python.terminal.activateEnvironment": true,
+
+  // The extension bundles its own pyrefly and ignores the PATH; pointing it at
+  // the uv-installed CLI keeps the editor and the terminal gate on one binary.
+  "pyrefly.lspPath": "/home/julien/.local/bin/pyrefly",
+  "python.pyrefly.typeCheckingMode": "default",
 
   "[dockerfile]": {
     "editor.formatOnSave": true,
@@ -282,7 +293,7 @@
 
   // APPARENCE GLOBALE -----------------------------------------------------------
 
-  "workbench.colorTheme": "Material Night Eighties",
+  "workbench.colorTheme": "Material Night Purple",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.startupEditor": "none",
   "workbench.settings.editor": "json",

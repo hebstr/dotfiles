@@ -25,7 +25,7 @@ Both binaries come from a pinned toolchain in the `css` stow package, at `~/.loc
 Update it with `css-toolchain-update`, wired as the `css-toolchain` module of `sys-update`.
 The bootstrap is traced in `_meta/notes/css-scss-gate.md`.
 
-The gate has the same three-step shape as Python's, role for role: `stylelint --fix` is the fixer where `ruff check --fix` is, `prettier --write` the formatter where `ruff format` is, and a bare `stylelint` the validating pass where the second `ruff check` is.
+The gate has the same three-step shape as Python's lint and format triple, role for role: `stylelint --fix` is the fixer where `ruff check --fix` is, `prettier --write` the formatter where `ruff format` is, and a bare `stylelint` the validating pass where the second `ruff check` is. Python adds a type-checking step after that triple, which has no CSS counterpart.
 
 ## Mandatory pipeline after every create/edit
 

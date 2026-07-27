@@ -35,7 +35,10 @@ respect-gitignore = true
 preview = false
 
 # Apply autofixes by default — equivalent to passing `--fix` (default: false)
-fix = true
+# Kept off: the gate passes --fix explicitly on its first pass and ends on a bare `ruff check`
+# that must report rather than rewrite. With fix = true that closing pass silently fixes and
+# exits 0, so it validates nothing (rules/python.md).
+fix = false
 
 # Apply only fixes, suppressing violation reports (default: false)
 fix-only = false

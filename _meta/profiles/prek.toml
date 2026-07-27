@@ -25,8 +25,21 @@ hooks = [
 repo = "https://github.com/astral-sh/ruff-pre-commit"
 rev = "v0.14.14"
 hooks = [
+  { id = "ruff-check", args = ["--fix"] },
   { id = "ruff-format" },
-  { id = "ruff", args = ["--fix"] },
+]
+
+# pyrefly-check runs with pass_filenames: false, so it type-checks the whole project
+# rather than the staged files. It only validates anything where a pyrefly config
+# governs the code: without a [tool.pyrefly] table or a pyrefly.toml, pyrefly falls back
+# to the basic preset and exits 0 on real type errors (see rules/python.md). A project
+# adopting this hook needs that table, empty is enough. Do not add -p here: the flag
+# would override the preset of a project that pinned its own.
+[[repos]]
+repo = "https://github.com/facebook/pyrefly-pre-commit"
+rev = "1.1.1"
+hooks = [
+  { id = "pyrefly-check" }
 ]
 
 [[repos]]

@@ -21,6 +21,8 @@ air format script.R && jarl check script.R
 
 Both are required: `air` formats only, `jarl` lints only. If the project has tests, run them after the format+lint gate: `testthat::test_file('tests/testthat/test-foo.R')`.
 
+Run the `air` on the PATH, which is `/usr/local/bin/air`, kept current by `sys-update devtools`. The Positron extension ships its own copy under `~/.positron/extensions/posit.air-vscode-*/bundled/bin/air` and, left at its default `air.executableStrategy: "bundled"`, prepends it to the integrated terminal's PATH: the gate would then format with a binary the editor updates and `devtools-update` never sees. The setting is at `"environment"` so both resolve to the same file, with the bundle as fallback. Two formatters drifting apart show up as reformatting churn in diffs, never as an error, so check `command -v air` rather than trusting a clean run.
+
 ## Code style conventions
 
 - Use the native pipe `|>`
