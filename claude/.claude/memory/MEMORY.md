@@ -5,7 +5,7 @@
 - [user_quarto_typst_only.md](user_quarto_typst_only.md): Quarto PDF via Typst only; user does not use LaTeX (do not suggest the `format: pdf` LaTeX path)
 
 ## Project
-- [project_qmd_format_hook.md](project_qmd_format_hook.md): Quarto/.qmd formatting via panache (Rust formatter, wrap=semantic), config stowed, plus the `panache-format` prek commit gate; a project `panache.toml` replaces the global wholesale, `extend-exclude` vs `exclude` gotchas, and panache rewriting tabs inside code fences
+- [project_qmd_format_hook.md](project_qmd_format_hook.md): Quarto/.qmd formatting via panache (Rust formatter, wrap=semantic), config stowed, plus the `panache-format` prek commit gate; a project `panache.toml` replaces the global wholesale, `extend-exclude` vs `exclude` gotchas, the CLI/LSP split on excludes that governs Positron's format-on-save, and panache rewriting tabs inside code fences
 - [project_review_workflow_backlog.md](project_review_workflow_backlog.md): Implementation backlog from the 2026-03 code review glowup audit (hebstr tests, CI, data validation)
 - [project_rv_install_deployment.md](project_rv_install_deployment.md): rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability (no amd64 assumption)
 - [project_litrev_separate_from_hebstr.md](project_litrev_separate_from_hebstr.md): Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
