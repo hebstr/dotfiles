@@ -297,6 +297,20 @@ assert_not_ran() {
   assert_ran ruff
 }
 
+# rules/python.md's paths: front matter matches **/*.pyi, so editing a stub loads the
+# Python rules; the hook has to cover the same extension or the gate they describe never
+# runs on it. All three ruff steps accept a .pyi.
+@test "formats and lints a .pyi stub with the ruff arm" {
+  f=$(fixture "types.pyi")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran ruff
+  [[ $(sed -n 1p "$CAPTURE_DIR/ruff") == "check --fix $f" ]]
+  [[ $(sed -n 3p "$CAPTURE_DIR/ruff") == "check $f" ]]
+}
+
 @test "still formats and validates a .py when ruff check exits non-zero on unfixable violations" {
   cat >"$STUB_DIR/ruff" <<STUB
 #!/bin/bash
@@ -312,6 +326,24 @@ STUB
   assert_ran ruff
   [[ $(cat "$CAPTURE_DIR/ruff") == *"format $f"* ]]
   [ "$(wc -l <"$CAPTURE_DIR/ruff")" -eq 3 ]
+}
+
+@test "skips vendored and generated Python under .venv/, site-packages/, rv/library/ and _book/" {
+  for rel in .venv/lib/python3.13/site-packages/polars/__init__.py \
+    env/lib/site-packages/rich/console.pyi \
+    rv/library/4.6/x86_64/noble/openxlsx2/extdata/panose/Panose.py \
+    _book/notebook.ipynb; do
+    f=$(fixture "$rel")
+    run_hook "$f"
+    [ "$status" -eq 0 ] || {
+      printf 'non-zero exit on: %s\n' "$rel" >&2
+      return 1
+    }
+    assert_not_ran ruff || {
+      printf 'leaked on vendored path: %s\n' "$rel" >&2
+      return 1
+    }
+  done
 }
 
 @test "formats and lints a .sh with the shellharden/shfmt/shellcheck arm" {
