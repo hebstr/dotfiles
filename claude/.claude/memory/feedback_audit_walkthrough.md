@@ -1,6 +1,6 @@
 ---
 name: audit:walkthrough specific feedback
-description: audit:walkthrough triage table format, severity calibration for personal scripts, the calibration loader contract (redirect-follow + scoped-filename glob, and its cwd-vs-target failure mode), and the measured blindspot bucket accuracy on Claude-instruction targets (agreed reliable, external-only least reliable, inverting the skill's own framing)
+description: audit:walkthrough triage table format, severity calibration for personal scripts, the calibration loader contract (redirect-follow + scoped-filename glob, and its cwd-vs-target failure mode), the ouroboros_evaluate Stage 1 that purges an editable install and kills L2, and the measured blindspot bucket accuracy on Claude-instruction targets (agreed reliable, external-only least reliable, inverting the skill's own framing)
 metadata:
   type: feedback
 ---
@@ -28,6 +28,14 @@ metadata:
 **How to apply:** The redirect-follow depends on the stub keeping the exact `Canonical index:` marker. If the harness `MEMORY.md` stub format ever changes, update both the stub and the loader's marker parse, or calibration loading breaks with no error. See [[feedback_review_workflow]].
 
 Caveat observed 2026-07-28: on a walkthrough launched from an unrelated project directory (cwd `eds-avc`, target `~/dotfiles`), the harness memory dir did not exist at all, so the redirect-stub path found nothing. Calibration had to be read straight from the canonical store. Walkthrough-only mode derives the project root from the cwd, which also misfiles `DEFERRED.md` when the findings concern another repo; write it to the repo the findings are about, not the cwd's.
+
+---
+
+**`ouroboros_evaluate` destroys the env of a project whose test command needs a flag.** The walkthrough's L2 (cross-provider consensus) goes through `ouroboros_evaluate`, whose Stage 1 mechanical verification runs a bare `uv run pytest` in `working_dir`. In `eds-avc` that syncs the environment and purges the editable `edscrib` install, so all 5 tests fail with `ModuleNotFoundError`, Stage 1 returns FAILED, and the call never reaches the semantic stage or the consensus: zero cross-provider signal for one broken venv.
+
+**Why:** observed 2026-07-28 on the annotation walkthrough. The tool takes no test-command parameter, but the command is not hardcoded either: the detector writes it to `<project>/.ouroboros/mechanical.toml` (`test = "uv run pytest"`) on the first call, and honours that file afterwards. Editing it to `uv run --no-sync pytest` left the editable install and the 5 tests intact on the second call; that observation does not by itself separate "ran with the flag" from "check silently skipped", since the second call's Stage 1 report was never returned. Do not add the other keys (`lint`, `build`, `static`, `coverage`): Stage 1 is hard-gating (`pipeline.py:158-163`, `all(c.passed ...)` in `mechanical.py:245`), so each one is a new way to never reach the semantic and consensus stages that are the reason for the call, and a project running its own gate beforehand gains nothing. `mechanical.toml` commands are also filtered by an executable allowlist (`languages.py:38-58`) that holds `uv`, `ruff`, `mypy`, `pytest`, `pyright` but not `pyrefly`: a blocked executable is silently skipped and reported as passed, so a `static` entry would look like type checking that never ran. `coverage` additionally fails below `coverage_threshold`, default 0.7. A second, unrelated failure then surfaced in Stage 2, `Evaluation failed: Missing required fields: ['score', 'ac_compliance', ...] (field: response, value: None)`, an empty semantic response, so L2 still produced no cross-provider verdict on this project. Repair after a purge is `env -u VIRTUAL_ENV uv pip install -e ../../../packages/py-edscrib`, see [[project_edscrib_annotation_package]].
+
+**How to apply:** before delegating L2 or the Step 3 evaluate on a project whose test command needs a flag, check for `.ouroboros/mechanical.toml` and fix the command there rather than skipping the mechanism; gitignore the directory, it is a tool byproduct. Both stray artifacts of a call live in the project: that file, and `.claude/.ouroboros_eval_artifact.md`. When the call fails anyway, report the mechanism as failed with the precise stage and reason (the no-silent-fallback contract requires surfacing it) and substitute the project's own gate plus its suite run correctly.
 
 ---
 

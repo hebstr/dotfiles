@@ -237,7 +237,7 @@ _fixture() {
 
 @test "unrelated basename: not excluded, em dash flagged, exit 1" {
   local f
-  f=$(_fixture NOTES.md "Generic doc with an em dash — gets flagged.")
+  f=$(_fixture GUIDE.md "Generic doc with an em dash — gets flagged.")
   run "$SCRIPT" "$f"
   [ "$status" -eq 1 ]
   [[ "$output" == *"[em-dash]"* ]]

@@ -15,8 +15,8 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | bash   | 5.2     | Scripting; system shell. `/bin/sh` is dash (POSIX), so `#!/bin/sh` lacks bash idioms. Tooling/gate in `rules/shell.md` |
 | R      | 4.6     | Data processing, statistical analysis |
 | Python | 3.13    | NLP pipeline (langchain + llama.cpp). uv-managed (3.13.x, the authoring version); system `python3` is 3.12 (Ubuntu default) |
-| Quarto | 1.9     | Docs generation (HTML via `quarto render`) |
-| Pandoc | 3.10    | Markup conversion; Lua filters. Installed from the upstream `.deb` (Ubuntu 24.04 ships 3.1.3 and never advances). Quarto uses its own bundled copy, `quarto pandoc`, on a different version (1.9.38 bundles 3.8.3): for anything running inside a Quarto render, query that one, not `/usr/bin/pandoc` |
+| Quarto | 1.10    | Docs generation (HTML via `quarto render`) |
+| Pandoc | 3.10    | Markup conversion; Lua filters. Installed from the upstream `.deb` (Ubuntu 24.04 ships 3.1.3 and never advances). Quarto uses its own bundled copy, `quarto pandoc`, on a version of its own (1.10.18 bundles 3.10, against 3.10.1 in `/usr/bin`): for anything running inside a Quarto render, query that one, not `/usr/bin/pandoc` |
 | Typst  | 0.15    | PDF typesetting, via Quarto and standalone (`/snap/bin/typst`); tooling/gate in `rules/typst.md` |
 | Rust   | 1.97    | Learning (systems/CLI programming); managed via `rustup` |
 
@@ -67,7 +67,7 @@ Several extensions bundle a copy of a CLI that `sys-update` also maintains, and 
 
 `rules/python.md` and `rules/r.md` carry the per-tool detail and the way back if a Positron upgrade ever outpaces the CLI.
 
-The same split can come from two installs rather than an extension: `uv` sat in both `~/.local/bin` and `/usr/local/bin`, with the PATH picking the copy `devtools-update` neither version-checks nor updates. Removed 2026-07-27, `/usr/local/bin/uv` kept, alongside ruff, jarl and prek. When a tool looks stale despite a green `sys-update`, run `command -v` on it before anything else.
+The same split can come from two installs rather than an extension: `uv` sat in both `~/.local/bin` and `/usr/local/bin`, with the PATH picking the copy `devtools-update` neither version-checks nor updates. Removed 2026-07-27, `/usr/local/bin/uv` kept, alongside air, ruff, jarl and prek. That removal orphaned the `uvx` sitting beside it, which resolves `uv` as a sibling rather than through the PATH and so failed outright while masking the working `/usr/local/bin/uvx`; removed 2026-07-28. Deleting one binary of a pair means checking what else shipped in that directory. When a tool looks stale despite a green `sys-update`, run `command -v` on it before anything else.
 
 ## CLI tools available
 

@@ -77,7 +77,8 @@ The value forgone is small: the first two are greps for stray debug calls, and `
 `roxygenize` stays excluded on its own merits even if that family is re-enabled: it runs `pkgload::load_all()` on the package, so the hook's isolated environment must provide every `Import`, which is slow and fails on packages with system dependencies (`magick`, `rsvg`, `svglite`, `systemfonts`, ...).
 Regenerate `man/` via `devtools::document()` locally or in CI instead.
 
-prek runs hooks through the system `Rscript` (it does not manage R toolchains) and rejects any `language_version`, so R must be installed on every machine and CI runner that commits.
+The live pair needs no R at all: `air-format` and `jarl-check` are both `language: python` upstream, shipping their binary from PyPI, so a machine that only runs them commits without an R install.
+That changes if the `lorenzwalthert/precommit` family is ever re-enabled: those are `language: r`, and prek runs them through the system `Rscript` (it does not manage R toolchains) and rejects any `language_version`, so R then has to be present on every machine and CI runner that commits.
 Do not copy the hook `rev` values into a project config: they drift, and the scaffold is the source of truth.
 The dotfiles repo's own root `prek.toml` carries no R hooks: that repo has no `.R` package, only an empty `.Rprofile`, following the precedent set for typstyle and StyLua.
 

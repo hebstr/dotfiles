@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-Project `~/Documents/services/md-nesrine` (Quarto report `index.qmd`, rv-managed, hebstr stack, data from Google Sheets via `read_sheet`). Two blockers cost significant debugging on 2026-07-14:
+Project `~/Documents/services/md-nesrine` (Quarto report `index.qmd`, rv-managed, hebstr stack, data from Google Sheets via `read_sheet`). Four blockers, the first two of which cost significant debugging on 2026-07-14:
 
 **1. `conflicts_prefer` does not persist from `.Rprofile` at R startup.**
 `.Rprofile` calls `conflicts_prefer(dplyr::filter, Gmisc::coords)` but the preference is lost by the time chunks run: bare `filter` resolves to `stats::filter`, giving `object '<col>' not found` on the first data-masked `filter()` (e.g. `_setup.R`'s `filter(check == "pat_sans_cure")`). Fix: re-assert `conflicts_prefer(dplyr::filter, Gmisc::coords, .quiet = TRUE)` in the `index.qmd` setup chunk BEFORE `source("scripts/_setup.R")`. A standalone `conflicts_prefer` call at a settled top-level works; only the `.Rprofile`-startup timing fails.
@@ -23,7 +23,7 @@ This is not render-specific: it bites any non-interactive entry point that sourc
 
 Two constraints that switch introduced, both live in hebstr as of 2026-07-17:
 
-- **`add_note()` must be piped BEFORE `tbl_format()`** (it takes a gtsummary table now, and aborts on a rendered one). All 8 affected scripts here are migrated. Other projects are not: see [[project_hebstr_add_note_migration]].
+- **`add_note()` must be piped BEFORE `tbl_format()`** (it takes a gtsummary table now, and aborts on a rendered one). All 8 affected scripts here are migrated, as is umb-coco; one site remains in ipl-sca, see [[project_hebstr_add_note_migration]].
 - **`easy_out()` skips the export under `hebstr.docx`** via its new `export` argument (defaulting to `FALSE` there): a docx run renders tables to `flextable`, leaving no `gt_tbl` to write to HTML/PNG, so it returns early instead of aborting on the class. Consequence for this repo: any script that post-processes a file `easy_out()` wrote must be idempotent, because that file is no longer regenerated on every run. This class of bug is what bit `fig_flowchart.R`: it re-injected `xml:space` into the already-patched `output/fig_flowchart.svg` on each run until it accumulated and rsvg failed with "Attribute xml:space redefined". **Resolved at the root 2026-07-18**: the `xml:space="preserve"` patch is now internalized in hebstr's `easy_out()` (internal helper `svg_to_png()` in `R/easy_out.R`, applied to both the plot and grob branches before rasterization, guarded on `!any(grepl("xml:space", ...))`). The patch only runs when svglite actually (re)writes the SVG, so the stale-leftover scenario is impossible by construction. `fig_flowchart.R`'s manual post-processing block (SVG read + patch + `image_read_svg`/`image_write`) is now removed; the script ends on `easy_out(fig_flowchart, ...)` alone. Root cause of the mismatch: svglite emits SVG2 CSS `white-space: pre`, which librsvg 2.58 (behind `rsvg`/`magick::image_read_svg`) does not yet honor; librsvg only implements the SVG1.1 `xml:space` attribute, so the injection is the only bridge. Still watch for the same non-idempotence shape in any OTHER script that re-processes an `easy_out()` output.
 
 `tables.qmd` is the manuscript table export (docx, one table per chunk with `{{< pagebreak >}}` between); it re-runs the full pipeline, so it needs the same `conflicts_prefer` re-assert as pitfall 1.

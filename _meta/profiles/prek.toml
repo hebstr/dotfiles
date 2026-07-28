@@ -1,8 +1,21 @@
+# These two keys belong to the conventional-pre-commit block below and are pruned with it.
+# prek install only lays down the shims listed in default_install_hook_types, whose default is
+# [pre-commit]: a commit-msg hook declared without it never fires, and reports nothing.
+# default_stages then pins every other hook to pre-commit, since the default is every stage.
+# It earns its place on check-merge-conflict and gitleaks, the two that declare no stages of
+# their own and so fire a second time at commit-msg: check-merge-conflict against
+# .git/COMMIT_EDITMSG, which its types = ["text"] does not filter out, and gitleaks as a
+# redundant rescan of the staged diff, since it takes no filenames at all. The files/types-scoped
+# hooks simply never match that path, and check-added-large-files and pyrefly-check already
+# declare stages upstream that exclude it.
+default_install_hook_types = ["pre-commit", "commit-msg"]
+default_stages = ["pre-commit"]
+
 [[repos]]
 repo = "local"
 hooks = [
   { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '(^|/)\.claude/|-context\.md$' },
-  { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format --force-exclude", language = "system", files = '\.(md|qmd)$', exclude = '(^|/)(\.claude/|CLAUDE\.md$|PLAN\.md$|DEFERRED\.md$)|-context\.md$' },
+  { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format --force-exclude", language = "system", files = '\.(md|qmd)$', exclude = '(^|/)(\.claude/|CLAUDE\.md$|PLAN\.md$|DEFERRED\.md$|LICENSE\.md$)|-context\.md$' },
 ]
 
 [[repos]]
@@ -19,6 +32,16 @@ repo = "https://github.com/gitleaks/gitleaks"
 rev = "v8.30.1"
 hooks = [
   { id = "gitleaks" }
+]
+
+# Validates the header of the message being written against Conventional Commits, nothing more:
+# no prompt, no body or length check, merge and fixup commits skipped. Restricting the types or
+# the scopes goes through args, where list parsing is reported unreliable (upstream issue 129).
+[[repos]]
+repo = "https://github.com/compilerla/conventional-pre-commit"
+rev = "v4.4.0"
+hooks = [
+  { id = "conventional-pre-commit", stages = ["commit-msg"] }
 ]
 
 [[repos]]
