@@ -195,6 +195,25 @@ assert_not_ran() {
   assert_not_ran prose-lint
 }
 
+@test "skips panache on a showboat trace under _meta/notes" {
+  f=$(fixture "_meta/notes/gsconnect-install.md")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_not_ran panache
+  assert_ran prose-lint
+}
+
+@test "formats a .md under _meta outside the notes directory" {
+  f=$(fixture "_meta/profiles/readme.md")
+
+  run_hook "$f"
+
+  assert_ran panache
+  assert_ran prose-lint
+}
+
 @test "skips panache on a .md generated beside a .qmd" {
   fixture "vignette.qmd" >/dev/null
   f=$(fixture "vignette.md")
@@ -234,13 +253,31 @@ assert_not_ran() {
   assert_not_ran prose-lint
 }
 
-@test "formats a project .claude note whose basename is not the exact skip glob" {
+@test "exempts a project .claude note from panache whatever its basename" {
   f=$(fixture "projet/.claude/PLAN-LUA.md")
 
   run_hook "$f"
 
-  assert_ran panache
+  assert_not_ran panache
   assert_not_ran prose-lint
+}
+
+@test "exempts a nested project .claude note from panache" {
+  f=$(fixture "projet/pkg/.claude/notes/design.md")
+
+  run_hook "$f"
+
+  assert_not_ran panache
+  assert_not_ran prose-lint
+}
+
+@test "formats a project note outside any .claude tree" {
+  f=$(fixture "projet/docs/design.md")
+
+  run_hook "$f"
+
+  assert_ran panache
+  assert_ran prose-lint
 }
 
 @test "still runs prose-lint when panache is not installed" {

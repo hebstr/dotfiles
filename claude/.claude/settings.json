@@ -187,7 +187,7 @@
       }
     }
   },
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "tui": "fullscreen",
   "autoDreamEnabled": true,
   "showThinkingSummaries": true

@@ -5,7 +5,9 @@ metadata:
   type: feedback
 ---
 
-`rg` skips hidden paths and honours `.gitignore` by default, and `.claude/` is both hidden and, in several projects (`eds-avc` among them), gitignored. A bare `rg -l '<symbol>' .` looking for what depends on a change therefore returns only the tracked source files and reports the tracker set as clean, when `ANNOT-PKG.md`, `ANNOT.md`, `DEFERRED.md` and the project `CLAUDE.md` are exactly the files that describe the changed symbol.
+`rg` skips hidden paths and honours `.gitignore` by default, and `.claude/` is both hidden and, in several projects (`eds-avc` and `py-edscrib` among them, the latter through a `/.claude/` line in its `.gitignore`), gitignored. A bare `rg -l '<symbol>' .` looking for what depends on a change therefore returns only the tracked source files and reports the tracker set as clean, when `ANNOT-PKG.md`, `ANNOT.md`, `DEFERRED.md` and the project `CLAUDE.md` are exactly the files that describe the changed symbol.
+
+**It recurred on 2026-07-30**, in `py-edscrib`, on the very grep CLAUDE.md makes mandatory after removing a public symbol: a bare `rg` over the repo reported zero residual references to `estimate_prefix` / `estimate_values` / `has_note_values` and read as a clean pass, while `.claude/CLAUDE.md` and `.claude/DEFERRED.md` were never opened. The re-run with `--hidden --no-ignore` cleared them too, but that was luck rather than method. **The post-structural-change greps in CLAUDE.md are exactly the case this memory covers**: run them in the `--hidden --no-ignore` form by default, since their whole purpose is finding what documents a symbol.
 
 **Why:** the failure is a false negative that reads as a pass. During a `/workflow:sync` on `eds-avc` (2026-07-28) the first dependency grep returned 4 files, all of them already-modified sources, which would have concluded "no stale dependents"; `rg --hidden --no-ignore` on the same pattern returned the four `.claude/` trackers, which held two genuinely stale claims and a wrong line citation. The global preference for `rg` over `grep` says nothing about this, so the default silently narrows the search.
 

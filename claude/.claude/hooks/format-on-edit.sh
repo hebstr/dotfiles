@@ -38,11 +38,14 @@ case "$FILE" in
   esac
   ;;
 *.md | *.qmd)
-  # _snaps/ holds testthat snapshots: machine-written, compared verbatim, so any
-  # reflow turns into a spurious diff on the next run.
   case "$REAL" in
-  */_snaps/*) ;;
-  */memory/* | */PLAN.md | */DEFERRED.md | *-context.md | */CLAUDE.md | */rules/*.md) ;;
+  # Both hold content compared verbatim against a re-run: testthat snapshots under
+  # _snaps/, showboat trace captures under _meta/notes/. A reflow, or a tab rewritten
+  # inside an output block, turns into a spurious diff the next run reports.
+  */_snaps/* | */_meta/notes/*) ;;
+  # A .claude/ tree is Claude-facing, so it shares prose-lint's exemption below rather
+  # than the narrower basename list, which also covers those files outside such a tree.
+  */.claude/* | */memory/* | */PLAN.md | */DEFERRED.md | *-context.md | */CLAUDE.md | */rules/*.md) ;;
   # A .md beside a same-named .Rmd/.qmd is knitr/Quarto output (github_document):
   # reflowing it desynchronises it from the source it is regenerated from.
   *.md) [[ -f "${REAL%.md}.Rmd" || -f "${REAL%.md}.qmd" ]] ||
