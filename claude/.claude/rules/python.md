@@ -40,6 +40,8 @@ Preset parity matters as much as version parity. Positron's `python.pyrefly.type
 
 Do not add a second type checker beside it. `pyright` duplicates its diagnostics while Positron disables half its features (`pyright.disableLanguageServices` is forced on), and `ty` (Astral) is still `0.0.x` with an explicit no-stable-API policy: "breaking changes, including changes to diagnostics, may occur between any two versions". A gate needs one authority. `uvx ty check` as an occasional second opinion is fine as long as pyrefly stays the one that decides.
 
+The second checker does not have to be installed deliberately: a Claude Code plugin can declare one. `astral@astral-sh` ships an `lspServers.ty` entry running `uvx ty@latest server`, so enabling it for its uv/ruff skills also puts ty's diagnostics in every Python buffer, under rule names close enough to pyrefly's (`unresolved-attribute` against `missing-attribute`) to read as editor output. The tell is the `(ty)` suffix on the diagnostic, and the check is `.claude-plugin/plugin.json` in the plugin cache. Claude Code exposes no per-server toggle, only the plugin flag in `enabledPlugins`, which is why that plugin sits at `false`. A suppression declared in `[tool.pyrefly.errors]` does not reach ty, so documented stub false positives resurface as errors.
+
 ## Mandatory pipeline after every create/edit
 
 ```sh

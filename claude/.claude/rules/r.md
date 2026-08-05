@@ -42,6 +42,43 @@ This code exists for a data science/biostatistics purpose. When editing it for i
 - LLM inference parameters (temperature, top_p, seed): do not change without documented justification (breaks reproducibility of existing results)
 - Calculated approximations (e.g. age from date diff / 365.25): flag but do not auto-correct, often intentional for consistency with institutional conventions
 
+## Analysis project conventions (hebstr stack)
+
+Scope: R analysis projects on the `hebstr` stack, recognised by `hebstr` in `rproject.toml` together with a `scripts/_setup.R` sourced by the report `.qmd` and one `tbl_*` / `fig_*` script per output.
+`~/Documents/services/md-nesrine/` is the reference implementation.
+Read it before writing a kind of output the current project has no precedent for; these conventions are established elsewhere and are not to be reinvented locally.
+
+**Placement**
+
+- One script per output under `scripts/`, named `tbl_<name>.R` or `fig_<name>.R`, ending in `easy_out()` or `easy_out_map()`. `auto_exec()` sweeps them, and a leading underscore excludes a script from that sweep
+- `scripts/_setup.R` holds the recoding and every object shared by more than one output script. A frame consumed by a single output belongs in that output's script
+- Shared helpers live in the directory swept by `auto_exec()` from `.Rprofile` (`config/`, or `lib/`). A helper used by one script is defined in that script
+- An output script selects and renders. When its frame is shared it does not read files, join, recode, or derive variables
+
+**Data management**
+
+- Categorical variables are coded as integers, their modalities declared in `easy_label(value = list(...))`, which converts them through `labelled::to_factor()`. Hand-written `factor(levels =, labels =)` duplicates the modality order between declaration and use
+- `easy_label(variable = list(...))` carries every variable label, then `discard(~ is.null(var_label(.x)))` drops the unlabelled columns. Labelling is the selection mechanism, so intermediates disappear without an explicit `select(-...)`
+- `easy_cut()` derives `{var}_cat` and leaves the continuous variable beside it
+- `nanoparquet::read_parquet()` returns a `data.frame`, so `as_tibble()` at the read
+- Dot-prefix what is internal to a setup or a script (`.surv`, `.model`); leave the deliverables bare (`df`, `tbl_*`, `fig_*`)
+
+**gtsummary pipeline**
+
+```
+data |>
+  select(...) |>
+  use_vars() |>
+  tbl_summary(by =, statistic = opts$vars$stat, digits = opts$digits, missing = "ifany", missing_text = opts$labs$row_missing) |>
+  add_stat_label(label = opts$vars$label) |>
+  gtsum_format() |>
+  tbl_format(width =)
+```
+
+`select()` chooses the variables, which makes `include =` redundant.
+`use_vars()` scans every column it is handed and stores the parametric/non-parametric split that `opts$vars$stat` resolves against, so a column left in the frame but absent from the table aborts `tbl_summary()` on a name it cannot select: restrict the frame first.
+`gtsum_format()` calls `add_overall()` itself, so calling it beforehand collides on `stat_0`.
+
 ## Useful flags
 
 **air format**

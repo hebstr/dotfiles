@@ -141,7 +141,7 @@
     "litrev@litrev": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "lua-lsp@claude-plugins-official": true,
-    "astral@astral-sh": true
+    "astral@astral-sh": false
   },
   "extraKnownMarketplaces": {
     "ouroboros": {
@@ -187,7 +187,7 @@
       }
     }
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "tui": "fullscreen",
   "autoDreamEnabled": true,
   "showThinkingSummaries": true

@@ -1,0 +1,17 @@
+---
+name: Diagnose a CSS layout by injecting a probe into the app, not by guessing
+description: "Inspect a rendered layout yourself instead of asking the user: snap chromium runs headless in Claude's Bash sandbox (screenshot, --dump-dom) and --remote-debugging-port plus websockets drives hover and getComputedStyle over CDP; Firefox headless does not start; the injected fixed-position ancestor probe stays the fallback when only the user's own browser reproduces the bug"
+metadata:
+  type: feedback
+---
+
+When a rendered layout does not behave as expected, look at it rather than iterating hypotheses through the user's browser. Prefer, in this order:
+
+1. **Drive the page directly.** `chromium --headless --screenshot` and `--dump-dom` both work in the sandbox. For anything needing interaction (hover, computed style, an element created only on an event), launch with `--remote-debugging-port=9222` and drive CDP from `uv run --with websockets python`: `Page.navigate`, `Runtime.evaluate` for `getBoundingClientRect` / `getComputedStyle`, `Input.dispatchMouseEvent` to hover, `Page.captureScreenshot`. This needs nothing from the user and answers questions a screenshot cannot.
+2. **Inject an in-page probe** when the cause sits in an ancestor chain: walk up from the misbehaving element and print, per ancestor, its `data-testid` or first class, `height`, `display`, `flexDirection`, `flexGrow` and `minHeight`.
+
+Reserve asking the user for a screenshot for a bug that only their own session reproduces.
+
+**Why:** both halves observed 2026-08-02 on the `eds-prise` Streamlit annotation app. The probe half: two blind attempts at a full-height layout failed before it showed the cause in one round, the container being `display: block` so the `flex-grow: 1` the framework already set on its child meant nothing, with an undocumented wrapper between the levels. Neither was guessable from the source. The CDP half, later the same day: a chart's axis was invisible with no error, and dumping the SVG showed labels rendered outside the viewBox; a tooltip's DOM and computed style were read by synthesising a hover, no user involvement at any point. `firefox --headless --screenshot` hangs until timeout in the sandbox, which is what made the probe the only option before chromium was tried.
+
+**How to apply:** snap chromium can only write inside `$HOME` and not into dotdirs, so send screenshots to something like `~/shots/`, never `/tmp` or `~/.cache` (it fails with `Permission denied`). A Streamlit page often needs two passes: the first `--virtual-time-budget` run returns the loading skeleton, so retry until the output exceeds a size or a selector is present. Synthetic CDP mouse events do not perfectly reproduce a real session: a hover shim verified green this way was reported as having no effect in the user's browser. For the injected probe, give it `position: fixed` so it does not disturb the layout it measures, offset it clear of any sidebar, keep one line per ancestor, remove it in the same session and grep to confirm nothing remains. In Streamlit, `st.html(body, unsafe_allow_javascript=True)` executes it. See also [[feedback_checkup_scope]] and [[reference_streamlit_altair_charts]].
