@@ -37,6 +37,17 @@ case "$FILE" in
   } 2>&1 | tail -30 ;;
   esac
   ;;
+*.sql)
+  # SQLFluff exits 2 with no dialect configured, so an unconfigured project would fail on
+  # every edit rather than lint one file. The line-5 guard already places the file under
+  # $PWD, leaving the project root as the only place worth probing for that config.
+  if [[ -f "$PWD/.sqlfluff" ]] || grep -q '^\[tool\.sqlfluff' "$PWD/pyproject.toml" 2>/dev/null; then
+    {
+      sqlfluff fix "$FILE"
+      sqlfluff lint "$FILE"
+    } 2>&1 | tail -30
+  fi
+  ;;
 *.md | *.qmd)
   case "$REAL" in
   # Both hold content compared verbatim against a re-run: testthat snapshots under

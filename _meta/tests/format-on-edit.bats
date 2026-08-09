@@ -10,6 +10,8 @@
 # The .py arm is grouped `{ ruff check --fix; ruff format; ruff check; }`, not chained with
 # `&&`, so the formatter and the validating pass both run even when the fixer exits non-zero
 # on unfixable violations; one test pins that. Same three-step shape as the .scss arm.
+# grep is symlinked into the stub PATH rather than stubbed: the .sql arm probes pyproject.toml
+# with it, so a stub would make the config-discovery tests assert on the stub, not the arm.
 
 SCRIPT="${FORMAT_ON_EDIT_HOOK:-$BATS_TEST_DIRNAME/../../claude/.claude/hooks/format-on-edit.sh}"
 
@@ -20,7 +22,7 @@ setup() {
   export WORK STUB_DIR CAPTURE_DIR
 
   mkdir -p "$STUB_DIR" "$CAPTURE_DIR"
-  for cmd in jq realpath tail; do
+  for cmd in jq realpath tail grep; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
   make_stub panache
@@ -33,6 +35,7 @@ setup() {
   make_stub shellcheck
   make_stub stylelint
   make_stub prettier
+  make_stub sqlfluff
 }
 
 teardown() {
@@ -471,6 +474,70 @@ STUB
 
   assert_ran prettier
   [ "$(wc -l <"$CAPTURE_DIR/stylelint")" -eq 2 ]
+}
+
+@test "fixes then lints a .sql when the project root carries a .sqlfluff" {
+  printf '[sqlfluff]\ndialect = duckdb\n' >"$WORK/.sqlfluff"
+  f=$(fixture "query.sql")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran sqlfluff
+  [[ $(sed -n 1p "$CAPTURE_DIR/sqlfluff") == "fix $f" ]]
+  [[ $(sed -n 2p "$CAPTURE_DIR/sqlfluff") == "lint $f" ]]
+  assert_not_ran panache
+  assert_not_ran prose-lint
+}
+
+@test "fixes then lints a .sql when pyproject.toml carries the config" {
+  printf '[tool.sqlfluff]\ndialect = "postgres"\n' >"$WORK/pyproject.toml"
+  f=$(fixture "query.sql")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_ran sqlfluff
+  [ "$(wc -l <"$CAPTURE_DIR/sqlfluff")" -eq 2 ]
+}
+
+# The exit-2 skip is the point of the arm's guard: without a dialect SQLFluff refuses to
+# run at all, so an unconfigured project would report a config error on every .sql edit.
+@test "skips a .sql when no sqlfluff config sits at the project root" {
+  f=$(fixture "query.sql")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_not_ran sqlfluff
+}
+
+@test "skips a .sql when pyproject.toml holds no sqlfluff section" {
+  printf '[tool.ruff]\nline-length = 88\n' >"$WORK/pyproject.toml"
+  f=$(fixture "query.sql")
+
+  run_hook "$f"
+
+  [ "$status" -eq 0 ]
+  assert_not_ran sqlfluff
+}
+
+@test "still validates a .sql when sqlfluff fix exits non-zero on unfixable violations" {
+  cat >"$STUB_DIR/sqlfluff" <<STUB
+#!/bin/bash
+printf '%s\n' "\$*" >>"$CAPTURE_DIR/sqlfluff"
+[ "\$1" = fix ] && exit 1
+exit 0
+STUB
+  chmod +x "$STUB_DIR/sqlfluff"
+  printf '[sqlfluff]\ndialect = duckdb\n' >"$WORK/.sqlfluff"
+  f=$(fixture "query.sql")
+
+  run_hook "$f"
+
+  assert_ran sqlfluff
+  [[ $(sed -n 2p "$CAPTURE_DIR/sqlfluff") == "lint $f" ]]
+  [ "$(wc -l <"$CAPTURE_DIR/sqlfluff")" -eq 2 ]
 }
 
 @test "no-ops on a payload carrying no file_path" {

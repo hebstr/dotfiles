@@ -53,7 +53,7 @@ Coverage is transitive where a package manager already tracks the tool: apt pack
 Tools with a bespoke distribution shape each have a dedicated `<tool>-update` script wired as its own module (quarto, pandoc, lua-toolchain = stylua + lua-language-server, css-toolchain = stylelint + prettier + stylelint-config-standard-scss, duckdb, positron, rig, rv, ...); `sys-update --list` is the authority for the full set.
 The `npm` module only updates globally installed packages, so it does not cover the pinned CSS gate toolchain: that one is the `css-toolchain` module's job.
 
-Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist, SomewhatStationery.some-sass, esbenp.prettier-vscode) update in-editor; they are not CLIs and not covered by `sys-update`.
+Positron extensions (Bash IDE, sumneko.lua, JohnnyMorganz.stylua, tinymist, SomewhatStationery.some-sass, esbenp.prettier-vscode, sqlfluff.vscode-sqlfluff) update in-editor; they are not CLIs and not covered by `sys-update`.
 
 ### One tool, one binary
 
@@ -106,3 +106,4 @@ The same split can come from two installs rather than an extension: `uv` sat in 
 | stylelint   | CSS/SCSS linter (`~/.local/bin/stylelint`, symlink into the pinned toolchain at `~/.local/share/css-gate/`). Needs `--config` on every call. Gate in `rules/css.md` |
 | prettier    | CSS/SCSS formatter (`~/.local/bin/prettier`, same toolchain). Gate in `rules/css.md` |
 | lua-language-server | Lua LSP + type checker (`~/.local/bin/lua-language-server` → `~/.local/share/lua-language-server/`); `--check <dir>` for CLI diagnostics against Quarto LuaCATS stubs. Gate in `rules/lua.md` |
+| sqlfluff    | SQL fixer + linter (`~/.local/bin/sqlfluff`, `uv tool install "sqlfluff[rs]"`); the whole gate on its own, `fix` then `lint`. Needs a project config naming a dialect (`.sqlfluff`, or `[tool.sqlfluff]` in `pyproject.toml`) or it exits 2. Gate in `rules/sql.md` |

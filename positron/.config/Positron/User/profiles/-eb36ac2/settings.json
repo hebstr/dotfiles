@@ -197,6 +197,13 @@
   "somesass.scss.completion.suggestFromUseOnly": true,
   "somesass.sass.completion.suggestFromUseOnly": true,
 
+  "[sql]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "sqlfluff.vscode-sqlfluff",
+  },
+  "sqlfluff.executablePath": "/home/julien/.local/bin/sqlfluff",
+  "sqlfluff.linter.run": "onSave",
+
   "[json]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",

@@ -30,7 +30,7 @@ The `npm ci` step is required, not optional: the `css` package ships pinned `pac
 Thereafter `sys-update css-toolchain` keeps that toolchain current.
 
 The uv tools have no equivalent step, and the bootstrap above does not install them: `sys-update uv-tools` upgrades what is already present and installs nothing.
-`pyrefly` (the Python gate's type checker), `showboat`, `ouroboros-ai`, `huggingface-hub`, `youtube-transcript-api` and `yt-dlp` each need a manual `uv tool install` on a fresh machine.
+`pyrefly` (the Python gate's type checker), `sqlfluff[rs]` (the SQL gate), `showboat`, `ouroboros-ai`, `huggingface-hub`, `youtube-transcript-api` and `yt-dlp` each need a manual `uv tool install` on a fresh machine.
 Tracked in `.claude/DEFERRED.md`.
 
 Hooks are run via [`prek`](https://github.com/j178/prek) (`prek install`, `prek run -a`).

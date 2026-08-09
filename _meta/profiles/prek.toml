@@ -107,6 +107,19 @@ hooks = [
   { id = "stylua-github", files = '\.lua$' }
 ]
 
+# SQLFluff exits 2 without a dialect, a configuration error rather than a lint failure:
+# the commit fails with no violation to act on. A project adopting these hooks needs a
+# .sqlfluff or a [tool.sqlfluff.core] table naming its dialect (see rules/sql.md).
+# sqlfluff-fix rewrites the staged files, sqlfluff-lint is the validating pass that decides,
+# which is why both are listed rather than fix alone.
+[[repos]]
+repo = "https://github.com/sqlfluff/sqlfluff"
+rev = "4.3.0"
+hooks = [
+  { id = "sqlfluff-fix" },
+  { id = "sqlfluff-lint" },
+]
+
 # lorenzwalthert/precommit R hooks run in an renv-sandboxed env whose bundled
 # lockfile does not build under R 4.6: v0.4.3 pins digest 0.6.36 (removed Calloc/Free
 # macros), and its main branch pulls V8 -> libnode.so.109 (absent on nodesource setups).
