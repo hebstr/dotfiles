@@ -41,6 +41,12 @@
   "terminal.integrated.stickyScroll.enabled": false,
   "terminal.integrated.environmentChangesRelaunch": true,
 
+  // The WebGL renderer corrupts its glyph atlas under a heavy TUI redraw
+  // (Claude Code), leaving cells drawn as blank blocks; the DOM renderer does
+  // not. Setting documented by Claude Code as the fix for garbled integrated
+  // terminals.
+  "terminal.integrated.gpuAcceleration": "off",
+
   // GESTION DES FICHIERS --------------------------------------------------------
 
   "files.defaultLanguage": "r",

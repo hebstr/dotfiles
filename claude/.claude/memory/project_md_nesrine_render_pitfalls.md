@@ -1,6 +1,6 @@
 ---
 name: md-nesrine / These-pancreas render pitfalls
-description: Four non-obvious blockers in the md-nesrine (These-pancreas) project; check these first if a render OR any non-interactive R entry point (Rscript -e, Rscript script.R, sourcing scripts/_setup.R) fails with "object '<col>' not found", on labels, on a commented-out chunk, or on Word export. Pitfall 1 (stats::filter masking dplyr::filter) is not project-specific and applies to any hebstr-stack project
+description: Four non-obvious blockers in the md-nesrine (These-pancreas) project; check these first if a render OR any non-interactive R entry point (Rscript -e, Rscript script.R, sourcing scripts/_setup.R) fails with "object '<col>' not found", on labels, on a commented-out chunk, or on Word export. Pitfall 1 (stats::filter masking dplyr::filter) is not project-specific and applies to any hebstr-stack project; it carries a structural fix via setHook on the stats attach event (verified but not adopted in eds-prise, which uses the re-assert), and a refutation of the .First hook that looks like the obvious alternative
 metadata:
   type: project
 ---
@@ -13,6 +13,21 @@ Project `~/Documents/services/md-nesrine` (Quarto report `index.qmd`, rv-managed
 This is not render-specific: it bites any non-interactive entry point that sources the pipeline. `Rscript -e 'source("scripts/_setup.R")'` fails at `_setup.R`'s `filter(groupe == level)` with `object 'groupe' not found` (2026-07-17). Same fix: re-assert `conflicts_prefer` before the `source()` call in the same `-e` expression.
 
 **Not md-nesrine-specific either: same failure in `eds-prise` on 2026-08-05, and it will hit any hebstr-stack project whose `.Rprofile` attaches tidyverse.** Root cause confirmed there: under `Rscript`, the default packages are attached *after* `.Rprofile` runs, so `find("filter")` returns `package:stats` before `package:dplyr` and bare `filter` is `stats::filter`, which evaluates its second argument in the caller frame and reports `object '<col>' not found`. `conflicts_prefer` in `.Rprofile` cannot help because `conflict_scout()` sees no conflict at that point (it prints `0 conflicts`), stats not being attached yet. Second workable fix, simpler than re-asserting `conflicts_prefer` when writing a throwaway script rather than sourcing the pipeline: put `suppressMessages(library(tidyverse))` at the top of the script, which re-attaches ahead of stats. Diagnose with `find("filter")` before anything else, since the error message points at the column, never at the masking.
+
+**Structural fix, verified in `eds-prise` on 2026-08-10, which removes the need for either workaround.** Register a hook on the attach event of the masking package, from `.Rprofile` after `conflicts_prefer`:
+
+```r
+setHook(
+  packageEvent("stats", "attach"),
+  \(...) conflicted::conflicts_prefer(dplyr::filter(), .quiet = TRUE)
+)
+```
+
+It fires exactly when `stats` attaches, so `.conflicts` lands back at search position 2 above `package:stats`. Measured on 2026-08-10: `environmentName(environment(filter))` is `dplyr`, `search()[2]` is `.conflicts`, and `Rscript -e 'source("scripts/_setup.R")'` completes with no re-assert anywhere. A re-assert left in the consuming `.qmd` stays harmless, costing one extra `Removing existing preference` line.
+
+**The mechanism is verified, but eds-prise does not use it.** The hook was applied there during a review walkthrough and the user reverted it the same day, putting `conflicts_prefer(dplyr::filter(), .quiet = TRUE)` at the top of `scripts/_setup.R` instead, which is the re-assert fallback applied at the pipeline entry point rather than in the profile. So the project's live answer to pitfall 1 is the re-assert, not the hook. Propose the hook, do not assume it is in place, and read `.Rprofile` before relying on it.
+
+**`.First` does NOT work for this, despite looking like the obvious hook.** Base R calls `.First()` and only then `.First.sys()`, and `.First.sys()` is what attaches the default packages, so `.First` sees the same search path `.Rprofile` does. Measured with a minimal profile: `search()` is `.GlobalEnv methods Autoloads base` in both the profile body and `.First`, gaining `stats graphics grDevices utils datasets` only afterwards. Do not propose it; a code reviewer suggested it here and it fails silently, leaving the masking in place.
 
 **2. `as_factor` strips `var_label` on plain-numeric `int` vars without value labels.**
 `easy_label` (defined in `.Rprofile`) ended with `mutate(across(any_of(dict$type$int) | where(is.labelled), as_factor))`. Both `forcats::as_factor` and `haven::as_factor` drop the `label` attribute on a plain numeric (a var typed `int` in the dict but with no `level`/value labels, e.g. `ps_diag`, `ps_pre_*`). The var then has `NULL` var_label and is dropped by the trailing `discard(~ is.null(var_label(.x)))`, so it silently vanishes from `df` and any `select(ps_diag)` later errors with "column doesn't exist". Fix: use `labelled::to_factor` instead of `as_factor` (it preserves `var_label` on both plain numerics and `haven_labelled`, no regression on value-labelled vars). Only the `.haven_labelled` method of `as_factor` preserves the label.
