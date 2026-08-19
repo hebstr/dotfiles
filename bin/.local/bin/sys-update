@@ -14,7 +14,6 @@ ALL_MODULES=(
   claude
   devtools
   uv-tools
-  pnpm
   rv
   rig
   duckdb
@@ -156,14 +155,6 @@ update_uv_tools() {
     return
   fi
   run_or_dry uv tool upgrade --all && record uv-tools OK
-}
-
-update_pnpm() {
-  if ! command -v pnpm >/dev/null 2>&1; then
-    record pnpm "skipped (not found)"
-    return
-  fi
-  run_or_dry pnpm self-update && record pnpm OK
 }
 
 update_rv() {

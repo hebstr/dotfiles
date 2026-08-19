@@ -360,11 +360,11 @@ EOF
   [[ "$output" == *"claude-versions"*"skipped (not found)"* ]]
 }
 
-@test "claude-versions module is skipped when no version dir matches the regex" {
+@test "claude-versions module is skipped when no version entry matches the regex" {
   mkdir -p "${FAKE_HOME}/.local/share/claude/versions/notaversion"
   _run --dry-run claude-versions
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skipped (no version dir)"* ]]
+  [[ "$output" == *"skipped (no version entry)"* ]]
 }
 
 @test "claude-versions keeps the latest version and prints rm for older ones (dry-run)" {
@@ -390,6 +390,53 @@ EOF
   [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.0.0"* ]]
   # notaversion does not match the regex → never touched
   [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/notaversion"* ]]
+}
+
+# Claude Code stores each version as an executable file, not a directory;
+# both layouts are accepted so a change upstream cannot silently disable the
+# module again.
+
+@test "claude-versions keeps the latest version file and prints rm for older ones (dry-run)" {
+  mkdir -p "${FAKE_HOME}/.local/share/claude/versions"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.227"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.234"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.235"
+  _run --dry-run claude-versions
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.1.227"* ]]
+  [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.1.234"* ]]
+  [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.1.235"* ]]
+  # The regression this guards: the module used to report a skip here.
+  [[ "$output" != *"skipped"* ]]
+}
+
+@test "claude-versions reports OK with nothing to remove when a single version file is present" {
+  mkdir -p "${FAKE_HOME}/.local/share/claude/versions"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.235"
+  _run --dry-run claude-versions
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[dry-run] rm -rf"* ]]
+  [[ "$output" != *"skipped"* ]]
+  [[ "$output" == *"claude-versions"*"OK"* ]]
+}
+
+@test "non-dry-run claude-versions removes older version files and keeps the latest" {
+  mkdir -p "${FAKE_HOME}/.local/share/claude/versions"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.227"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.235"
+  _run claude-versions
+  [ "$status" -eq 0 ]
+  [ ! -e "${FAKE_HOME}/.local/share/claude/versions/2.1.227" ]
+  [ -f "${FAKE_HOME}/.local/share/claude/versions/2.1.235" ]
+}
+
+@test "claude-versions handles a mix of version files and version dirs" {
+  mkdir -p "${FAKE_HOME}/.local/share/claude/versions/1.0.0"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.0.0"
+  _run --dry-run claude-versions
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/1.0.0"* ]]
+  [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.0.0"* ]]
 }
 
 # ─── module dispatch: dash → underscore ─────────────────────────────────────

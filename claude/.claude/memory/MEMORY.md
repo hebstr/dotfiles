@@ -42,6 +42,7 @@
 - [feedback_r_environment.md](feedback_r_environment.md): R environment idioms (rv not renv, `system2` over `system`, rv sync auto-runs at R startup via .Rprofile)
 - [feedback_benchmark_power_state.md](feedback_benchmark_power_state.md): Benchmarks on this laptop carry a power state: ~2x slower on battery than on AC, uniformly; ~8% run-to-run noise inside a regime; claim gains as shares from paired runs, never as wall-clock deltas
 - [feedback_verify_before_claiming.md](feedback_verify_before_claiming.md): 6 hard rules for verifying factual claims; detail behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
+- [feedback_load_matching_skill.md](feedback_load_matching_skill.md): Load a matching installed skill before producing the artifact; mirroring a neighbouring file's conventions reproduces its blind spots (bats tests that asserted removals but not the reported status, which was the bug)
 - [feedback_review_workflow.md](feedback_review_workflow.md): Preferred review workflow: 3 background specialists + 2-3 foreground agents by facet, consolidated report, then `/audit:walkthrough`
 - [feedback_reviewer_review_testing_scope.md](feedback_reviewer_review_testing_scope.md): review-testing scopes to test files changed on the branch; pass an explicit scope override to review an existing suite on a clean tree
 - [feedback_review_severity_personal.md](feedback_review_severity_personal.md): Calibrate review severity down for personal/internal packages

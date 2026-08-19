@@ -186,10 +186,10 @@ clean_claude_versions() {
     return
   }
   local latest
-  latest=$(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+  latest=$(find "$versions_dir" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) -printf '%f\n' |
     { grep -E '^[0-9]+(\.[0-9]+)*' || true; } | sort -V | tail -n1)
   if [[ -z "$latest" ]]; then
-    record claude-versions 0 "skipped (no version dir)"
+    record claude-versions 0 "skipped (no version entry)"
     return
   fi
   local before
@@ -197,7 +197,7 @@ clean_claude_versions() {
   while IFS= read -r ver; do
     [[ "$ver" == "$latest" ]] && continue
     run_or_dry rm -rf "${versions_dir:?}/${ver}"
-  done < <(find "$versions_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+  done < <(find "$versions_dir" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) -printf '%f\n' |
     { grep -E '^[0-9]+(\.[0-9]+)*' || true; })
   local after
   after=$(bytes_of "$versions_dir")

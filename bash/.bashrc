@@ -34,13 +34,6 @@ bind 'set mark-symlinked-directories on'
 
 ### PATH --------------------------------------------------------------------
 
-export PNPM_HOME="/home/julien/.local/share/pnpm"
-
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-
 case ":$PATH:" in
   *":$HOME/.local/bin:"*) ;;
   *) export PATH="$HOME/.local/bin:$PATH" ;;

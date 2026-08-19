@@ -100,9 +100,12 @@ sudo mv "${PREFIX}" "${BACKUP}"
 sudo mv "${STAGE}" "${PREFIX}"
 SWAPPED=0
 
+find /opt -maxdepth 1 -type d -name 'quarto.bak-*' \
+  ! -path "${BACKUP}" -exec sudo rm -rf {} +
+
 echo
 echo "Installed version:"
 "${PREFIX}/bin/quarto" --version
 echo
 echo "Run 'quarto check' to validate the install."
-echo "Backup kept at ${BACKUP}. Remove with: sudo rm -rf ${BACKUP}"
+echo "Backup kept at ${BACKUP}; older backups removed."

@@ -10,6 +10,7 @@ setup() {
   export TMPHOME PROJECT MEMDIR LOCK
   mkdir -p "$MEMDIR"
   LIVE_PID=""
+  STUBS=""
 }
 
 teardown() {
@@ -17,6 +18,9 @@ teardown() {
     kill "$LIVE_PID" 2>/dev/null || true
   fi
   rm -rf "$TMPHOME"
+  if [ -n "$STUBS" ]; then
+    rm -rf "$STUBS"
+  fi
 }
 
 make_lock() {
@@ -30,6 +34,19 @@ spawn_live() {
 
 run_hook() {
   run env HOME="$TMPHOME" /bin/bash "$SCRIPT"
+}
+
+# The PID-reuse guard reads two timestamps through stat; a stat that always
+# fails is the only way to reach the branch that keeps the lock when neither
+# can be read.
+stub_failing_stat() {
+  STUBS=$(mktemp -d)
+  printf '%s\n' '#!/usr/bin/env bash' 'exit 1' >"$STUBS/stat"
+  chmod +x "$STUBS/stat"
+}
+
+run_hook_stubbed() {
+  run env HOME="$TMPHOME" PATH="$STUBS:$PATH" /bin/bash "$SCRIPT"
 }
 
 log_contents() {
@@ -81,4 +98,15 @@ log_contents() {
   [ "$status" -eq 0 ]
   [ ! -e "$LOCK" ]
   [[ "$(log_contents)" == *recycled* ]]
+}
+
+@test "keeps a live lock when neither timestamp can be read" {
+  stub_failing_stat
+  spawn_live
+  make_lock "$LIVE_PID"
+  touch -d '1 hour ago' "$LOCK"
+  run_hook_stubbed
+  [ "$status" -eq 0 ]
+  [ -e "$LOCK" ]
+  [[ "$(log_contents)" != *"$PROJECT"* ]]
 }

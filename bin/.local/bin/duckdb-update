@@ -57,9 +57,9 @@ if ! "${TMP}/duckdb" --version >/dev/null 2>&1; then
   exit 1
 fi
 
+BACKUP=""
 # On first run the target may be a root-owned symlink left by the old duckdb.org installer.
 if [ -e "$DEST" ] || [ -L "$DEST" ]; then
-  BACKUP="${DEST}.bak-${CURRENT}-$(date +%Y%m%d-%H%M%S)"
   if [ -L "$DEST" ]; then
     echo "Removing symlink ${DEST} -> $(readlink "$DEST")"
     rm -f "$DEST" 2>/dev/null || sudo rm -f "$DEST" || {
@@ -67,12 +67,18 @@ if [ -e "$DEST" ] || [ -L "$DEST" ]; then
       exit 1
     }
   else
+    BACKUP="${DEST}.bak-${CURRENT}-$(date +%Y%m%d-%H%M%S)"
     mv "$DEST" "$BACKUP"
     echo "Previous binary backed up to ${BACKUP}"
   fi
 fi
 
 mv "${TMP}/duckdb" "$DEST"
+
+if [ -n "$BACKUP" ]; then
+  find "${DEST%/*}" -maxdepth 1 -type f -name 'duckdb.bak-*' \
+    ! -path "$BACKUP" -delete
+fi
 
 echo
 echo "Installed version:"
