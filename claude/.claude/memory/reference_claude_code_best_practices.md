@@ -137,7 +137,7 @@ For `PreToolUse`, a hook can return JSON instead of relying on exit codes:
 
 ## Auto memory system
 
-Claude persists information across sessions via memory files in `~/.claude/memory/` (single source of truth, stow-managed under `~/dotfiles/claude/.claude/memory/`). The harness still auto-loads `MEMORY.md` from per-project paths like `~/.claude/projects/<cwd>/memory/` at session start, but those are read-only redirect stubs; never write new memory there.
+Claude persists information across sessions via memory files in `~/.claude/memory/` (single source of truth, stow-managed under `~/dotfiles/claude/.claude/memory/`). The index reaches the session prompt through the `SessionStart` hook `inject-project-context.sh` (matcher `startup|compact|resume`), which cats the canonical `MEMORY.md`, then cats `.claude/memory/MEMORY.md` from the working directory when one exists. There is no redirect stub: the harness path `~/.claude/projects/<cwd>/memory/` is simply never written to, so it stays empty under the override. Verified 2026-08-20; 46 memory files predating the override still sit under 13 such harness paths and are legacy, not live.
 
 ### Memory types
 
@@ -153,7 +153,7 @@ Claude persists information across sessions via memory files in `~/.claude/memor
 - `MEMORY.md` index: first 200 lines or 25 KB loaded at every session start; keep concise
 - Topic files (e.g. `debugging.md`) are NOT loaded at startup; Claude reads them on demand
 - `project` memories must be deleted once the work is complete
-- Each memory lives in its own file with frontmatter (name, description, and `metadata.type` nested under a `metadata:` key) + pointer in `~/.claude/memory/MEMORY.md` (the canonical index; per-project `MEMORY.md` is a redirect stub only)
+- Each memory lives in its own file with frontmatter (name, description, and `metadata.type` nested under a `metadata:` key) + pointer in `~/.claude/memory/MEMORY.md` (the single canonical index; nothing is written under the harness per-project path)
 - Don't save what code or git already tells you (architecture, history, visible conventions)
 - Don't duplicate what's in CLAUDE.md
 - `autoMemoryEnabled: false` in settings to disable; or `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`

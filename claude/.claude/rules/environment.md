@@ -49,7 +49,7 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 `sys-update` (in `bin/`) is the single entry point and orchestrates every updater as a module: `sys-update --list` for the current set, `sys-update <module>` to run one, no arguments for all.
 Prefer the module over an ad-hoc install or upgrade, so the maintained path stays authoritative.
 
-Coverage is transitive where a package manager already tracks the tool: apt packages (shellcheck, shfmt) via `apt`, snaps (typst) via `snap`, cargo binaries (typstyle, shellharden, panache, bacon) via `cargo`, cargo-dist installers (ruff, air, jarl, uv, prek) via `devtools`, uv tools via `uv-tools`.
+Coverage is transitive where a package manager already tracks the tool: apt packages (shellcheck, shfmt) via `apt`, snaps (typst) via `snap`, cargo binaries (typstyle, shellharden, panache, bacon, pdf-inspector) via `cargo`, cargo-dist installers (ruff, air, jarl, uv, prek) via `devtools`, uv tools via `uv-tools`.
 Tools with a bespoke distribution shape each have a dedicated `<tool>-update` script wired as its own module (quarto, pandoc, lua-toolchain = stylua + lua-language-server, css-toolchain = stylelint + prettier + stylelint-config-standard-scss, duckdb, positron, rig, rv, ...); `sys-update --list` is the authority for the full set.
 The `npm` module only updates globally installed packages, so it does not cover the pinned CSS gate toolchain: that one is the `css-toolchain` module's job.
 
@@ -107,3 +107,8 @@ The same split can come from two installs rather than an extension: `uv` sat in 
 | prettier    | CSS/SCSS formatter (`~/.local/bin/prettier`, same toolchain). Gate in `rules/css.md` |
 | lua-language-server | Lua LSP + type checker (`~/.local/bin/lua-language-server` → `~/.local/share/lua-language-server/`); `--check <dir>` for CLI diagnostics against Quarto LuaCATS stubs. Gate in `rules/lua.md` |
 | sqlfluff    | SQL fixer + linter (`~/.local/bin/sqlfluff`, `uv tool install "sqlfluff[rs]"`); the whole gate on its own, `fix` then `lint`. Needs a project config naming a dialect (`.sqlfluff`, or `[tool.sqlfluff]` in `pyproject.toml`) or it exits 2. Gate in `rules/sql.md` |
+| detect-pdf  | PDF classification, text vs scanned, plus per-page OCR / table / column routing (`cargo install pdf-inspector`). Always the first step on a PDF; routing in `rules/pdf.md` |
+| pdf2md      | PDF to Markdown with multi-column reading order (same crate). Unsafe on slide decks: see the measured defects in `rules/pdf.md` |
+| pdftotext   | Raw PDF text extraction (poppler-utils); `-layout` keeps the spatial arrangement, plain mode is the default for `rg` searches |
+| pdfinfo     | PDF metadata: page count, `Creator`, `Producer` (poppler-utils). The `Producer` field is what decides the slide-deck branch in `rules/pdf.md` |
+| pdftoppm    | PDF page to PNG (poppler-utils); the way to hand a scanned page to the native `Read` tool |

@@ -47,7 +47,6 @@
     },
     "save_files_before_build": true,
     "graphics_antialiasing": "subpixel",
-    "insert_native_pipe_operator": true,
     "reindent_on_paste": false,
     "code_completion_characters": 2,
     "code_completion_delay": 100,

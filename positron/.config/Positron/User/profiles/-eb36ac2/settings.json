@@ -40,11 +40,6 @@
   "terminal.integrated.cursorStyleInactive": "line",
   "terminal.integrated.stickyScroll.enabled": false,
   "terminal.integrated.environmentChangesRelaunch": true,
-
-  // The WebGL renderer corrupts its glyph atlas under a heavy TUI redraw
-  // (Claude Code), leaving cells drawn as blank blocks; the DOM renderer does
-  // not. Setting documented by Claude Code as the fix for garbled integrated
-  // terminals.
   "terminal.integrated.gpuAcceleration": "off",
 
   // GESTION DES FICHIERS --------------------------------------------------------
@@ -143,10 +138,6 @@
 
   "panache.executableStrategy": "environment",
 
-  // The extension bundles its own air and prepends it to the integrated
-  // terminal PATH, which would shadow the devtools-managed /usr/local/bin/air
-  // and let the editor and the gate format with two independently updated
-  // binaries. "environment" falls back to the bundle when PATH has none.
   "air.executableStrategy": "environment",
 
   "python.createEnvironment.contentButton": "show",
@@ -155,8 +146,6 @@
   "python.enableAutoReload": false,
   "python.terminal.activateEnvironment": true,
 
-  // The extension bundles its own pyrefly and ignores the PATH; pointing it at
-  // the uv-installed CLI keeps the editor and the terminal gate on one binary.
   "pyrefly.lspPath": "/home/julien/.local/bin/pyrefly",
   "python.pyrefly.typeCheckingMode": "default",
 
@@ -301,7 +290,6 @@
 
   "claudeCode.preferredLocation": "panel",
   "claudeCode.selectedModel": "opus",
-
   "chat.useAgentSkills": false,
 
   // APPARENCE GLOBALE -----------------------------------------------------------
@@ -317,7 +305,6 @@
   "workbench.keybindings.rstudioKeybindings": true,
 
   "window.title": "${activeEditorFull}${separator}${rootName}",
-
   // "window.zoomLevel": 0.1,
 
   // COLORATION SYNTAXIQUE -------------------------------------------------------
@@ -556,6 +543,13 @@
         "scope": ["keyword.control.import.shortcode"],
         "settings": {
           "foreground": "#ffffff",
+        },
+      },
+      {
+        "name": "Quarto Cell Option Separator",
+        "scope": ["punctuation.separator.key-value.cell-option.quarto"],
+        "settings": {
+          "foreground": "#CDD3DE",
         },
       },
       {
