@@ -1,17 +1,18 @@
 ---
-name: Personal working files are not to be read
-description: Rationale and edge cases behind the CLAUDE.md read-gate on NOTES.md and TODO.md (the rule itself lives in Plan & memory discipline)
+name: Personal working files are the user's to write, not Claude's
+description: Rationale and edge cases behind the CLAUDE.md write-gate on NOTES.md, TODO.md and CALENDRIER.md (reading is free; the rule itself lives in Plan & memory discipline)
 metadata:
   type: feedback
 ---
 
-The rule is in `~/.claude/CLAUDE.md`, section "Plan & memory discipline": never read, grep, or edit `NOTES.md` / `TODO.md` without an explicit instruction naming the file. This note carries only what the bullet has no room for.
+The rule is in `~/.claude/CLAUDE.md`, section "Plan & memory discipline": `NOTES.md`, `TODO.md` and `CALENDRIER.md` are read and grepped like any other file, and never written to. This note carries only what the bullet has no room for.
 
-**Why:** they hold the user's own thinking, in the user's own shorthand, at whatever stage of half-formed it happens to be. They are a scratchpad, not an interface. Reading them uninvited turns private notes into input for suggestions the user never asked for, and their line numbers and phrasing are volatile by design, so anything built on them is stale on arrival.
+**Why:** they hold the user's own thinking, in the user's own shorthand, at whatever stage of half-formed it happens to be. That makes them a first-class source, often the only place a clinical premise or a project constraint is written down at all, and it makes them the user's alone to maintain. Rewriting a scratchpad destroys the shorthand its author reads by, and an item marked done by Claude asserts a status the user never claimed.
 
 **How to apply, beyond the CLAUDE.md bullet:**
-- None of these license a read: the file is tracked by git, sits at the repo root, appears in `git status`, or is described in a project `CLAUDE.md` architecture block. The `eds-avc` project file marks both with "NE PAS LIRE sauf demande explicite" for exactly this reason.
-- Editing is a stricter gate than reading, not the same one: a request to read does not extend to a fix, even an obviously correct one.
-- Established 2026-07-28, after a `/workflow:sync` run in `eds-avc` read both files because they appeared in the injected uncommitted-file list, and raised a domain question (an LLM count) sourced entirely from `NOTES.md`.
+- Reading them uninvited is expected, not a transgression. What stays gated is the follow-through: use their content for the task at hand, do not turn a half-formed line into an unsolicited suggestion or into a domain question the user never raised.
+- Editing is the whole gate, and nothing licenses an exception: not a typo, not a broken link, not a stale count. Surface it and let the user apply it.
+- A `NOTES.md:<n>` citation in another note now resolves by opening the target, but their line numbers stay volatile by design, so cite by section title or quoted fragment rather than by line ([[feedback_line_number_cross_refs]]).
+- History: this was a read-gate from 2026-07-28, opened after a `/workflow:sync` run in `eds-avc` read both files off the injected uncommitted-file list and raised a domain question sourced entirely from `NOTES.md`. Narrowed to a write-gate on 2026-08-25, on the user's correction: the failure was the unsolicited suggestion, not the read, and sealing the files off cost access to content the work depends on.
 
-Related: [[reference_todo_sync]], [[feedback_explicit_invocation_gate]], [[feedback_checkup_scope]].
+Related: [[reference_todo_sync]], [[feedback_explicit_invocation_gate]], [[feedback_checkup_scope]], [[feedback_line_number_cross_refs]].

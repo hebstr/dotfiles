@@ -177,7 +177,7 @@
     "litrev": {
       "source": {
         "source": "directory",
-        "path": "/home/julien/Documents/pro/packages/claude-code-litrev"
+        "path": "/home/julien/Documents/packages/claude-code-litrev"
       }
     },
     "astral-sh": {
@@ -188,6 +188,14 @@
     }
   },
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-fable-5": {
+      "effortLevel": "xhigh"
+    },
+    "claude-opus-5": {
+      "effortLevel": "high"
+    }
+  },
   "tui": "fullscreen",
   "autoDreamEnabled": true,
   "showThinkingSummaries": true

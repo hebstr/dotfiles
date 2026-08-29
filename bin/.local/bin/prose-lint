@@ -26,9 +26,10 @@
 # still checked.
 #
 # Working/backlog files are skipped by basename (case-sensitive, any depth):
-# PLAN.md, DEFERRED.md, CONTEXT.md, MEMORY.md (Claude operational state) and
-# TODO.md (per-project backlog). Case-sensitivity matters: `CONTEXT.md` is
-# skipped but `context.md` (skill documentation) is still checked.
+# PLAN.md, DEFERRED.md, CONTEXT.md, MEMORY.md (Claude operational state),
+# TODO.md and CALENDRIER.md (the user's own scratchpads, which Claude may read
+# but never write). Case-sensitivity matters: `CONTEXT.md` is skipped but
+# `context.md` (skill documentation) is still checked.
 
 set -Eeuo pipefail
 
@@ -98,7 +99,7 @@ for f in "$@"; do
     ;;
   esac
   case "${f##*/}" in
-  PLAN.md | DEFERRED.md | CONTEXT.md | MEMORY.md | TODO.md)
+  PLAN.md | DEFERRED.md | CONTEXT.md | MEMORY.md | TODO.md | CALENDRIER.md)
     echo "prose-lint: skipping (working/backlog file, exempt from prose hygiene): $f" >&2
     continue
     ;;

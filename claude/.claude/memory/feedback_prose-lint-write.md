@@ -16,7 +16,7 @@ Prose hygiene rules (anti-AI-slop, em/en dash) apply only to text **rendered to 
 - The hard guarantee is `.gitignore`; the pre-commit skip is a consequence, not an independent layer.
 
 **How to apply:**
-- Before scanning a directory with prose-lint or /workflow:write, skip a project's `.claude/`, `~/.claude/memory/`, the gated basenames `NOTES.md` / `TODO.md` (the script self-skips the second, not the first, so a directory sweep would echo a `NOTES.md` line back), or another working-notes location. Exception: the global config `~/.claude/CLAUDE.md` and `~/.claude/rules/*.md` (stowed under `~/dotfiles/claude/.claude/`) stays checked.
+- Before scanning a directory with prose-lint or /workflow:write, skip a project's `.claude/`, `~/.claude/memory/`, the user's scratchpads `NOTES.md` / `TODO.md` / `CALENDRIER.md`, which the write-gate puts out of reach of any fix prose-lint would demand (the script self-skips `TODO.md` and `CALENDRIER.md`, not `NOTES.md`, so a directory sweep still echoes a `NOTES.md` line back), or another working-notes location. Exception: the global config `~/.claude/CLAUDE.md` and `~/.claude/rules/*.md` (stowed under `~/dotfiles/claude/.claude/`) stays checked.
 - When in doubt: "does a human other than the author read this?" If no, it's a working note.
 - If you find working-note content in a user-facing path (session logs inside a SKILL.md sibling, dated test runs in a CONTEXT.md), trim or migrate to `.claude/` before applying prose hygiene to the surrounding files. Concrete precedent: `audit/sweep/CONTEXT.md`, `audit/blindspot/CONTEXT.md`, `audit/walkthrough/DEFERRED.md` migrated to `.claude/` on 2026-05-20.
 

@@ -5,7 +5,7 @@ metadata:
   type: reference
 ---
 
-Two things bite when building a faceted figure on the hebstr stack. Both verified 2026-08-07 in `eds-prise` (`scripts/fig_recueil_uf.R`, `scripts/fig_tte_delai.R`), against the hebstr pinned in that project's `rv.lock`.
+Two things bite when building a faceted figure on the hebstr stack. Both verified 2026-08-07 in `eds-prise`, against the hebstr pinned in that project's `rv.lock`. The two scripts that carried the measurement have since been deleted, so they read through `git show` only: `2cfb009:scripts/fig_tte_delai.R` and `0ad59e5:scripts/fig_recueil_uf.R`.
 
 ## `grid = FALSE` blanks the facet strips, and `...` cannot put them back
 

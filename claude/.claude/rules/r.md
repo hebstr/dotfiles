@@ -29,6 +29,8 @@ Run the `air` on the PATH, which is `/usr/local/bin/air`, kept current by `sys-u
 - Use the lambda shorthand `\()` instead of `function()`; inside purrr map/walk, prefer tilde formula `~ .x` for simple expressions
 - Use `here::here()` for paths, never absolute paths
 - Outside an `rv`-managed project, install packages with `pak::pak()`, never `install.packages()`. Inside an `rv` project (presence of `rv.lock` or `rproject.toml`), use `rv add <pkg>` to keep the lockfile authoritative; never call `pak::pak()` against the project library
+- Before writing a helper, ask the installed packages whether one already exists (CLAUDE.md, Coding preferences). Two commands, both against the installed artifact rather than recall: `Rscript -e 'grep("<keyword>", getNamespaceExports("<pkg>"), value = TRUE)'` for the current export surface, and `grep -n "<keyword>" $(Rscript -e 'cat(system.file("NEWS.md", package = "<pkg>"))')` for what shipped after training, a package's own `NEWS.md` being installed alongside it. `apropos("<pattern>")` after `library()` searches the whole search path when the owning package is unknown. Measured miss: a kebab-case helper hand-rolled in `hebstr` while stringr 1.6.0 (packaged 2025-11-03) exports `str_to_kebab()`, next to `str_to_snake()` and `str_to_camel()`; the NEWS grep names both the function and its release.
+- Nothing on disk means "absent from the installed packages", not "absent from R" (CLAUDE.md, Coding preferences). Escalate to a function-level index, never to a bare web search: `https://search.r-project.org/?P=<query>` is the official R engine and indexes both the help pages and the `NEWS` of CRAN packages, and `https://rdrr.io/` covers CRAN, Bioconductor, R-Forge and GitHub. Verified on the incident above: querying `str_to_kebab` on `search.r-project.org` returns the stringr NEWS entry outright, so that one request would have caught it even with stringr absent from the library. A hit in a package that is not already a dependency is proposed to the user with its cost, never installed to save a few lines.
 - Never use `renv`; `rv` replaces it for all project types; `DESCRIPTION` is canonical for packages
 - For list-building from repeated calls, lead with purrr (`set_names()` + `map()`); base R only if asked or for a concrete performance reason
 - Before recommending `@importFrom pkg fn` or `pkg::fn`, verify the function is exported: `Rscript -e "'fn_name' %in% getNamespaceExports('pkg')"` (returns `TRUE`/`FALSE`; more robust than `pkg::fn`, which can trigger package load side effects). This presupposes `pkg` is installed: an error like `there is no package called 'pkg'` means not installed, not "not exported". For a package under local development (not yet installed), use `devtools::load_all()` then `'fn_name' %in% getNamespaceExports('pkg')` instead
@@ -44,14 +46,14 @@ This code exists for a data science/biostatistics purpose. When editing it for i
 
 ## Analysis project conventions (hebstr stack)
 
-Scope: R analysis projects on the `hebstr` stack, recognised by `hebstr` in `rproject.toml` together with a `scripts/_setup.R` sourced by the report `.qmd` and one `tbl_*` / `fig_*` script per output.
+Scope: R analysis projects on the `hebstr` stack, recognised by `hebstr` in `rproject.toml` together with a `setup.R` at the project root sourced by the report `.qmd` and one `tbl_*` / `fig_*` script per output.
 `~/Documents/services/md-nesrine/` is the reference implementation.
 Read it before writing a kind of output the current project has no precedent for; these conventions are established elsewhere and are not to be reinvented locally.
 
 **Placement**
 
 - One script per output under `scripts/`, named `tbl_<name>.R` or `fig_<name>.R`, ending in `easy_out()` or `easy_out_map()`. `auto_exec()` sweeps them, and a leading underscore excludes a script from that sweep
-- `scripts/_setup.R` holds the recoding and every object shared by more than one output script. A frame consumed by a single output belongs in that output's script
+- `setup.R` at the project root holds the recoding and every object shared by more than one output script, and the report `.qmd` sources it before calling `auto_exec()`. A frame consumed by a single output belongs in that output's script. A project large enough to split it keeps the session setup in `setup.R` and moves the shared preparation to an underscore-prefixed script under `scripts/`, which the sweep skips
 - Shared helpers live in the directory swept by `auto_exec()` from `.Rprofile` (`config/`, or `lib/`). A helper used by one script is defined in that script
 - An output script selects and renders. When its frame is shared it does not read files, join, recode, or derive variables
 
@@ -78,6 +80,15 @@ data |>
 `select()` chooses the variables, which makes `include =` redundant.
 `use_vars()` scans every column it is handed and stores the parametric/non-parametric split that `opts$vars$stat` resolves against, so a column left in the frame but absent from the table aborts `tbl_summary()` on a name it cannot select: restrict the frame first.
 `gtsum_format()` calls `add_overall()` itself, so calling it beforehand collides on `stat_0`.
+
+**gtsummary is the default for every table; `gt::gt()` is the fallback, taken only when gtsummary cannot express the table.**
+A table of pre-computed counts is not automatically a `gt` case: reshape the aggregate back into observations first, one row per unit with the indicator columns, and let `tbl_summary()` do the counting. That is what earns the percentages and puts the denominator in the header.
+Reach for `gt::gt()` plus `theme_gt()` only once that reshaping fails or distorts the table.
+
+Two consequences of the gtsummary route, both worth knowing before choosing it:
+
+- Columns counting different units (documents, patients, a filtered subset) need one `tbl_summary()` per unit, merged by `tbl_merge(tab_spanner = )`. The chain then stops at `tbl_format()`: `gtsum_format()` selects `stat_0`, which a merged table does not have, carrying `stat_0_1`, `stat_0_2` and so on.
+- Number formatting follows the gtsummary locale rather than the explicit `sep_mark` / `dec_mark` a hand-built `gt` table sets, so a French document needs `lang_fr()` active for thousands separators and decimal marks to come out right.
 
 ## Useful flags
 

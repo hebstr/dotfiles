@@ -1,6 +1,6 @@
 ---
-name: "Shell pipelines: grep as filter under set -Eeuo pipefail"
-description: Latent crash pattern when grep is used as a filter (not a test) inside a captured pipeline; how to spot it and fix it
+name: "Shell failure propagation under set -Eeuo pipefail: what crashes and what is swallowed"
+description: "Two opposite failure shapes under set -Eeuo pipefail: grep as a mid-pipeline filter crashes the script, while a process substitution or the left operand of an && list swallows the failure and reports success"
 metadata:
   type: feedback
 ---
@@ -29,10 +29,40 @@ var=$(some_cmd | { grep -E 'pattern' || true; } | sort -V | tail -n1)
 var=$(some_cmd | grep -E 'pattern' | sort -V | tail -n1 || true)
 ```
 
-Same applies to `jq`, `awk` with explicit `exit 1`, or any filter that returns non-zero on "nothing to do." A `< <(pipeline)` redirection is *usually* safe (process substitution exit status is silent), but for consistency in the same function, fix both forms together.
+Same applies to `jq`, `awk` with explicit `exit 1`, or any filter that returns non-zero on "nothing to do."
+
+## The mirror image: failures that are swallowed rather than fatal
+
+A `< <(pipeline)` redirection does not crash the script, because a process substitution's exit status is silent. That silence is a safety property against the crash above and a defect anywhere the command's success is the point: the loop simply runs zero times and the script continues as if the work was done.
+
+```bash
+# BUGGY: jq's exit status is discarded. A malformed file updates nothing
+# and the script still exits 0.
+while IFS= read -r item; do ...; done < <(jq -r '.things | keys[]' "$f")
+
+# FIX: command substitution DOES propagate the status.
+if ! items=$(jq -r '.things | keys[]' "$f"); then
+  echo "could not read ${f}" >&2
+  FAILED=1
+elif [ "$items" != "" ]; then
+  while IFS= read -r item; do ...; done <<<"$items"
+fi
+```
+
+**`&&` lists are asymmetric under `set -e`, and only the last operand is fatal.** Verified 2026-08-29:
+
+```bash
+bash -c 'set -euo pipefail; false && echo ran; echo AFTER'   # prints AFTER, exits 0
+bash -c 'set -euo pipefail; true && false; echo AFTER'       # exits 1, AFTER unreachable
+```
+
+So in `cmd_a >"$tmp" && mv "$tmp" "$dst"`, a failure of `cmd_a` or of its redirection is exempt from errexit and execution falls through to whatever success message follows, while a failure of `mv` aborts. Writing the whole list as an `if` condition removes the asymmetry: both operands then reach the `else`, and the failure is accounted for explicitly rather than by abort.
+
+When a script keeps a `FAILED` accumulator so one failure does not stop the run, every one of these swallowed paths is a hole in that accounting, not a crash to prevent.
 
 **Encountered:**
 - `bin/.local/bin/sys-cleanup` `clean_claude_versions` (twice), 2026-05-10
 - `bin/.local/bin/devtools-update` `get_latest_version`, 2026-05-10
+- `bin/.local/bin/claude-plugins-update`, 2026-08-29, both swallowed shapes at once: the plugin loop read from `< <(jq -er ...)` and the `mcp.json` rewrite was a bare `jq ... >"$tmp" && mv ...`. Pinned by `_meta/tests/claude-plugins-update.bats`
 
 When auditing a new shell script, run: `rg -n 'grep[^|]*\|' script | grep -v '|| (true|echo|{)'` to surface candidates.

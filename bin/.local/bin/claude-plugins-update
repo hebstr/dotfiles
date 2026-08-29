@@ -15,20 +15,34 @@ command -v curl >/dev/null 2>&1 || {
 }
 
 INSTALLED=~/.claude/plugins/installed_plugins.json
+FAILED=0
 
-claude plugin marketplace update
+# An unreachable marketplace must not block the plugin updates that follow, but
+# still has to surface as a non-zero exit for the sys-update status table.
+claude plugin marketplace update || FAILED=1
 
 if [ ! -f "$INSTALLED" ]; then
   echo "No installed_plugins.json found: nothing else to update."
-  exit 0
+  exit "$FAILED"
 fi
 
 echo "Updating installed plugins..."
 
-while IFS= read -r plugin; do
-  echo "  → ${plugin}"
-  claude plugin update "$plugin" || echo "    [failed]" >&2
-done < <(jq -er '.plugins | keys[]' "$INSTALLED")
+# Command substitution, not a process substitution: the latter discards jq's
+# exit status, so an unreadable or malformed file would update nothing and
+# still report success. No -e either, since an empty .plugins is not an error.
+if ! PLUGINS=$(jq -r '.plugins | keys[]' "$INSTALLED"); then
+  echo "Could not read the plugin list from ${INSTALLED}" >&2
+  FAILED=1
+elif [ "$PLUGINS" != "" ]; then
+  while IFS= read -r plugin; do
+    echo "  → ${plugin}"
+    claude plugin update "$plugin" || {
+      echo "    [failed]" >&2
+      FAILED=1
+    }
+  done <<<"$PLUGINS"
+fi
 
 MCP_JSON=~/.claude/mcp.json
 if [ -f "$MCP_JSON" ] && jq -e '.mcpServers.ouroboros' "$MCP_JSON" >/dev/null 2>&1; then
@@ -41,11 +55,18 @@ if [ -f "$MCP_JSON" ] && jq -e '.mcpServers.ouroboros' "$MCP_JSON" >/dev/null 2>
     elif [ "$CURRENT" != "$LATEST" ]; then
       tmp=$(mktemp "$(dirname "$MCP_JSON")/.mcp.XXXXXX")
       trap 'rm -f "$tmp"' EXIT
-      jq --arg v "$LATEST" '
+      # The whole write is the if-condition: a failure of jq or of the
+      # redirection is the left operand of the && and so escapes errexit,
+      # which would otherwise fall through to the success message below.
+      if jq --arg v "$LATEST" '
         .mcpServers.ouroboros.args |= map(
           if test("ouroboros-ai") then gsub("==\\d+\\.\\d+\\.\\d+"; "==" + $v) else . end
-        )' "$MCP_JSON" >"$tmp" && mv "$tmp" "$MCP_JSON"
-      echo "  → ouroboros MCP: ${CURRENT} → ${LATEST} (restart Claude Code to apply)"
+        )' "$MCP_JSON" >"$tmp" && mv "$tmp" "$MCP_JSON"; then
+        echo "  → ouroboros MCP: ${CURRENT} → ${LATEST} (restart Claude Code to apply)"
+      else
+        echo "  → ouroboros MCP: failed to rewrite ${MCP_JSON}, pin left at ${CURRENT}" >&2
+        FAILED=1
+      fi
     else
       echo "  → ouroboros MCP: already at ${LATEST}"
     fi
@@ -53,3 +74,5 @@ if [ -f "$MCP_JSON" ] && jq -e '.mcpServers.ouroboros' "$MCP_JSON" >/dev/null 2>
     echo "  → ouroboros MCP: could not fetch latest version from PyPI" >&2
   fi
 fi
+
+exit "$FAILED"

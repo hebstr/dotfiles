@@ -112,3 +112,4 @@ The same split can come from two installs rather than an extension: `uv` sat in 
 | pdftotext   | Raw PDF text extraction (poppler-utils); `-layout` keeps the spatial arrangement, plain mode is the default for `rg` searches |
 | pdfinfo     | PDF metadata: page count, `Creator`, `Producer` (poppler-utils). The `Producer` field is what decides the slide-deck branch in `rules/pdf.md` |
 | pdftoppm    | PDF page to PNG (poppler-utils); the way to hand a scanned page to the native `Read` tool |
+| chromium    | Headless browser (`/snap/bin/chromium`, snap, kept current by `sys-update snap`). The way to read computed styles of a rendered page (`--headless=new --dump-dom` over a probe calling `getComputedStyle`) and to capture it (`--screenshot`), which settles a CSS specificity dispute that a screenshot cannot. Snap confinement blocks dot-directories under `$HOME`, so the probe file goes in the project |

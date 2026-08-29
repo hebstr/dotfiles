@@ -213,7 +213,7 @@ _fixture() {
 
 @test "working/backlog basenames: skipped despite em dash, exit 0" {
   local name f
-  for name in PLAN.md DEFERRED.md CONTEXT.md MEMORY.md TODO.md; do
+  for name in PLAN.md DEFERRED.md CONTEXT.md MEMORY.md TODO.md CALENDRIER.md; do
     f=$(_fixture "$name" "Has an em dash — and stays unflagged.")
     run "$SCRIPT" "$f"
     [ "$status" -eq 0 ] || {
