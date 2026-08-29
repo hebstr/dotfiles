@@ -1,6 +1,6 @@
 ---
 name: "Shell failure propagation under set -Eeuo pipefail: what crashes and what is swallowed"
-description: "Two opposite failure shapes under set -Eeuo pipefail: grep as a mid-pipeline filter crashes the script, while a process substitution or the left operand of an && list swallows the failure and reports success"
+description: "Failure shapes under set -Eeuo pipefail: grep as a mid-pipeline filter crashes the script, while a process substitution or the left operand of an && list swallows the failure and reports success; plus a filter whose exit status answers 'did I run' and not 'did I find something' (jq -e conflating absent-key with unparseable, jq -r letting a literal null through)"
 metadata:
   type: feedback
 ---
@@ -64,5 +64,34 @@ When a script keeps a `FAILED` accumulator so one failure does not stop the run,
 - `bin/.local/bin/sys-cleanup` `clean_claude_versions` (twice), 2026-05-10
 - `bin/.local/bin/devtools-update` `get_latest_version`, 2026-05-10
 - `bin/.local/bin/claude-plugins-update`, 2026-08-29, both swallowed shapes at once: the plugin loop read from `< <(jq -er ...)` and the `mcp.json` rewrite was a bare `jq ... >"$tmp" && mv ...`. Pinned by `_meta/tests/claude-plugins-update.bats`
+- `bin/.local/bin/claude-plugins-install`, 2026-08-30, both loops read from `< <(jq ...)`: an unparseable `settings.json` printed two jq errors, restored nothing, and still ended on `Done.` with exit 0, defeating the script's only purpose (fresh-machine restore). Pinned by `_meta/tests/claude-plugins-install.bats`. **A fix applied to one script of a pair does not travel to its sibling**: `claude-plugins-update` had carried the corrected shape *and* the comment explaining it since the day before, in the same directory, while `claude-plugins-install` kept the bug. After fixing this shape anywhere, grep the sibling scripts for `< <(` before closing the task
+
+## A third shape: a non-zero status that means two different things
+
+`jq -e` returns 1 when the last output is `null` or `false` and 5 when the input does not parse. Used as a boolean guard, those collapse:
+
+```bash
+# BUGGY: an absent key (normal) and an unparseable file (broken) both skip
+# the block, silently, and the script exits 0.
+if [ -f "$f" ] && jq -e '.a.b' "$f" >/dev/null 2>&1; then
+  ...
+fi
+
+# FIX: probe validity first, so only the absent-key case stays silent.
+if [ -f "$f" ]; then
+  if ! jq -e . "$f" >/dev/null 2>&1; then
+    echo "Could not read ${f}" >&2
+    FAILED=1
+  elif jq -e '.a.b' "$f" >/dev/null 2>&1; then
+    ...
+  fi
+fi
+```
+
+Branch on the validity probe, never on the numeric code: `jq`'s manual documents 1, 2, 3 and 4, and no code for malformed input, so the 5 is an artefact of the installed build.
+
+The mirror of this is a *zero* status that means "nothing there": `jq -r '.a.b'` prints the four characters `null` and exits 0 when the key is missing, so a downstream `[ "$v" != "" ]` guard passes and the word reaches whatever the value feeds. `jq -er` closes it by turning the null into exit 1, which an existing `|| v=""` fallback already handles. The general rule covers both directions: a filter's exit status answers "did I run", never "did I find something", so any guard that treats the two as the same question has a hole.
+
+**Encountered:** `bin/.local/bin/claude-plugins-update`, 2026-08-29, both shapes in the same file: the `mcp.json` entry guard conflated absent-key with malformed, and the PyPI version query let a literal `null` through into the rewritten pin. Pinned by `_meta/tests/claude-plugins-update.bats`.
 
 When auditing a new shell script, run: `rg -n 'grep[^|]*\|' script | grep -v '|| (true|echo|{)'` to surface candidates.

@@ -27,25 +27,41 @@ if [ ! -f "$SETTINGS" ]; then
   exit 1
 fi
 
+FAILED=0
+
 # ---------------------------------------------------------------------------
 # 1. Marketplaces (from settings.json extraKnownMarketplaces)
 # ---------------------------------------------------------------------------
+# Command substitution, not a process substitution: the latter discards jq's
+# exit status, so an unreadable settings.json would restore nothing and still
+# report success. An unusable marketplace section must not block the plugins
+# that follow, but still has to surface as a non-zero exit.
 log "Adding marketplaces..."
-while IFS= read -r src; do
-  [ "$src" = "" ] && continue
-  log "  marketplace add $src"
-  claude plugin marketplace add "$src" || warn "    (already present or failed: $src)"
-done < <(jq -r '.extraKnownMarketplaces // {} | to_entries[] | .value.source | (.repo // .path // empty)' "$SETTINGS")
+if ! SOURCES=$(jq -r '.extraKnownMarketplaces // {} | to_entries[] | .value.source | (.repo // .path // empty)' "$SETTINGS"); then
+  warn "  could not read the marketplace list from $SETTINGS"
+  FAILED=1
+elif [ "$SOURCES" != "" ]; then
+  while IFS= read -r src; do
+    [ "$src" = "" ] && continue
+    log "  marketplace add $src"
+    claude plugin marketplace add "$src" </dev/null || warn "    (already present or failed: $src)"
+  done <<<"$SOURCES"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Plugins (from settings.json enabledPlugins where value == true)
 # ---------------------------------------------------------------------------
 log "Installing plugins..."
-while IFS= read -r plugin; do
-  [ "$plugin" = "" ] && continue
-  log "  plugin install $plugin"
-  claude plugin install "$plugin" || warn "    (already installed or failed: $plugin)"
-done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$SETTINGS")
+if ! PLUGINS=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' "$SETTINGS"); then
+  warn "  could not read the plugin list from $SETTINGS"
+  FAILED=1
+elif [ "$PLUGINS" != "" ]; then
+  while IFS= read -r plugin; do
+    [ "$plugin" = "" ] && continue
+    log "  plugin install $plugin"
+    claude plugin install "$plugin" </dev/null || warn "    (already installed or failed: $plugin)"
+  done <<<"$PLUGINS"
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Antigravity skills (not available as individual plugins)
@@ -106,6 +122,11 @@ if [ -f "$REG" ]; then
   log "  registry patched. backup: $BACKUP"
 else
   warn "installed_plugins.json not found at $REG -- skipping autoUpdate patch"
+fi
+
+if [ "$FAILED" -ne 0 ]; then
+  warn "Finished with errors: the restore is incomplete (see warnings above)."
+  exit "$FAILED"
 fi
 
 log "Done. Restart Claude Code for plugin changes to take effect."
