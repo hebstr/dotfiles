@@ -52,7 +52,7 @@ Read it before writing a kind of output the current project has no precedent for
 
 **Placement**
 
-- One script per output under `scripts/`, named `tbl_<name>.R` or `fig_<name>.R`, ending in `easy_out()` or `easy_out_map()`. `auto_exec()` sweeps them, and a leading underscore excludes a script from that sweep
+- One script per output under `scripts/`, named `tbl_<name>.R` or `fig_<name>.R`, ending in `easy_out()`. `auto_exec()` sweeps them, and a leading underscore excludes a script from that sweep. Both filters are regular expressions matched on the filename: `exclude` carries that underscore convention as its `"^_"` default, and `include` restricts a sweep to one family, `auto_exec(include = "^tbl")` reaching the tables alone. `exclude` applies after `include`, so a script matching both is still skipped
 - `setup.R` at the project root holds the recoding and every object shared by more than one output script, and the report `.qmd` sources it before calling `auto_exec()`. A frame consumed by a single output belongs in that output's script. A project large enough to split it keeps the session setup in `setup.R` and moves the shared preparation to an underscore-prefixed script under `scripts/`, which the sweep skips
 - Shared helpers live in the directory swept by `auto_exec()` from `.Rprofile` (`config/`, or `lib/`). A helper used by one script is defined in that script
 - An output script selects and renders. When its frame is shared it does not read files, join, recode, or derive variables
