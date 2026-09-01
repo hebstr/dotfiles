@@ -1,6 +1,6 @@
 ---
 name: Altair charts inside Streamlit, layout and tooltip traps
-description: "st.altair_chart applies autosize fit so properties(height=) sets the TOTAL svg height and a legend can starve the plot area to 0 px; a scalar Vega padding crashes the component; the tooltip is one shared #vg-tooltip-element on document.body with no per-datum hook; st.html takes unsafe_allow_javascript and components.v1.html is deprecated for st.iframe"
+description: "st.altair_chart applies autosize fit so properties(height=) sets the TOTAL svg height and a legend can starve the plot area to 0 px; a scalar Vega padding crashes the component; a shape legend paints its symbols black whatever the theme (symbolFillColor fixes it) and no spec colour follows the theme since Vega draws outside the page DOM; the tooltip is one shared #vg-tooltip-element on document.body with no per-datum hook; st.html takes unsafe_allow_javascript and components.v1.html is deprecated for st.iframe"
 metadata:
   type: reference
 ---
@@ -16,6 +16,10 @@ Verified 2026-08-02 against Streamlit 1.60.0 and Altair 6.2.2, by dumping the re
 **Marks with no `y` encoding land at the plot centre**, and a `mark_rule` given `x`/`x2` but no `y` does *not*: give both layers the same `alt.YDatum(0, scale=alt.Scale(domain=[-1, 1]), axis=None)` to put a baseline rule and its points on one line.
 
 **`order` channel z-ordering is a stable sort**, so a binary order field raises one mark to the front and leaves every tie in source row order.
+
+**A shape legend's symbols are painted black whatever the theme.** Vega-Lite draws them in the mark's default colour, not in the colour channel's, so on a dark background the glyphs are invisible while the labels read fine, and the legend that alone explains the encoding is lost with no error. `alt.Legend(symbolFillColor=…)` fixes it. Found 2026-08-31 by screenshotting the running app; nothing in the spec hints at it.
+
+**Colours baked into a spec never follow the theme.** Vega draws outside the page DOM, so `var(--…)` is not interpreted and any value matching a theme token (Streamlit's `secondaryBackgroundColor` is `#262730`, and a table header is that same token at half opacity over the page background) is a copy that a theme change leaves stale without an error.
 
 **The tooltip cannot be styled per datum.** It is a single `<div id="vg-tooltip-element" class="vg-tooltip visible …-theme">` created lazily on first hover and appended to `document.body`, reused for every mark, holding escaped HTML with no `data-*` hook. Consequences: a selector scoped under `.stApp` never matches it, and CSS alone can never index it on the hovered mark's colour. Streamlit's own rule (`static/js/styled-components.*.js`, search `#vg-tooltip-element`) also pins `max-width` on `td.key` / `td.value` off `maxChartTooltipWidth`, so enlarging the font without overriding those truncates values with an ellipsis.
 

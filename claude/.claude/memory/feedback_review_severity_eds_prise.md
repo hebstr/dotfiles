@@ -14,10 +14,12 @@ metadata:
 - Dot-prefixed objects are internal to their setup or script; bare `df_*` are the deliverables. Exposing an internal one is done when a **third** consumer appears, not the second (the `.sej_etude` → `df_sej_etude` and `df_index` episodes in `.claude/DEFERRED.md`).
 - `n_*` objects built with `lst()` are internal summary frames read by explicit inline citations in `index.qmd`, never rendered as tables. An `NA` in a cell no citation reaches is not a defect, and is often the honest value.
 
-## Two traps that produced wrong measurements, mine included
+## Three traps that produced wrong measurements, mine included
 
 - **Frames that passed through `easy_label()` are factors.** `.df_pop` and `.df_porte` are post-conversion, so comparing `pat_dept == 3` returns zero silently. Measure on the pre-label frame (`.porte_pat`) or on the raw column. The trap is documented in the `.df_porte` callout of `technique.qmd` and I fell into it anyway; check which side of `easy_label()` a frame sits on before counting.
 - **Row order out of `collect()` is not stable between runs.** Sourcing `scripts/_common.R` twice gives `df_sej_pat`, `df_index`, `df_pop`, `df_porte` in different row order. Content is identical and every published aggregate is stable, since everything downstream aggregates or joins by key. Always compare with `arrange()` on a unique key before concluding a change had an effect; a bare `all.equal()` reports a difference that is not one. `df_pop` has no unique key (`keep_labelled()` drops `id_pat`), so compare `.df_pop`.
+
+- **`rg` is blind to `.claude/` in this repo, and a clean grep there proves nothing.** `.claude/` is gitignored, and `rg` honours `.gitignore` by default, so any consistency grep over notes, plans, `DEFERRED.md` or the project skills silently returns zero. Every grep touching `.claude/` needs `--no-ignore`; scope it to `.claude/` at the same time, since `--no-ignore` from the repo root drags in `_book/` and `_freeze/` and buries the answer in hundreds of kilobytes of build artefacts. Caught on 2026-08-31 during a post-rename consistency check that reported no stale references and could not have found any.
 
 ## False-positive shapes seen in the 2026-08-10 pass
 
