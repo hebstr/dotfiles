@@ -81,6 +81,25 @@ data |>
 `use_vars()` scans every column it is handed and stores the parametric/non-parametric split that `opts$vars$stat` resolves against, so a column left in the frame but absent from the table aborts `tbl_summary()` on a name it cannot select: restrict the frame first.
 `gtsum_format()` calls `add_overall()` itself, so calling it beforehand collides on `stat_0`.
 
+**Table notes are placed by scope, never all in `note_global`.** `tbl_format(note_global = )` carries only what holds of the whole table: the population, what the columns are, a caveat on reading them. A statement that holds of one row belongs on that row, attached with `hebstr::add_note(vars = )`, which renders it as a symbol-keyed footnote instead of a sentence the reader has to re-attach. The shape that scales, one entry per note carrying the variables it targets:
+
+```
+.note_var <- lst(
+  index = lst(vars = c("pat_age", "pat_dept"), note = "Lus au premier séjour qualifiant."),
+  nature = lst(vars = "pat_cas", note = "...")
+)
+
+<chain> |>
+  reduce(.note_var, \(tbl, x) add_note(tbl, vars = x$vars, note = x$note), .init = _) |>
+  tbl_format(note_global = .note_global, width = )
+```
+
+Guard all three failure modes, none of which raises on its own: the count of global notes, the length of each variable note, and the targets against the described variables. `str_glue()` returns a zero-length string when an interpolated object is missing and `c()` then drops it, so a note vanishes from a published table without an error; and a note aimed at a variable the table does not carry is equally silent.
+
+Verified behaviours, measured rather than assumed. `add_note()` works on `tbl_summary`, on `tbl_merge` and on `tbl_stack`; on a stack the note lands on the matching row of every block. One call naming several variables renders as a single symbol repeated on each row. Its position relative to `gtsum_format()` is indifferent, that function's closing `modify_footnote()` resetting the header footnote and leaving body notes intact; only being upstream of `tbl_format()` is required. Declaration order is indifferent too, gtsummary numbering symbols in table reading order.
+
+Two limits. A note that qualifies a *column* has no `add_note()` form, which targets rows, so it stays in `note_global`. And a `gt::gt()` table takes its notes through `gt::tab_source_note()` (`gt_notes()` in the hebstr helpers), which appends unanchored text: the same scoping principle applies but the anchored form is `gt::tab_footnote(locations = )`.
+
 **gtsummary is the default for every table; `gt::gt()` is the fallback, taken only when gtsummary cannot express the table.**
 A table of pre-computed counts is not automatically a `gt` case: reshape the aggregate back into observations first, one row per unit with the indicator columns, and let `tbl_summary()` do the counting. That is what earns the percentages and puts the denominator in the header.
 Reach for `gt::gt()` plus `theme_gt()` only once that reshaping fails or distorts the table.
