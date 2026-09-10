@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for _cmd in curl tar gpg dpkg sed awk grep sort; do
+for _cmd in curl tar gpg dpkg dpkg-query sed awk grep sort; do
   command -v "$_cmd" >/dev/null 2>&1 || {
     printf '%s is required\n' "$_cmd" >&2
     exit 1
@@ -11,6 +11,83 @@ done
 TDF_FPR=C2839ECAD9408FBE9531C3E9F434A1EFAFEEAEA3
 BASE=https://download.documentfoundation.org/libreoffice/stable
 LANGPACK_LANG=fr
+
+# Overridable so the test suite can point them at a temp tree; neither path is
+# reachable through PATH stubbing.
+OPT_ROOT=${LO_OPT_ROOT:-/opt}
+BIN_LINK=${LO_BIN_LINK:-/usr/local/bin/libreoffice}
+
+branch_of() { awk -F. 'NF>=2 {print $1"."$2}' <<<"$1"; }
+
+# TDF debs install one /opt tree per branch and ship only branch-versioned
+# launchers (libreoffice26.8, ...), never the unversioned one. Reading the
+# installed version through the unversioned launcher therefore reports whatever
+# branch it happens to point at, not the newest branch on disk.
+detect_installed() {
+  local dir branch ver best=
+  for dir in "$OPT_ROOT"/libreoffice[0-9]*; do
+    [ -x "${dir}/program/soffice" ] || continue
+    branch=${dir##*/libreoffice}
+    ver=$(dpkg-query -W -f='${Version}' "libobasis${branch}-core" 2>/dev/null) || ver=
+    ver=${ver%%-*}
+    [ "$ver" != "" ] || ver=$("${dir}/program/soffice" --version 2>/dev/null | awk '{print $2}' | head -n1)
+    [ "$ver" != "" ] || continue
+    if [ "$best" = "" ] || [ "$(printf '%s\n%s\n' "$best" "$ver" | sort -V | tail -n1)" = "$ver" ]; then
+      best=${ver}
+    fi
+  done
+  printf '%s' "$best"
+}
+
+# The unversioned launcher is what every caller on this machine resolves, so it
+# has to follow the newest branch or an upgrade stays invisible system-wide.
+sync_bin_link() {
+  local branch=$1
+  local target
+  # Split from the line above: `local a=$1 b=$a` trips `set -u`, since local
+  # declares every name unset before running the assignments.
+  target="${OPT_ROOT}/libreoffice${branch}/program/soffice"
+  [ -x "$target" ] || return 0
+  [ "$(readlink -f "$BIN_LINK" 2>/dev/null || true)" = "$target" ] && return 0
+  if [ -e "$BIN_LINK" ] && [ ! -L "$BIN_LINK" ]; then
+    echo "${BIN_LINK} exists and is not a symlink: leaving it alone." >&2
+    return 0
+  fi
+  echo "Pointing ${BIN_LINK} at LibreOffice ${branch}..."
+  sudo ln -sfn "$target" "$BIN_LINK"
+}
+
+# Branch trees accumulate otherwise: TDF debs are branch-namespaced, so dpkg
+# never treats a new branch as an upgrade of the old one. Runs only once the new
+# branch is installed and the launcher points at it, so a failed install never
+# leaves the machine without a LibreOffice.
+purge_old_branches() {
+  local keep=$1
+  local dir branch
+  local pkgs=()
+  for dir in "$OPT_ROOT"/libreoffice[0-9]*; do
+    [ -d "$dir" ] || continue
+    branch=${dir##*/libreoffice}
+    [ "$branch" != "$keep" ] || continue
+
+    # Both patterns are branch-namespaced, so a distro libreoffice-* package
+    # (no branch digits in its name) can never match.
+    mapfile -t pkgs < <(
+      dpkg-query -W -f='${binary:Package}\t${db:Status-Status}\n' \
+        "libobasis${branch}-*" "libreoffice${branch}*" 2>/dev/null |
+        awk -F'\t' '$2 == "installed" { print $1 }'
+    )
+
+    if [ "${#pkgs[@]}" -gt 0 ]; then
+      echo "Purging superseded LibreOffice ${branch} (${#pkgs[@]} packages)..."
+      if ! sudo apt-get purge -y "${pkgs[@]}"; then
+        echo "Purge of LibreOffice ${branch} failed: ${dir} left in place." >&2
+        continue
+      fi
+    fi
+    [ -d "$dir" ] && sudo rm -rf "$dir"
+  done
+}
 
 case "$(uname -m)" in
 x86_64) ARCH_PATH=x86_64 ARCH_FILE=x86-64 ;;
@@ -26,56 +103,60 @@ VER=$(curl -fsSL "${BASE}/" |
   sed 's|href="\(.*\)/"|\1|' |
   sort -V | tail -n1) || true
 
-if [ -z "${VER}" ]; then
+if [ "$VER" = "" ]; then
   echo "Failed to resolve latest LibreOffice version from ${BASE}/" >&2
   exit 1
 fi
 
 echo "Latest LibreOffice release: ${VER}"
 
-CURRENT=$(libreoffice --version 2>/dev/null | awk '{print $2}' | head -n1 || true)
-[ -n "${CURRENT}" ] || CURRENT=unknown
+CURRENT=$(detect_installed)
+[ "$CURRENT" != "" ] || CURRENT=$(libreoffice --version 2>/dev/null | awk '{print $2}' | head -n1 || true)
+[ "$CURRENT" != "" ] || CURRENT=unknown
 
-CURRENT_TRIPLE=$(awk -F. 'NF>=3 {print $1"."$2"."$3}' <<<"${CURRENT}")
-if [ "${CURRENT_TRIPLE}" = "${VER}" ]; then
+CURRENT_TRIPLE=$(awk -F. 'NF>=3 {print $1"."$2"."$3}' <<<"$CURRENT")
+CURRENT_BRANCH=$(branch_of "$CURRENT")
+NEW_BRANCH=$(branch_of "$VER")
+
+if [ "$CURRENT_TRIPLE" = "$VER" ]; then
   echo "Already on ${VER}: nothing to do."
+  sync_bin_link "$NEW_BRANCH"
+  purge_old_branches "$NEW_BRANCH"
   exit 0
 fi
 
-CURRENT_BRANCH=$(awk -F. 'NF>=2 {print $1"."$2}' <<<"${CURRENT}")
-NEW_BRANCH=$(awk -F. '{print $1"."$2}' <<<"${VER}")
-if [ "${CURRENT}" != "unknown" ] && [ "${CURRENT_BRANCH}" != "${NEW_BRANCH}" ]; then
+if [ "$CURRENT" != "unknown" ] && [ "$CURRENT_BRANCH" != "$NEW_BRANCH" ]; then
   cat >&2 <<EOF
 Branch change detected:
   installed: ${CURRENT_BRANCH} (${CURRENT})
   latest:    ${NEW_BRANCH} (${VER})
 
 LibreOffice TDF debs install in parallel by branch (e.g. /opt/libreoffice${NEW_BRANCH}
-alongside /opt/libreoffice${CURRENT_BRANCH}). This script installs the new branch
-without removing the old one.
+alongside /opt/libreoffice${CURRENT_BRANCH}). This script installs the new branch,
+then purges ${CURRENT_BRANCH} once the new install succeeds.
 
 Type 'yes' to continue, anything else to abort:
 EOF
   read -r ans
-  [ "${ans}" = "yes" ] || {
+  [ "$ans" = "yes" ] || {
     echo "Aborted."
     exit 0
   }
 fi
 
-if ! gpg --list-keys "${TDF_FPR}" >/dev/null 2>&1; then
+if ! gpg --list-keys "$TDF_FPR" >/dev/null 2>&1; then
   echo "Importing TDF signing key ${TDF_FPR}..."
   # keyserver.ubuntu.com first: keys.openpgp.org strips UIDs from keys whose
   # owner has not verified their email there, which makes gpg silently skip
   # the import ("new key but contains no user ID - skipped") while still
   # exiting 0: so we must verify the key actually landed after import.
-  gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "${TDF_FPR}" ||
-    gpg --keyserver hkps://keys.openpgp.org --recv-keys "${TDF_FPR}" ||
+  gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "$TDF_FPR" ||
+    gpg --keyserver hkps://keys.openpgp.org --recv-keys "$TDF_FPR" ||
     {
       echo "Failed to import TDF signing key" >&2
       exit 1
     }
-  if ! gpg --list-keys "${TDF_FPR}" >/dev/null 2>&1; then
+  if ! gpg --list-keys "$TDF_FPR" >/dev/null 2>&1; then
     echo "TDF signing key not present in keyring after import (likely stripped of UID by the keyserver)" >&2
     exit 1
   fi
@@ -91,11 +172,11 @@ TMP=$(mktemp -d)
 SUDO_KEEPALIVE_PID=
 cleanup() {
   rc=$?
-  if [ -n "${SUDO_KEEPALIVE_PID}" ]; then
-    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+  if [ "$SUDO_KEEPALIVE_PID" != "" ]; then
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   fi
-  rm -rf "${TMP}"
-  exit "${rc}"
+  rm -rf "$TMP"
+  exit "$rc"
 }
 trap cleanup EXIT
 
@@ -119,8 +200,8 @@ fetch_and_verify() {
   fi
 }
 
-fetch_and_verify "${TARBALL}"
-fetch_and_verify "${LANGPACK}"
+fetch_and_verify "$TARBALL"
+fetch_and_verify "$LANGPACK"
 
 echo "Extracting tarballs..."
 # TDF tarballs are named by marketing version (e.g. 26.2.3) but extract to a
@@ -136,18 +217,18 @@ read_tarball_basedir() {
 }
 MAIN_BASEDIR=$(read_tarball_basedir "${TMP}/${TARBALL}")
 LANG_BASEDIR=$(read_tarball_basedir "${TMP}/${LANGPACK}")
-if [ -z "${MAIN_BASEDIR}" ] || [ -z "${LANG_BASEDIR}" ]; then
+if [ "$MAIN_BASEDIR" = "" ] || [ "$LANG_BASEDIR" = "" ]; then
   echo "Failed to read top-level directory from tarball index" >&2
   exit 1
 fi
-tar -xzf "${TMP}/${TARBALL}" -C "${TMP}"
-tar -xzf "${TMP}/${LANGPACK}" -C "${TMP}"
+tar -xzf "${TMP}/${TARBALL}" -C "$TMP"
+tar -xzf "${TMP}/${LANGPACK}" -C "$TMP"
 
 MAIN_DEBS="${TMP}/${MAIN_BASEDIR}/DEBS"
 LANG_DEBS="${TMP}/${LANG_BASEDIR}/DEBS"
 
-for d in "${MAIN_DEBS}" "${LANG_DEBS}"; do
-  if [ ! -d "${d}" ] || ! compgen -G "${d}/*.deb" >/dev/null; then
+for d in "$MAIN_DEBS" "$LANG_DEBS"; do
+  if [ ! -d "$d" ] || ! compgen -G "${d}/*.deb" >/dev/null; then
     echo "Missing or empty DEBS directory: ${d}" >&2
     exit 1
   fi
@@ -155,11 +236,11 @@ done
 
 install_debs() {
   local dir=$1
-  if ! sudo dpkg -i "${dir}"/*.deb; then
+  if ! sudo dpkg -i "$dir"/*.deb; then
     echo "dpkg install failed: attempting to fix dependencies" >&2
     if ! sudo apt-get install -f -y; then
       echo "Dependency fix failed." >&2
-      if [ "${CURRENT}" != "unknown" ]; then
+      if [ "$CURRENT" != "unknown" ]; then
         echo "Previous LibreOffice was ${CURRENT}. To roll back, reinstall the previous" >&2
         echo "tarball from ${BASE}/${CURRENT_TRIPLE}/deb/${ARCH_PATH}/" >&2
       fi
@@ -169,16 +250,21 @@ install_debs() {
 }
 
 echo "Installing LibreOffice ${VER} core .deb packages..."
-install_debs "${MAIN_DEBS}"
+install_debs "$MAIN_DEBS"
 
 echo "Installing ${LANGPACK_LANG} langpack..."
-install_debs "${LANG_DEBS}"
+install_debs "$LANG_DEBS"
+
+sync_bin_link "$NEW_BRANCH"
+purge_old_branches "$NEW_BRANCH"
 
 echo
 echo "Installed version:"
 libreoffice --version
 echo
 echo "Previous version was: ${CURRENT}"
-if [ "${CURRENT}" != "unknown" ] && [ "${CURRENT_BRANCH}" = "${NEW_BRANCH}" ]; then
+# The hint covers a branch change too: the old tree is purged above, so
+# reinstalling from TDF is the only way back.
+if [ "$CURRENT" != "unknown" ]; then
   echo "To roll back: reinstall ${BASE}/${CURRENT_TRIPLE}/deb/${ARCH_PATH}/${TARBALL//${VER}/${CURRENT_TRIPLE}}"
 fi

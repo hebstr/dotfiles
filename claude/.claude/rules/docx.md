@@ -16,7 +16,9 @@ Nothing here governs authoring a docx; the Quarto render gate in `rules/quarto.m
 | `pandoc` | Reads docx; with `-f docx+styles` it surfaces style names as `custom-style` attributes | `/usr/bin/pandoc` |
 ```
 
-Every recipe found online calls the binary `soffice`, and `soffice` is not on the PATH here: `/usr/local/bin/libreoffice` is a symlink to `/opt/libreoffice26.2/program/soffice`, a hand-installed tree that no `sys-update` module tracks and whose version sits in its own path. Call `libreoffice`, and expect the `/opt` path to move on an upgrade.
+Every recipe found online calls the binary `soffice`, and `soffice` is not on the PATH here: `/usr/local/bin/libreoffice` is a symlink into `/opt/libreoffice<branch>/program/soffice`, installed from the TDF debs by the `sys-update libreoffice` module.
+TDF ships one `/opt` tree per branch and its debs create only branch-versioned launchers (`libreoffice26.8`), so `libreoffice-update` maintains the unversioned symlink itself: it repoints it at the branch it just installed, then purges the superseded one. A single tree is therefore expected, and two mean a purge failed.
+Call `libreoffice`, never a hardcoded `/opt` path, which moves on every branch change.
 `officer` is not a layout engine and renders nothing; it reads structure.
 
 ## Routing
