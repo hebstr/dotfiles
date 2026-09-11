@@ -23,6 +23,17 @@ Both are required: `air` formats only, `jarl` lints only. If the project has tes
 
 Run the `air` on the PATH, which is `/usr/local/bin/air`, kept current by `sys-update devtools`. The Positron extension ships its own copy under `~/.positron/extensions/posit.air-vscode-*/bundled/bin/air` and, left at its default `air.executableStrategy: "bundled"`, prepends it to the integrated terminal's PATH: the gate would then format with a binary the editor updates and `devtools-update` never sees. The setting is at `"environment"` so both resolve to the same file, with the bundle as fallback. Two formatters drifting apart show up as reformatting churn in diffs, never as an error, so check `command -v air` rather than trusting a clean run.
 
+**The CLI and the language server resolve `air.toml` by different rules, and the server's rule is the one that bites.**
+The CLI walks up from the file's own path and is independent of the cwd: `air format /path/to/pkg/R/f.R` picks up `/path/to/pkg/air.toml` whether it is called from the project, from `~` or from `/`.
+The server resolves only from the `workspaceFolders` sent at `initialize`, never from the document's own ancestors, and `rootUri` alone does not count.
+So a file edited from another project's editor window is formatted with *that* project's `air.toml`, and a file outside every workspace folder gets no project config at all.
+Measured 2026-09-11 by driving `air language-server` over JSON-RPC on one document in a project declaring `line-width = 100`: workspace on that project keeps 100, workspace on a sibling project declaring 80 wraps at 80, both folders open keeps 100, no `workspaceFolders` wraps at 80.
+The symptom is a whole file silently rewrapped on save with no other change, which `git diff` shows as pure reformatting; confirm the width by re-running `air format` on the committed version under a config of the suspected width and diffing against the working copy.
+Aligning the width across the projects edited together is what removes the class of bug, since a multi-root window only helps while both folders stay open.
+
+Since air 0.11.0 a user-level `~/.config/air/air.toml` (stowed as the `air` package) is read **as a fallback when no project config is found**, never merged into one.
+It therefore covers files outside any project, the chunk bodies `panache` hands to air (see `rules/quarto.md`), and workspaces with no `air.toml` of their own; it does nothing about the case above, where a project config is found and is the wrong one.
+
 ## Code style conventions
 
 - Use the native pipe `|>`

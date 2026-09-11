@@ -14,6 +14,7 @@ Nothing here governs authoring a docx; the Quarto render gate in `rules/quarto.m
 | `libreoffice` | Headless conversion to PDF, the only rendering engine on this machine | `/usr/local/bin/libreoffice` |
 | `pdftoppm` | PDF page to PNG, to hand a page to the native `Read` tool | poppler-utils |
 | `pandoc` | Reads docx; with `-f docx+styles` it surfaces style names as `custom-style` attributes | `/usr/bin/pandoc` |
+| `python3` | Walk `word/document.xml` to assert the OOXML content model Word enforces and no renderer tests | stdlib, `zipfile` + `xml.etree.ElementTree` |
 ```
 
 Every recipe found online calls the binary `soffice`, and `soffice` is not on the PATH here: `/usr/local/bin/libreoffice` is a symlink into `/opt/libreoffice<branch>/program/soffice`, installed from the TDF debs by the `sys-update libreoffice` module.
@@ -26,7 +27,8 @@ Call `libreoffice`, never a hardcoded `/opt` path, which moves on every branch c
 1. **Start with the mechanical assertion.** `officer::docx_summary(x, detailed = TRUE)` returns one row per run and carries `paragraph_stylename`, `character_stylename`, `align`, `link`, `link_to_bookmark`, `bookmark_start`, plus fonts, `bold`, `italic`, `color`. A citation hyperlink comes back as `character_stylename` plus `link_to_bookmark` holding the anchor, which settles a `link-citations` question with no rendering at all.
 2. **Anything inherited from a named style needs the XML.** `docx_summary()` reports direct paragraph formatting only, so `align` is `NA` on a paragraph justified by its style rather than by its own `w:jc`. Read `word/styles.xml` for those, and remember that Pandoc resolves a style by its `w:name`, never by its `w:styleId`: comparing identifiers is how a French template reads as covering nothing.
 3. **Rasterize only for what the data cannot show**, page layout, spacing, a caption's position, a colour actually landing. `libreoffice --headless -env:UserInstallation=file:///tmp/<profile> --convert-to pdf --outdir <dir> <file>.docx`, then `pdftoppm -r 110 -png -f <first> -l <last> <file>.pdf <prefix>`, then the native `Read` tool on the PNG. Around 1,5 s for a short document.
-4. **Never turn a LibreOffice render into a claim about Word.** See the defects below; the gap falls exactly on justification and line breaking.
+4. **Never turn a LibreOffice render into a claim about Word.** See the defects below; on appearance the gap falls exactly on justification and line breaking.
+5. **A docx assembled by anything other than Word owes a structural pass before handover**, which no render performs: LibreOffice converts and rasterizes documents Word refuses to open outright. See "Structural validity" below for the check.
 
 The isolated profile in step 3 is not optional hygiene: concurrent invocations sharing the default profile fail silently.
 
@@ -44,6 +46,25 @@ The isolated profile in step 3 is not optional hygiene: concurrent invocations s
 One further limit is reported by practitioners and not verified here: `--convert-to png` on a docx only rasterizes the first page, which is why the PDF step is mandatory rather than a detour.
 
 A caption sitting alone at the foot of a page is usually pagination, not a lost figure: an inline image taller than the remaining space moves whole to the next page. Confirm on the following page before reporting anything.
+
+## Structural validity, which a render never tests
+
+Word enforces parts of the OOXML content model that LibreOffice ignores, and it enforces them by refusing to open the file rather than by degrading it: the dialog offers no recovery and names `/word/document.xml` line 0, column 0, which points at nothing. A document that converts and rasterizes cleanly here can therefore be unopenable for its only reader, so a docx assembled by anything other than Word owes a structural pass before it is handed over.
+
+The rule met in practice is that **the last block-level element of a `w:tc` must be a `w:p`**, `w:tbl` and `w:sdt` not counting, range markers such as `w:bookmarkEnd` being transparent to it. Word reports the breach as "an ambiguous cell mapping was encountered", in French "un mappage de cellule ambigu a été rencontré", and names the missing element: "`<p>` elements are required before each `</tc>`". The check costs one pass over `word/document.xml`:
+
+```python
+import zipfile, xml.etree.ElementTree as ET
+W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+r = ET.fromstring(zipfile.ZipFile(path).read("word/document.xml"))
+bad = [tc for tc in r.iter(W + "tc")
+       if [k for k in tc if k.tag in (W + "p", W + "tbl")][-1:] != [] and
+       [k for k in tc if k.tag in (W + "p", W + "tbl")][-1].tag != W + "p"]
+```
+
+The shape that produces it is a table nested as the last thing in a cell, which no author writes by hand and a pipeline reaches easily: Quarto wraps every cross-referenced float in a one-cell table to keep caption and content together, and a `flextable` or a `gt` table arrives from knitr as a raw `{=openxml}` block ending on `</w:tbl>`. Measured 2026-09-11 on a Quarto report of 36 tables: 14 cells left open, Word refusing the document outright while LibreOffice converted it to PDF without a warning. The fix belongs to whatever emits the raw block, an empty paragraph appended to its text; a Pandoc `Para` carrying no inline is dropped before the writer sees it, so it cannot be inserted at AST level. Its position relative to a trailing `w:bookmarkEnd` is free, both orders verified in Word that day.
+
+Two neighbouring breaches are worth knowing as non-blocking, since finding one in a file Word opens means nothing: a paragraph carrying two `w:pPr` (Quarto emits one per figure and table caption) and a `w:pStyle` referring to a style the reference doc does not define. Word opens both.
 
 ## What nothing on this machine settles
 
