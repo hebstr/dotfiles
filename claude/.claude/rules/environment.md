@@ -29,7 +29,11 @@ Versions are major.minor (stable enough to gate idiom/feature choices: native pi
 | pak  | Default package installer (`pak::pak()`) outside `rv`-managed projects |
 | rv   | Lockfile: `rv.lock`, config: `rproject.toml`. Inside an rv project, use `rv add <pkg>` (not pak) to keep the lockfile authoritative |
 
-- CRAN mirror: `https://packagemanager.posit.co/cran/__linux__/noble/latest` (PPM, Linux noble binaries)
+- CRAN mirror: `https://packagemanager.posit.co/cran/__linux__/noble/latest` (PPM, Linux noble binaries).
+  Carried by `_meta/profiles/Rprofile.site`, symlinked into each `/opt/R/<version>/lib/R/etc/` by `stow-rprofile`, which `rig-update` re-runs whenever an install is missing it.
+  The P3M entry rig writes in `etc/repositories` only feeds `setRepositories()`: without that symlink `repos` stays `@CRAN@`, pak falls back to `cran.rstudio.com` and every package builds from source.
+  The `__linux__/<distro>` segment is what serves binaries, not the domain: `https://packagemanager.posit.co/cran/latest` returns `x-package-type: source` under the same R user agent.
+  That second URL is what Positron's `positron.r.defaultRepositories: "posit-ppm"` sets, so the setting is no substitute for the symlink, and it defers to R startup scripts anyway.
 
 **Python**
 

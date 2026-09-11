@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for _cmd in jq gh; do
-  command -v "$_cmd" >/dev/null 2>&1 || {
-    printf '%s is required\n' "$_cmd" >&2
-    exit 1
-  }
-done
+command -v gh >/dev/null 2>&1 || {
+  printf 'gh is required\n' >&2
+  exit 1
+}
 
 : "${RIG_GPG_KEY_URL:=https://rig.r-pkg.org/deb/rig.gpg}"
 : "${RIG_GPG_KEY_DEST:=/etc/apt/trusted.gpg.d/rig.gpg}"
 : "${RIG_APT_SOURCE_FILE:=/etc/apt/sources.list.d/rig.list}"
+: "${OPT_R:=/opt/R}"
+: "${RPROFILE_TEMPLATE:=$HOME/dotfiles/_meta/profiles/Rprofile.site}"
 RIG_APT_SOURCE_LINE="deb http://rig.r-pkg.org/deb rig main"
 RIG_PACKAGE="r-rig"
 RIG_API_PATH="repos/r-lib/rig/releases/latest"
@@ -36,7 +36,10 @@ setup_apt_repo() {
     # No fingerprint pinning: a hardcoded fingerprint would require manual
     # updates on key rotation. Accepted risk for a personal workstation script
     # fetching from the official r-pkg.org domain over TLS.
-    sudo curl -fsSL "$RIG_GPG_KEY_URL" -o "$RIG_GPG_KEY_DEST"
+    # --remove-on-error: a transfer cut mid-flight otherwise leaves a partial
+    # key, which the existence guard above then accepts as installed, breaking
+    # apt verification until someone deletes it by hand.
+    sudo curl -fsSL --remove-on-error "$RIG_GPG_KEY_URL" -o "$RIG_GPG_KEY_DEST"
   fi
   if [[ ! -f "$RIG_APT_SOURCE_FILE" ]]; then
     printf '%s\n' "$RIG_APT_SOURCE_LINE" | sudo tee "$RIG_APT_SOURCE_FILE" >/dev/null
@@ -48,6 +51,43 @@ do_upgrade() {
   sudo apt-get install -y "$RIG_PACKAGE"
 }
 
+# An R version installed by `rig add` gets no Rprofile.site, so `repos` stays
+# at @CRAN@ and every package is built from source instead of pulling a P3M
+# binary. The entry rig writes in etc/repositories only feeds
+# setRepositories(); it does not set the option. Relink here rather than in
+# the upgrade branch: the drift comes from installing R, not from upgrading
+# rig, so the repair has to run on every invocation.
+sync_rprofile() {
+  local template dir link stale=0
+  command -v stow-rprofile >/dev/null 2>&1 || return 0
+  # -e, not -f: -f canonicalises a path whose last component does not exist,
+  # so a missing template would still yield a non-empty string here.
+  template=$(readlink -e "$RPROFILE_TEMPLATE" 2>/dev/null || true)
+  [[ -n "$template" ]] || return 0
+
+  for dir in "$OPT_R"/*/; do
+    link="${dir%/}/lib/R/etc/Rprofile.site"
+    [[ -d "${dir%/}/lib/R/etc" ]] || continue
+    if [[ -e "$link" && ! -L "$link" ]]; then
+      printf '%s exists and is not a symlink: leaving it alone.\n' "$link" >&2
+      continue
+    fi
+    [[ "$(readlink -f "$link" 2>/dev/null || true)" == "$template" ]] && continue
+    stale=1
+  done
+
+  ((stale)) || return 0
+  printf '\nRprofile.site missing from at least one R install: relinking.\n'
+  # A failed relink must not abort the run: the rig upgrade is this script's
+  # job, the symlink repair is hygiene riding along. `stow-rprofile` exits 1
+  # whenever `rig list` reports nothing, which `set -e` would turn into a
+  # silent skip of the upgrade itself.
+  stow-rprofile || {
+    printf 'stow-rprofile failed: R installs keep their current Rprofile.site.\n' >&2
+    return 0
+  }
+}
+
 main() {
   local latest current
   latest=$(fetch_latest_version)
@@ -55,6 +95,8 @@ main() {
 
   printf 'Latest rig release: %s\n' "$latest"
   printf 'Current version:    %s\n' "$current"
+
+  sync_rprofile
 
   if [[ "$current" == "$latest" ]]; then
     printf 'Already on %s: nothing to do.\n' "$latest"

@@ -20,8 +20,20 @@ setup() {
   export RIG_GPG_KEY_DEST="$TMPDIR_TEST/rig.gpg"
   export RIG_APT_SOURCE_FILE="$TMPDIR_TEST/rig.list"
 
+  export OPT_R="$TMPDIR_TEST/opt/R"
+  export RPROFILE_TEMPLATE="$TMPDIR_TEST/Rprofile.site"
+  mkdir -p "$OPT_R"
+  touch "$RPROFILE_TEMPLATE"
+
+  cat >"$TMPDIR_TEST/bin/stow-rprofile" <<'STUB'
+#!/usr/bin/env bash
+printf 'stow-rprofile ran\n'
+STUB
+  chmod +x "$TMPDIR_TEST/bin/stow-rprofile"
+
   cat >"$TMPDIR_TEST/bin/curl" <<'STUB'
 #!/usr/bin/env bash
+printf '%s\n' "$*" >>"$TMPDIR_TEST/curl-args"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o) shift; touch "$1" ;;
@@ -56,16 +68,6 @@ STUB
 
   make_rig_stub "$FAKE_OUTDATED"
 
-  if ! command -v jq >/dev/null 2>&1; then
-    cat >"$TMPDIR_TEST/bin/jq" <<'STUB'
-#!/usr/bin/env bash
-input=$(cat)
-tag=$(printf '%s\n' "$input" | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4)
-printf '%s\n' "${tag#v}"
-STUB
-    chmod +x "$TMPDIR_TEST/bin/jq"
-  fi
-
   # shellcheck source=/dev/null
   source "$SCRIPT"
 }
@@ -81,6 +83,19 @@ make_rig_stub() {
 echo "RIG -- The R Installation Manager $version"
 EOF
   chmod +x "$TMPDIR_TEST/bin/rig"
+}
+
+make_r_dir() {
+  mkdir -p "$OPT_R/$1/lib/R/etc"
+}
+
+make_failing_stow_stub() {
+  cat >"$TMPDIR_TEST/bin/stow-rprofile" <<'STUB'
+#!/usr/bin/env bash
+echo "No R versions found." >&2
+exit 1
+STUB
+  chmod +x "$TMPDIR_TEST/bin/stow-rprofile"
 }
 
 # ---------------------------------------------------------------------------
@@ -141,6 +156,13 @@ STUB
   [ -f "$RIG_GPG_KEY_DEST" ]
 }
 
+@test "setup_apt_repo: fetches the GPG key with --remove-on-error" {
+  touch "$RIG_APT_SOURCE_FILE"
+  run setup_apt_repo
+  [ "$status" -eq 0 ]
+  [[ "$(cat "$TMPDIR_TEST/curl-args")" == *"--remove-on-error"* ]]
+}
+
 @test "setup_apt_repo: creates APT source file with correct content" {
   touch "$RIG_GPG_KEY_DEST"
   run setup_apt_repo
@@ -160,6 +182,76 @@ STUB
 }
 
 # ---------------------------------------------------------------------------
+# sync_rprofile
+# ---------------------------------------------------------------------------
+
+@test "sync_rprofile: no-op when no R version is installed" {
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "sync_rprofile: relinks when an R install has no Rprofile.site" {
+  make_r_dir 4.6.1
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"stow-rprofile ran"* ]]
+}
+
+@test "sync_rprofile: no-op when every install already points at the template" {
+  make_r_dir 4.6.1
+  ln -s "$RPROFILE_TEMPLATE" "$OPT_R/4.6.1/lib/R/etc/Rprofile.site"
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "sync_rprofile: relinks when a symlink points somewhere else" {
+  make_r_dir 4.6.1
+  touch "$TMPDIR_TEST/other"
+  ln -s "$TMPDIR_TEST/other" "$OPT_R/4.6.1/lib/R/etc/Rprofile.site"
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"stow-rprofile ran"* ]]
+}
+
+@test "sync_rprofile: leaves a regular Rprofile.site alone" {
+  make_r_dir 4.6.1
+  printf 'options(digits = 3)\n' >"$OPT_R/4.6.1/lib/R/etc/Rprofile.site"
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"not a symlink"* ]]
+  [[ "$output" != *"stow-rprofile ran"* ]]
+}
+
+@test "sync_rprofile: no-op when stow-rprofile is not installed" {
+  make_r_dir 4.6.1
+  rm -f "$TMPDIR_TEST/bin/stow-rprofile"
+  # Replaced, not prepended: ~/.local/bin carries the real stow-rprofile, which
+  # this test would otherwise run against the live /opt/R.
+  PATH="$TMPDIR_TEST/bin:/usr/bin:/bin"
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "sync_rprofile: no-op when the template is missing" {
+  make_r_dir 4.6.1
+  rm -f "$RPROFILE_TEMPLATE"
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "sync_rprofile: warns and returns 0 when stow-rprofile fails" {
+  make_r_dir 4.6.1
+  make_failing_stow_stub
+  run sync_rprofile
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"stow-rprofile failed"* ]]
+}
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -169,6 +261,27 @@ STUB
   [ "$status" -eq 0 ]
   [[ "$output" == *"Already on ${FAKE_LATEST}"* ]]
   [[ "$output" != *"apt-get"* ]]
+}
+
+@test "main: relinks Rprofile.site even when rig is already current" {
+  make_rig_stub "$FAKE_LATEST"
+  make_r_dir 4.6.1
+  run main
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"stow-rprofile ran"* ]]
+  [[ "$output" == *"Already on ${FAKE_LATEST}"* ]]
+}
+
+@test "main: upgrades even when stow-rprofile fails" {
+  make_r_dir 4.6.1
+  make_failing_stow_stub
+  # The real script, not `run main`: bats disables errexit inside `run`, so a
+  # sourced function cannot reproduce a `set -e` abort.
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"stow-rprofile failed"* ]]
+  [[ "$output" == *"apt-get update"* ]]
+  [[ "$output" == *"Previous version was: ${FAKE_OUTDATED}"* ]]
 }
 
 @test "main: upgrades when rig is outdated" {
@@ -197,12 +310,12 @@ STUB
 # dependencies
 # ---------------------------------------------------------------------------
 
-@test "exits 1 when jq is missing" {
+@test "exits 1 when gh is missing" {
   ln -sf "$(command -v bash)" "$TMPDIR_TEST/bin/bash"
   ln -sf "$(command -v env)" "$TMPDIR_TEST/bin/env"
-  rm -f "$TMPDIR_TEST/bin/jq"
+  rm -f "$TMPDIR_TEST/bin/gh"
 
   run env PATH="$TMPDIR_TEST/bin" "$SCRIPT"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"jq is required"* ]]
+  [[ "$output" == *"gh is required"* ]]
 }
