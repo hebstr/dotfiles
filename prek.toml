@@ -2,10 +2,24 @@
 repo = "local"
 hooks = [
   { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
-  { id = "bats-tests", name = "check bats tests", entry = "bats _meta/tests/", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/)' },
+  { id = "bats-tests", name = "check bats tests", entry = "bats _meta/tests/", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/|git/\.config/git/)' },
   { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^bash/|\.bats$' },
   { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '^_meta/profiles/' },
   { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format", language = "system", files = '\.(md|qmd)$', exclude = '^(_meta/profiles/|_meta/notes/|claude/\.claude/(CLAUDE\.md|rules/|memory/|skills/))' },
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.16.7"
+hooks = [
+  { id = "ruff-check", args = ["--fix"] },
+  { id = "ruff-format" },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "pyrefly-check", name = "pyrefly check (.py)", entry = "pyrefly check -p default", language = "system", files = '\.py$' },
 ]
 
 [[repos]]

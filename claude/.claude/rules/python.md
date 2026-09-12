@@ -170,7 +170,7 @@ The `ruff-pre-commit` rev takes the same alignment against the installed `ruff`,
 
 Do not copy the scaffold's `rev` values into a project config: they drift, and the scaffold is the source of truth.
 
-The dotfiles repo's own root `prek.toml` carries no Python hooks, and should not: the repo holds no `.py` file. Same precedent as its missing R, typstyle and StyLua hooks.
+The dotfiles repo holds one Python file, the `git/.config/git/out-textconv.py` diff driver, and its root `prek.toml` carries the hooks to match: the upstream `ruff-check` and `ruff-format` pair, then a local `pyrefly check -p default` on `\.py$` rather than `pyrefly-check`. The upstream hook's whole-project mode would read a pyrefly config the repo does not have and so check nothing, and `-p` is legitimate precisely in that no-config branch. Its R, typstyle, StyLua and SQLFluff hooks stay absent, for want of any file they would check.
 
 ## References
 

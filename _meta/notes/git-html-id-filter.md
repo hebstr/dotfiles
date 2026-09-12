@@ -1,14 +1,15 @@
-# Silence the gt random id in git diffs
+# Silence random HTML ids in git diffs
 
-`gt` draws a fresh table identifier on every render, so the HTML written to `output/` differs from one run to the next with no data change, while the PNG and SVG come back to the same sha1.
+`gt` draws a fresh table identifier on every render, and `htmlwidgets` a fresh widget one, so the HTML written to `output/` differs from one run to the next with no data change, while the PNG and SVG come back to the same sha1.
 A diff bearing on those files alone signals nothing, and it drowns the real changes: on the md-nesrine report, 934 of 940 diff lines were the identifier.
 
-The remedy is a `clean` filter declared in `.gitattributes` and configured out of repo, which normalizes the identifier on its way into the index.
+The remedy is a `clean` filter declared in `.gitattributes` and driven by a config entry, which normalizes the identifier on its way into the index.
 No `smudge`: the working tree keeps what `gt` writes, so the rendered page is untouched and the browser still sees a unique id per table.
 
-Applied in eds-prise (2026-09-02) and md-nesrine (2026-09-02).
+Applied in eds-prise (2026-09-02) and md-nesrine (2026-09-02), under the name `gtid` then `outid`.
+Since 2026-09-12 it is named `html-id`, it covers `reactable` as well as `gt`, and its driver ships in the `git` stow package, so `stow git` is the whole setup on a new machine.
 
-## The identifier and its two forms
+## The identifiers and their forms
 
 `gt` emits ten lowercase letters and uses them twice, on the wrapping div and on every CSS selector scoping that table's style block:
 
@@ -18,38 +19,48 @@ Applied in eds-prise (2026-09-02) and md-nesrine (2026-09-02).
 #xjrgvihqto thead, #xjrgvihqto tbody, ... { ... }
 ```
 
+`htmlwidgets` emits `htmlwidget-` followed by twenty hexadecimal characters and uses it three times, on the container div and on the two `data-for` attributes:
+
+```html
+<div class="reactable html-widget" id="htmlwidget-48b3cdc65c5f381848a6" ...></div>
+<script type="application/json" data-for="htmlwidget-48b3cdc65c5f381848a6">...
+<script type="application/htmlwidget-sizing" data-for="htmlwidget-48b3cdc65c5f381848a6">...
+```
+
 ## Step 1: declare the attribute
 
 `.gitattributes`, tracked, at the repo root:
 
 ```
-output/**/*.html filter=gtid
-*_rapport-stat.html filter=gtid
+output/**/*.html filter=html-id
+*_rapport-stat.html filter=html-id
 ```
 
-The second line covers a Quarto document embedding its tables, and mirrors the glob `_quarto.yml` already uses so a re-dating of the report does not break it.
+`_meta/profiles/gitattributes` carries the first line as a template.
+The second covers a Quarto document embedding its tables, and mirrors the glob `_quarto.yml` already uses so a re-dating of the report does not break it.
 Scope the patterns: an extension's HTML or a vendored asset has no business going through the filter.
 
-## Step 2: configure the filter
+This half stays versioned with each project deliberately.
+A global attributes file would apply the filter to every repository on the machine, third-party clones included, and rewrite their identifiers on `git add` with no warning.
 
-Two variants, both out of repo, so both are lost on a clone that does not repeat the command.
+## Step 2: the driver
 
-**One table per file** (eds-prise, where only `output/**` is tracked and each file holds a single `gt` table):
+It ships in `git/.gitconfig`, so a stowed machine already has it and a fresh clone needs nothing:
 
-```bash
-git config filter.gtid.clean 'sed -E '\''s/id="[a-z]{10}"/id="gt"/; s/#[a-z]{10}\b/#gt/g'\'''
+```
+[filter "html-id"]
+	clean = "perl -0777 -pe '...'"
 ```
 
-**Several tables in one document** (md-nesrine, whose report embeds 17):
+Read the exact value with `git config --get filter.html-id.clean` rather than copying it from here; git escapes `\Q`, `\E` and the quotes when it writes the file, and a hand-edited copy is where that breaks.
+Write it with `git config --file git/.gitconfig filter.html-id.clean '<value>'` and let git do the escaping.
 
-```bash
-git config filter.gtid.clean 'perl -0777 -pe '\''my %m; my $n = 0; while (/<div id="([a-z]{10})" style="padding-left/g) { $m{$1} //= "gt" . ++$n } for my $k (keys %m) { s/(id="|#)\Q$k\E\b/$1$m{$k}/g }'\'''
-```
+The program collects the identifiers from the `gt` div and the `htmlwidget-` token alone, numbers each family in document order, `gt1` and `wdg1` upward, then rewrites every occurrence.
+Numbering rather than collapsing onto a single token is what keeps the deliverable valid: the md-nesrine report holds fifteen `gt` tables in one file, and a shared id would make each style block apply to all fifteen at once.
+Anchoring the collection on the div spares any other ten-letter identifier in the page, which is not hypothetical: that report carries `<section id="discussion">`, ten lowercase letters, untouched because it is never collected.
 
-The perl version subsumes the sed one and is the safer default.
-It collects the identifiers from the `gt` div alone, numbers them in document order, then rewrites each on its two forms, which buys two things the sed cannot give.
-Collapsing every table onto a single `id="gt"` would make the 17 style blocks apply to all 17 tables at once, and the anchoring on the div spares any other ten-letter identifier in the page.
-That second point is not hypothetical: the md-nesrine report carries `<section id="discussion">`, ten lowercase letters, which the sed would rewrite into `id="gt"` alongside the tables and merge with them.
+A `sed` one-liner did the job until 2026-09-12, collapsing instead of numbering.
+Replacing it cost eds-prise 904 lines of pure renaming across twelve outputs, hidden from `git status` by git's stat cache until a render touched the files, and visible to `git add`, which re-reads and re-filters.
 
 Numbering follows document order, so inserting a table upstream shifts the ones below it and produces a one-off churn.
 
@@ -67,7 +78,7 @@ The second command matters as much as the first, `.gitattributes` being untracke
 ## Verification
 
 ```bash
-git config --get filter.gtid.clean          # exact stored value
+git config --get filter.html-id.clean       # exact stored value
 git check-attr filter -- <file>...          # mapping, including a file meant to stay out
 git diff --numstat -- '*.html'              # after the commit: real changes only
 ```
@@ -76,7 +87,7 @@ To measure the gain before committing, pass both sides through the filter by han
 
 ```bash
 f=<tracked-html>
-CLEAN=$(git config --get filter.gtid.clean)
+CLEAN=$(git config --get filter.html-id.clean)
 git show "HEAD:$f" | sh -c "$CLEAN" > /tmp/a.html
 sh -c "$CLEAN" < "$f" > /tmp/b.html
 diff /tmp/a.html /tmp/b.html
@@ -85,14 +96,15 @@ diff /tmp/a.html /tmp/b.html
 On md-nesrine this took the report from 940 diff lines to 6 (two prose edits, their echo in the code annex, the `sessioninfo` date) and each of the 15 `output/` tables from 55 to 0.
 Idempotence is worth one check as well, two passes over the same file yielding the same sha1.
 
-## Two ways to lose it in silence
+## Ways to lose it in silence
 
-- A clone that has not repeated the `git config`: git then stores the raw file without warning.
-- A `gt` upgrade changing the identifier length, or the shape of the div the perl variant anchors on.
+- A `gt` or `htmlwidgets` upgrade changing the identifier length, or the shape of the div the program anchors on.
+- A machine where the `git` package is not stowed: git then stores the raw file without warning. That was the standing failure until the driver moved into the package on 2026-09-12, and it is what closed it.
 
-## Deferred: the same churn on the OOXML artifacts
+## Settled elsewhere: the same churn on the OOXML artifacts
 
-Diagnosed on md-nesrine 2026-09-02, nothing applied, the decision being to wait.
+Diagnosed on md-nesrine 2026-09-02, and settled on 2026-09-12 by a `textconv` diff driver rather than by the clean filter this section prototypes.
+The diagnosis below still holds; the remedy is `out-textconv`, documented in `git-out-textconv.md`.
 Once the HTML are filtered, these files are the only remaining false signal after a render.
 
 `.docx`, `.xlsx` and `.pptx` are ZIP archives, and a render rewrites them with no content change.
@@ -135,11 +147,11 @@ with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as dst:
 sys.stdout.buffer.write(buf.getvalue())
 ```
 
-Shape to give it before use: an `ooxml-normalize` script in the stow package `bin`, beside `prose-lint`, so eds-prise and the next project can reach it; an unconditional pass-through when the input is empty or not a valid ZIP, a `clean` filter having no right to damage a file; `bats` tests on the three formats; then `output/**/*.{docx,xlsx,pptx} filter=ooxml` and `git config filter.ooxml.clean ooxml-normalize`.
-
-Two things to weigh before spending that.
+That shape was never given, and the two reservations below are what dropped it.
 The archive handed over is one no `officer` or `openxlsx2` run produced, even with every member intact, and `dcterms:created` of a `.docx` holds `2017-02-28` from the `officer` template, which the normalization flattens to the epoch along with the rest.
 With no `smudge` the working copy keeps its real date, so only a clone or a `checkout` surfaces the flattened one.
+Neither reaches a `textconv` driver, which rewrites nothing and only feeds `git diff`, so that is the route taken.
 
-One point stayed unverified for want of two samples: whether `officer` varies anything besides `core.xml`, `rsid` values for instance.
-The first `export_docx()` run after a commit settles it.
+The point left unverified here is answered, and the answer is yes: `officer` varies more than `core.xml`.
+`word/fontTable.xml` and the four `word/fonts/font*.odttf` move on every write, `officer::docx_embed_font()` drawing a fresh `w:fontKey` GUID that ODTTF obfuscation XORs into the first 32 bytes of each subset.
+Measured 2026-09-12 on the eleven `output/tbl-*/*.docx` of md-nesrine: exactly 32 bytes differ per face, the payload identical, and `word/document.xml` byte-identical, so `rsid` values do not move.

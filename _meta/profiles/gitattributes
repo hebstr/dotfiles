@@ -1,0 +1,5 @@
+output/**/*.html filter=html-id
+*.docx diff=out-textconv
+*.pptx diff=out-textconv
+*.xlsx diff=out-textconv
+*.png diff=out-textconv
