@@ -52,7 +52,7 @@
     "renv.lock": "json",
     "**/SKILL.md": "markdown",
     ".stignore": "ignore",
-    "~/dotfiles/bin/.local/bin/*": "bash",
+    "**/dotfiles/bin/.local/bin/*": "shellscript",
   },
 
   // EXCLUSIONS DE FICHIERS ------------------------------------------------------
