@@ -55,11 +55,15 @@ The rule met in practice is that **the last block-level element of a `w:tc` must
 
 ```python
 import zipfile, xml.etree.ElementTree as ET
+
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 r = ET.fromstring(zipfile.ZipFile(path).read("word/document.xml"))
-bad = [tc for tc in r.iter(W + "tc")
-       if [k for k in tc if k.tag in (W + "p", W + "tbl")][-1:] != [] and
-       [k for k in tc if k.tag in (W + "p", W + "tbl")][-1].tag != W + "p"]
+bad = [
+    tc
+    for tc in r.iter(W + "tc")
+    if [k for k in tc if k.tag in (W + "p", W + "tbl")][-1:] != []
+    and [k for k in tc if k.tag in (W + "p", W + "tbl")][-1].tag != W + "p"
+]
 ```
 
 The shape that produces it is a table nested as the last thing in a cell, which no author writes by hand and a pipeline reaches easily: Quarto wraps every cross-referenced float in a one-cell table to keep caption and content together, and a `flextable` or a `gt` table arrives from knitr as a raw `{=openxml}` block ending on `</w:tbl>`. Measured 2026-09-11 on a Quarto report of 36 tables: 14 cells left open, Word refusing the document outright while LibreOffice converted it to PDF without a warning. The fix belongs to whatever emits the raw block, an empty paragraph appended to its text; a Pandoc `Para` carrying no inline is dropped before the writer sees it, so it cannot be inserted at AST level. Its position relative to a trailing `w:bookmarkEnd` is free, both orders verified in Word that day.
