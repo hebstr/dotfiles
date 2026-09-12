@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Tests for devtools-update
-# Mocks: gh, curl, jq, sudo — no real network calls, no real installs
+# Mocks: gh, curl, sudo — no real network calls, no real installs
 
 SCRIPT="$BATS_TEST_DIRNAME/../../bin/.local/bin/devtools-update"
 
@@ -47,17 +47,6 @@ EOF
 exit 0
 EOF
   chmod +x "$TMPDIR_TEST/bin/curl"
-
-  # Real jq must be available (it's a declared dependency)
-  # But mock it if not present
-  if ! command -v jq >/dev/null 2>&1; then
-    cat >"$TMPDIR_TEST/bin/jq" <<'EOF'
-#!/usr/bin/env bash
-# Minimal jq mock: handles only the tag_name extraction pattern
-echo "1.2.3"
-EOF
-    chmod +x "$TMPDIR_TEST/bin/jq"
-  fi
 }
 
 teardown() {
@@ -337,13 +326,25 @@ EOF
 # Missing dependencies
 # ---------------------------------------------------------------------------
 
-@test "exits 1 when jq is missing" {
+@test "exits 1 when gh is missing" {
+  rm "$TMPDIR_TEST/bin/gh"
   ln -sf "$(command -v bash)" "$TMPDIR_TEST/bin/bash"
   ln -sf "$(command -v env)" "$TMPDIR_TEST/bin/env"
 
   run env PATH="$TMPDIR_TEST/bin" "$SCRIPT" --prefix "$PREFIX" uv
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing required command 'jq'"* ]]
+  [[ "$output" == *"missing required command 'gh'"* ]]
+}
+
+@test "runs with no jq on PATH: gh api --jq uses gh's embedded engine" {
+  for b in bash env grep head; do
+    ln -sf "$(command -v "$b")" "$TMPDIR_TEST/bin/$b"
+  done
+  make_fake_binary uv 1.2.3 "$PREFIX"
+
+  run env PATH="$TMPDIR_TEST/bin" "$SCRIPT" --prefix "$PREFIX" uv
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"missing required command 'jq'"* ]]
 }
 
 @test "exits 1 when curl is missing" {

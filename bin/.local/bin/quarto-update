@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for _cmd in jq gh; do
-  command -v "$_cmd" >/dev/null 2>&1 || {
-    printf '%s is required\n' "$_cmd" >&2
-    exit 1
-  }
-done
+command -v gh >/dev/null 2>&1 || {
+  printf 'gh is required\n' >&2
+  exit 1
+}
 
 VER=$(gh api repos/quarto-dev/quarto-cli/releases/latest --jq '(.tag_name // "") | sub("^v"; "")')
 case "$(uname -m)" in
@@ -19,7 +17,7 @@ aarch64) ARCH=linux-arm64 ;;
 esac
 URL=https://github.com/quarto-dev/quarto-cli/releases/download
 
-if [ -z "${VER}" ] || [ "${VER}" = "null" ]; then
+if [ "$VER" = "" ] || [ "$VER" = "null" ]; then
   echo "Failed to resolve latest Quarto version from GitHub API" >&2
   exit 1
 fi
@@ -27,8 +25,8 @@ fi
 echo "Latest Quarto release: ${VER}"
 
 CURRENT=$(quarto --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
-[ -n "${CURRENT}" ] || CURRENT=unknown
-if [ "${CURRENT}" = "${VER}" ]; then
+[ "$CURRENT" != "" ] || CURRENT=unknown
+if [ "$CURRENT" = "$VER" ]; then
   echo "Already on ${VER}: nothing to do."
   exit 0
 fi
@@ -45,15 +43,15 @@ SWAPPED=0
 SUDO_KEEPALIVE_PID=
 cleanup() {
   rc=$?
-  if [ -n "${SUDO_KEEPALIVE_PID}" ]; then
-    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+  if [ "$SUDO_KEEPALIVE_PID" != "" ]; then
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   fi
-  if [ "${SWAPPED}" = "1" ] && [ ! -d "${PREFIX}" ] && [ -d "${BACKUP}" ]; then
+  if [ "$SWAPPED" = "1" ] && [ ! -d "$PREFIX" ] && [ -d "$BACKUP" ]; then
     echo "Install failed after backup: restoring ${BACKUP} to ${PREFIX}" >&2
-    sudo mv "${BACKUP}" "${PREFIX}" || echo "Rollback failed: ${BACKUP} still holds the previous install" >&2
+    sudo mv "$BACKUP" "$PREFIX" || echo "Rollback failed: ${BACKUP} still holds the previous install" >&2
   fi
-  rm -rf "${TMP}"
-  exit "${rc}"
+  rm -rf "$TMP"
+  exit "$rc"
 }
 trap cleanup EXIT
 
@@ -63,7 +61,7 @@ trap cleanup EXIT
 done) &
 SUDO_KEEPALIVE_PID=$!
 
-if [ -e "${BACKUP}" ]; then
+if [ -e "$BACKUP" ]; then
   echo "Backup path ${BACKUP} already exists: remove it first or rename it." >&2
   exit 1
 fi
@@ -77,12 +75,12 @@ LINE=$(grep -E "[[:space:]]${TARBALL}\$" "${TMP}/${CHECKSUMS}") || {
   echo "Checksum line missing for ${TARBALL} in ${CHECKSUMS}" >&2
   exit 1
 }
-(cd "${TMP}" && printf '%s\n' "${LINE}" | sha256sum -c -)
+(cd "$TMP" && printf '%s\n' "$LINE" | sha256sum -c -)
 
 echo "Extracting to staging area..."
 STAGE="${TMP}/quarto-new"
-mkdir -p "${STAGE}"
-tar -xzf "${TMP}/${TARBALL}" -C "${STAGE}" --strip-components=1
+mkdir -p "$STAGE"
+tar -xzf "${TMP}/${TARBALL}" -C "$STAGE" --strip-components=1
 
 if [ ! -x "${STAGE}/bin/quarto" ]; then
   echo "Extracted tree missing bin/quarto: aborting before touching ${PREFIX}" >&2
@@ -96,12 +94,12 @@ fi
 
 echo "Backing up current install to ${BACKUP}"
 SWAPPED=1
-sudo mv "${PREFIX}" "${BACKUP}"
-sudo mv "${STAGE}" "${PREFIX}"
+sudo mv "$PREFIX" "$BACKUP"
+sudo mv "$STAGE" "$PREFIX"
 SWAPPED=0
 
 find /opt -maxdepth 1 -type d -name 'quarto.bak-*' \
-  ! -path "${BACKUP}" -exec sudo rm -rf {} +
+  ! -path "$BACKUP" -exec sudo rm -rf {} +
 
 echo
 echo "Installed version:"

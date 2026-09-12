@@ -186,7 +186,7 @@ echo "Folder config:"
 echo "$CONFIG_JSON"
 echo ""
 
-if $DRY_RUN; then
+if "$DRY_RUN"; then
   echo "[dry-run] Would add folder '$FOLDER_ID' -> $FOLDER_PATH"
   echo "[dry-run] Shared with ${#DEVICES[@]} device(s)"
   [[ -n "$IGNORE_FILE" ]] && echo "[dry-run] Would copy $IGNORE_FILE -> $FOLDER_PATH/.stignore"

@@ -141,12 +141,14 @@ teardown() {
 
 # ─── dependency check ───────────────────────────────────────────────────────
 
-@test "exits 1 and reports error when jq is not available" {
-  # Restrict PATH to STUBS only so jq is not found; $BASH gives the
-  # current interpreter's absolute path, bypassing the restricted PATH.
+@test "exits 1 and reports error when gh is not available" {
+  # Restrict PATH to STUBS only, minus gh, so the guard cannot be satisfied
+  # from /usr/bin; $BASH gives the current interpreter's absolute path,
+  # bypassing the restricted PATH.
+  rm -f "${STUBS}/gh"
   run env PATH="${STUBS}" "$BASH" "${SCRIPT}"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"jq is required"* ]]
+  [[ "$output" == *"gh is required"* ]]
 }
 
 # ─── architecture detection ─────────────────────────────────────────────────

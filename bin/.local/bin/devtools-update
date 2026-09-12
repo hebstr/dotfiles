@@ -184,7 +184,7 @@ main() {
     return 2
   fi
 
-  for cmd in curl jq sudo gh; do
+  for cmd in curl sudo gh; do
     command -v "$cmd" >/dev/null 2>&1 || {
       echo "devtools-update: missing required command '$cmd'" >&2
       return 1

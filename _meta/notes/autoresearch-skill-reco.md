@@ -77,7 +77,7 @@ Deux réserves : il faudrait lever la garde git sur ce projet précis, et chaque
 
 Les autres candidats s'effondrent à l'examen.
 
-**Scripts shell de `~/dotfiles`** (23 scripts dans `bin/.local/bin/`, 23 fichiers `.bats` dans `_meta/tests/`) : la métrique existe, compte de violations `shellcheck` et tests bats. Mais le gate lint+format+test tourne à chaque édition, donc l'état « base cassée avec N erreurs à écraser » que présuppose `:fix` ne se produit jamais. Rien ne consommerait la boucle.
+**Scripts shell de `~/dotfiles`** (23 scripts dans `bin/.local/bin/`, 25 fichiers `.bats` dans `_meta/tests/`) : la métrique existe, compte de violations `shellcheck` et tests bats. Mais le gate lint+format+test tourne à chaque édition, donc l'état « base cassée avec N erreurs à écraser » que présuppose `:fix` ne se produit jamais. Rien ne consommerait la boucle.
 
 **Quarto, Typst, docx** : hors de portée par construction. `rules/docx.md` établit qu'aucun outil de la machine ne rend un docx comme Word et que la divergence LibreOffice tombe précisément sur la justification et les coupures de ligne. `hyphens: auto` n'est pas mesurable localement non plus, faute de dictionnaire de césure dans Chromium. Sans métrique mécanique, pas de boucle possible. C'est là que sont les problèmes difficiles, et c'est exactement là que l'outil ne peut rien.
 

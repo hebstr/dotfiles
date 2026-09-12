@@ -59,6 +59,12 @@ Active configuration is checked in at `positron/.config/Positron/User/profiles/*
 
 The repo-root `~/dotfiles/prek.toml` is authoritative for the pinned hook revisions and the full hook set; do not copy its `rev` values here (they drift). The relevant behavior: the `shfmt` hook runs `-w -i 2` (matching the local pipeline) and the `shellcheck` hook runs with defaults, and both exclude `^bash/` (the `bash/` package holds hand-maintained dotfiles like `.bashrc`/`.profile`, not standalone scripts, so it is kept out of auto-format and lint; reusable scripts live in `bin/.local/bin/` and are covered).
 
+All three tools of the pipeline are enforced at commit: a local `shellharden` hook runs `--check`, which is report-only, so its fixing stays in the local pipeline above and no commit rewrites a shell file through it (`shfmt -w` still does, as the paragraph above says). It excludes `^bash/` like the other two, plus `\.bats$`: shellharden's parser does not accept `@test`, where it exits 2 with no message at all. Since `--check` prints nothing either, the hook's `name` carries the fix command, which is what a failing run shows.
+
+The `_meta/profiles/prek.toml` scaffold carries the same three for other projects: `shellcheck` and `shfmt` from their pinned upstream repos, and the local `shellharden` hook in the same `--check` form. Its local block already depends on this machine's inventory (`prose-lint`, `panache`), so a third `language = "system"` entry adds no assumption.
+
+Hook matching is by content, not by extension: `prek` types a file `shell` from its shebang, so the extensionless scripts under `bin/.local/bin/` are covered by all three. The `format-on-edit` hook is the asymmetric one, dispatching on `*.sh | *.bash`, so those same scripts reach no gate at edit time and are caught at commit instead. Do not widen either the hook's globs or this file's `paths:` to close that gap; the commit hooks already enforce it mechanically.
+
 ## Check a script without executing it
 
 ```sh

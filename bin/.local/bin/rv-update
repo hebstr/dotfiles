@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for _cmd in jq gh; do
-  command -v "$_cmd" >/dev/null 2>&1 || {
-    printf '%s is required\n' "$_cmd" >&2
-    exit 1
-  }
-done
+command -v gh >/dev/null 2>&1 || {
+  printf 'gh is required\n' >&2
+  exit 1
+}
 
 INSTALLER_URL="https://raw.githubusercontent.com/A2-ai/rv/refs/heads/main/scripts/install.sh"
 LATEST_API_PATH="repos/A2-ai/rv/releases/latest"

@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-for _cmd in jq gh; do
-  command -v "$_cmd" >/dev/null 2>&1 || {
-    printf '%s is required\n' "$_cmd" >&2
-    exit 1
-  }
-done
+command -v gh >/dev/null 2>&1 || {
+  printf 'gh is required\n' >&2
+  exit 1
+}
 
 VER=$(gh api repos/duckdb/duckdb/releases/latest --jq '.tag_name // ""')
 case "$(uname -m)" in
@@ -75,7 +73,7 @@ fi
 
 mv "${TMP}/duckdb" "$DEST"
 
-if [ -n "$BACKUP" ]; then
+if [ "$BACKUP" != "" ]; then
   find "${DEST%/*}" -maxdepth 1 -type f -name 'duckdb.bak-*' \
     ! -path "$BACKUP" -delete
 fi

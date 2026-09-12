@@ -71,8 +71,8 @@ live_dump() {
     ext=$(dconf read "${p}enabled-extensions")
     fav=$(dconf read "${p}favorite-apps")
     printf '[/]\n'
-    [ -n "$ext" ] && printf 'enabled-extensions=%s\n' "$ext"
-    [ -n "$fav" ] && printf 'favorite-apps=%s\n' "$fav"
+    [ "$ext" != "" ] && printf 'enabled-extensions=%s\n' "$ext"
+    [ "$fav" != "" ] && printf 'favorite-apps=%s\n' "$fav"
   else
     dconf dump "$p" | domain_filter "$d"
   fi
