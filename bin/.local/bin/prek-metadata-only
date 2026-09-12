@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# prek-metadata-only: the metadata-only prek hook, refusing a commit whose staged binary outputs changed
+# only in write metadata.
+#
+# Takes the filenames prek passes and keeps those staged as modified. A file
+# whose `git diff --cached` patch comes out empty through the out-textconv diff
+# driver (git/.config/git/out-textconv.py) differed in timestamps, font keys or
+# PNG tIME chunks alone; the hook lists them and prints the `git restore`
+# command, restoring being left to the user. Added files always pass, so a new
+# dated deliverable is never blocked.
+#
+# Fails closed: without a diff.out-textconv.textconv entry, or on a file whose
+# diff attribute is not out-textconv, git would print
+# "Binary files differ", a non-empty patch that would let the noise through.
+
+set -euo pipefail
+
+export GIT_LITERAL_PATHSPECS=1
+
+if [[ -z "$(git config --get diff.out-textconv.textconv)" ]]; then
+  echo "diff driver out-textconv is not configured (stow git): cannot tell write metadata from content" >&2
+  exit 1
+fi
+
+mapfile -d '' -t modified < <(git diff --cached --name-only -z --diff-filter=M -- "$@")
+
+unmapped=()
+for file in "${modified[@]}"; do
+  [[ "$(git check-attr --cached diff -- "$file")" == *": diff: out-textconv" ]] || unmapped+=("$file")
+done
+
+if ((${#unmapped[@]} > 0)); then
+  {
+    echo "staged outputs not routed through the out-textconv diff driver: cannot tell write metadata from content:"
+    printf '  %s\n' "${unmapped[@]}"
+    echo "map their type in .gitattributes (e.g. *.png diff=out-textconv) or narrow the hook's files pattern in prek.toml"
+  } >&2
+  exit 1
+fi
+
+noise=()
+for file in "${modified[@]}"; do
+  patch="$(git diff --cached --textconv --no-ext-diff --no-color -- "$file")"
+  [[ -z "$patch" ]] && noise+=("$file")
+done
+
+((${#noise[@]} == 0)) && exit 0
+
+{
+  echo "staged outputs whose only change is write metadata (empty out-textconv patch):"
+  printf '  %s\n' "${noise[@]}"
+  echo "restore them before committing (a working copy holding real changes is only unstaged):"
+  printf '  for f in'
+  printf ' %q' "${noise[@]}"
+  # shellcheck disable=SC2016
+  printf '; do git --literal-pathspecs diff --quiet -- "$f" && git --literal-pathspecs restore --staged --worktree -- "$f" || git --literal-pathspecs restore --staged -- "$f"; done\n'
+} >&2
+exit 1

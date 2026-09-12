@@ -107,3 +107,4 @@ The tell is a diff limited to one element under `### docProps/`; the fix is one 
 
 It does not reduce the weight of the repository: a commit still stores the full new blob.
 It makes the decision possible, restoring the noise instead of committing it, and the decision stays manual.
+The `metadata-only` prek hook (`bin/.local/bin/prek-metadata-only`, declared in `_meta/profiles/prek.toml`) enforces it at commit: a staged, modified binary with an empty patch body fails the commit and the hook prints the `git restore` command, while restoring stays the user's act.
