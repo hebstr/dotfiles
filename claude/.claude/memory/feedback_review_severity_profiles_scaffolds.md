@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-When reviewing or auditing the reusable config templates under `~/dotfiles/_meta/profiles/` (`prek.toml`, `ruff.toml`, `Rprofile.site`, `.vscode/`, ...), do **not** propose any of the following.
+When reviewing or auditing the reusable config templates under `~/dotfiles/_meta/profiles/` (`prek.toml`, `Rprofile.site`, `.vscode/`, ...), do **not** propose any of the following.
 
 1. **Flagging a repo-specific exclude in the scaffold as a footgun for adopting projects.** Example: `exclude = '^bash/'` on the `shellcheck` and `shfmt` hooks, which names a stow package that exists only in the dotfiles repo. The scaffold is adapted per project, never copied verbatim: `.claude/PLAN-LUA.md:13` records the one real adoption (`quarto-hebstr-doc`) taking an adapted subset and dropping the Python and shell hooks entirely, so the exclude never reached it. See also [[feedback_review_severity_claude_rules]] pattern 6, which already rules the same `^bash/` scoping deliberate.
 

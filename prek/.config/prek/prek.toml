@@ -1,0 +1,4 @@
+#:schema ./prek-global.schema.json
+
+[update]
+cooldown_days = 7

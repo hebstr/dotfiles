@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "prek user-level global config",
+  "description": "User-level prek settings (~/.config/prek/prek.toml). Only the `update` section is supported; hooks live in project configs.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "update": {
+      "$ref": "#/definitions/UpdateOptions"
+    }
+  },
+  "definitions": {
+    "UpdateOptions": {
+      "description": "Controls how `prek update` selects eligible releases.",
+      "type": "object",
+      "properties": {
+        "cooldown_days": {
+          "type": "integer",
+          "maximum": 255,
+          "minimum": 0
+        },
+        "freeze": {
+          "type": "boolean"
+        },
+        "include_tags": {
+          "$ref": "#/definitions/StringOrList"
+        },
+        "exclude_tags": {
+          "$ref": "#/definitions/StringOrList"
+        },
+        "repos": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/RepoTagFilterOptions"
+          }
+        }
+      }
+    },
+    "RepoTagFilterOptions": {
+      "description": "Overrides tag selection for one repository during `prek update`.",
+      "type": "object",
+      "properties": {
+        "include_tags": {
+          "$ref": "#/definitions/StringOrList"
+        },
+        "exclude_tags": {
+          "$ref": "#/definitions/StringOrList"
+        }
+      }
+    },
+    "StringOrList": {
+      "description": "A configuration value that accepts either one string or a list of strings.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  }
+}
