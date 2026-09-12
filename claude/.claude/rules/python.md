@@ -13,7 +13,7 @@ paths:
 ## Code style conventions
 
 - Prefer polars over pandas unless the project already uses pandas
-- Before recommending `from pkg import fn` or `pkg.fn`, verify the symbol exists and is importable: `python -c "from pkg import fn"` (exits non-zero if the name is absent or the import path is wrong). Inside a project, run it through the project env: `uv run python -c "from pkg import fn"`. This is the Python analog of the R `getNamespaceExports` export check in `rules/r.md`
+- Before recommending `from pkg import fn` or `pkg.fn`, verify the symbol exists and is importable: `uv run python -c "from pkg import fn"` (exits non-zero if the name is absent or the import path is wrong), which inside a project runs it through the project env. Outside any project, name the interpreter explicitly (`python3.13 -c ...`, or `uv run --python 3.14 python -c ...`): there is no bare `python` on this machine's PATH, so the unversioned form fails with `command not found` rather than reporting on the import. This is the Python analog of the R `getNamespaceExports` export check in `rules/r.md`
 
 - Before writing a helper, ask the installed distribution whether one already exists (CLAUDE.md, Coding preferences): `uv run python -c "import pkg; print([n for n in dir(pkg) if 'keyword' in n.lower()])"` for the current surface, and `uv run python -c "import importlib.metadata as m; print(m.version('pkg'))"` before reading that version's upstream changelog for what shipped after training. Unlike R, a wheel rarely ships its changelog, so the currency half needs WebFetch on the project's own release notes rather than a local file; the version query is what makes that fetch land on the right release.
 - Nothing in the installed distributions means "absent from the environment", not "absent from Python" (CLAUDE.md, Coding preferences). Python has no cross-package function index equivalent to R's `search.r-project.org`: the stdlib reference (`https://docs.python.org/3/library/index.html`, with its General Index and Module Index) is the rank-1 source, then the API reference of the domain's dominant library. PyPI search ranks packages, not functions, so it answers a different question. A hit in a distribution that is not already a dependency is proposed to the user with its cost, never installed to save a few lines.
@@ -121,7 +121,7 @@ Other pyrefly subcommands worth knowing: `init` (create a config, or migrate one
 ## Syntax check without executing
 
 ```sh
-python -m py_compile script.py
+uv run python -m py_compile script.py
 ```
 
 Scope: `.py` and `.pyi` only. On a `.ipynb` this compiles the JSON envelope rather than the cell source, so it exits 0 even when a cell holds broken Python. Use `ruff check <notebook>.ipynb` there, which parses cells individually and reports the real position.

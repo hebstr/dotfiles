@@ -13,6 +13,7 @@ ALL_MODULES=(
   cargo
   claude
   devtools
+  uv-python
   uv-tools
   rv
   rig
@@ -130,7 +131,9 @@ update_cargo() {
     record cargo "skipped (cargo-update not found)"
     return
   fi
-  run_or_dry cargo install-update -a && record cargo OK
+  # tree-sitter-ggsql's build script regenerates the parser unless this is set,
+  # which requires tree-sitter-cli; the published crate already ships src/parser.c
+  run_or_dry env GGSQL_SKIP_GENERATE=1 cargo install-update -a && record cargo OK
 }
 
 update_claude() {
@@ -147,6 +150,16 @@ update_devtools() {
     return
   fi
   run_or_dry devtools-update --all && record devtools OK
+}
+
+# Distinct from uv-tools: `uv tool upgrade` updates packages inside the tool
+# venvs and never the interpreter they run on, which nothing else here tracks.
+update_uv_python() {
+  if ! command -v uv >/dev/null 2>&1; then
+    record uv-python "skipped (not found)"
+    return
+  fi
+  run_or_dry uv python upgrade && record uv-python OK
 }
 
 update_uv_tools() {

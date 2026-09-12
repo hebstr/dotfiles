@@ -142,7 +142,7 @@
 
   "python.createEnvironment.contentButton": "show",
   "python.installModulesInTerminal": true,
-  "python.globalModuleInstallation": true,
+  "python.globalModuleInstallation": false,
   "python.enableAutoReload": false,
   "python.terminal.activateEnvironment": true,
 
@@ -294,7 +294,7 @@
 
   // APPARENCE GLOBALE -----------------------------------------------------------
 
-  "workbench.colorTheme": "Material Night Purple",
+  "workbench.colorTheme": "Material Night Eighties",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.startupEditor": "none",
   "workbench.settings.editor": "json",

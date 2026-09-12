@@ -109,7 +109,7 @@ Le cas de l'ouvrage de 544 pages est celui qui tranche. L'heuristique actuelle (
 
 **Question 2, `pdf2md` : intégrer sous condition, ne pas remplacer `pdftotext`.** Il gagne sur l'ordre de lecture, qui est le mode d'échec le plus dangereux, et perd sur les césures et sur les tableaux fabriqués. Le partage se fait sur le type de document, pas sur une préférence globale.
 
-**Question 3, maintenance : rien à construire.** `sys-update` comporte déjà un module `cargo` qui exécute `cargo install-update -a`, lequel couvre tout binaire installé par `cargo install`. Aucun module dédié, aucune entrée de configuration. C'est le seul point de la note où la réponse est "déjà couvert, on ferme".
+**Question 3, maintenance : rien à construire.** `sys-update` comporte déjà un module `cargo` qui exécute `env GGSQL_SKIP_GENERATE=1 cargo install-update -a`, lequel couvre tout binaire installé par `cargo install` (la variable appartient à `ggsql-cli`, un autre crate du même lot, et ne concerne pas `pdf-inspector`). Aucun module dédié, aucune entrée de configuration. C'est le seul point de la note où la réponse est "déjà couvert, on ferme".
 
 ### Règle de routage retenue
 

@@ -85,7 +85,7 @@ teardown() {
 @test "--help lists every available module" {
   _run --help
   [ "$status" -eq 0 ]
-  for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
+  for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
     rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
@@ -193,6 +193,12 @@ EOF
   [[ "$output" == *"[dry-run] uv tool upgrade --all"* ]]
 }
 
+@test "uv-tools module skips when uv is absent" {
+  _run --dry-run uv-tools
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"uv-tools"*"skipped (not found)"* ]]
+}
+
 @test "cargo module checks for cargo-install-update, not cargo" {
   _stub_command cargo
   _run --dry-run cargo
@@ -205,7 +211,45 @@ EOF
   _stub_command cargo
   _run --dry-run cargo
   [ "$status" -eq 0 ]
-  [[ "$output" == *"[dry-run] cargo install-update -a"* ]]
+  [[ "$output" == *"[dry-run] env GGSQL_SKIP_GENERATE=1 cargo install-update -a"* ]]
+}
+
+@test "cargo module exports GGSQL_SKIP_GENERATE to the cargo process" {
+  ln -s "/usr/bin/env" "${STUBS}/env"
+  _stub_command cargo-install-update
+  cat >"${STUBS}/cargo" <<EOF
+#!/usr/bin/env bash
+printf '%s %s\n' "\${GGSQL_SKIP_GENERATE:-unset}" "\$*" >> "${STUBS}/cargo.log"
+EOF
+  chmod +x "${STUBS}/cargo"
+  _run cargo
+  [ "$status" -eq 0 ]
+  grep -q '^1 install-update -a$' "${STUBS}/cargo.log"
+}
+
+@test "uv-python module upgrades the interpreters, not the tool packages" {
+  _stub_command uv
+  _run --dry-run uv-python
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] uv python upgrade"* ]]
+  [[ "$output" != *"tool upgrade"* ]]
+}
+
+@test "uv-python module skips when uv is absent" {
+  _run --dry-run uv-python
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"uv-python"*"skipped (not found)"* ]]
+}
+
+@test "uv-python runs before uv-tools so the tool venvs follow the new patch" {
+  _stub_command uv
+  _run --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"→ uv-python"* ]]
+  [[ "$output" == *"→ uv-tools"* ]]
+  python_pos="${output%%→ uv-python*}"
+  tools_pos="${output%%→ uv-tools*}"
+  [ "${#python_pos}" -lt "${#tools_pos}" ]
 }
 
 @test "claude-plugins module dispatches to claude-plugins-update" {
@@ -273,6 +317,8 @@ EOF
   _stub_command rustup
   _run --dry-run npm rustup
   [ "$status" -eq 0 ]
+  [[ "$output" == *"→ npm"* ]]
+  [[ "$output" == *"→ rustup"* ]]
   npm_pos="${output%%→ npm*}"
   rustup_pos="${output%%→ rustup*}"
   [ "${#npm_pos}" -lt "${#rustup_pos}" ]
@@ -281,7 +327,7 @@ EOF
 @test "no module argument selects all modules" {
   _run --dry-run
   [ "$status" -eq 0 ]
-  for m in apt snap flatpak npm rustup cargo claude devtools uv-tools \
+  for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
     rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2

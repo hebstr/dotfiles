@@ -31,6 +31,7 @@ Thereafter `sys-update css-toolchain` keeps that toolchain current.
 
 The uv tools have no equivalent step, and the bootstrap above does not install them: `sys-update uv-tools` upgrades what is already present and installs nothing.
 `pyrefly` (the Python gate's type checker), `sqlfluff[rs]` (the SQL gate), `showboat`, `ouroboros-ai`, `huggingface-hub` and `yt-dlp` each need a manual `uv tool install` on a fresh machine.
+The uv-managed Python interpreters behave the same way: `sys-update uv-python` moves them to the latest patch of each installed branch, so a fresh machine needs `uv python install` first.
 Tracked in `.claude/DEFERRED.md`.
 
 Hooks are run via [`prek`](https://github.com/j178/prek) (`prek install`, `prek run -a`).
