@@ -44,6 +44,36 @@ teardown() {
   [ -z "$output" ]
 }
 
+@test "reports a broken dotfiles symlink inside the Firefox profile" {
+  mkdir -p "$HOME/.mozilla/firefox/z24d9fn6.default-release"
+  ln -s "$HOME/dotfiles/firefox/.mozilla/firefox/z24d9fn6.default-release/user.js" \
+    "$HOME/.mozilla/firefox/z24d9fn6.default-release/user.js"
+
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BROKEN"* ]]
+  [[ "$output" == *"user.js"* ]]
+}
+
+@test "ignores the Firefox runtime lock symlink" {
+  mkdir -p "$HOME/.mozilla/firefox/z24d9fn6.default-release"
+  ln -s "127.0.1.1:+386514" "$HOME/.mozilla/firefox/z24d9fn6.default-release/lock"
+
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "reports a broken dotfiles symlink whose name contains a newline" {
+  ln -s "$HOME/dotfiles/bin/missing" "$HOME/.two
+lines"
+
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"BROKEN"* ]]
+  [[ "$output" == *"lines"* ]]
+}
+
 @test "ignores broken symlinks pointing to paths with dotfiles as substring" {
   ln -s "/tmp/dotfiles_backup/foo" "$HOME/.substring-trap"
 

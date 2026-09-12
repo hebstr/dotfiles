@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-broken=$(
-  {
-    find ~/ \
-      \( -path "$HOME/.cache" -o -path "$HOME/.local/share" -o -path "$HOME/snap" \
-      -o -path "$HOME/.mozilla" -o -name node_modules -o -name .git \) -prune \
-      -o -type l -print 2>/dev/null || true
-  } | while IFS= read -r link; do
-    target=$(readlink -m "$link")
-    [[ "$target" == "$HOME/dotfiles/"* ]] || continue
-    test -e "$link" || printf 'BROKEN: %s -> %s\n' "$link" "$target"
-  done
+mapfile -d '' -t links < <(
+  find ~/ \
+    \( -path "$HOME/.cache" -o -path "$HOME/.local/share" -o -path "$HOME/snap" \
+    -o -name node_modules -o -name .git \) -prune \
+    -o -type l -print0 2>/dev/null || true
 )
+[ ${#links[@]} -gt 0 ] || exit 0
+
+mapfile -d '' -t targets < <(readlink -zm -- "${links[@]}")
+
+broken=""
+for i in "${!links[@]}"; do
+  [[ "${targets[i]}" == "$HOME/dotfiles/"* ]] || continue
+  test -e "${links[i]}" || broken+="BROKEN: ${links[i]} -> ${targets[i]}"$'\n'
+done
 
 if [ "$broken" != "" ]; then
-  printf '%s\n' "$broken"
+  printf '%s' "$broken"
   exit 1
 fi
