@@ -200,7 +200,7 @@ Paquets à lier sur WSL :
 | `firefox` | non | lié au profil `z24d9fn6.default-release` de la machine principale |
 | `positron` | non | lié au profil `-eb36ac2`, et Positron tourne côté Windows |
 | `obsidian`, `Rstudio` | non | non utilisés dans WSL |
-| `syncthing` | seulement si `~/.claude`, `~/Documents`, `~/admin` ou `~/archive` sont synchronisés | ne contient que des `.stignore` |
+| `syncthing` | seulement si `~/.claude`, `~/Documents`, `~/admin`, `~/archive`, `~/notes`, `~/Musique` ou `~/Téléchargements` sont synchronisés | ne contient que des `.stignore` |
 
 Test à blanc d'abord :
 
@@ -348,7 +348,7 @@ sys-update apt npm rustup cargo claude devtools uv-python uv-tools rv rig duckdb
 ## Pièges connus
 
 - **Réception seule et liens stow.** Un programme qui modifie un fichier lié (`~/.gitconfig`, `~/.claude/...`, `~/.config/gh/config.yml`) écrit dans `~/dotfiles`. Syncthing affiche « Local Changes » et propose « Revert Local Changes », qui efface ces modifications au profit de la version de la machine principale.
-- **Pas de `.stignore` à la racine de `~/dotfiles`.** `.git`, `.ruff_cache` et `node_modules` de la machine principale sont transférés.
+- **`~/dotfiles/.stignore` se recopie à la main.** C'est un fichier ordinaire à la racine du dépôt (stow refuse de lier dans son propre répertoire), qui exclut `.git`, `node_modules` et les caches. Syncthing ne transmet jamais un `.stignore` et WSL ne clone pas le dépôt : sans copie, les exclusions ne s'appliquent pas côté WSL, et le `.git` transféré avant leur ajout reste sur le disque.
 - **Arrêt de la VM.** WSL arrête la distribution quand plus aucun processus ne la retient, ce qui stoppe Syncthing WSL (Syncthing Windows n'est pas concerné). Comportement exact avec systemd actif non vérifié ; si la synchro des dotfiles ne se fait que terminal ouvert, c'est la piste.
 - **Un dossier, une instance.** Un même dossier ne doit jamais être partagé par les deux instances de la machine : elles écriraient chacune de leur côté et produiraient des conflits en boucle.
 - **Horloge.** Après une veille de Windows, l'heure de WSL peut dériver et casser `apt update` : `wsl --shutdown`.
