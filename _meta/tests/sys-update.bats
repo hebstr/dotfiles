@@ -9,7 +9,8 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/sys-update"
 # the commands explicitly stubbed are visible to the script. This is how
 # "command not installed" cases are simulated: omit the stub.
 #
-# Default setup() installs sudo + sleep stubs only; per-test helpers add
+# Default setup() installs sudo + sleep stubs and links cat, paste and bash;
+# per-test helpers add
 # more stubs (apt-get, snap, npm, etc.) as needed.
 
 _stub_command() {
@@ -57,8 +58,8 @@ setup() {
 # Invoke the script under a PATH that contains only ${STUBS}, so any tool
 # we did not stub is genuinely "not found" from the script's perspective.
 _run() {
-  # Use $BASH (absolute path) because env resolves its program against the
-  # new PATH — `bash` would not be found in ${STUBS} alone.
+  # Use $BASH (absolute path) so the script's interpreter never depends on
+  # the restricted PATH that env applies.
   run env PATH="$STUBS" "$BASH" "$SCRIPT" "$@"
 }
 
@@ -96,7 +97,7 @@ teardown() {
 
 # ─── --list ─────────────────────────────────────────────────────────────────
 
-@test "--list shows MODULE/SUDO header and one row per module" {
+@test "--list shows MODULE/SUDO header and module rows" {
   _run --list
   [ "$status" -eq 0 ]
   [[ "$output" == *"MODULE"* ]]
@@ -105,7 +106,7 @@ teardown() {
   [[ "$output" == *"anki"* ]]
 }
 
-@test "--list marks apt and snap as sudo modules" {
+@test "--list marks the sudo column per module" {
   _run --list
   [ "$status" -eq 0 ]
   echo "$output" | grep -E '^apt[[:space:]]+yes$'
@@ -141,8 +142,8 @@ teardown() {
 # ─── --dry-run prints commands without executing ────────────────────────────
 
 @test "--dry-run apt prints the apt-get commands and does not run them" {
-  # apt-get is intentionally NOT stubbed; if --dry-run actually executed,
-  # the missing apt-get under set -e would crash. Test passing proves no exec.
+  # apt-get is not stubbed: if --dry-run executed it, the module would be
+  # recorded as FAIL and the script would exit 1.
   _run --dry-run apt
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run]"* ]]
@@ -260,6 +261,7 @@ EOF
 }
 
 @test "libreoffice module dispatches to libreoffice-update" {
+  _stub_command libreoffice
   _stub_command libreoffice-update
   _run --dry-run libreoffice
   [ "$status" -eq 0 ]
@@ -270,6 +272,64 @@ EOF
   _run --dry-run libreoffice
   [ "$status" -eq 0 ]
   [[ "$output" == *"libreoffice"*"skipped (not found)"* ]]
+}
+
+# ─── application modules update, never install ──────────────────────────────
+# positron, anki and libreoffice ship updaters that install the application
+# when it is absent; sys-update must only run them where the app already is.
+
+_stub_logging_updater() {
+  cat >"${STUBS}/$1-update" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "$1-update" >> "${STUBS}/updater.log"
+EOF
+  chmod +x "${STUBS}/$1-update"
+}
+
+@test "positron module skips when positron is not installed" {
+  _stub_logging_updater positron
+  _run positron
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"positron"*"skipped (positron not installed)"* ]]
+  [ ! -f "${STUBS}/updater.log" ]
+}
+
+@test "anki module skips when anki is not installed" {
+  _stub_logging_updater anki
+  _run anki
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"anki"*"skipped (anki not installed)"* ]]
+  [ ! -f "${STUBS}/updater.log" ]
+}
+
+@test "libreoffice module skips when libreoffice is not installed" {
+  _stub_logging_updater libreoffice
+  _run libreoffice
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"libreoffice"*"skipped (libreoffice not installed)"* ]]
+  [ ! -f "${STUBS}/updater.log" ]
+}
+
+@test "application modules run their updater when the application is installed" {
+  for app in positron anki libreoffice; do
+    _stub_command "$app"
+    _stub_logging_updater "$app"
+  done
+  _run positron anki libreoffice
+  [ "$status" -eq 0 ]
+  [ "$(cat "${STUBS}/updater.log")" = "$(printf '%s\n' positron-update anki-update libreoffice-update)" ]
+}
+
+@test "no module argument never installs absent applications" {
+  for app in positron anki libreoffice; do
+    _stub_logging_updater "$app"
+  done
+  _run --dry-run
+  [ "$status" -eq 0 ]
+  for app in positron anki libreoffice; do
+    [[ "$output" != *"[dry-run] ${app}-update"* ]]
+    [[ "$output" == *"${app}"*"skipped (${app} not installed)"* ]]
+  done
 }
 
 @test "quarto module dispatches to quarto-update, not quarto itself" {
@@ -384,7 +444,7 @@ EOF
   grep -q '^full-upgrade -y$' "${STUBS}/apt.log"
 }
 
-@test "module exit propagates: failing apt-get aborts the script" {
+@test "module exit propagates: failing apt-get makes the script exit non-zero" {
   cat >"${STUBS}/apt-get" <<'EOF'
 #!/usr/bin/env bash
 exit 1
@@ -402,7 +462,7 @@ EOF
   [[ "$output" == *"MODULE"*"STATUS"* ]]
 }
 
-@test "summary lists each selected module exactly once" {
+@test "summary lists each selected module" {
   _stub_command npm
   _run --dry-run apt npm
   [ "$status" -eq 0 ]

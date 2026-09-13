@@ -234,9 +234,16 @@ update_pandoc() {
   run_or_dry pandoc-update && record pandoc OK
 }
 
+# The application updaters install the app when it is absent, so these modules
+# also require the app itself: stow bin puts the updaters on machines (WSL) that
+# must never get the desktop applications.
 update_positron() {
   if ! command -v positron-update >/dev/null 2>&1; then
     record positron "skipped (not found)"
+    return
+  fi
+  if ! command -v positron >/dev/null 2>&1; then
+    record positron "skipped (positron not installed)"
     return
   fi
   run_or_dry positron-update && record positron OK
@@ -247,12 +254,20 @@ update_anki() {
     record anki "skipped (not found)"
     return
   fi
+  if ! command -v anki >/dev/null 2>&1; then
+    record anki "skipped (anki not installed)"
+    return
+  fi
   run_or_dry anki-update && record anki OK
 }
 
 update_libreoffice() {
   if ! command -v libreoffice-update >/dev/null 2>&1; then
     record libreoffice "skipped (not found)"
+    return
+  fi
+  if ! command -v libreoffice >/dev/null 2>&1; then
+    record libreoffice "skipped (libreoffice not installed)"
     return
   fi
   run_or_dry libreoffice-update && record libreoffice OK

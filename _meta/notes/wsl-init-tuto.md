@@ -1,56 +1,78 @@
-# Initialisation WSL Ubuntu : tutoriel
+# WSL Ubuntu : installation reproductible
 
-## Contexte
+Procédure complète pour transformer une distribution Ubuntu 24.04 vierge sous WSL 2 en poste de travail équivalent à la machine principale.
+Synthèse de la note initiale, de l'installation de `ju-TP2` le 2026-09-13 et de la trace `wsl-r-binary-runtime-deps.md` (showboat, bibliothèques R et locale).
+Les comportements de scripts cités ici ont été relus dans `bin/.local/bin` le 2026-09-13.
 
-Procédure pour transformer une distribution Ubuntu vierge sous WSL 2 en poste de travail équivalent à la machine principale.
-Les dotfiles arrivent par Syncthing en réception seule (« Receive Only »), pas par `git clone`.
+## Conventions
 
-Deux instances Syncthing cohabitent sur la machine, chacune sur le système de fichiers qu'elle lit nativement :
+- `<user>` : utilisateur Linux créé au premier lancement.
+- `<user_windows>` : utilisateur Windows.
+- `<distro>` : nom de la distribution (`Ubuntu-24.04`).
+- **PowerShell** : commande à lancer côté Windows. Sans mention, la commande se lance dans un terminal WSL.
+- Toute commande contenant `sudo` ou une connexion interactive (`gh auth login`) se lance dans un vrai terminal, pas depuis un agent.
+- Les dotfiles arrivent par Syncthing en réception seule (« Receive Only »), jamais par `git clone`. Git se pratique sur la machine principale.
+- L'ordre est obligatoire : chaque section fournit ce que la suivante suppose présent.
 
-- **Syncthing Windows** : dossiers situés sur `C:`.
-- **Syncthing WSL** : `dotfiles` et tout dossier vivant dans `/home/<user>`.
+Deux instances Syncthing cohabitent, chacune sur le système de fichiers qu'elle lit nativement :
+
+| Instance | Dossiers | Interface | Synchro |
+|---|---|---|---|
+| Syncthing Windows | dossiers sur `C:` | `127.0.0.1:8384` | `22000` |
+| Syncthing WSL | `dotfiles` et dossiers sous `/home/<user>` | `127.0.0.1:8385` | `22001` |
+
+Un même dossier n'est jamais partagé par les deux instances de la machine.
+Syncthing Windows vers `\\wsl.localhost\...` perd les liens symboliques et le bit d'exécution ; Syncthing WSL vers `/mnt/c/...` ne reçoit aucun événement de modification des applications Windows, et NTFS ignore la casse.
 
 Hors périmètre : Positron, Anki, LibreOffice, Firefox et Syncthing Windows, qui tournent côté Windows.
 
-L'ordre compte : chaque étape fournit ce que la suivante suppose présent.
+Valeurs de référence sur `ju-TP2` :
 
-## 0. Côté Windows (PowerShell)
+| Élément | Valeur |
+|---|---|
+| Windows | 11 24H2 (build 26100), WSL 2.7.14.0 |
+| Distribution | Ubuntu 24.04.5 LTS, systemd actif |
+| Syncthing | 2.1.5 des deux côtés |
+| R | 4.6.1 via `rig`, dépôt PPM `__linux__/noble` |
+
+## 0. Windows
+
+PowerShell :
 
 ```powershell
 wsl --update
 wsl --list --online
-wsl --install <nom>
+wsl --install <distro>
 wsl --list --verbose
 ```
 
-- Choisir une LTS dans la liste (`Ubuntu-24.04` ou plus récente) : une version non-LTS en fin de vie voit ses dépôts déplacés et tout `apt install` renvoie 404.
+- Choisir une LTS : une version non-LTS en fin de vie renvoie des 404 sur `apt install`.
 - `wsl --list --verbose` doit afficher `VERSION 2`.
-- Au premier lancement, Ubuntu demande de créer un utilisateur : c'est ce nom qui sert de `<user>` plus bas.
+- Le nom d'utilisateur créé au premier lancement est `<user>`.
 
-Optionnel, pour que les autres appareils joignent Syncthing WSL en direct plutôt que par relais (en mode NAT par défaut, la VM n'est pas joignable depuis le réseau local) : créer `C:\Users\<user_windows>\.wslconfig`.
+Optionnel, pour que les autres appareils joignent Syncthing WSL en direct plutôt que par relais : `C:\Users\<user_windows>\.wslconfig`.
 
 ```ini
 [wsl2]
 networkingMode=mirrored
 ```
 
-Le mode `mirrored` exige Windows 11 22H2 ou plus.
-Appliquer avec `wsl --shutdown`.
+Exige Windows 11 22H2 ou plus. Appliquer avec `wsl --shutdown`.
 
-## 1. Rafraîchir apt, avant toute autre commande
+## 1. apt
 
 ```bash
 sudo apt update
 sudo apt full-upgrade -y
 ```
 
-**`apt update` est obligatoire avant le premier `apt install`.**
-L'image WSL est livrée avec un index de paquets figé à sa date de fabrication : sans rafraîchissement, apt réclame des versions que les miroirs ont supprimées et échoue en `404 Not Found`, dès `build-essential`.
+`apt update` est obligatoire avant le premier `apt install` : l'index livré avec l'image est périmé et produit des `404 Not Found`.
+Lire la sortie, pas seulement le code de retour : une ligne `Err:` ou `W:` signale un index resté périmé.
+`Release file ... is not valid yet` signale une horloge dérivée, fréquente après une veille de Windows : `wsl --shutdown` côté PowerShell, puis relancer.
 
-Lire la sortie de `apt update`, pas seulement le code de retour : une ligne `Err:` ou `W:` signale un index resté périmé.
-Si elle mentionne `Release file ... is not valid yet`, l'horloge de WSL a dérivé (fréquent après une veille de Windows) : `wsl --shutdown` côté PowerShell, puis relancer.
+## 2. Distribution
 
-## 2. Configurer la distribution (`/etc/wsl.conf`)
+### wsl.conf
 
 ```bash
 sudoedit /etc/wsl.conf
@@ -64,85 +86,60 @@ systemd=true
 default=<user>
 ```
 
-- `systemd=true` rend `systemctl --user` disponible, nécessaire pour Syncthing en service. La section `[boot]` n'existe que sous Windows 11.
-- `[user] default` évite d'ouvrir la session en root.
-
-Appliquer depuis PowerShell :
+PowerShell, puis attendre environ 8 secondes avant de rouvrir Ubuntu :
 
 ```powershell
 wsl --shutdown
 ```
 
-Attendre quelques secondes (la documentation parle de 8 secondes pour que la VM s'arrête), rouvrir Ubuntu, puis vérifier :
-
 ```bash
 systemctl is-system-running
 ```
 
-`running` ou `degraded` indiquent tous deux que systemd tourne.
+`running` ou `degraded` : systemd tourne.
+Le fuseau horaire suit Windows par défaut (`[time] useWindowsTimezone = true`), rien à régler.
 
-Fuseau horaire : rien à faire, `[time] useWindowsTimezone` vaut `true` par défaut et WSL suit le fuseau de Windows.
-
-Langue, optionnel :
+### Locales
 
 ```bash
-sudo locale-gen fr_FR.UTF-8
-sudo update-locale LANG=fr_FR.UTF-8
+sudo locale-gen en_US.UTF-8 fr_FR.UTF-8
+locale -a | rg -i 'en_US|fr_FR'
 ```
+
+`en_US.UTF-8` n'est pas optionnelle : le terminal intégré de Positron exporte `LANG=en_US.UTF-8` alors que le système reste en `C.UTF-8`, et R retombe en locale `C` si elle n'est pas générée.
+Symptôme : `Setting LC_CTYPE failed, using "C"` au démarrage de R, `unable to translate '<U+00E9>...' to native encoding` à l'installation d'un paquet.
+
+### Linger
+
+```bash
+sudo loginctl enable-linger "$USER"
+loginctl show-user "$USER" -p Linger
+```
+
+Attendu : `Linger=yes`.
+Sans linger, le gestionnaire systemd utilisateur s'arrête peu après la fermeture de la dernière session et emporte Syncthing et toute unité utilisateur, dont un build lancé par `systemd-run --user`.
+La VM elle-même peut encore s'arrêter après inactivité (`vmIdleTimeout`, 60 000 ms par défaut dans `.wslconfig`) : si Syncthing WSL ne tourne que terminal ouvert malgré linger, c'est la piste.
 
 ## 3. Paquets de base
 
 ```bash
 sudo apt install -y \
   build-essential ca-certificates curl wget gnupg unzip git \
-  stow ripgrep fd-find jq shellcheck shfmt bats \
+  stow ripgrep fd-find jq shellcheck shfmt bats git-delta \
   libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev \
   libharfbuzz-dev libfribidi-dev libfreetype-dev libpng-dev libtiff-dev libjpeg-dev
 ```
 
-Noms vérifiés sur Ubuntu 24.04 le 2026-09-13.
+- Ligne 2 : outils supposés présents par les dotfiles et `bin`. `fd-find` installe le binaire `fdfind`.
+- `git-delta` : requis avant `stow git`, car `.gitconfig` déclare `core.pager = delta` et `interactive.diffFilter = delta --color-only`. Sans lui, `git diff`, `git log -p` et `git add -p` échouent.
+- Lignes 3 et 4 : en-têtes des paquets R qui compilent encore malgré les binaires PPM. Les bibliothèques d'exécution des binaires sont traitées à la section 9.
+- Ubuntu 24.04 fige `shellcheck` en 0.9.0 et `shfmt` en 3.8.0, derrière les versions épinglées par les hooks prek.
 
-- Ligne 1 : compilation, téléchargement, git.
-- Ligne 2 : outils que les dotfiles et les scripts de `bin` supposent présents. `fd-find` installe le binaire `fdfind`.
-- Lignes 3 et 4 : bibliothèques système des paquets R qui compilent encore malgré les binaires P3M (`curl`, `xml2`, `systemfonts`, `ragg`, `textshaping`).
+## 4. Syncthing WSL
 
-Ubuntu 24.04 fige `shellcheck` en 0.9.0 et `shfmt` en 3.8.0, derrière les versions épinglées par les hooks prek (voir `rules/environment.md`).
+### Installation
 
-## 4. Syncthing : deux instances
-
-### Répartition des dossiers
-
-| Dossier | Instance | Chemin |
-|---|---|---|
-| sur `C:` | Syncthing Windows | `C:\...` |
-| `dotfiles` et dossiers Linux | Syncthing WSL | `/home/<user>/...` |
-
-Pourquoi ne pas tout confier à une seule instance :
-
-- **Syncthing Windows vers `\\wsl.localhost\<distro>\home\<user>\...`** : Syncthing sous Windows ne recrée pas les liens symboliques (les deux de `css/.local/bin` seraient perdus) ni le bit d'exécution (34 fichiers exécutables dans `dotfiles`, dont tout `bin`), et la détection des modifications à travers ce partage est peu fiable. Comportement connu de Syncthing sous Windows, non revérifié dans sa documentation.
-- **Syncthing WSL vers `/mnt/c/...`** : une modification faite par une application Windows n'émet aucun événement côté WSL, donc Syncthing ne la voit qu'au rescan périodique ; les accès de WSL 2 au disque Windows sont lents ; sans l'option de montage `metadata`, les droits Linux n'existent pas ; NTFS ignore la casse. Limitations connues de WSL 2, non revérifiées dans la documentation.
-
-Autres chemins à éviter : `/mnt/wsl/...` est un tmpfs partagé entre distributions, pas le home.
-
-### Migrer un dossier de Syncthing Windows vers Syncthing WSL
-
-Si `dotfiles` était déjà tiré par Syncthing Windows dans `\\wsl.localhost\...` :
-
-1. Dans Syncthing Windows, retirer le dossier (Edit > Remove). Les fichiers restent sur le disque.
-2. Ajouter le dossier dans Syncthing WSL avec le même Folder ID et le même chemin vu de Linux (`/home/<user>/dotfiles`), en « Receive Only ».
-3. Vérifier les droits d'exécution une fois le scan terminé : `ls -l ~/dotfiles/bin/.local/bin`. Des fichiers écrits par l'instance Windows peuvent être restés sans bit `x` ; si « Revert Local Changes » dans Syncthing WSL ne les réaligne pas, `chmod +x` à la main (non testé).
-
-### Versions
-
-Syncthing v2 sur toutes les machines, v2.1.5 au 2026-09-13.
-Les notes de la v2.0.0 ne disent pas si v1 et v2 synchronisent ensemble ; aligner la version majeure évite la question.
-
-- **WSL** : dépôt officiel apt.syncthing.net, canal `stable-v2`. Le paquet d'Ubuntu 24.04 est une 1.27.
-- **Windows** : Syncthing Windows Setup, l'un des deux intégrateurs listés sur la page de téléchargement officielle (l'autre étant SyncTrayzor v2). Remplacer une instance v1 ou l'ancien SyncTrayzor d'origine.
-
-### Installer Syncthing WSL
-
-`syncthing-update` configure exactement ce dépôt, mais il n'arrive qu'avec `stow bin`, donc après la synchro : première installation à la main.
+`syncthing-update` configure exactement ce dépôt, mais n'arrive qu'avec `stow bin` : première installation à la main.
 
 ```bash
 sudo mkdir -p /etc/apt/keyrings
@@ -154,144 +151,252 @@ sudo apt-get install -y syncthing
 syncthing --version
 ```
 
-Le pin donne la priorité à apt.syncthing.net sur le paquet d'Ubuntu.
+Le pin fait passer apt.syncthing.net avant le paquet 1.27 d'Ubuntu ; toutes les machines restent en v2.
+Si le paquet d'Ubuntu a été installé avant ce dépôt, supprimer le lien d'unité qu'il laisse :
+
+```bash
+sudo rm -f /etc/systemd/system/sleep.target.wants/syncthing-resume.service
+```
+
+### Service et ports
 
 ```bash
 syncthing generate
 systemctl --user enable --now syncthing
-syncthing device-id
-```
-
-Les deux instances réclament les mêmes ports (8384 pour l'interface, 22000 pour la synchro, 21027 pour la découverte locale), et WSL les partage avec Windows : par renvoi de `localhost` en mode NAT, par le même réseau en mode `mirrored`.
-Au premier démarrage, Syncthing cherche de lui-même des ports libres (option `--no-port-probing` pour l'en empêcher), mais il faut fixer des ports distincts pour savoir à quelle instance le navigateur parle :
-
-```bash
 syncthing cli config gui raw-address set 127.0.0.1:8385
 syncthing cli config options raw-listen-addresses 0 set tcp://0.0.0.0:22001
 syncthing cli config options raw-listen-addresses add quic://0.0.0.0:22001
+syncthing cli config folders default delete
 systemctl --user restart syncthing
+syncthing device-id
 ```
 
-Syntaxe vérifiée sur Syncthing 2.1.5. Si une version ultérieure la change, faire le même réglage dans l'interface (Actions > Settings > GUI pour l'adresse, Connections > Sync Protocol Listen Addresses pour les ports).
+- WSL partage ses ports avec Windows (renvoi de `localhost` en NAT, même réseau en `mirrored`) : sans ports distincts, le navigateur Windows n'atteint jamais l'interface WSL.
+- `folders default delete` retire le dossier `~/Sync` créé par défaut.
+- Syntaxe vérifiée sur Syncthing 2.1.5 ; sinon, même réglage dans l'interface (Settings > GUI, Connections > Sync Protocol Listen Addresses).
+- Syncthing se lance **uniquement** par systemd. Taper `syncthing` seul démarre une seconde instance qui prend le verrou, et le service échoue en boucle (`Failed to acquire lock`).
+- En mode `mirrored`, si les appareils ne se trouvent pas sur le réseau local : `syncthing cli config options local-ann-enabled set false`.
 
-Interface de Syncthing WSL depuis le navigateur Windows : <http://127.0.0.1:8385>.
-Celle de Syncthing Windows reste sur <http://127.0.0.1:8384>.
-
-Si, en mode `mirrored`, les appareils ne se trouvent pas sur le réseau local, désactiver la découverte locale de l'instance WSL ; la découverte globale et les relais suffisent :
+Contrôle :
 
 ```bash
-syncthing cli config options local-ann-enabled set false
+systemctl --user is-active syncthing
+for p in $(pgrep -x syncthing); do printf '%s ' "$p"; cut -d: -f3 "/proc/$p/cgroup"; done
 ```
 
-### Appairage
+Attendu : `active`, deux processus (parent et enfant) tous deux dans `.../app.slice/syncthing.service`.
+Un processus hors de ce cgroup est une instance lancée à la main : `kill <pid>`, puis `systemctl --user reset-failed syncthing && systemctl --user start syncthing`.
 
-Syncthing WSL est un appareil distinct de Syncthing Windows, avec son propre Device ID : l'ajouter sur chaque machine distante qui partage `dotfiles` ou un dossier Linux, et l'inscrire dans la table de `syncthing-state.md`.
+Interface WSL depuis le navigateur Windows : <http://127.0.0.1:8385>.
 
-## 5. Liens stow
+### Appairage et dossier `dotfiles`
 
-Paquets à lier sur WSL :
-
-| Paquet | Sur WSL | Raison |
-|---|---|---|
-| `bash`, `git`, `R`, `air`, `ruff`, `panache`, `prek`, `gh`, `bin` | oui | configs portables |
-| `agents` | oui, sans `--no-folding` | `~/.agents` doit rester un lien replié pour que l'installateur de skills (`.skill-lock.json`) écrive dans le dépôt |
-| `claude` | oui, avec `--no-folding` | voir ci-dessous |
-| `css` | après l'étape 7 | ses liens pointent vers `node_modules`, absent avant `npm ci` |
-| `firefox` | non | lié au profil `z24d9fn6.default-release` de la machine principale |
-| `positron` | non | lié au profil `-eb36ac2`, et Positron tourne côté Windows |
-| `obsidian`, `Rstudio` | non | non utilisés dans WSL |
-| `syncthing` | seulement si `~/.claude`, `~/Documents`, `~/admin`, `~/archive`, `~/notes`, `~/Musique` ou `~/Téléchargements` sont synchronisés | ne contient que des `.stignore` |
-
-Test à blanc d'abord :
+Syncthing ne transmet jamais un `.stignore`, et celui de `~/dotfiles` n'est pas dans le paquet `syncthing` (stow refuse de lier dans son propre répertoire).
+Le créer **avant** d'accepter le dossier, sinon `.git` et `node_modules` arrivent avec le reste :
 
 ```bash
-cd ~/dotfiles
-stow -n -v --no-folding bash git R air ruff panache prek gh bin claude
-stow -n -v agents
+mkdir -p ~/dotfiles
+cat > ~/dotfiles/.stignore <<'EOF'
+// Secrets
+.env
+
+// Artefacts dev
+.git
+.venv
+node_modules
+(?d)__pycache__
+(?d)*.pyc
+(?d).ruff_cache
+(?d).pytest_cache
+settings.local.json
+
+// Verrous bureautiques
+(?d)~$*
+(?d).~lock.*#
+
+// OS
+(?d).DS_Store
+(?d)._*
+(?d)(?i)thumbs.db
+(?d)(?i)desktop.ini
+(?d).directory
+(?d).Trash-*
+
+// Editeurs
+(?d)*.swp
+(?d)*.swo
+(?d)*~
+EOF
 ```
 
-`--no-folding` est indispensable ici.
-Sans lui, un `~/.claude` absent devient un lien unique vers `~/dotfiles/claude/.claude`, et tout ce que Claude Code y écrit ensuite (sessions, projets, `.credentials.json`) atterrit dans le dossier synchronisé.
+Contenu copié du `~/dotfiles/.stignore` de la machine principale le 2026-09-13 ; le comparer à la version courante avant usage.
 
-Une distribution neuve contient déjà `~/.bashrc`, `~/.profile` et `~/.bash_logout`, que stow refuse d'écraser (`existing target is neither a link nor a directory`).
-Les déplacer, ne pas les supprimer :
+1. Sur la machine principale : ajouter le Device ID de WSL, puis partager `dotfiles`.
+2. Dans l'interface WSL : accepter `dotfiles` en **Receive Only**, chemin `/home/<user>/dotfiles`.
+3. Inscrire l'appareil dans la table de `syncthing-state.md`.
+4. Attendre la fin de la synchro, puis contrôler le bit d'exécution : `ls -l ~/dotfiles/bin/.local/bin`.
+
+Les autres dossiers Linux s'acceptent à la section 5, une fois leurs `.stignore` liés par stow.
+
+## 5. Stow
+
+### Préparer
+
+Une distribution neuve contient déjà `~/.bashrc`, `~/.profile` et `~/.bash_logout`, que stow refuse d'écraser.
 
 ```bash
 mkdir -p ~/dotfiles-backup
 mv ~/.bashrc ~/.profile ~/.bash_logout ~/dotfiles-backup/
 ```
 
-Ne pas utiliser `--adopt`, qui copie le fichier local dans le paquet par-dessus la version synchronisée.
+Ne jamais utiliser `--adopt`, qui copie le fichier local dans le paquet par-dessus la version synchronisée.
 
-Quand le test à blanc est propre :
+### Paquets
+
+| Paquet | Commande | Raison |
+|---|---|---|
+| `bash`, `git`, `R`, `air`, `ruff`, `panache`, `prek`, `gh`, `bin`, `claude` | `stow --no-folding` | un dossier absent deviendrait un lien vers le dépôt, et tout ce que les programmes y écrivent (jeton `gh`, sessions Claude Code, `.credentials.json`) atterrirait dans `~/dotfiles` |
+| `agents` | `stow` (replié) | `~/.agents` doit rester un lien unique pour que l'installateur de skills écrive dans le dépôt |
+| `syncthing` | `stow --no-folding`, en excluant les dossiers non synchronisés | sinon stow crée des dossiers vides juste pour y poser un `.stignore` |
+| `css` | section 7 | ses liens pointent vers `node_modules`, absent avant `npm ci` |
+| `positron`, `firefox`, `obsidian`, `Rstudio` | aucun | applications côté Windows, profils propres à la machine principale, ou non utilisés |
+
+Test à blanc, puis application :
 
 ```bash
-stow -v --no-folding bash git R air ruff panache prek gh bin claude
+cd ~/dotfiles
+stow -n -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin claude
+stow -n -v agents
+stow -n -v --no-folding --ignore='Musique' --ignore='Téléchargements' syncthing
+
+stow -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin claude
 stow -v agents
-readlink -e ~/.bashrc
+stow -v --no-folding --ignore='Musique' --ignore='Téléchargements' syncthing
 exec bash -l
 ```
 
-`readlink` doit renvoyer `/home/<user>/dotfiles/bash/.bashrc`.
-`~/.secrets`, sourcé par `.bashrc`, n'est ni versionné ni synchronisé : à recréer à la main.
+- `--ignore='\.ruff_cache'` : un cache ruff arrivé dans `bin/.local/bin` serait lié dans `~/.local/bin`.
+- `--ignore` sur `syncthing` : adapter la liste aux dossiers que WSL ne synchronise pas (le paquet porte `.claude`, `Documents`, `admin`, `archive`, `notes`, `Musique`, `Téléchargements`).
+- `~/.secrets`, sourcé par `.bashrc`, n'est ni versionné ni synchronisé : à recréer à la main.
+
+Contrôle :
+
+```bash
+readlink -e ~/.bashrc ~/.gitconfig
+symlinks-check && echo "aucun lien cassé"
+for f in .claude Documents admin archive notes; do readlink -e ~/"$f"/.stignore; done
+```
+
+Attendu : chemins sous `~/dotfiles/`, aucune ligne `BROKEN:`, chaque `.stignore` résolu sous `~/dotfiles/syncthing/`.
+
+### Autres dossiers
+
+Dans l'interface WSL, accepter chaque dossier partagé en **Receive Only**, chemin `/home/<user>/<dossier>` (`~/.claude` pour `claude`).
+Pour créer un dossier depuis WSL plutôt que l'accepter, `st-add-folder` vise par défaut l'interface Windows : toujours le préfixer, `ST_URL=http://127.0.0.1:8385 st-add-folder <chemin>`.
+
+Contrôle des motifs chargés :
+
+```bash
+K=$(syncthing cli config gui apikey get); U=http://127.0.0.1:8385
+for f in claude Documents admin archive dotfiles notes; do
+  printf '%-10s ' "$f"
+  curl -s -H "X-API-Key: $K" "$U/rest/db/ignores?folder=$f" | jq -c '{n: (.ignore // [] | length), error}' | tr -d '\n'
+  curl -s -H "X-API-Key: $K" "$U/rest/db/status?folder=$f" | jq -c '{state, ignorePatterns, receiveOnlyChangedFiles}'
+done
+```
+
+Attendu : `n` non nul, `ignorePatterns: true`.
+Un changement de cible d'un lien `.stignore` n'est pas vu par le surveillant de fichiers : forcer un rescan complet, `curl -s -X POST -H "X-API-Key: $K" "$U/rest/db/scan"`.
+
+Règles de syntaxe :
+
+- `.git/` (barre finale) exclut le contenu, pas le dossier : des dossiers vides apparaissent. Écrire `.git`.
+- `(?d)` autorise Syncthing à supprimer ces fichiers quand ils bloquent la suppression d'un dossier.
+- Un dossier en pause renvoie un statut vide : l'indicateur disparaît alors que les motifs sont chargés.
 
 ## 6. GitHub CLI
 
 Presque tous les scripts `*-update` interrogent l'API GitHub via `gh`.
-La version d'Ubuntu est ancienne ; installer depuis le dépôt officiel :
 
 ```bash
-(type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
-  && sudo mkdir -p -m 755 /etc/apt/keyrings \
-  && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-  && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+sudo mkdir -p -m 755 /etc/apt/keyrings \
+  && out=$(mktemp) && wget -nv -O"$out" https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+  && sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg < "$out" > /dev/null \
   && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-  && sudo mkdir -p -m 755 /etc/apt/sources.list.d \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-  && sudo apt update \
-  && sudo apt install gh -y
+  && sudo apt update && sudo apt install -y gh
 gh auth login
+gh auth status
 ```
 
-Le paquet `gh` des dotfiles ne porte que `config.yml` ; `hosts.yml`, qui contient le jeton, est exclu du dépôt, d'où le `gh auth login`.
+- Le jeton va dans `~/.config/gh/hosts.yml`, fichier réel grâce à `--no-folding`, donc hors du dossier synchronisé.
+- `gh auth login` réécrit `~/.config/gh/config.yml` à travers le lien stow : Syncthing signale une modification locale sur `dotfiles`. Faire « Revert Local Changes ».
+- Avec le protocole SSH, `gh auth login` génère `~/.ssh/id_ed25519` et l'ajoute au compte. Contrôle : `ssh -T git@github.com` (code de sortie 1 attendu).
 
 ## 7. Toolchain
 
-`sys-update` met à jour et n'installe rien : chaque module est ignoré tant que son outil est absent.
-Les outils se posent donc une première fois à la main, dans cet ordre.
+`sys-update` met à jour et n'installe presque rien : première installation à la main, dans cet ordre.
 
-### Binaires cargo-dist (uv, ruff, air, jarl, prek)
+### Binaires cargo-dist
 
 ```bash
 devtools-update --all
 ```
 
-Requiert `curl`, `sudo` et `gh` ; installe dans `/usr/local/bin`.
+Installe `uv`, `uvx`, `ruff`, `air`, `jarl`, `prek` dans `/usr/local/bin`. Requiert `gh`.
 
-### Rust
+### Rust et crates
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 exec bash -l
 cargo install cargo-update
 ```
 
-`cargo-update` fournit `cargo install-update`, sans lequel le module `cargo` de `sys-update` est ignoré.
-Les binaires cargo (typstyle, shellharden, panache, bacon, pdf-inspector) s'installent ensuite chacun par `cargo install <crate>`.
+- `--no-modify-path` : `~/.profile` et `~/.bashrc` sont des liens stow et sourcent déjà `~/.cargo/env`. Sans l'option, rustup écrirait dans `~/dotfiles`.
+- `cargo-update` fournit `cargo install-update`, sans lequel le module `cargo` de `sys-update` est ignoré.
+
+Crates, avec parallélisme et mémoire bornés :
+
+```bash
+for c in typstyle shellharden panache bacon pdf-inspector filter-repo-rs; do
+  systemd-run --user --wait --collect -p MemoryMax=8G -p MemorySwapMax=0 \
+    -p "Environment=PATH=$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin" \
+    -p Environment=CARGO_BUILD_JOBS=4 "$HOME/.cargo/bin/cargo" install "$c"
+done
+systemd-run --user --wait --collect -p MemoryMax=8G -p MemorySwapMax=0 \
+  -p "Environment=PATH=$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin" \
+  -p Environment=CARGO_BUILD_JOBS=4 -p Environment=GGSQL_SKIP_GENERATE=1 \
+  "$HOME/.cargo/bin/cargo" install ggsql-cli
+```
+
+- Par défaut, cargo lance un `rustc` par cœur. Dans la mémoire allouée à WSL (moitié de la RAM Windows par défaut), cela déclenche l'OOM killer, qui tue Syncthing, le gestionnaire utilisateur et la session. `CARGO_BUILD_JOBS=4` et `MemoryMax=8G` confinent le build ; baisser les deux si la machine a moins de 32 Go.
+- `GGSQL_SKIP_GENERATE=1` : sans lui, `tree-sitter-ggsql` exige `tree-sitter-cli`.
+- `systemd-run --user` : le build survit à la fermeture du terminal, avec linger.
+
+Contrôle :
+
+```bash
+for b in typstyle shellharden panache bacon detect-pdf pdf2md filter-repo-rs ggsql; do printf '%-15s %s\n' "$b" "$(command -v "$b" || echo ABSENT)"; done
+journalctl -k | rg 'Out of memory'
+```
+
+Attendu : aucun `ABSENT`, aucune ligne OOM.
+`detect-pdf` et `pdf2md` sortent en 1 sans argument : message d'usage, pas une panne.
 
 ### Node et gate CSS
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
-sudo -E bash nodesource_setup.sh
+curl -fsSL https://deb.nodesource.com/setup_24.x -o /tmp/nodesource_setup.sh
+sudo -E bash /tmp/nodesource_setup.sh
 sudo apt install -y nodejs
 npm --prefix ~/dotfiles/css/.local/share/css-gate ci
 cd ~/dotfiles && stow -v --no-folding css
+stylelint --version && prettier --version
 ```
 
-22.x est la LTS indiquée par la documentation NodeSource consultée le 2026-09-13 ; la machine principale tourne en 24.x depuis le même dépôt.
-Remplacer le numéro par la LTS courante.
-`npm ci` écrit dans `node_modules`, exclu du dépôt git mais pas de Syncthing : en réception seule, le dossier passe alors en « Local Additions ».
+- 24.x est la version de la machine principale ; remplacer par la LTS courante.
+- Le `.stignore` de `~/dotfiles` exclut `node_modules` : `npm ci` est nécessaire et ne crée pas de modification locale.
 
 ### Claude Code
 
@@ -300,69 +405,241 @@ curl -fsSL https://claude.ai/install.sh | bash
 claude-plugins-install
 ```
 
-`claude-plugins-install` requiert `claude` et `jq`.
+Le `.stignore` de `~/.claude` exclut `plugins/marketplaces` et `plugins/installed_plugins.json` : les plugins ne viennent pas par Syncthing.
+`claude-plugins-install` lit l'état voulu dans `~/.claude/settings.json` et requiert `claude` et `jq`.
 
-### R, Quarto, Pandoc, DuckDB, Lua
-
-Ces scripts installent l'outil quand il est absent (la version courante lue vaut `unknown`, différente de la dernière publiée) :
+### R
 
 ```bash
 rig-update
-rig add release
+sudo rig add release
 stow-rprofile
 rv-update
+Rscript -e 'cat(getOption("repos"), "\n")'
+```
+
+Attendu : `https://packagemanager.posit.co/cran/__linux__/noble/latest`.
+Sans `stow-rprofile`, `repos` reste `@CRAN@` et tout paquet compile depuis les sources.
+
+### Quarto
+
+```bash
 quarto-update
+env -i HOME="$HOME" TERM=dumb bash -lic 'command -v quarto; quarto --version'
+```
+
+Attendu : `/usr/local/bin/quarto`.
+`quarto-update` installe dans `/opt/quarto` et crée le lien `/usr/local/bin/quarto` s'il manque ; il lit la version installée dans `/opt/quarto`, pas sur le PATH.
+Le `quarto` de `~/.positron-server/.../quarto/bin`, visible dans le terminal intégré de Positron, est la copie embarquée par Positron, pas une installation.
+
+### Pandoc, DuckDB, Lua
+
+```bash
 pandoc-update
 duckdb-update
 lua-toolchain-update
 ```
 
-- `rig add release` : syntaxe de mémoire, à confirmer par `rig add --help`.
-- `stow-rprofile` lie `Rprofile.site` dans chaque `/opt/R/<version>/lib/R/etc/` ; sans lui, `repos` reste `@CRAN@` et chaque paquet compile depuis les sources.
-
 ### Couche uv
 
 ```bash
 uv python install 3.13 3.14
-uv tool install pyrefly
-uv tool install "sqlfluff[rs]"
-uv tool install showboat
-uv tool install ouroboros-ai
-uv tool install huggingface-hub
-uv tool install yt-dlp
+for t in showboat pyrefly "sqlfluff[rs]" ouroboros-ai huggingface-hub yt-dlp; do uv tool install "$t"; done
 ```
 
 Liste reprise du `README.md` des dotfiles ; l'absence de manifeste versionné est suivie dans `.claude/DEFERRED.md`.
 
-## 8. Entretien
+## 8. Positron (côté Windows)
 
-Ne pas lancer `sys-update` sans argument sur WSL : les scripts `positron-update`, `anki-update` et `libreoffice-update` sont présents via `stow bin` et tenteraient d'installer ces applications dans la distribution.
-Nommer les modules :
+- Positron Windows lit ses réglages dans `C:\Users\<user_windows>\AppData\Roaming\Positron\User\` (ou `...\User\profiles\<id>\`). Les liens créés depuis WSL n'y sont pas lus : le paquet `positron` ne se stow pas.
+- Importer le profil de la machine principale depuis Positron, pas par copie de fichiers.
+- Les réglages propres à WSL (chemins Linux) vont dans `~/.positron-server/data/Machine/settings.json`, prioritaire sur les réglages utilisateur en session distante. Exemple si le profil désigne une autre version de R :
 
-```bash
-sys-update apt npm rustup cargo claude devtools uv-python uv-tools rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc syncthing
+```json
+{
+  "positron.r.customBinaries": ["/opt/R/4.6.1/bin/R"],
+  "positron.r.interpreters.default": "/opt/R/4.6.1/bin/R"
+}
 ```
 
-`sys-update --dry-run <modules>` affiche les commandes sans les exécuter.
+- Polices référencées par le profil (Fira Code) : à installer côté Windows.
 
-## Pièges connus
+## 9. Premier projet R
 
-- **Réception seule et liens stow.** Un programme qui modifie un fichier lié (`~/.gitconfig`, `~/.claude/...`, `~/.config/gh/config.yml`) écrit dans `~/dotfiles`. Syncthing affiche « Local Changes » et propose « Revert Local Changes », qui efface ces modifications au profit de la version de la machine principale.
-- **`~/dotfiles/.stignore` se recopie à la main.** C'est un fichier ordinaire à la racine du dépôt (stow refuse de lier dans son propre répertoire), qui exclut `.git`, `node_modules` et les caches. Syncthing ne transmet jamais un `.stignore` et WSL ne clone pas le dépôt : sans copie, les exclusions ne s'appliquent pas côté WSL, et le `.git` transféré avant leur ajout reste sur le disque.
-- **Arrêt de la VM.** WSL arrête la distribution quand plus aucun processus ne la retient, ce qui stoppe Syncthing WSL (Syncthing Windows n'est pas concerné). Comportement exact avec systemd actif non vérifié ; si la synchro des dotfiles ne se fait que terminal ouvert, c'est la piste.
-- **Un dossier, une instance.** Un même dossier ne doit jamais être partagé par les deux instances de la machine : elles écriraient chacune de leur côté et produiraient des conflits en boucle.
-- **Horloge.** Après une veille de Windows, l'heure de WSL peut dériver et casser `apt update` : `wsl --shutdown`.
+PPM sert des binaires. Ils n'ont pas besoin des en-têtes `-dev` que liste `rv sysdeps`, mais des bibliothèques partagées à l'exécution, absentes d'une distribution neuve.
+Symptôme typique au `rv sync` :
+
+```text
+unable to load shared object '.../fs/libs/fs.so':
+  libuv.so.1: cannot open shared object file: No such file or directory
+ERROR: lazy loading failed for package 'hebstr'
+```
+
+Le paquet nommé dans `lazy loading failed` n'est pas le coupable : c'est une de ses dépendances qui ne se charge pas.
+Détection sur tout le cache rv, après un premier `rv sync` même en échec :
+
+```bash
+fdfind -t f -e so . ~/.cache/rv -x ldd {} 2>/dev/null | awk '/not found/ && !/libR\.so/ {print $1}' | sort -u
+```
+
+Correspondance relevée sur le projet de référence (`md-nesrine`) :
+
+| Bibliothèque manquante | Paquet R | Paquet apt |
+|---|---|---|
+| `libuv.so.1` | `fs` | `libuv1t64` |
+| `libMagick++-6.Q16.so.9`, `libMagickCore-6.Q16.so.7`, `libMagickWand-6.Q16.so.7` | `magick` | `libmagick++-6.q16-9t64` |
+
+```bash
+sudo apt install -y libuv1t64 libmagick++-6.q16-9t64
+```
+
+Pour une bibliothèque absente de ce tableau : `apt-file search <lib>.so` (après `sudo apt install apt-file && sudo apt-file update`).
+
+Contrôle :
+
+```bash
+cd <projet> && rv sync; echo "exit=$?"
+Rscript -e 'cat(Sys.getlocale("LC_CTYPE"), "\n")'
+```
+
+Attendu : `exit=0`, locale `en_US.UTF-8` depuis le terminal de Positron.
+Un paquet installé pendant que la locale manquait garde des libellés en `<U+XXXX>` : le réinstaller.
+
+Dépendances de rendu de `hebstr` (`easy_out()` capture les tableaux via webshot2 et chromote) :
+
+```bash
+sudo snap install chromium
+```
+
+Sur 24.04, le paquet apt `chromium` n'est qu'une transition vers le snap.
+Authentification `googlesheets4` : interactive, dans une session Positron, avant le premier rendu.
+
+## 10. Entretien
+
+```bash
+sys-update --dry-run
+sys-update
+sys-orphans
+```
+
+Sans argument, `sys-update` lance tous les modules.
+Les modules `positron`, `anki` et `libreoffice` exigent que l'application soit déjà installée : dans WSL, ils sont ignorés (`skipped (<app> not installed)`), bien que `stow bin` y pose leurs scripts.
+
+`sys-orphans` ne supprime rien : il liste les reliquats et la commande de nettoyage de chacun.
+
+Désinstallation, si un `sys-update` antérieur au 2026-09-14 a installé LibreOffice ou Anki dans WSL :
+
+```bash
+sudo apt purge -y 'libreoffice*' 'libobasis*'
+sudo rm -rf /opt/libreoffice*
+sudo rm -f /usr/local/bin/libreoffice
+rm -rf ~/.config/libreoffice
+sudo /usr/local/share/anki/uninstall.sh
+zcat -f /var/log/apt/history.log* | rg -B3 '^Install:.*libxcb-xinerama0'
+sudo apt purge -y libxcb-xinerama0 libxcb-cursor0 libnss3 zstd
+sudo apt-mark auto libxcb-image0 libxcb-render-util0
+sudo apt autoremove --purge -y
+```
+
+- Les paquets TDF forment deux familles, `libreoffice<branche>*` et `libobasis<branche>-*` : purger la seule première en laisse une trentaine.
+- La ligne `zcat` confirme que `zstd` et `libnss3` viennent bien d'`anki-update` avant de les purger ; sinon, les retirer de la ligne suivante.
+
+## 11. Vérification finale
+
+```bash
+env -i HOME="$HOME" TERM=dumb bash -lic 'for t in git gh delta uv ruff air jarl prek pyrefly sqlfluff showboat cargo panache typstyle ggsql node stylelint prettier R rig rv quarto pandoc duckdb stylua syncthing claude; do command -v "$t" >/dev/null || echo "ABSENT $t"; done'
+locale -a | rg -i 'en_US|fr_FR'
+loginctl show-user "$USER" -p Linger
+systemctl --user is-active syncthing
+cd ~/dotfiles && stow -n -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin claude css
+symlinks-check && echo "aucun lien cassé"
+sys-orphans
+```
+
+Attendu : aucune ligne `ABSENT`, deux locales, `Linger=yes`, `active`, aucun conflit stow, aucun lien cassé, aucun orphelin.
+Le shell `env -i` écarte le PATH hérité, notamment la copie de Quarto embarquée par Positron.
+
+Pour garder une preuve de l'état obtenu, enregistrer ces contrôles en trace showboat **sur la machine WSL** (les commandes sont en lecture seule, donc rejouables par `showboat verify`) :
+
+```bash
+N=~/dotfiles/_meta/notes/wsl-<machine>-verify.md
+showboat init "$N" "WSL <machine> : vérification finale"
+showboat exec "$N" bash 'for t in git gh uv R quarto syncthing claude; do command -v "$t" >/dev/null || echo "ABSENT $t"; done; echo fin'
+showboat exec "$N" bash 'loginctl show-user "$USER" -p Linger; systemctl --user is-active syncthing'
+showboat exec "$N" bash 'symlinks-check && echo "aucun lien cassé"'
+```
+
+Le fichier atterrit dans `~/dotfiles`, en réception seule : il apparaîtra en « Local Additions » jusqu'à ce qu'il soit rapatrié sur la machine principale.
+
+## Pièges
+
+### Syncthing
+
+| Symptôme | Cause | Correctif |
+|---|---|---|
+| `syncthing.service` en échec, `Failed to acquire lock` | instance lancée à la main hors systemd | `kill <pid>`, `systemctl --user reset-failed syncthing && systemctl --user start syncthing` |
+| l'interface `8384` affiche l'instance Windows | ports par défaut partagés avec Windows | ports `8385` et `22001` (section 4) |
+| `st-add-folder` agit sur Syncthing Windows | `ST_URL` vaut `http://127.0.0.1:8384` par défaut | `ST_URL=http://127.0.0.1:8385 st-add-folder ...` |
+| indicateur « Reduced by ignore patterns » absent | dossier en pause, statut vide | reprendre le dossier |
+| dossier sans exclusion malgré un `.stignore` | fichier vide, copie au lieu du lien stow, ou pas de rescan depuis le changement de cible | lien stow, `readlink -e`, puis `POST /rest/db/scan` |
+| dossiers vides `.git`, `.venv`, `.quarto` reçus | motifs terminés par `/` | écrire `.git` sans barre finale |
+| modifications locales sur `.git/index` | `git status` réécrit l'index dans un dossier en réception seule | exclure `.git` dans `~/dotfiles/.stignore` |
+| `git log` figé sur WSL | `.git` exclu : les commits ne transitent pas | git sur la machine principale |
+| modifications locales sur un fichier lié (`config.yml`, `.Rprofile`) | un programme écrit à travers le lien stow | « Revert Local Changes » |
+| modifications locales dans `~/.claude/projects/*/*/tool-results` | sorties de hooks des sessions Claude Code | exclure `projects/*/*/tool-results` dans le `.stignore` de `claude` ; ne pas annuler pendant une session |
+| Syncthing s'arrête terminaux fermés | linger désactivé, ou VM arrêtée par `vmIdleTimeout` | `sudo loginctl enable-linger "$USER"` |
+
+Annuler les modifications locales sans l'interface :
+
+```bash
+K=$(syncthing cli config gui apikey get)
+curl -s -X POST -H "X-API-Key: $K" "http://127.0.0.1:8385/rest/db/revert?folder=<id>"
+```
+
+### Stow et liens
+
+| Symptôme | Cause | Correctif |
+|---|---|---|
+| `existing target is neither a link nor a directory` | fichier réel à la cible | le déplacer vers `~/dotfiles-backup`, jamais `--adopt` |
+| jeton ou données écrits dans `~/dotfiles` | dossier replié en un lien unique | `stow -D <paquet> && stow --no-folding <paquet>` |
+| restow replié qui recrée des liens fichier par fichier | `stow -D` laisse les dossiers vides, et stow ne replie pas un dossier existant | vérifier qu'il ne reste aucun fichier (`fdfind -H -t f -t l . ~/<dossier>`), puis `find ~/<dossier> -depth -type d -empty -delete` avant `stow <paquet>` |
+| `~/.local/bin/.ruff_cache` | cache présent dans le paquet `bin` | `--ignore='\.ruff_cache'` |
+| dossier vide créé dans `~` | `stow syncthing` sur un dossier non synchronisé | `--ignore='<dossier>'` |
+| `git diff` échoue | `delta` absent | `sudo apt install git-delta` |
+| réglages Positron ignorés | liens WSL non lus par Positron Windows | importer le profil dans Positron |
+
+### Installation
+
+| Symptôme | Cause | Correctif |
+|---|---|---|
+| session coupée, Syncthing redémarré pendant `cargo install` | OOM killer | `journalctl -k \| rg 'Out of memory'` ; `CARGO_BUILD_JOBS` et `MemoryMax` (section 7) |
+| compilation perdue à la fermeture du terminal | processus rattaché à la session | `systemd-run --user` et linger |
+| `mv: cannot stat '/opt/quarto'` | `quarto-update` antérieur au 2026-09-13, sans gestion de la première installation | attendre la synchro de `dotfiles`, relancer `quarto-update` |
+| LibreOffice, Anki ou Positron installés dans WSL | `sys-update` antérieur au 2026-09-14 lancé sans module | désinstallation de la section 10 ; `sudo apt purge -y positron` pour Positron ; `sys-update` sans argument est sûr une fois `dotfiles` synchronisé |
+| `libuv.so.1: cannot open shared object file` | bibliothèque d'exécution d'un binaire PPM absente | scan `ldd` de la section 9 |
+| `Setting LC_CTYPE failed, using "C"` | `en_US.UTF-8` non générée | `sudo locale-gen en_US.UTF-8` |
+| `rig add` demande un mot de passe | écrit dans `/opt/R` | `sudo rig add release` |
+| `apt install` en 404 | index périmé ou version non-LTS en fin de vie | `sudo apt update` ; LTS |
+
+### Vérifications
+
+| Piège | Correctif |
+|---|---|
+| `rg <motif> <dossier>` ignore `.bashrc` et `.profile` | `rg --hidden` dans un paquet stow |
+| `pgrep -f '<commande>'` trouve son propre shell | `ps -o pid,args -C <binaire>` |
+| `quarto` trouvé dans le shell courant | shell neuf : `env -i HOME="$HOME" TERM=dumb bash -lic 'command -v quarto'` |
 
 ## Sources
 
 Consultées le 2026-09-13.
 
-- WSL, configuration avancée (`wsl.conf`, `.wslconfig`) : <https://learn.microsoft.com/en-us/windows/wsl/wsl-config>
+- WSL, configuration (`wsl.conf`, `.wslconfig`, `vmIdleTimeout`) : <https://learn.microsoft.com/en-us/windows/wsl/wsl-config>
 - WSL, commandes de base : <https://learn.microsoft.com/en-us/windows/wsl/basic-commands>
+- Syncthing, dépôt apt : <https://apt.syncthing.net/>
+- Syncthing, syntaxe des exclusions : <https://docs.syncthing.net/users/ignoring.html>
+- Syncthing v2.0.0, notes de version : <https://github.com/syncthing/syncthing/releases/tag/v2.0.0>
 - GitHub CLI sur Linux : <https://github.com/cli/cli/blob/trunk/docs/install_linux.md>
 - rustup : <https://rustup.rs/>
 - NodeSource : <https://github.com/nodesource/distributions/blob/master/DEV_README.md>
 - Claude Code, installation : <https://code.claude.com/docs/en/setup>
-- Syncthing, téléchargements : <https://syncthing.net/downloads/>
-- Syncthing, dépôt apt : <https://apt.syncthing.net/>
-- Syncthing v2.0.0, notes de version : <https://github.com/syncthing/syncthing/releases/tag/v2.0.0>
+- `loginctl` (linger) : <https://www.freedesktop.org/software/systemd/man/latest/loginctl.html>

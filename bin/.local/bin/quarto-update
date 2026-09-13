@@ -6,6 +6,23 @@ command -v gh >/dev/null 2>&1 || {
   exit 1
 }
 
+# Overridable so the test suite can point them at a temp tree; neither path is
+# reachable through PATH stubbing.
+PREFIX=${QUARTO_PREFIX:-/opt/quarto}
+BIN_LINK=${QUARTO_BIN_LINK:-/usr/local/bin/quarto}
+
+sync_bin_link() {
+  local target="${PREFIX}/bin/quarto"
+  [ -x "$target" ] || return 0
+  [ "$(readlink -f "$BIN_LINK" 2>/dev/null || true)" = "$(readlink -f "$target")" ] && return 0
+  if [ -e "$BIN_LINK" ] && [ ! -L "$BIN_LINK" ]; then
+    echo "${BIN_LINK} exists and is not a symlink: leaving it alone." >&2
+    return 0
+  fi
+  echo "Pointing ${BIN_LINK} at ${target}..."
+  sudo ln -sfn "$target" "$BIN_LINK"
+}
+
 VER=$(gh api repos/quarto-dev/quarto-cli/releases/latest --jq '(.tag_name // "") | sub("^v"; "")')
 case "$(uname -m)" in
 x86_64) ARCH=linux-amd64 ;;
@@ -24,9 +41,12 @@ fi
 
 echo "Latest Quarto release: ${VER}"
 
-CURRENT=$(quarto --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+# Read through the prefix rather than PATH: Positron's integrated terminal puts
+# its own bundled quarto first, which would pass for this install.
+CURRENT=$("${PREFIX}/bin/quarto" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
 [ "$CURRENT" != "" ] || CURRENT=unknown
 if [ "$CURRENT" = "$VER" ]; then
+  sync_bin_link
   echo "Already on ${VER}: nothing to do."
   exit 0
 fi
@@ -37,8 +57,8 @@ TARBALL=quarto-${VER}-${ARCH}.tar.gz
 CHECKSUMS=quarto-${VER}-checksums.txt
 BASE_URL=${URL}/v${VER}
 TMP=$(mktemp -d)
-PREFIX=/opt/quarto
-BACKUP="/opt/quarto.bak-${CURRENT}-$(date +%Y%m%d-%H%M%S)"
+BACKUP=
+[ ! -d "$PREFIX" ] || BACKUP="${PREFIX}.bak-${CURRENT}-$(date +%Y%m%d-%H%M%S)"
 SWAPPED=0
 SUDO_KEEPALIVE_PID=
 cleanup() {
@@ -46,7 +66,7 @@ cleanup() {
   if [ "$SUDO_KEEPALIVE_PID" != "" ]; then
     kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   fi
-  if [ "$SWAPPED" = "1" ] && [ ! -d "$PREFIX" ] && [ -d "$BACKUP" ]; then
+  if [ "$SWAPPED" = "1" ] && [ ! -d "$PREFIX" ] && [ "$BACKUP" != "" ] && [ -d "$BACKUP" ]; then
     echo "Install failed after backup: restoring ${BACKUP} to ${PREFIX}" >&2
     sudo mv "$BACKUP" "$PREFIX" || echo "Rollback failed: ${BACKUP} still holds the previous install" >&2
   fi
@@ -61,7 +81,7 @@ trap cleanup EXIT
 done) &
 SUDO_KEEPALIVE_PID=$!
 
-if [ -e "$BACKUP" ]; then
+if [ "$BACKUP" != "" ] && [ -e "$BACKUP" ]; then
   echo "Backup path ${BACKUP} already exists: remove it first or rename it." >&2
   exit 1
 fi
@@ -92,18 +112,25 @@ if ! "${STAGE}/bin/quarto" --version >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Backing up current install to ${BACKUP}"
-SWAPPED=1
-sudo mv "$PREFIX" "$BACKUP"
+if [ "$BACKUP" != "" ]; then
+  echo "Backing up current install to ${BACKUP}"
+  SWAPPED=1
+  sudo mv "$PREFIX" "$BACKUP"
+else
+  echo "No install at ${PREFIX}: first install."
+  sudo mkdir -p "$(dirname "$PREFIX")"
+fi
 sudo mv "$STAGE" "$PREFIX"
 SWAPPED=0
 
-find /opt -maxdepth 1 -type d -name 'quarto.bak-*' \
-  ! -path "$BACKUP" -exec sudo rm -rf {} +
+find "$(dirname "$PREFIX")" -maxdepth 1 -type d -name "$(basename "$PREFIX").bak-*" \
+  ! -path "${BACKUP:-/nonexistent}" -exec sudo rm -rf {} +
+
+sync_bin_link
 
 echo
 echo "Installed version:"
 "${PREFIX}/bin/quarto" --version
 echo
 echo "Run 'quarto check' to validate the install."
-echo "Backup kept at ${BACKUP}; older backups removed."
+[ "$BACKUP" = "" ] || echo "Backup kept at ${BACKUP}; older backups removed."
