@@ -42,7 +42,7 @@ setup() {
   _install_sudo_stub
   # Coreutils used by the script itself: bytes_of (du, awk), format_bytes
   # (awk), claude-versions (find, grep, sort, tail), several modules (rm),
-  # chromium-headless (readlink), usage() (cat, paste). Symlinking real binaries into ${STUBS} keeps the
+  # chromium-headless and claude-versions (readlink), usage() (cat, paste). Symlinking real binaries into ${STUBS} keeps the
   # restricted PATH semantics: anything we don't list here is "not found".
   for cmd in cat paste du awk find grep sort tail rm readlink; do
     ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
@@ -216,7 +216,7 @@ EOF
   chmod +x "${STUBS}/dpkg"
   _run --dry-run apt
   [ "$status" -eq 0 ]
-  [[ "$output" == *"(archives + 3 rc purged)"* ]]
+  [[ "$output" == *"OK (3 rc purged)"* ]]
 }
 
 @test "apt summary reports 0 rc purged when none are present" {
@@ -231,7 +231,28 @@ EOF
   chmod +x "${STUBS}/dpkg"
   _run --dry-run apt
   [ "$status" -eq 0 ]
-  [[ "$output" == *"(archives + 0 rc purged)"* ]]
+  [[ "$output" == *"OK (0 rc purged)"* ]]
+}
+
+# autoremove drops old kernels under /usr and /boot, outside the apt archives;
+# /usr, /var and /boot usually share one partition, which must count once.
+@test "apt FREED measures the filesystems apt writes to, each partition once" {
+  _stub_command dpkg 'exit 0'
+  _stub_command apt-get 'exit 0'
+  cat >"${STUBS}/df" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"${STUBS}/df.args"
+n=\$(cat "${STUBS}/df.count" 2>/dev/null || echo 0)
+echo \$((n + 1)) >"${STUBS}/df.count"
+used=\$((10737418240 - n * 314572800))
+printf 'Filesystem Used\n'
+printf '/dev/sda1 %s\n' "\$used" "\$used" "\$used"
+EOF
+  chmod +x "${STUBS}/df"
+  _run apt
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -E '^apt +300 MiB +OK \(0 rc purged\)$'
+  [[ "$(<"${STUBS}/df.args")" == *" /usr /var /boot"* ]]
 }
 
 @test "--dry-run journal prints the journalctl vacuum command" {
@@ -589,6 +610,31 @@ _make_prek_archive_entry() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/1.0.0"* ]]
   [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.0.0"* ]]
+}
+
+# After `claude install <older-version>` the launcher points below the highest
+# entry; deleting its target would leave `claude` dangling.
+@test "claude-versions keeps the version the launcher resolves to even when it is not the latest" {
+  local versions="${FAKE_HOME}/.local/share/claude/versions"
+  mkdir -p "$versions" "${FAKE_HOME}/.local/bin"
+  touch "${versions}/2.1.100" "${versions}/2.1.200" "${versions}/2.1.270"
+  ln -s "${versions}/2.1.200" "${FAKE_HOME}/.local/bin/claude"
+  _run claude-versions
+  [ "$status" -eq 0 ]
+  [ ! -e "${versions}/2.1.100" ]
+  [ -f "${versions}/2.1.200" ]
+  [ -f "${versions}/2.1.270" ]
+}
+
+@test "claude-versions never treats a suffixed name as the latest version" {
+  local versions="${FAKE_HOME}/.local/share/claude/versions"
+  mkdir -p "$versions"
+  touch "${versions}/2.1.200" "${versions}/2.1.270" "${versions}/2.1.271.tmp"
+  _run --dry-run claude-versions
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${versions}/2.1.200"* ]]
+  [[ "$output" != *"[dry-run] rm -rf ${versions}/2.1.270"* ]]
+  [[ "$output" != *"[dry-run] rm -rf ${versions}/2.1.271.tmp"* ]]
 }
 
 # ─── chromium-headless ──────────────────────────────────────────────────────
