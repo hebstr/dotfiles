@@ -66,9 +66,9 @@ Extension Manager	com.mattjakeman.ExtensionManager	0.6.5	stable
 
 ## Étape 2 : Installer GSConnect (action utilisateur)
 
-```bash
+~~~bash
 flatpak run com.mattjakeman.ExtensionManager
-```
+~~~
 
 1. Onglet **Browse**
 2. Recherche `GSConnect`
@@ -91,16 +91,16 @@ Optionnel : supprimer l'ancien périphérique bureau côté téléphone (mort un
 
 À faire **après** confirmation que GSConnect fonctionne (sinon perte de moyen de communication temporaire) :
 
-```bash
+~~~bash
 sudo apt remove kdeconnect
 sudo apt autoremove
-```
+~~~
 
 Optionnel : nettoyage de la conf legacy :
 
-```bash
+~~~bash
 rm -rf ~/.config/kdeconnect/
-```
+~~~
 
 ## Étape 5 : Post-state (à capturer après les étapes manuelles)
 

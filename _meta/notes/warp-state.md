@@ -104,13 +104,13 @@ Pour un besoin d'anonymat plutôt que de chiffrement du transport, WARP n'est pa
 
 ## Diagnostic
 
-```bash
+~~~bash
 warp-cli --accept-tos status
 warp-cli --accept-tos settings
 ip -6 rule show
 ip -6 route show table 65743 | head
 ss -tnp | rg <processus>          # verifier vers quelles IP une application sort
-```
+~~~
 
 Bascule : `warp-cli --accept-tos disconnect` et `connect`, `warp-cli set-mode <mode>` pour changer de mode.
 

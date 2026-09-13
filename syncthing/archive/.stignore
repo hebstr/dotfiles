@@ -1,0 +1,34 @@
+// Artefacts dev
+.git/
+.venv/
+venv/
+.env/
+.quarto/
+_freeze/
+_site/
+_book/
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+.tox/
+.nox/
+node_modules/
+target/
+.Rproj.user/
+.Rhistory
+.RData
+rv/library/
+rv/staging/
+renv/library/
+renv/staging/
+
+// OS et editeurs
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

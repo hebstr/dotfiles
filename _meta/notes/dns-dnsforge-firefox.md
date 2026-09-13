@@ -76,11 +76,11 @@ Portée : Firefox uniquement. Chromium, `apt`, `curl`, R, Python continuent de p
 
 Prefs ajoutées au `user.js` du profil :
 
-```js
+~~~js
 user_pref("network.trr.mode", 3);
 user_pref("network.trr.uri", "https://clean.dnsforge.de/dns-query");
 user_pref("network.trr.custom_uri", "https://clean.dnsforge.de/dns-query");
-```
+~~~
 
 Profil Clean depuis le 2026-09-12, Normal auparavant.
 `custom_uri` ne sert qu'à afficher l'adresse dans le panneau Paramètres, `uri` est celle qui est utilisée.
@@ -144,9 +144,9 @@ Le `mode=0` lu dans les logs de démarrage est l'état d'avant lecture des prefs
 
 **Méthode de diagnostic**, réutilisable :
 
-```bash
+~~~bash
 MOZ_LOG='sync,timestamp,nsHostResolver:5' MOZ_LOG_FILE=/tmp/trr.log firefox <url>
-```
+~~~
 
 Le `sync` est obligatoire, sans lui le fichier est créé et reste vide.
 Le module s'appelle `nsHostResolver` et couvre aussi le service TRR.
@@ -166,9 +166,9 @@ La ligne du résolveur lui-même, `clean.dnsforge.de`, est toujours à `false` e
 
 Paquet `firefox`, créé pour l'occasion :
 
-```
+~~~
 ~/dotfiles/firefox/.mozilla/firefox/z24d9fn6.default-release/user.js
-```
+~~~
 
 Posé par `cd ~/dotfiles && stow firefox`, le profil existant étant un répertoire réel déjà peuplé, stow ne replie donc pas l'arborescence et ne lie que le seul fichier.
 C'est le comportement voulu : le répertoire de profil contient `places.sqlite`, `cookies.sqlite` et le cache, il ne doit jamais être stowé en entier.
@@ -250,7 +250,7 @@ Exige d'abandonner le tunnel WARP, donc de perdre le masquage d'adresse IP. À t
 
 Étapes, dans l'ordre :
 
-```bash
+~~~bash
 warp-cli --accept-tos disconnect
 sudo mkdir -p /etc/systemd/resolved.conf.d
 sudo tee /etc/systemd/resolved.conf.d/dnsforge.conf >/dev/null <<'EOF'
@@ -263,7 +263,7 @@ EOF
 sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 sudo systemctl restart systemd-resolved
 resolvectl status | head -12
-```
+~~~
 
 Points d'attention :
 

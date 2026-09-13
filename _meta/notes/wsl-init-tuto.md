@@ -186,6 +186,7 @@ syncthing cli config options local-ann-enabled set false
 ### Appairage
 
 Syncthing WSL est un appareil distinct de Syncthing Windows, avec son propre Device ID : l'ajouter sur chaque machine distante qui partage `dotfiles` ou un dossier Linux, et l'inscrire dans la table de `syncthing-state.md`.
+
 ## 5. Liens stow
 
 Paquets à lier sur WSL :
@@ -198,7 +199,7 @@ Paquets à lier sur WSL :
 | `firefox` | non | lié au profil `z24d9fn6.default-release` de la machine principale |
 | `positron` | non | lié au profil `-eb36ac2`, et Positron tourne côté Windows |
 | `obsidian`, `Rstudio` | non | non utilisés dans WSL |
-| `syncthing` | seulement si `~/.claude` ou `~/Documents` sont synchronisés | ne contient que des `.stignore` |
+| `syncthing` | seulement si `~/.claude`, `~/Documents`, `~/admin` ou `~/archive` sont synchronisés | ne contient que des `.stignore` |
 
 Test à blanc d'abord :
 

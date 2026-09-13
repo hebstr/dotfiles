@@ -43,9 +43,9 @@ Installation.
 `sudo` est inutilisable depuis Claude Code (pas de TTY pour saisir le mot de passe, et `!` n'en alloue pas non plus) ; `pkexec` passe par le prompt graphique polkit et fonctionne.
 Bloc non rejouable tel quel, il exige une interaction :
 
-```sh
+~~~sh
 pkexec dpkg -i pandoc-3.10-1-amd64.deb
-```
+~~~
 
 Sortie obtenue : `Dépaquetage de pandoc (3.10-1) sur (3.1.3+ds-2)` puis `Paramétrage de pandoc (3.10-1)`, exit 0.
 

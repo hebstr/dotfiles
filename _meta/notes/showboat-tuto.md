@@ -27,10 +27,12 @@ showboat note ~/dotfiles/_meta/notes/bootstrap.md "## 1. Dépendances système
 
 Sur une machine vierge Ubuntu 24.04 :
 
-\`\`\`bash
+~~~bash
 sudo apt install -y stow git curl jq
-\`\`\`"
+~~~"
 ```
+
+Un bloc de code cité dans une note se délimite par des tildes, jamais par des backticks : showboat 0.6.1 traite tout bloc en backticks comme exécutable, même dans une note, et `verify` le lance.
 
 Pour les longs blocs, stdin est plus pratique :
 
@@ -66,8 +68,8 @@ Utile quand une commande échoue ou produit une sortie indésirable.
 showboat verify ~/dotfiles/_meta/notes/bootstrap.md
 ```
 
-Relance tous les blocs `exec` et compare les sorties.
-À lancer après chaque mise à jour de l'environnement.
+Relance tous les blocs de code en backticks, y compris ceux écrits dans une note, et compare les sorties.
+À lancer après chaque mise à jour de l'environnement, après avoir compté les blocs exécutables avec `showboat extract <fichier> | rg -c '^showboat exec'` : le compte doit correspondre aux appels `exec` réellement faits.
 
 ### Voir les commandes qui ont construit le document
 
@@ -88,5 +90,5 @@ showboat exec "$SB" bash "ma commande"
 ## Ce que showboat ne fait pas
 
 - Pas de documentation rétrospective : `exec` exécute réellement le code, il ne "rejoue" pas un historique.
-- Pas adapté aux commandes non idempotentes ou nécessitant un état vierge : utiliser `note` pour les décrire.
+- Pas adapté aux commandes non idempotentes ou nécessitant un état vierge : utiliser `note` pour les décrire, dans un bloc en tildes.
 - Le bon moment pour l'utiliser : pendant l'installation, pas après.

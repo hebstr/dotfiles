@@ -77,12 +77,12 @@ built with GNU 11.4.0 for Linux x86_64
 
 Dans `.env` (à la racine du projet), décommenter et adapter :
 
-```dotenv
+~~~dotenv
 LLAMA_BIN=/home/julien/.local/bin/llama-server
 LLAMA_PORT=8080
 LLAMA_PARALLEL=1
 # LLAMA_TENSOR_SPLIT — laisser commenté (multi-GPU only)
-```
+~~~
 
 ## Pièges CPU vs config GPU de prod
 

@@ -19,16 +19,20 @@ Options:
   --dry-run           Show what would be done without applying
   -h, --help          Show this help
 
+Environment:
+  ST_URL              Syncthing GUI/API address (default: http://127.0.0.1:8384)
+
 Examples:
   st-add-folder ~/.claude
   st-add-folder ~/.claude --id claude-config --versioning 5
   st-add-folder ~/TODO --ignore ~/dotfiles/syncthing/TODO/.stignore
-  st-add-folder ~/snap/zotero-snap --devices "AQG7RA4-...,C2N42ZX-..."
+  st-add-folder ~/snap/zotero-snap --devices "NAF4MBW-...,C2N42ZX-..."
+  ST_URL=http://127.0.0.1:8385 st-add-folder ~/dotfiles
 EOF
   exit 0
 }
 
-ST_URL="http://127.0.0.1:8384"
+ST_URL="${ST_URL:-http://127.0.0.1:8384}"
 
 get_api_key() {
   syncthing cli config gui apikey get 2>/dev/null
@@ -189,7 +193,13 @@ echo ""
 if "$DRY_RUN"; then
   echo "[dry-run] Would add folder '$FOLDER_ID' -> $FOLDER_PATH"
   echo "[dry-run] Shared with ${#DEVICES[@]} device(s)"
-  [[ -n "$IGNORE_FILE" ]] && echo "[dry-run] Would copy $IGNORE_FILE -> $FOLDER_PATH/.stignore"
+  if [[ -n "$IGNORE_FILE" ]]; then
+    if [[ "$IGNORE_FILE" -ef "$FOLDER_PATH/.stignore" ]]; then
+      echo "[dry-run] .stignore already points to $IGNORE_FILE"
+    else
+      echo "[dry-run] Would copy $IGNORE_FILE -> $FOLDER_PATH/.stignore"
+    fi
+  fi
   exit 0
 fi
 
@@ -197,7 +207,9 @@ st_api POST "/rest/config/folders" -d "$CONFIG_JSON"
 echo "Folder '$FOLDER_ID' added to Syncthing"
 
 if [[ -n "$IGNORE_FILE" ]]; then
-  if [[ -f "$IGNORE_FILE" ]]; then
+  if [[ "$IGNORE_FILE" -ef "$FOLDER_PATH/.stignore" ]]; then
+    echo ".stignore already points to $IGNORE_FILE"
+  elif [[ -f "$IGNORE_FILE" ]]; then
     cp "$IGNORE_FILE" "$FOLDER_PATH/.stignore"
     echo "Copied .stignore from $IGNORE_FILE"
   else
