@@ -62,19 +62,27 @@ check_venvs() {
   while IFS= read -r -d '' cfg; do
     venv=${cfg%/pyvenv.cfg}
     [[ -x "${venv}/bin/python" ]] && continue
-    emit "$venv" "rm -r -- ${venv}"
+    if [[ -f "${venv}/uv-receipt.toml" ]]; then
+      emit "$venv" "uv tool install --force ${venv##*/}, re-adding any extras or --with listed in ${venv}/uv-receipt.toml"
+    else
+      emit "$venv" "rm -r -- ${venv}"
+    fi
   done < <(find "$HOME" -xdev \( -path "${HOME}/snap" -o -path "${HOME}/.cache" -o -path "${HOME}/.local/share/Trash" \
     -o -name node_modules -o -name .git \) -prune -o -type f -name pyvenv.cfg -print0 2>/dev/null)
 }
 
 check_scripts() {
-  local dir file line interp word
+  local dir file line interp word target skip
   local -a dirs words
   IFS=: read -r -a dirs <<<"$BIN_DIRS"
   for dir in "${dirs[@]}"; do
     [[ -d "$dir" ]] || continue
     for file in "$dir"/*; do
       [[ -f "$file" ]] || continue
+      if [[ -L "$file" ]]; then
+        target=$(readlink -f -- "$file")
+        [[ -f "${target%/bin/*}/uv-receipt.toml" ]] && continue
+      fi
       line=
       IFS= read -r -n 256 line <"$file" || true
       [[ "$line" == '#!'* ]] || continue
@@ -83,10 +91,20 @@ check_scripts() {
       interp=${words[0]}
       if [[ "${interp##*/}" == env ]]; then
         interp=
+        skip=0
         for word in "${words[@]:1}"; do
-          [[ "$word" == -* || "$word" == *=* ]] && continue
-          interp=$word
-          break
+          if ((skip)); then
+            skip=0
+            continue
+          fi
+          case "$word" in
+          -u | -C) skip=1 ;;
+          -* | *=*) ;;
+          *)
+            interp=$word
+            break
+            ;;
+          esac
         done
         [[ -n "$interp" ]] || continue
       fi
@@ -109,11 +127,30 @@ check_kernelspecs() {
   done
 }
 
+held_by_live_session() {
+  local marker pid stat json
+  local -a fields
+  local pattern='"procStart"[[:space:]]*:[[:space:]]*"([0-9]+)"'
+  for marker in "$1"/.in_use/*; do
+    [[ -f "$marker" ]] || continue
+    pid=${marker##*/}
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    IFS= read -r stat 2>/dev/null <"/proc/${pid}/stat" || continue
+    json=$(<"$marker") || continue
+    [[ "$json" =~ $pattern ]] || return 0
+    # procStart is field 22 of /proc/<pid>/stat, so a reused pid does not count as live
+    read -r -a fields <<<"${stat##*) }"
+    [[ "${fields[19]}" == "${BASH_REMATCH[1]}" ]] && return 0
+  done
+  return 1
+}
+
 check_claude_plugins() {
   local marker dir
   for marker in "${HOME}/.claude/plugins/cache"/*/*/*/.orphaned_at; do
     [[ -f "$marker" ]] || continue
     dir=${marker%/.orphaned_at}
+    held_by_live_session "$dir" && continue
     emit "$dir" "rm -r -- ${dir}"
   done
 }
@@ -131,6 +168,11 @@ check_extensions() {
     registries=("${base}/extensions.json")
     for ref in "$profiles"/*/extensions.json; do
       [[ -f "$ref" ]] && registries+=("$ref")
+    done
+    for ref in "${registries[@]}"; do
+      jq -e 'type == "array"' "$ref" >/dev/null 2>&1 && continue
+      printf 'sys-orphans: cannot parse %s, skipping %s\n' "$ref" "$base" >&2
+      continue 2
     done
     referenced=()
     while IFS= read -r ref; do
@@ -182,7 +224,7 @@ check_alternatives() {
     [[ -L "$link" && ! -e "$link" ]] || continue
     name=${link##*/}
     [[ -f "${ALT_ADMIN}/${name}" ]] || continue
-    emit "$link" "sudo update-alternatives --remove-all ${name}"
+    emit "$link" "sudo update-alternatives --remove ${name} $(readlink -- "$link")"
   done
 }
 
@@ -242,6 +284,7 @@ total=0
 for entry in "${CHECKS[@]}"; do
   label=${entry%%|*}
   mapfile -t findings < <("${entry#*|}")
+  wait "$!" || printf 'sys-orphans: %s: check failed, results may be incomplete\n' "$label" >&2
   ((${#findings[@]} > 0)) || continue
   total=$((total + ${#findings[@]}))
   [[ "$MODE" == count ]] && continue
@@ -249,7 +292,7 @@ for entry in "${CHECKS[@]}"; do
   for finding in "${findings[@]}"; do
     path=${finding%%$'\t'*}
     size=
-    [[ -e "$path" ]] && size=$(du -sh -- "$path" 2>/dev/null | cut -f1)
+    [[ "$path" == /* && -e "$path" ]] && size=$(du -sh -- "$path" 2>/dev/null | cut -f1 || true)
     printf '  %-6s %s\n' "$size" "$path"
     printf '         fix: %s\n' "${finding#*$'\t'}"
   done
