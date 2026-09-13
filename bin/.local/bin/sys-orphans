@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# sys-orphans: report dangling references left behind by removed software.
+#
+# Read-only. Each finding prints its path and the command that fixes it, and
+# nothing is ever removed. `--count` prints the number of findings only, which
+# is what sys-cleanup reads to end its daily run with a one-line hint.
+
+set -Eeuo pipefail
+
+DPKG_INFO=${SYS_ORPHANS_DPKG_INFO:-/var/lib/dpkg/info}
+ALTERNATIVES=${SYS_ORPHANS_ALTERNATIVES:-/etc/alternatives}
+ALT_ADMIN=${SYS_ORPHANS_ALT_ADMIN:-/var/lib/dpkg/alternatives}
+SYSTEMD_DIRS=${SYS_ORPHANS_SYSTEMD_DIRS:-/etc/systemd/system:/etc/systemd/user:${HOME}/.config/systemd/user}
+BIN_DIRS=${SYS_ORPHANS_BIN_DIRS:-${HOME}/.local/bin:${HOME}/.cargo/bin:/usr/local/bin}
+R_ROOT=${SYS_ORPHANS_R_ROOT:-/opt/R}
+
+MODE=report
+
+usage() {
+  cat <<'EOF'
+sys-orphans: report dangling references left behind by removed software
+
+Usage:
+  sys-orphans            Report every finding with the command that fixes it (read-only)
+  sys-orphans --count    Print the number of findings only
+  sys-orphans -h | --help
+
+Nothing is ever removed: run the printed fix commands yourself.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --count) MODE=count ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    printf 'sys-orphans: unknown option: %s\n' "$1" >&2
+    usage >&2
+    exit 2
+    ;;
+  esac
+  shift
+done
+
+emit() {
+  printf '%s\t%s\n' "$1" "$2"
+}
+
+resolves() {
+  if [[ "$1" == /* ]]; then
+    [[ -x "$1" ]]
+  else
+    command -v "$1" >/dev/null 2>&1
+  fi
+}
+
+check_venvs() {
+  local cfg venv
+  while IFS= read -r -d '' cfg; do
+    venv=${cfg%/pyvenv.cfg}
+    [[ -x "${venv}/bin/python" ]] && continue
+    emit "$venv" "rm -r -- ${venv}"
+  done < <(find "$HOME" -xdev \( -path "${HOME}/snap" -o -path "${HOME}/.cache" -o -path "${HOME}/.local/share/Trash" \
+    -o -name node_modules -o -name .git \) -prune -o -type f -name pyvenv.cfg -print0 2>/dev/null)
+}
+
+check_scripts() {
+  local dir file line interp word
+  local -a dirs words
+  IFS=: read -r -a dirs <<<"$BIN_DIRS"
+  for dir in "${dirs[@]}"; do
+    [[ -d "$dir" ]] || continue
+    for file in "$dir"/*; do
+      [[ -f "$file" ]] || continue
+      line=
+      IFS= read -r -n 256 line <"$file" || true
+      [[ "$line" == '#!'* ]] || continue
+      read -r -a words <<<"${line#\#!}"
+      ((${#words[@]} > 0)) || continue
+      interp=${words[0]}
+      if [[ "${interp##*/}" == env ]]; then
+        interp=
+        for word in "${words[@]:1}"; do
+          [[ "$word" == -* || "$word" == *=* ]] && continue
+          interp=$word
+          break
+        done
+        [[ -n "$interp" ]] || continue
+      fi
+      resolves "$interp" && continue
+      emit "$file" "rm -- ${file}"
+    done
+  done
+}
+
+check_kernelspecs() {
+  local spec json dir
+  local pattern='"argv"[[:space:]]*:[[:space:]]*\[[[:space:]]*"([^"]*)"'
+  for spec in "${HOME}/.local/share/jupyter/kernels"/*/kernel.json; do
+    [[ -f "$spec" ]] || continue
+    json=$(<"$spec")
+    [[ "$json" =~ $pattern ]] || continue
+    resolves "${BASH_REMATCH[1]}" && continue
+    dir=${spec%/kernel.json}
+    emit "$dir" "rm -r -- ${dir}"
+  done
+}
+
+check_claude_plugins() {
+  local marker dir
+  for marker in "${HOME}/.claude/plugins/cache"/*/*/*/.orphaned_at; do
+    [[ -f "$marker" ]] || continue
+    dir=${marker%/.orphaned_at}
+    emit "$dir" "rm -r -- ${dir}"
+  done
+}
+
+check_extensions() {
+  command -v jq >/dev/null 2>&1 || return 0
+  local pair base profiles ref name dir
+  local -a registries
+  local -A referenced obsolete
+  for pair in "${HOME}/.positron/extensions|${HOME}/.config/Positron/User/profiles" \
+    "${HOME}/.vscode/extensions|${HOME}/.config/Code/User/profiles"; do
+    base=${pair%%|*}
+    profiles=${pair#*|}
+    [[ -f "${base}/extensions.json" ]] || continue
+    registries=("${base}/extensions.json")
+    for ref in "$profiles"/*/extensions.json; do
+      [[ -f "$ref" ]] && registries+=("$ref")
+    done
+    referenced=()
+    while IFS= read -r ref; do
+      [[ -n "$ref" ]] && referenced[$ref]=1
+    done < <(jq -r --arg base "$base" \
+      '.[] | (.location.path // empty), (if .relativeLocation then $base + "/" + .relativeLocation else empty end)' \
+      "${registries[@]}" 2>/dev/null)
+    obsolete=()
+    if [[ -f "${base}/.obsolete" ]]; then
+      while IFS= read -r name; do
+        [[ -n "$name" ]] && obsolete[$name]=1
+      done < <(jq -r 'keys[]' "${base}/.obsolete" 2>/dev/null)
+    fi
+    for dir in "$base"/*/; do
+      dir=${dir%/}
+      name=${dir##*/}
+      [[ -n "${referenced[$dir]:-}" || -n "${obsolete[$name]:-}" ]] && continue
+      emit "$dir" "rm -r -- ${dir}"
+    done
+  done
+}
+
+check_dpkg() {
+  [[ -d "$DPKG_INFO" ]] || return 0
+  local list path pkg nondoc present
+  for list in "$DPKG_INFO"/*.list; do
+    [[ -f "$list" ]] || continue
+    nondoc=0
+    present=0
+    while IFS= read -r path; do
+      case "$path" in /usr/share/doc/*) continue ;; esac
+      [[ -d "$path" ]] && continue
+      nondoc=1
+      if [[ -e "$path" || -L "$path" ]]; then
+        present=1
+        break
+      fi
+    done <"$list"
+    ((nondoc == 1 && present == 0)) || continue
+    pkg=${list##*/}
+    pkg=${pkg%.list}
+    emit "$pkg" "sudo dpkg --purge ${pkg}"
+  done
+}
+
+check_alternatives() {
+  local link name
+  for link in "$ALTERNATIVES"/*; do
+    [[ -L "$link" && ! -e "$link" ]] || continue
+    name=${link##*/}
+    [[ -f "${ALT_ADMIN}/${name}" ]] || continue
+    emit "$link" "sudo update-alternatives --remove-all ${name}"
+  done
+}
+
+check_systemd() {
+  local dir link
+  local -a dirs
+  IFS=: read -r -a dirs <<<"$SYSTEMD_DIRS"
+  for dir in "${dirs[@]}"; do
+    [[ -d "$dir" ]] || continue
+    while IFS= read -r -d '' link; do
+      [[ -e "$link" ]] && continue
+      if [[ "$link" == "$HOME"/* ]]; then
+        emit "$link" "rm -- ${link}"
+      else
+        emit "$link" "sudo rm -- ${link}"
+      fi
+    done < <(find "$dir" -type l -print0 2>/dev/null)
+  done
+}
+
+check_claude_projects() {
+  command -v jq >/dev/null 2>&1 || return 0
+  [[ -f "${HOME}/.claude.json" ]] || return 0
+  local project
+  while IFS= read -r project; do
+    [[ "$project" == /* && ! -d "$project" ]] || continue
+    emit "$project" "delete this key from .projects in ${HOME}/.claude.json, with Claude Code closed"
+  done < <(jq -r '(.projects // {}) | keys[]' "${HOME}/.claude.json" 2>/dev/null)
+}
+
+check_r_libraries() {
+  local lib version
+  for lib in "${HOME}/R"/*-library/*/; do
+    lib=${lib%/}
+    version=${lib##*/}
+    [[ "$version" =~ ^[0-9]+\.[0-9]+$ ]] || continue
+    [[ -d "${R_ROOT}/${version}" ]] && continue
+    compgen -G "${R_ROOT}/${version}.*" >/dev/null && continue
+    emit "$lib" "rm -r -- ${lib}"
+  done
+}
+
+CHECKS=(
+  "venvs whose interpreter is gone|check_venvs"
+  "scripts whose interpreter is gone|check_scripts"
+  "Jupyter kernelspecs whose interpreter is gone|check_kernelspecs"
+  "Claude Code plugin versions marked orphaned|check_claude_plugins"
+  "editor extensions referenced by no registry|check_extensions"
+  "installed packages whose files are all gone|check_dpkg"
+  "dangling alternatives|check_alternatives"
+  "dangling systemd unit links|check_systemd"
+  "Claude Code projects whose folder is gone|check_claude_projects"
+  "R user libraries for an R version not installed|check_r_libraries"
+)
+
+total=0
+for entry in "${CHECKS[@]}"; do
+  label=${entry%%|*}
+  mapfile -t findings < <("${entry#*|}")
+  ((${#findings[@]} > 0)) || continue
+  total=$((total + ${#findings[@]}))
+  [[ "$MODE" == count ]] && continue
+  printf '\n== %s (%d) ==\n' "$label" "${#findings[@]}"
+  for finding in "${findings[@]}"; do
+    path=${finding%%$'\t'*}
+    size=
+    [[ -e "$path" ]] && size=$(du -sh -- "$path" 2>/dev/null | cut -f1)
+    printf '  %-6s %s\n' "$size" "$path"
+    printf '         fix: %s\n' "${finding#*$'\t'}"
+  done
+done
+
+if [[ "$MODE" == count ]]; then
+  printf '%d\n' "$total"
+elif ((total == 0)); then
+  printf 'No orphans detected\n'
+else
+  printf '\n%d orphans found. Nothing was removed: run the fix commands yourself.\n' "$total"
+fi

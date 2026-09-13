@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 JOURNAL_SIZE="200M"
+UV_ARCHIVE_MIN_AGE_MIN=1440
 DRY_RUN=0
 SELECTED_MODULES=()
 
@@ -15,6 +16,9 @@ ALL_MODULES=(
   claude-versions
   flatpak
   claude-cli
+  chromium-headless
+  positron-pycache
+  workspace-storage
   jedi
   apt
   journal
@@ -98,6 +102,17 @@ clean_trash() {
   record trash $((before - after)) OK
 }
 
+sweep_uv_archive() {
+  local archive="$1/archive-v0" entry
+  [[ -d "$archive" ]] || return 0
+  # Long-lived uv processes (MCP servers) always hold the cache lock; the age floor guards extracted-not-yet-linked entries.
+  while IFS= read -r -d '' entry; do
+    [[ -f "${entry}/pyvenv.cfg" ]] && continue
+    [[ -n "$(find "$entry" -type f -links +1 -print -quit)" ]] && continue
+    run_or_dry rm -rf "$entry"
+  done < <(find "$archive" -mindepth 1 -maxdepth 1 -type d -mmin "+${UV_ARCHIVE_MIN_AGE_MIN}" -print0)
+}
+
 clean_uv() {
   if ! command -v uv >/dev/null 2>&1; then
     record uv 0 "skipped (not found)"
@@ -105,6 +120,7 @@ clean_uv() {
   fi
   local before
   before=$(bytes_of "${HOME}/.cache/uv")
+  sweep_uv_archive "${HOME}/.cache/uv"
   run_or_dry uv cache prune --force
   local after
   after=$(bytes_of "${HOME}/.cache/uv")
@@ -139,6 +155,7 @@ clean_prek() {
   local before
   before=$(bytes_of "${HOME}/.cache/prek")
   run_or_dry prek cache gc
+  sweep_uv_archive "${HOME}/.cache/prek/cache/uv"
   local after
   after=$(bytes_of "${HOME}/.cache/prek")
   record prek $((before - after)) OK
@@ -167,6 +184,14 @@ clean_r_cache() {
   if command -v Rscript >/dev/null 2>&1; then
     before=$(bytes_of "${HOME}/.cache/R/pkgcache")
     run_or_dry Rscript -e 'pak::cache_clean()'
+    local meta="${HOME}/.cache/R/pkgcache/_metadata" current snapshot
+    current=$(Rscript -e 'cat(pak::meta_summary()[["current_db"]])' 2>/dev/null || true)
+    if [[ -f "$current" && "${current%/*}" == "$meta" ]]; then
+      for snapshot in "$meta"/pkgs-*.rds; do
+        [[ -f "$snapshot" && "$snapshot" != "$current" ]] || continue
+        run_or_dry rm -f "$snapshot"
+      done
+    fi
     after=$(bytes_of "${HOME}/.cache/R/pkgcache")
   fi
   local sass="${HOME}/.cache/R/sass"
@@ -230,6 +255,80 @@ clean_claude_cli() {
   local after
   after=$(bytes_of "$target")
   record claude-cli $((before - after)) OK
+}
+
+clean_chromium_headless() {
+  local common="${HOME}/snap/chromium/common"
+  [[ -d "$common" ]] || {
+    record chromium-headless 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$common")
+  local dir lock pid
+  for dir in "$common"/chromium-headless/scoped_dir* "$common"/claude-profile.*; do
+    # A killed run leaves SingletonLock -> "<host>-<pid>" on a dead pid; a live pid or no lock means possibly in use.
+    [[ -d "$dir" && -L "${dir}/SingletonLock" ]] || continue
+    lock=$(readlink "${dir}/SingletonLock")
+    pid="${lock##*-}"
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    [[ -e "/proc/${pid}" ]] && continue
+    run_or_dry rm -rf "$dir"
+  done
+  local after
+  after=$(bytes_of "$common")
+  record chromium-headless $((before - after)) OK
+}
+
+clean_positron_pycache() {
+  local prefix="${HOME}/.config/Positron/User/globalStorage/ms-python.python/pycache"
+  [[ -d "$prefix" ]] || {
+    record positron-pycache 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$prefix")
+  local mirrors=() mirror src
+  mapfile -d '' mirrors < <(find "$prefix" -mindepth 1 -type d -print0)
+  for mirror in "${mirrors[@]}"; do
+    src="${mirror#"$prefix"}"
+    [[ ! -d "$src" && -d "${src%/*}" ]] || continue
+    run_or_dry rm -rf "$mirror"
+  done
+  local after
+  after=$(bytes_of "$prefix")
+  record positron-pycache $((before - after)) OK
+}
+
+clean_workspace_storage() {
+  local roots=() root
+  for root in "${HOME}/.config/Positron/User/workspaceStorage" "${HOME}/.config/Code/User/workspaceStorage"; do
+    [[ -d "$root" ]] && roots+=("$root")
+  done
+  ((${#roots[@]} > 0)) || {
+    record workspace-storage 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "${roots[@]}")
+  local pattern='"folder"[[:space:]]*:[[:space:]]*"file://([^"]*)"'
+  local entry json encoded folder
+  for root in "${roots[@]}"; do
+    for entry in "$root"/*/; do
+      entry="${entry%/}"
+      [[ -f "${entry}/workspace.json" ]] || continue
+      json=$(<"${entry}/workspace.json")
+      [[ "$json" =~ $pattern ]] || continue
+      encoded="${BASH_REMATCH[1]}"
+      [[ "$encoded" == /* && "$encoded" != *\\* ]] || continue
+      printf -v folder '%b' "${encoded//%/\\x}"
+      [[ -d "$folder" ]] && continue
+      run_or_dry rm -rf "$entry"
+    done
+  done
+  local after
+  after=$(bytes_of "${roots[@]}")
+  record workspace-storage $((before - after)) OK
 }
 
 clean_jedi() {
@@ -373,6 +472,14 @@ main() {
   done
   printf '%s\n' "$(printf '%.0s-' {1..40})"
   printf '%-20s %s\n' TOTAL "$(format_bytes "$TOTAL_FREED")"
+
+  local orphans
+  if command -v sys-orphans >/dev/null 2>&1; then
+    orphans=$(sys-orphans --count 2>/dev/null || true)
+    if [[ "$orphans" =~ ^[0-9]+$ ]] && ((orphans > 0)); then
+      printf '\n%s orphans found, run sys-orphans for details\n' "$orphans"
+    fi
+  fi
 }
 
 main "$@"

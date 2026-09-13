@@ -8,9 +8,12 @@ metadata:
 When checking how a document or page actually renders, capture it and look at it rather than asserting from the source. The tool is the chromium snap, headless:
 
 ```
-chromium --headless=new --disable-gpu --hide-scrollbars \
+P=$(mktemp -d ~/snap/chromium/common/claude-profile.XXXXXX); trap 'rm -rf "$P"' EXIT
+chromium --headless=new --disable-gpu --hide-scrollbars --user-data-dir="$P" \
   --window-size=1400,4200 --screenshot=.claude/shots/<name>.png "file://$PWD/<file>.html"
 ```
+
+The throwaway `--user-data-dir` is not optional: without it a killed run leaves a profile of up to ~146 MiB behind for good (26.8 GiB accumulated in under a month), and a shared fixed profile aborts a concurrent session. The rule and its measurement live in `rules/environment.md`, chromium row.
 
 `--window-size` sets the captured height, so a tall value captures the whole page in one pass; crop with PIL to read a specific region. The `--hide-scrollbars` flag keeps the scrollbar out of the measured width.
 
@@ -20,4 +23,4 @@ chromium --headless=new --disable-gpu --hide-scrollbars \
 
 **How to apply:** `mkdir -p .claude/shots` and point `--screenshot` straight at it. The chromium snap writes there without trouble: `.claude/` inside a project under `~/Documents` is not blocked, unlike a dot-directory sitting directly under `$HOME` (the caveat `rules/environment.md` records for the probe-file case). Do not route through `/tmp`: a snap gets a private `/tmp`, so the file lands somewhere unreadable. Delete the captures when the check is done, or leave them under `.claude/` if they document something.
 
-Related: [[feedback_verify_quarto_theming.md]] covers the stronger case where a screenshot is not enough and computed styles must be measured; [[feedback_verify_before_claiming]] is the general rule this serves.
+Related: [[feedback_verify_quarto_theming]] covers the stronger case where a screenshot is not enough and computed styles must be measured; [[feedback_verify_before_claiming]] is the general rule this serves.

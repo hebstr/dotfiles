@@ -42,9 +42,9 @@ setup() {
   _install_sudo_stub
   # Coreutils used by the script itself: bytes_of (du, awk), format_bytes
   # (awk), claude-versions (find, grep, sort, tail), several modules (rm),
-  # usage() (cat, paste). Symlinking real binaries into ${STUBS} keeps the
+  # chromium-headless (readlink), usage() (cat, paste). Symlinking real binaries into ${STUBS} keeps the
   # restricted PATH semantics: anything we don't list here is "not found".
-  for cmd in cat paste du awk find grep sort tail rm; do
+  for cmd in cat paste du awk find grep sort tail rm readlink; do
     ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
@@ -82,7 +82,8 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in trash uv rv prek go r-cache claude-versions flatpak \
-    claude-cli jedi apt journal snap r-renv; do
+    claude-cli chromium-headless positron-pycache workspace-storage \
+    jedi apt journal snap r-renv; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -115,6 +116,9 @@ teardown() {
   echo "$output" | grep -E '^trash[[:space:]]+no$'
   echo "$output" | grep -E '^uv[[:space:]]+no$'
   echo "$output" | grep -E '^flatpak[[:space:]]+no$'
+  echo "$output" | grep -E '^chromium-headless[[:space:]]+no$'
+  echo "$output" | grep -E '^positron-pycache[[:space:]]+no$'
+  echo "$output" | grep -E '^workspace-storage[[:space:]]+no$'
   echo "$output" | grep -E '^r-renv[[:space:]]+no$'
 }
 
@@ -271,6 +275,154 @@ EOF
   _run --dry-run uv
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] uv cache prune --force"* ]]
+}
+
+# An archive entry is reclaimable when none of its files is hardlinked into a
+# venv. Entries younger than 24 h may be mid-install (extracted, not yet
+# linked), and entries holding pyvenv.cfg are cached uvx environments, which
+# `uv cache prune` owns.
+
+_uv_logging_stub() {
+  _stub_command uv "printf '%s\n' \"\$*\" >> \"${STUBS}/uv.log\""
+}
+
+_make_archive_entry() {
+  local entry="${FAKE_HOME}/.cache/uv/archive-v0/$1" age="${2:-2 days ago}"
+  mkdir -p "${entry}/pkg"
+  echo code >"${entry}/pkg/__init__.py"
+  echo meta >"${entry}/RECORD"
+  touch -d "$age" "$entry"
+  printf '%s' "$entry"
+}
+
+@test "--dry-run uv prints rm for an old archive entry with no linked file and keeps it" {
+  _uv_logging_stub
+  local entry
+  entry="$(_make_archive_entry unusedEntry01)"
+  _run --dry-run uv
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${entry}"* ]]
+  [ -d "$entry" ]
+}
+
+@test "non-dry-run uv removes an old unlinked archive entry, then prunes" {
+  _uv_logging_stub
+  local entry
+  entry="$(_make_archive_entry unusedEntry01)"
+  _run uv
+  [ "$status" -eq 0 ]
+  [ ! -e "$entry" ]
+  grep -q '^cache prune --force$' "${STUBS}/uv.log"
+}
+
+@test "uv keeps an archive entry with one file hardlinked into a venv" {
+  _uv_logging_stub
+  local entry
+  entry="$(_make_archive_entry liveEntry01)"
+  mkdir -p "${FAKE_HOME}/venv/lib"
+  ln "${entry}/pkg/__init__.py" "${FAKE_HOME}/venv/lib/__init__.py"
+  touch -d "2 days ago" "$entry"
+  _run uv
+  [ "$status" -eq 0 ]
+  [ -f "${entry}/pkg/__init__.py" ]
+  [ -f "${entry}/RECORD" ]
+}
+
+@test "uv keeps an unlinked archive entry younger than 24 hours" {
+  _uv_logging_stub
+  local entry
+  entry="$(_make_archive_entry freshEntry01 "1 hour ago")"
+  _run uv
+  [ "$status" -eq 0 ]
+  [ -d "$entry" ]
+}
+
+@test "uv keeps an old unlinked archive entry holding pyvenv.cfg" {
+  _uv_logging_stub
+  local entry
+  entry="$(_make_archive_entry cachedEnv01)"
+  echo "home = /x" >"${entry}/pyvenv.cfg"
+  touch -d "2 days ago" "$entry"
+  _run uv
+  [ "$status" -eq 0 ]
+  [ -d "$entry" ]
+}
+
+@test "uv removes an archive entry whose name starts with a dash" {
+  _uv_logging_stub
+  local entry
+  entry="$(_make_archive_entry -dashEntry01)"
+  _run uv
+  [ "$status" -eq 0 ]
+  [ ! -e "$entry" ]
+}
+
+@test "uv leaves the archive untouched when uv is not on PATH" {
+  local entry
+  entry="$(_make_archive_entry unusedEntry01)"
+  _run uv
+  [ "$status" -eq 0 ]
+  [ -d "$entry" ]
+  [[ "$output" == *"uv"*"skipped (not found)"* ]]
+}
+
+# prek embeds its own uv cache at ~/.cache/prek/cache/uv, which `prek cache gc`
+# does not sweep; the module applies the same archive criterion after gc, so
+# entries gc frees are reclaimed in the same run.
+
+_make_prek_archive_entry() {
+  local entry="${FAKE_HOME}/.cache/prek/cache/uv/archive-v0/$1" age="${2:-2 days ago}"
+  mkdir -p "${entry}/pkg"
+  echo code >"${entry}/pkg/__init__.py"
+  touch -d "$age" "$entry"
+  printf '%s' "$entry"
+}
+
+@test "--dry-run prek prints rm for an old unlinked entry of prek's uv cache and keeps it" {
+  _stub_command prek
+  local entry
+  entry="$(_make_prek_archive_entry unusedPrek01)"
+  _run --dry-run prek
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] prek cache gc"* ]]
+  [[ "$output" == *"[dry-run] rm -rf ${entry}"* ]]
+  [ -d "$entry" ]
+}
+
+@test "non-dry-run prek removes old unlinked uv entries, keeps linked and young ones" {
+  _stub_command prek
+  local unused live young
+  unused="$(_make_prek_archive_entry unusedPrek01)"
+  live="$(_make_prek_archive_entry livePrek01)"
+  mkdir -p "${FAKE_HOME}/.cache/prek/hooks/python-env"
+  ln "${live}/pkg/__init__.py" "${FAKE_HOME}/.cache/prek/hooks/python-env/__init__.py"
+  touch -d "2 days ago" "$live"
+  young="$(_make_prek_archive_entry youngPrek01 "1 hour ago")"
+  _run prek
+  [ "$status" -eq 0 ]
+  [ ! -e "$unused" ]
+  [ -f "${live}/pkg/__init__.py" ]
+  [ -d "$young" ]
+}
+
+@test "prek sweeps its uv cache after gc, reclaiming entries gc freed in the same run" {
+  local entry hook="${FAKE_HOME}/.cache/prek/hooks/python-env"
+  entry="$(_make_prek_archive_entry freedByGc01)"
+  mkdir -p "$hook"
+  ln "${entry}/pkg/__init__.py" "${hook}/__init__.py"
+  touch -d "2 days ago" "$entry"
+  _stub_command prek "[ \"\$1 \$2\" = 'cache gc' ] && rm -rf '${hook}'; exit 0"
+  _run prek
+  [ "$status" -eq 0 ]
+  [ ! -e "$entry" ]
+}
+
+@test "prek leaves its uv cache untouched when prek is not on PATH" {
+  local entry
+  entry="$(_make_prek_archive_entry unusedPrek01)"
+  _run prek
+  [ "$status" -eq 0 ]
+  [ -d "$entry" ]
 }
 
 @test "prek module is skipped when prek is not on PATH" {
@@ -439,6 +591,95 @@ EOF
   [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.0.0"* ]]
 }
 
+# ─── chromium-headless ──────────────────────────────────────────────────────
+# A headless chromium profile holds a SingletonLock symlink to
+# "<hostname>-<pid>". A profile is reclaimable only when that pid is dead: a
+# killed run leaves its lock behind, a running one keeps its pid alive, and a
+# profile without a lock may belong to a browser still starting.
+
+DEAD_PID=4194399
+
+_chromium_common() {
+  printf '%s' "${FAKE_HOME}/snap/chromium/common"
+}
+
+_make_profile() {
+  local dir="$1" lock_target="${2:-}"
+  mkdir -p "$dir"
+  echo data >"${dir}/Preferences"
+  [[ -n "$lock_target" ]] && ln -s "$lock_target" "${dir}/SingletonLock"
+  return 0
+}
+
+@test "chromium-headless module is skipped when ~/snap/chromium/common is absent" {
+  _run --dry-run chromium-headless
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"chromium-headless"*"skipped (not found)"* ]]
+}
+
+@test "chromium-headless records OK with nothing to remove when the snap dir holds no profile" {
+  mkdir -p "$(_chromium_common)/chromium-headless"
+  _run --dry-run chromium-headless
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"[dry-run] rm -rf"* ]]
+  [[ "$output" == *"chromium-headless"*"OK"* ]]
+}
+
+@test "--dry-run chromium-headless prints rm for a scoped_dir whose lock pid is dead and keeps it" {
+  local dir
+  dir="$(_chromium_common)/chromium-headless/scoped_dirAbC123"
+  _make_profile "$dir" "host-with-dash-${DEAD_PID}"
+  _run --dry-run chromium-headless
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${dir}"* ]]
+  [ -d "$dir" ]
+}
+
+@test "non-dry-run chromium-headless removes dead-lock scoped_dir and claude-profile dirs" {
+  local scoped profile
+  scoped="$(_chromium_common)/chromium-headless/scoped_dirAbC123"
+  profile="$(_chromium_common)/claude-profile.XyZ789"
+  _make_profile "$scoped" "host-${DEAD_PID}"
+  _make_profile "$profile" "host-${DEAD_PID}"
+  _run chromium-headless
+  [ "$status" -eq 0 ]
+  [ ! -e "$scoped" ]
+  [ ! -e "$profile" ]
+  [[ "$output" == *"chromium-headless"*"OK"* ]]
+}
+
+@test "chromium-headless keeps a profile whose lock pid is alive" {
+  local dir
+  dir="$(_chromium_common)/chromium-headless/scoped_dirLive01"
+  _make_profile "$dir" "host-$$"
+  _run chromium-headless
+  [ "$status" -eq 0 ]
+  [ -d "$dir" ]
+  [[ "$output" != *"rm -rf ${dir}"* ]]
+}
+
+@test "chromium-headless keeps a profile that has no SingletonLock" {
+  local dir
+  dir="$(_chromium_common)/claude-profile.NoLock1"
+  _make_profile "$dir"
+  _run chromium-headless
+  [ "$status" -eq 0 ]
+  [ -d "$dir" ]
+}
+
+@test "chromium-headless never touches the browser profile or unrelated dirs" {
+  local common
+  common="$(_chromium_common)"
+  _make_profile "${common}/chromium/Default" "host-${DEAD_PID}"
+  _make_profile "${common}/chromium-headless/Default" "host-${DEAD_PID}"
+  _make_profile "${common}/other-dir" "host-${DEAD_PID}"
+  _run chromium-headless
+  [ "$status" -eq 0 ]
+  [ -d "${common}/chromium/Default" ]
+  [ -d "${common}/chromium-headless/Default" ]
+  [ -d "${common}/other-dir" ]
+}
+
 # ─── module dispatch: dash → underscore ─────────────────────────────────────
 
 @test "r-cache module dispatches to clean_r_cache" {
@@ -460,6 +701,213 @@ EOF
   _run --dry-run claude-versions
   [ "$status" -eq 0 ]
   [[ "$output" == *"→ claude-versions"* ]]
+}
+
+# ─── positron-pycache ───────────────────────────────────────────────────────
+# Positron's Python runs with PYTHONPYCACHEPREFIX, which mirrors each source
+# directory's absolute path under the prefix. A mirror dir is reclaimable when
+# its source directory is gone; only the highest such level is removed.
+
+_pycache_prefix() {
+  printf '%s' "${FAKE_HOME}/.config/Positron/User/globalStorage/ms-python.python/pycache"
+}
+
+@test "positron-pycache module is skipped when the pycache prefix is absent" {
+  _run --dry-run positron-pycache
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"positron-pycache"*"skipped (not found)"* ]]
+}
+
+@test "--dry-run positron-pycache prints rm for the highest mirror of a gone source and keeps it" {
+  local prefix
+  prefix="$(_pycache_prefix)"
+  mkdir -p "${prefix}${FAKE_HOME}/gone/sub"
+  echo pyc >"${prefix}${FAKE_HOME}/gone/sub/mod.cpython-313.pyc"
+  _run --dry-run positron-pycache
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${prefix}${FAKE_HOME}/gone"* ]]
+  [[ "$output" != *"rm -rf ${prefix}${FAKE_HOME}/gone/sub"* ]]
+  [ -d "${prefix}${FAKE_HOME}/gone/sub" ]
+}
+
+@test "non-dry-run positron-pycache removes mirrors of gone sources and keeps those of existing ones" {
+  local prefix
+  prefix="$(_pycache_prefix)"
+  mkdir -p "${FAKE_HOME}/project/pkg"
+  mkdir -p "${prefix}${FAKE_HOME}/project/pkg" "${prefix}${FAKE_HOME}/project/removed"
+  echo pyc >"${prefix}${FAKE_HOME}/project/pkg/a.cpython-313.pyc"
+  echo pyc >"${prefix}${FAKE_HOME}/project/removed/b.cpython-313.pyc"
+  _run positron-pycache
+  [ "$status" -eq 0 ]
+  [ -f "${prefix}${FAKE_HOME}/project/pkg/a.cpython-313.pyc" ]
+  [ ! -e "${prefix}${FAKE_HOME}/project/removed" ]
+  [[ "$output" == *"positron-pycache"*"OK"* ]]
+}
+
+@test "positron-pycache keeps a mirror whose source path exists as a directory with spaces and accents" {
+  local prefix
+  prefix="$(_pycache_prefix)"
+  mkdir -p "${FAKE_HOME}/Télé chargements/x"
+  mkdir -p "${prefix}${FAKE_HOME}/Télé chargements/x"
+  _run positron-pycache
+  [ "$status" -eq 0 ]
+  [ -d "${prefix}${FAKE_HOME}/Télé chargements/x" ]
+}
+
+# ─── workspace-storage ──────────────────────────────────────────────────────
+# Each workspaceStorage entry names its folder in workspace.json as a
+# percent-encoded file:// URI. An entry is reclaimable when that folder is
+# gone; other URI schemes (vscode-remote) are never judged.
+
+_make_workspace_entry() {
+  local editor="$1" id="$2" uri="$3" dir
+  dir="${FAKE_HOME}/.config/${editor}/User/workspaceStorage/${id}"
+  mkdir -p "$dir"
+  printf '{\n  "folder": "%s"\n}\n' "$uri" >"${dir}/workspace.json"
+  echo state >"${dir}/state.vscdb"
+  printf '%s' "$dir"
+}
+
+@test "workspace-storage module is skipped when no editor storage dir exists" {
+  _run --dry-run workspace-storage
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"workspace-storage"*"skipped (not found)"* ]]
+}
+
+@test "--dry-run workspace-storage prints rm for an entry whose folder is gone and keeps it" {
+  local entry
+  entry="$(_make_workspace_entry Positron aaa111 "file://${FAKE_HOME}/gone-project")"
+  _run --dry-run workspace-storage
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${entry}"* ]]
+  [ -d "$entry" ]
+}
+
+@test "non-dry-run workspace-storage removes gone-folder entries in Positron and Code, keeps live ones" {
+  local gone_p gone_c live
+  mkdir -p "${FAKE_HOME}/live-project"
+  gone_p="$(_make_workspace_entry Positron aaa111 "file://${FAKE_HOME}/gone-project")"
+  gone_c="$(_make_workspace_entry Code bbb222 "file://${FAKE_HOME}/gone-project")"
+  live="$(_make_workspace_entry Positron ccc333 "file://${FAKE_HOME}/live-project")"
+  _run workspace-storage
+  [ "$status" -eq 0 ]
+  [ ! -e "$gone_p" ]
+  [ ! -e "$gone_c" ]
+  [ -d "$live" ]
+  [[ "$output" == *"workspace-storage"*"OK"* ]]
+}
+
+@test "workspace-storage decodes percent-encoded UTF-8 before testing the folder" {
+  local entry
+  mkdir -p "${FAKE_HOME}/Téléchargements/m2 dm1"
+  entry="$(_make_workspace_entry Positron ddd444 "file://${FAKE_HOME}/T%C3%A9l%C3%A9chargements/m2%20dm1")"
+  _run workspace-storage
+  [ "$status" -eq 0 ]
+  [ -d "$entry" ]
+}
+
+@test "workspace-storage keeps entries with a non-file URI or no folder key" {
+  local remote other
+  remote="$(_make_workspace_entry Positron eee555 "vscode-remote://ssh-remote%2Bhost/home/x/project")"
+  other="${FAKE_HOME}/.config/Positron/User/workspaceStorage/fff666"
+  mkdir -p "$other"
+  echo '{ "workspace": "file:///nowhere/a.code-workspace" }' >"${other}/workspace.json"
+  _run workspace-storage
+  [ "$status" -eq 0 ]
+  [ -d "$remote" ]
+  [ -d "$other" ]
+}
+
+# ─── r-cache: superseded pak metadata snapshots ─────────────────────────────
+# pak writes one pkgs-<hash>.rds per configuration and never removes the old
+# ones. The snapshot to keep is the one pak::meta_summary() names as
+# current_db; when that query yields nothing, no snapshot is touched.
+
+_metadata_dir() {
+  printf '%s' "${FAKE_HOME}/.cache/R/pkgcache/_metadata"
+}
+
+_make_metadata() {
+  local meta
+  meta="$(_metadata_dir)"
+  mkdir -p "${meta}/CRAN-0f0c1c4a0b/src/contrib"
+  echo raw >"${meta}/CRAN-0f0c1c4a0b/src/contrib/PACKAGES.gz"
+  echo current >"${meta}/pkgs-3a56b2c8ed.rds"
+  echo old1 >"${meta}/pkgs-02e08e016f.rds"
+  echo old2 >"${meta}/pkgs-ebe31bacf2.rds"
+}
+
+_rscript_stub_current_db() {
+  local current="$1"
+  cat >"${STUBS}/Rscript" <<EOF
+#!/usr/bin/env bash
+case "\$*" in
+    *meta_summary*) printf '%s' "${current}" ;;
+esac
+exit 0
+EOF
+  chmod +x "${STUBS}/Rscript"
+}
+
+@test "--dry-run r-cache prints rm for superseded pak snapshots only, and keeps them" {
+  _make_metadata
+  _rscript_stub_current_db "$(_metadata_dir)/pkgs-3a56b2c8ed.rds"
+  _run --dry-run r-cache
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -f $(_metadata_dir)/pkgs-02e08e016f.rds"* ]]
+  [[ "$output" == *"[dry-run] rm -f $(_metadata_dir)/pkgs-ebe31bacf2.rds"* ]]
+  [[ "$output" != *"pkgs-3a56b2c8ed.rds"* ]]
+  [ -f "$(_metadata_dir)/pkgs-02e08e016f.rds" ]
+}
+
+@test "non-dry-run r-cache removes superseded snapshots, keeps the current one and raw repo files" {
+  _make_metadata
+  _rscript_stub_current_db "$(_metadata_dir)/pkgs-3a56b2c8ed.rds"
+  _run r-cache
+  [ "$status" -eq 0 ]
+  [ ! -e "$(_metadata_dir)/pkgs-02e08e016f.rds" ]
+  [ ! -e "$(_metadata_dir)/pkgs-ebe31bacf2.rds" ]
+  [ -f "$(_metadata_dir)/pkgs-3a56b2c8ed.rds" ]
+  [ -f "$(_metadata_dir)/CRAN-0f0c1c4a0b/src/contrib/PACKAGES.gz" ]
+  [[ "$output" == *"r-cache"*"OK"* ]]
+}
+
+@test "r-cache removes no snapshot when pak names no current database" {
+  _make_metadata
+  _rscript_stub_current_db ""
+  _run r-cache
+  [ "$status" -eq 0 ]
+  [ -f "$(_metadata_dir)/pkgs-02e08e016f.rds" ]
+  [ -f "$(_metadata_dir)/pkgs-ebe31bacf2.rds" ]
+  [ -f "$(_metadata_dir)/pkgs-3a56b2c8ed.rds" ]
+}
+
+@test "r-cache removes no snapshot when the named current database does not exist" {
+  _make_metadata
+  _rscript_stub_current_db "$(_metadata_dir)/pkgs-ffffffffff.rds"
+  _run r-cache
+  [ "$status" -eq 0 ]
+  [ -f "$(_metadata_dir)/pkgs-02e08e016f.rds" ]
+  [ -f "$(_metadata_dir)/pkgs-3a56b2c8ed.rds" ]
+}
+
+@test "r-cache removes no snapshot when the current database lives in another cache dir" {
+  _make_metadata
+  mkdir -p "${FAKE_HOME}/elsewhere"
+  echo other >"${FAKE_HOME}/elsewhere/pkgs-3a56b2c8ed.rds"
+  _rscript_stub_current_db "${FAKE_HOME}/elsewhere/pkgs-3a56b2c8ed.rds"
+  _run r-cache
+  [ "$status" -eq 0 ]
+  [ -f "$(_metadata_dir)/pkgs-02e08e016f.rds" ]
+  [ -f "$(_metadata_dir)/pkgs-3a56b2c8ed.rds" ]
+}
+
+@test "r-cache touches no snapshot when Rscript is not on PATH" {
+  _make_metadata
+  _run r-cache
+  [ "$status" -eq 0 ]
+  [ -f "$(_metadata_dir)/pkgs-02e08e016f.rds" ]
+  [ -f "$(_metadata_dir)/pkgs-ebe31bacf2.rds" ]
 }
 
 # ─── modules with no skip path always record OK ─────────────────────────────
@@ -521,7 +969,8 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in trash uv rv prek go r-cache claude-versions flatpak \
-    claude-cli jedi apt journal snap r-renv; do
+    claude-cli chromium-headless positron-pycache workspace-storage \
+    jedi apt journal snap r-renv; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1
@@ -672,6 +1121,37 @@ EOF
   summary="${output#*MODULE*FREED*STATUS}"
   [[ "$summary" == *"uv"*"skipped (not found)"* ]]
   [[ "$summary" == *"flatpak"*"skipped (not found)"* ]]
+}
+
+# ─── orphan hint from sys-orphans ───────────────────────────────────────────
+# The daily run ends with one line when sys-orphans counts findings, so dangling
+# references surface without anyone remembering to run the detector.
+
+@test "summary ends with an orphan hint when sys-orphans counts findings" {
+  _stub_command sys-orphans 'echo 3'
+  _run --dry-run trash
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"TOTAL"*"3 orphans found, run sys-orphans for details"* ]]
+}
+
+@test "no orphan hint when sys-orphans counts zero" {
+  _stub_command sys-orphans 'echo 0'
+  _run --dry-run trash
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"orphans found"* ]]
+}
+
+@test "no orphan hint when sys-orphans is not on PATH" {
+  _run --dry-run trash
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"orphans found"* ]]
+}
+
+@test "no orphan hint when sys-orphans prints something other than a count" {
+  _stub_command sys-orphans 'echo "boom"; exit 1'
+  _run --dry-run trash
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"orphans found"* ]]
 }
 
 @test "summary FREED column reports 0 B for skipped modules" {
