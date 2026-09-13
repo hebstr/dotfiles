@@ -1,0 +1,17 @@
+// Telechargements partiels
+*.part
+*.crdownload
+
+// Verrous bureautiques
+(?d)~$*
+(?d).~lock.*#
+
+// OS
+(?d).DS_Store
+(?d)._*
+(?d)(?i)thumbs.db
+(?d)(?i)desktop.ini
+(?d).directory
+(?d).Trash-*
+(?d)$RECYCLE.BIN
+(?d)System Volume Information

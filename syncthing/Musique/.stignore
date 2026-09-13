@@ -1,0 +1,7 @@
+// OS
+(?d).DS_Store
+(?d)._*
+(?d)(?i)thumbs.db
+(?d)(?i)desktop.ini
+(?d).directory
+(?d).Trash-*

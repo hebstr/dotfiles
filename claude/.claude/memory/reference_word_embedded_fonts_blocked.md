@@ -15,4 +15,6 @@ Leaving Protected View ("Activer la modification") changes nothing, which rules 
 
 How to apply: for a Word deliverable, treat font embedding as decorative and make the **ordered `w:altName` list** carry the intent. When the font matters for accessibility rather than for style (Luciole and the like), the robust route is installing it on the reading machines, not a file-side trick. Do not spend time debugging an embedding that looks correct on the writer's side.
 
+Applied in `hebstr` on 2026-09-13: native Word tables (`theme_ft()`) default to Aptos with `w:altName` Calibri instead of the session font, and `easy_out()` embeds no Office fallback family. Luciole stays on every other output (HTML, SVG, PNG, figures inside a docx). Design note: `R-hebstr/.claude/DOCX-FONTS.md`.
+
 Related: [[reference_quarto_extension_format_knitr]] for the font plumbing of `hebstr-doc`, [[project_md_nesrine_render_pitfalls]] for the docx render path.

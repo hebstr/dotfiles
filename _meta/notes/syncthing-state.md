@@ -22,11 +22,11 @@ Run on a fresh machine after:
 ```sh
 st-add-folder ~/.claude --ignore ~/dotfiles/syncthing/.claude/.stignore --versioning 1
 st-add-folder ~/Documents --id Documents --ignore ~/dotfiles/syncthing/Documents/.stignore
-st-add-folder ~/Musique --id Musique
+st-add-folder ~/Musique --id Musique --ignore ~/dotfiles/syncthing/Musique/.stignore
 st-add-folder ~/Images --id images/photos
 st-add-folder ~/Images --id images/screenshots
-st-add-folder ~/Téléchargements --id téléchargements
-st-add-folder ~/notes --id notes
+st-add-folder ~/Téléchargements --id téléchargements --ignore ~/dotfiles/syncthing/Téléchargements/.stignore
+st-add-folder ~/notes --id notes --ignore ~/dotfiles/syncthing/notes/.stignore
 st-add-folder ~/dotfiles --id dotfiles --ignore ~/dotfiles/.stignore
 st-add-folder ~/admin --ignore ~/dotfiles/syncthing/admin/.stignore
 st-add-folder ~/archive --ignore ~/dotfiles/syncthing/archive/.stignore

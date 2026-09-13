@@ -1,0 +1,18 @@
+// Etat d'interface Obsidian (propre a chaque machine)
+/.obsidian/workspace.json
+/.obsidian/workspace-mobile.json
+
+// Verrous bureautiques
+(?d)~$*
+(?d).~lock.*#
+
+// OS et editeurs
+(?d).DS_Store
+(?d)._*
+(?d)(?i)thumbs.db
+(?d)(?i)desktop.ini
+(?d).directory
+(?d).Trash-*
+(?d)*.swp
+(?d)*.swo
+(?d)*~
