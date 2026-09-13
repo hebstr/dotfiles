@@ -194,6 +194,7 @@ Paquets à lier sur WSL :
 | Paquet | Sur WSL | Raison |
 |---|---|---|
 | `bash`, `git`, `R`, `air`, `ruff`, `panache`, `prek`, `gh`, `bin` | oui | configs portables |
+| `agents` | oui, sans `--no-folding` | `~/.agents` doit rester un lien replié pour que l'installateur de skills (`.skill-lock.json`) écrive dans le dépôt |
 | `claude` | oui, avec `--no-folding` | voir ci-dessous |
 | `css` | après l'étape 7 | ses liens pointent vers `node_modules`, absent avant `npm ci` |
 | `firefox` | non | lié au profil `z24d9fn6.default-release` de la machine principale |
@@ -206,6 +207,7 @@ Test à blanc d'abord :
 ```bash
 cd ~/dotfiles
 stow -n -v --no-folding bash git R air ruff panache prek gh bin claude
+stow -n -v agents
 ```
 
 `--no-folding` est indispensable ici.
@@ -225,6 +227,7 @@ Quand le test à blanc est propre :
 
 ```bash
 stow -v --no-folding bash git R air ruff panache prek gh bin claude
+stow -v agents
 readlink -e ~/.bashrc
 exec bash -l
 ```

@@ -27,7 +27,7 @@ st-add-folder ~/Images --id images/photos
 st-add-folder ~/Images --id images/screenshots
 st-add-folder ~/Téléchargements --id téléchargements
 st-add-folder ~/notes --id notes
-st-add-folder ~/dotfiles --id dotfiles
+st-add-folder ~/dotfiles --id dotfiles --ignore ~/dotfiles/.stignore
 st-add-folder ~/admin --ignore ~/dotfiles/syncthing/admin/.stignore
 st-add-folder ~/archive --ignore ~/dotfiles/syncthing/archive/.stignore
 ```

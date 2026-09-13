@@ -3,23 +3,23 @@ repo = "local"
 hooks = [
   { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
   { id = "bats-tests", name = "check bats tests", entry = "bats _meta/tests/", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/|git/\.config/git/)' },
-  { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^bash/|\.bats$' },
-  { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '^_meta/profiles/' },
-  { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format", language = "system", files = '\.(md|qmd)$', exclude = '^(_meta/profiles/|_meta/notes/|claude/\.claude/(CLAUDE\.md|rules/|memory/|skills/))' },
+  { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^(bash|agents)/|\.bats$' },
+  { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '^(_meta/profiles|agents)/' },
+  { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format", language = "system", files = '\.(md|qmd)$', exclude = '^(agents/|_meta/profiles/|_meta/notes/|claude/\.claude/(CLAUDE\.md|rules/|memory/|skills/))' },
 ]
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
 rev = "v0.16.7"
 hooks = [
-  { id = "ruff-check", args = ["--fix"] },
-  { id = "ruff-format" },
+  { id = "ruff-check", args = ["--fix"], exclude = '^agents/' },
+  { id = "ruff-format", exclude = '^agents/' },
 ]
 
 [[repos]]
 repo = "local"
 hooks = [
-  { id = "pyrefly-check", name = "pyrefly check (.py)", entry = "pyrefly check -p default", language = "system", files = '\.py$' },
+  { id = "pyrefly-check", name = "pyrefly check (.py)", entry = "pyrefly check -p default", language = "system", files = '\.py$', exclude = '^agents/' },
 ]
 
 [[repos]]
@@ -42,12 +42,12 @@ hooks = [
 repo = "https://github.com/shellcheck-py/shellcheck-py"
 rev = "v0.11.0.1-1"
 hooks = [
-  { id = "shellcheck", exclude = '^bash/' }
+  { id = "shellcheck", exclude = '^(bash|agents)/' }
 ]
 
 [[repos]]
 repo = "https://github.com/scop/pre-commit-shfmt"
 rev = "v3.13.1-1"
 hooks = [
-  { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^bash/' }
+  { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^(bash|agents)/' }
 ]

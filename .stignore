@@ -1,0 +1,29 @@
+// Secrets
+.env
+
+// Artefacts dev
+.git
+.venv
+node_modules
+(?d)__pycache__
+(?d)*.pyc
+(?d).ruff_cache
+(?d).pytest_cache
+settings.local.json
+
+// Verrous bureautiques
+(?d)~$*
+(?d).~lock.*#
+
+// OS
+(?d).DS_Store
+(?d)._*
+(?d)(?i)thumbs.db
+(?d)(?i)desktop.ini
+(?d).directory
+(?d).Trash-*
+
+// Editeurs
+(?d)*.swp
+(?d)*.swo
+(?d)*~

@@ -1,59 +1,91 @@
-// Credentials et caches d'auth (jamais syncer)
+// Credentials, cles et caches d'auth (jamais syncer)
 .credentials.json
 mcp-needs-auth-cache.json
+/daemon
 
 // Caches et fichiers regenerables
 plugins/cache
+plugins/marketplaces
+plugins/installed_plugins.json*
+plugins/install-counts-cache.json
 projects/*/compacted
 stats-cache.json
 .last-cleanup
-cache/
-paste-cache/
-backups/
+.last-update-result.json
+cache
+paste-cache
+backups
 
-// Sessions et logs (volumineux, machine-specifiques)
+// Sessions, jobs et logs (volumineux, machine-specifiques)
 *.jsonl
-statsig/
-telemetry/
-file-history/
-sessions/
-session-env/
-shell-snapshots/
-todos/
-debug/
-ide/
+statsig
+telemetry
+file-history
+sessions
+session-env
+shell-snapshots
+todos
+debug
+ide
+/jobs
+/logs
+/downloads
+settings.local.json
+
+// Secrets
+.env
+.streamlit/secrets.toml
 
 // Artefacts dev
-.git/
-.venv/
-venv/
-.env/
-.quarto/
-_freeze/
-_site/
-_book/
-__pycache__/
-*.pyc
-*.pyo
-.ruff_cache/
-.mypy_cache/
-.pytest_cache/
-.ipynb_checkpoints/
-.tox/
-.nox/
-node_modules/
-target/
-.Rproj.user/
+.git
+.venv
+venv
+node_modules
+target
+dist
+_freeze
+_site
+_book
+*_files
+site_libs
+*.quarto_ipynb
+(?d).quarto
+(?d)__pycache__
+(?d)*.pyc
+(?d)*.pyo
+(?d).ruff_cache
+(?d).mypy_cache
+(?d).pytest_cache
+(?d).ipynb_checkpoints
+.tox
+.nox
+.ouroboros
+.luarc.json
+.Rproj.user
 .Rhistory
 .RData
-rv/library/
-rv/staging/
-renv/library/
-renv/staging/
+.Ruserdata
+Rplots.pdf
+rv/library
+rv/staging
+renv/library
+renv/staging
 
-// OS et editeurs
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
+// Verrous bureautiques
+(?d)~$*
+(?d).~lock.*#
+
+// OS
+(?d).DS_Store
+(?d)._*
+(?d)(?i)thumbs.db
+(?d)(?i)desktop.ini
+(?d).directory
+(?d).Trash-*
+(?d)$RECYCLE.BIN
+(?d)System Volume Information
+
+// Editeurs
+(?d)*.swp
+(?d)*.swo
+(?d)*~
