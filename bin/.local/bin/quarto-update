@@ -66,9 +66,10 @@ cleanup() {
   if [ "$SUDO_KEEPALIVE_PID" != "" ]; then
     kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   fi
-  if [ "$SWAPPED" = "1" ] && [ ! -d "$PREFIX" ] && [ "$BACKUP" != "" ] && [ -d "$BACKUP" ]; then
+  if [ "$SWAPPED" = "1" ] && [ "$BACKUP" != "" ] && [ -d "$BACKUP" ]; then
     echo "Install failed after backup: restoring ${BACKUP} to ${PREFIX}" >&2
-    sudo mv "$BACKUP" "$PREFIX" || echo "Rollback failed: ${BACKUP} still holds the previous install" >&2
+    { sudo rm -rf "$PREFIX" && sudo mv "$BACKUP" "$PREFIX"; } ||
+      echo "Rollback failed: ${BACKUP} still holds the previous install" >&2
   fi
   rm -rf "$TMP"
   exit "$rc"
@@ -121,10 +122,11 @@ else
   sudo mkdir -p "$(dirname "$PREFIX")"
 fi
 sudo mv "$STAGE" "$PREFIX"
+sudo chown -R root:root "$PREFIX"
 SWAPPED=0
 
-find "$(dirname "$PREFIX")" -maxdepth 1 -type d -name "$(basename "$PREFIX").bak-*" \
-  ! -path "${BACKUP:-/nonexistent}" -exec sudo rm -rf {} +
+[ "$BACKUP" = "" ] || find "$(dirname "$PREFIX")" -maxdepth 1 -type d -name "$(basename "$PREFIX").bak-*" \
+  ! -path "$BACKUP" -exec sudo rm -rf {} +
 
 sync_bin_link
 

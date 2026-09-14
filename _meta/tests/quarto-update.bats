@@ -18,6 +18,7 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/quarto-update"
 #   SHA256SUM_EXIT_CODE    exit code from the sha256sum stub (0 or 1)
 #   TAR_STUB_MODE          full | no_binary | not_executable | failing_binary
 #   MV_FAIL_ON_SOURCE      substring: mv fails when its source path contains it
+#   MV_FAIL_PARTIAL        1: that failing mv first leaves a partial destination
 #
 # The script reads two overridable paths, both pointed into a per-test ROOT:
 #   QUARTO_PREFIX          install tree (default /opt/quarto), populated by
@@ -66,20 +67,25 @@ printf '%s\n' "${QUARTO_CURRENT_VERSION:-1.9.0}"
 EOF
 
   # sudo ─ -v succeeds (initial auth); -n exits 1 (keepalive sees expired creds
-  # and terminates the loop); other invocations run the command unprivileged
+  # and terminates the loop); chown is logged to SUDO_CHOWN_LOG, since it cannot
+  # run unprivileged; other invocations run the command unprivileged
   cat >"${STUBS}/sudo" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
     -v) exit 0 ;;
     -n) exit 1 ;;
+    chown) printf '%s\n' "$*" >>"${SUDO_CHOWN_LOG}"; exit 0 ;;
     *)  exec "$@" ;;
 esac
 EOF
 
-  # mv ─ real mv, except it fails when the source matches MV_FAIL_ON_SOURCE
+  # mv ─ real mv, except it fails when the source matches MV_FAIL_ON_SOURCE;
+  # with MV_FAIL_PARTIAL=1 it first leaves a partial destination, as an
+  # interrupted cross-filesystem copy does
   cat >"${STUBS}/mv" <<'EOF'
 #!/usr/bin/env bash
 if [ -n "${MV_FAIL_ON_SOURCE:-}" ] && [[ "${1:-}" == *"${MV_FAIL_ON_SOURCE}"* ]]; then
+    [ "${MV_FAIL_PARTIAL:-0}" = 1 ] && mkdir -p "${2}/bin"
     echo "mv stub: refusing to move $1" >&2
     exit 1
 fi
@@ -160,6 +166,8 @@ setup() {
   export SHA256SUM_EXIT_CODE=0
   export TAR_STUB_MODE=full
   export MV_FAIL_ON_SOURCE=
+  export MV_FAIL_PARTIAL=0
+  export SUDO_CHOWN_LOG="${ROOT}/sudo-chown.log"
   export QUARTO_PREFIX="${ROOT}/opt/quarto"
   export QUARTO_BIN_LINK="${ROOT}/usr-local-bin/quarto"
   mkdir -p "${ROOT}/usr-local-bin"
@@ -282,6 +290,20 @@ teardown() {
   [[ "$output" == *"Backup kept"* ]]
 }
 
+@test "installed tree is handed to root" {
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  grep -qxF "chown -R root:root ${QUARTO_PREFIX}" "${SUDO_CHOWN_LOG}"
+}
+
+@test "first install keeps a backup left by an earlier failed rollback" {
+  rm -rf "${QUARTO_PREFIX}"
+  mkdir -p "${QUARTO_PREFIX}.bak-1.8.0-20260101-000000"
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [ -d "${QUARTO_PREFIX}.bak-1.8.0-20260101-000000" ]
+}
+
 @test "upgrade removes older backups" {
   mkdir -p "${QUARTO_PREFIX}.bak-1.8.0-20260101-000000"
   run bash "${SCRIPT}"
@@ -291,6 +313,16 @@ teardown() {
 
 @test "failed swap restores the previous install" {
   export MV_FAIL_ON_SOURCE=quarto-new
+  run bash "${SCRIPT}"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"restoring"* ]]
+  [ "$("${QUARTO_PREFIX}/bin/quarto")" = "1.9.0" ]
+  [ "$(compgen -G "${QUARTO_PREFIX}.bak-*" || true)" = "" ]
+}
+
+@test "swap failing after a partial copy still restores the previous install" {
+  export MV_FAIL_ON_SOURCE=quarto-new
+  export MV_FAIL_PARTIAL=1
   run bash "${SCRIPT}"
   [ "$status" -ne 0 ]
   [[ "$output" == *"restoring"* ]]
