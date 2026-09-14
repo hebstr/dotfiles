@@ -29,7 +29,7 @@ ALL_MODULES=(
   syncthing
 )
 
-SUDO_MODULES=(apt snap libreoffice syncthing pandoc)
+SUDO_MODULES=(apt snap devtools rig quarto pandoc positron anki libreoffice syncthing)
 
 usage() {
   cat <<EOF

@@ -462,7 +462,18 @@ Liste reprise du `README.md` des dotfiles ; l'absence de manifeste versionné es
 }
 ```
 
-- Polices référencées par le profil (Fira Code) : à installer côté Windows.
+- Polices référencées par le profil (Fira Code) : `fira-code-install` depuis WSL, qui installe `fonts-firacode` côté Linux et les polices par utilisateur côté Windows, avec leurs entrées de registre.
+- Si Windows Terminal n'affiche pas Fira Code : les mainteneurs de Windows Terminal attribuent les polices par utilisateur invisibles à un bug du cache de polices de Windows, contourné en redémarrant le service `FontCache` ou en installant la police pour tous les utilisateurs.
+- Profil Windows Terminal de la distribution (couleurs, curseur, Fira Code) : `_meta/profiles/wsl-terminal-ubuntu.json` est un fragment JSON, qui modifie le profil existant sans toucher au `settings.json` de Windows Terminal. Le copier depuis WSL, après `fira-code-install`, dans le dossier des fragments de l'utilisateur Windows :
+
+```bash
+fragments="$(wslpath -u "$(powershell.exe -NoProfile -NonInteractive -Command '$env:LOCALAPPDATA' | tr -d '\r')")/Microsoft/Windows Terminal/Fragments/dotfiles"
+mkdir -p "$fragments"
+cp ~/dotfiles/_meta/profiles/wsl-terminal-ubuntu.json "$fragments/"
+```
+
+- La clé `updates` désigne le profil par son GUID, qui ne se déduit pas du nom de la distribution : celui du fichier ne correspond pas au calcul documenté pour `Ubuntu-24.04`. Le relever dans le `settings.json` de Windows Terminal (entrée de la distribution sous `profiles.list`) et corriger le fragment s'il diffère.
+- Le fragment est une copie : une modification dans `~/dotfiles` ne l'atteint qu'en relançant `cp`.
 
 ## 9. Premier projet R
 
@@ -643,3 +654,6 @@ Consultées le 2026-09-13.
 - NodeSource : <https://github.com/nodesource/distributions/blob/master/DEV_README.md>
 - Claude Code, installation : <https://code.claude.com/docs/en/setup>
 - `loginctl` (linger) : <https://www.freedesktop.org/software/systemd/man/latest/loginctl.html>
+- Windows Terminal, fragments JSON (emplacement, clé `updates`, GUID des profils), consultée le 2026-09-14 : <https://learn.microsoft.com/en-us/windows/terminal/json-fragment-extensions>
+- Fira Code 6.2, archive sans empreinte publiée, consultée le 2026-09-14 : <https://github.com/tonsky/FiraCode/releases/download/6.2/Fira_Code_v6.2.zip>
+- Windows Terminal, polices par utilisateur (bug du cache de polices, contournements), consultées le 2026-09-14 : <https://github.com/microsoft/terminal/issues/3257>, <https://github.com/microsoft/terminal/issues/14231#issuecomment-1280827973>

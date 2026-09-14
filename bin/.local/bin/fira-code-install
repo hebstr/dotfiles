@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="6.2"
+ARCHIVE="Fira_Code_v${VERSION}.zip"
+URL="https://github.com/tonsky/FiraCode/releases/download/${VERSION}/${ARCHIVE}"
+# Upstream publishes no checksum: this digest pins the archive fetched on 2026-09-14.
+SHA256="0949915ba8eb24d89fd93d10a7ff623f42830d7c5ffc3ecbf960e4ecad3e3e79"
+# Static cuts only: the variable font declares the same family a second time.
+FONTS=(FiraCode-Bold FiraCode-Light FiraCode-Medium FiraCode-Regular FiraCode-Retina FiraCode-SemiBold)
+REG_KEY='HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+
+if [ "$#" -gt 0 ]; then
+  echo "Usage: fira-code-install (takes no arguments)" >&2
+  exit 2
+fi
+
+TMP=""
+cleanup() {
+  rc=$?
+  [ "$TMP" = "" ] || rm -rf "$TMP"
+  exit "$rc"
+}
+trap cleanup EXIT
+
+install_linux() {
+  local status
+  # shellcheck disable=SC2016
+  status=$(dpkg-query -W -f='${db:Status-Status}' fonts-firacode 2>/dev/null || true)
+  if [ "$status" = "installed" ]; then
+    echo "Linux: fonts-firacode already installed."
+    return 0
+  fi
+  echo "Linux: installing fonts-firacode..."
+  sudo apt-get install -y fonts-firacode
+}
+
+windows_installed() {
+  local font_dir=$1 name
+  for name in "${FONTS[@]}"; do
+    [ -f "${font_dir}/${name}.ttf" ] || return 1
+    reg.exe query "$REG_KEY" /v "${name} (TrueType)" >/dev/null 2>&1 || return 1
+  done
+}
+
+install_windows() {
+  local appdata font_dir win_font_dir name
+  # shellcheck disable=SC2016
+  appdata=$(powershell.exe -NoProfile -NonInteractive -Command '$env:LOCALAPPDATA' | tr -d '\r') || appdata=""
+  if [ "$appdata" = "" ]; then
+    echo "Windows: cannot resolve %LOCALAPPDATA%" >&2
+    return 1
+  fi
+  win_font_dir="${appdata}\\Microsoft\\Windows\\Fonts"
+  if ! font_dir=$(wslpath -u "$appdata"); then
+    echo "Windows: cannot convert ${appdata} to a WSL path" >&2
+    return 1
+  fi
+  font_dir="${font_dir}/Microsoft/Windows/Fonts"
+
+  if windows_installed "$font_dir"; then
+    echo "Windows: Fira Code already installed for the current user."
+    return 0
+  fi
+
+  TMP=$(mktemp -d)
+  echo "Windows: downloading Fira Code ${VERSION}..."
+  curl -fsSL -o "${TMP}/${ARCHIVE}" "$URL"
+  if ! printf '%s  %s\n' "$SHA256" "${TMP}/${ARCHIVE}" | sha256sum -c --quiet -; then
+    echo "Windows: checksum mismatch on ${ARCHIVE}: aborting" >&2
+    return 1
+  fi
+  unzip -q -j "${TMP}/${ARCHIVE}" 'ttf/*.ttf' -d "${TMP}/ttf"
+
+  mkdir -p "$font_dir"
+  for name in "${FONTS[@]}"; do
+    cp -f "${TMP}/ttf/${name}.ttf" "${font_dir}/"
+    reg.exe add "$REG_KEY" /v "${name} (TrueType)" /t REG_SZ /d "${win_font_dir}\\${name}.ttf" /f >/dev/null
+  done
+  echo "Windows: installed ${#FONTS[@]} fonts. Restart Windows applications to pick them up."
+}
+
+install_linux
+if [ "${WSL_DISTRO_NAME:-}" = "" ]; then
+  echo "Not running under WSL: Windows install skipped."
+elif ! command -v powershell.exe >/dev/null 2>&1; then
+  echo "WSL interop unavailable (powershell.exe not on PATH): Windows install skipped." >&2
+  exit 1
+else
+  install_windows
+fi

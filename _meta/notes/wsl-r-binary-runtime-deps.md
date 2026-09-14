@@ -12,7 +12,7 @@ Initialisation d'une **machine secondaire** (`ju-TP2`) sous Windows, en suivant 
 - R 4.6.1 installé par `rig`, `Rprofile.site` lié par `stow-rprofile` (dépôt PPM `__linux__/noble`, donc paquets **binaires**), `rv` 0.22.2
 - Positron côté Windows, connecté à WSL par son serveur distant (`~/.positron-server`, 2026.09.1-2). La seule Quarto sur le PATH est celle qu'il embarque (1.10.18) : `/opt/quarto` est absent, `quarto-update` n'a pas encore tourné.
 
-Place dans le tutoriel : après l'étape 7 (« R, Quarto, Pandoc »), au premier `rv sync` d'un projet. Les étapes 2 et 3 ne suffisent pas pour ce cas, voir « Écarts » en fin de note.
+Place dans le tutoriel : après l'étape 7 (« Toolchain »), au premier `rv sync` d'un projet (étape 9, « Premier projet R »). Les étapes 2 et 3 ne suffisent pas pour ce cas, voir « Écarts » en fin de note.
 
 ## Symptôme
 

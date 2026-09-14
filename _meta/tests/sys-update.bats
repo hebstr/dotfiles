@@ -9,7 +9,7 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/sys-update"
 # the commands explicitly stubbed are visible to the script. This is how
 # "command not installed" cases are simulated: omit the stub.
 #
-# Default setup() installs sudo + sleep stubs and links cat, paste and bash;
+# Default setup() installs a sudo stub and links cat, paste and bash;
 # per-test helpers add
 # more stubs (apt-get, snap, npm, etc.) as needed.
 
@@ -29,7 +29,6 @@ _install_sudo_stub() {
 #!/usr/bin/env bash
 case "$1" in
     -v) exit 0 ;;
-    -n) exit 1 ;;
     *)  exec "$@" ;;
 esac
 EOF
@@ -42,7 +41,6 @@ setup() {
   STUBS="$(mktemp -d)"
   export STUBS
   _install_sudo_stub
-  _stub_command sleep
   # Symlink the few coreutils the script itself needs (cat/paste used by
   # usage()). Bats's own PATH stays untouched; we restrict the script's
   # PATH only via _run (see below), so that absent-from-STUBS == "command
@@ -114,8 +112,13 @@ teardown() {
   echo "$output" | grep -E '^libreoffice[[:space:]]+yes$'
   echo "$output" | grep -E '^syncthing[[:space:]]+yes$'
   echo "$output" | grep -E '^npm[[:space:]]+no$'
-  echo "$output" | grep -E '^quarto[[:space:]]+no$'
+  echo "$output" | grep -E '^quarto[[:space:]]+yes$'
   echo "$output" | grep -E '^pandoc[[:space:]]+yes$'
+  echo "$output" | grep -E '^positron[[:space:]]+yes$'
+  echo "$output" | grep -E '^anki[[:space:]]+yes$'
+  echo "$output" | grep -E '^rig[[:space:]]+yes$'
+  echo "$output" | grep -E '^devtools[[:space:]]+yes$'
+  echo "$output" | grep -E '^duckdb[[:space:]]+no$'
   echo "$output" | grep -E '^lua-toolchain[[:space:]]+no$'
 }
 
@@ -404,7 +407,6 @@ EOF
 printf '%s\n' "\$1" >> "${STUBS}/sudo.log"
 case "\$1" in
     -v) exit 0 ;;
-    -n) exit 1 ;;
     *)  exec "\$@" ;;
 esac
 EOF

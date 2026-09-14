@@ -1,0 +1,14 @@
+{
+  "profiles": [
+    {
+      "updates": "{14f773c1-a892-5716-89cd-d60449907521}",
+      "background": "#282828",
+      "foreground": "#ffffff",
+      "cursorShape": "bar",
+      "font": {
+        "face": "Fira Code",
+        "size": 9
+      }
+    }
+  ]
+}

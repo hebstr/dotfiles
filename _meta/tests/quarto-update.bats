@@ -323,6 +323,7 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"nothing to do"* ]]
   [ -L "${QUARTO_BIN_LINK}" ]
+  [ "$(readlink -f "${QUARTO_BIN_LINK}")" = "$(readlink -f "${QUARTO_PREFIX}/bin/quarto")" ]
 }
 
 @test "repoints a PATH link that targets another quarto" {
