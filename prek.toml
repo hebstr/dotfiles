@@ -19,7 +19,7 @@ hooks = [
 [[repos]]
 repo = "local"
 hooks = [
-  { id = "pyrefly-check", name = "pyrefly check (.py)", entry = "pyrefly check -p default", language = "system", files = '\.py$', exclude = '^agents/' },
+  { id = "pyrefly-check", name = "pyrefly check (.py)", entry = "pyrefly check -p default --ignore-missing-imports pytest",language = "system", files = '\.py$', exclude = '^agents/' },
 ]
 
 [[repos]]

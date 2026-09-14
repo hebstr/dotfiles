@@ -240,6 +240,18 @@ teardown() {
   [ "$(wc -l <"${STATE}/reg-add")" -eq 6 ]
 }
 
+@test "leaves an identical font file untouched when a reinstall runs" {
+  _populate_font_dir
+  chmod 444 "${FONT_DIR}"/*.ttf
+  chmod 555 "${FONT_DIR}"
+  export REG_PRESENT=1
+  export REG_MISSING="FiraCode-Retina (TrueType)"
+  run bash "${SCRIPT}"
+  chmod 755 "${FONT_DIR}"
+  [ "$status" -eq 0 ]
+  [ "$(wc -l <"${STATE}/reg-add")" -eq 6 ]
+}
+
 @test "reinstalls when the files exist but the registry does not" {
   _populate_font_dir
   run bash "${SCRIPT}"

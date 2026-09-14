@@ -3,6 +3,8 @@
 *2026-08-02T07:48:00Z by Showboat 0.6.1*
 <!-- showboat-id: 6c86ff5d-4152-49b0-a80b-80bdb5842934 -->
 
+Sorties de la vérification de version et du contrôle `discover.py` relevées à nouveau le 2026-09-14, après le passage du venv d'`eds-prise` en Python 3.14 et de Streamlit en 1.63 ; le reste du document date de l'installation.
+
 Streamlit livre ses agent skills dans le paquet pip depuis la 1.57 ; le repo `streamlit/agent-skills` qui les hébergeait est archivé et `streamlit/streamlit` est la source canonique. Le mode global installe un méta-skill de quelques lignes dans le répertoire utilisateur, qui découvre à l'exécution le Streamlit du projet courant : une seule installation reste valable pour tous les projets, quelle que soit leur version de Streamlit. Le mode projet, lui, poserait des symlinks vers le venv, cassés à chaque rebuild.
 
 Version installée dans le projet, et emplacement des skills empaquetés.
@@ -13,8 +15,8 @@ uv run python -c "import streamlit, pathlib; print(streamlit.__version__); print
 ```
 
 ```output
-1.60.0
-/home/julien/Documents/des/eds/eds-prise/.venv/lib/python3.13/site-packages/streamlit/.agents
+1.63.0
+/home/julien/Documents/des/eds/eds-prise/.venv/lib/python3.14/site-packages/streamlit/.agents
 ```
 
 Installation globale, non interactive.
@@ -56,7 +58,7 @@ description: "Use for ALL Streamlit tasks: creating, editing, debugging, beautif
 allowed-tools: Bash(python ${CLAUDE_SKILL_DIR}/scripts/discover.py:*) Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/discover.py:*)
 ```
 
-La promesse du mode global tient à `discover.py` : lancé depuis un projet, il doit résoudre le Streamlit de ce projet et pointer vers ses références empaquetées. Contrôle depuis `eds-prise` (venv uv, Streamlit 1.60).
+La promesse du mode global tient à `discover.py` : lancé depuis un projet, il doit résoudre le Streamlit de ce projet et pointer vers ses références empaquetées. Contrôle depuis `eds-prise` (venv uv, Streamlit 1.63).
 
 ```sh
 cd ~/Documents/des/eds/eds-prise
@@ -64,7 +66,7 @@ python3 ~/.agents/skills/developing-with-streamlit/scripts/discover.py 2>&1 | he
 ```
 
 ```output
-/home/julien/Documents/des/eds/eds-prise/.venv/lib/python3.13/site-packages/streamlit/.agents/skills/developing-with-streamlit/SKILL.md
+/home/julien/Documents/des/eds/eds-prise/.venv/lib/python3.14/site-packages/streamlit/.agents/skills/developing-with-streamlit/SKILL.md
 ```
 
 Portée et réserve : le skill est un routeur, il ne charge qu'une ou deux références de `references/` selon la demande, le coût en contexte reste donc à la demande. Sa `description` est en revanche très large (elle liste `CSS`, `color`, `theme`, `button` parmi ses triggers) : elle se déclenchera aussi sur du CSS étranger à Streamlit, par exemple les thèmes Quarto. Ses conseils visent des dashboards génériques et restent une source, pas une autorité, face à du CSS écrit à la main.

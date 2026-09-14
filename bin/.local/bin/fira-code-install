@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The Windows check tests presence only: a bump reaches Windows after its fonts are removed and the session restarted.
 VERSION="6.2"
 ARCHIVE="Fira_Code_v${VERSION}.zip"
 URL="https://github.com/tonsky/FiraCode/releases/download/${VERSION}/${ARCHIVE}"
@@ -74,10 +75,11 @@ install_windows() {
 
   mkdir -p "$font_dir"
   for name in "${FONTS[@]}"; do
-    cp -f "${TMP}/ttf/${name}.ttf" "${font_dir}/"
+    # Windows holds a loaded font file open, so overwriting it fails even with identical bytes.
+    cmp -s "${TMP}/ttf/${name}.ttf" "${font_dir}/${name}.ttf" || cp -f "${TMP}/ttf/${name}.ttf" "${font_dir}/"
     reg.exe add "$REG_KEY" /v "${name} (TrueType)" /t REG_SZ /d "${win_font_dir}\\${name}.ttf" /f >/dev/null
   done
-  echo "Windows: installed ${#FONTS[@]} fonts. Restart Windows applications to pick them up."
+  echo "Windows: installed ${#FONTS[@]} fonts. Sign out of Windows and back in to load them."
 }
 
 install_linux
