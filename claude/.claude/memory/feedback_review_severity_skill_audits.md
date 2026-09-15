@@ -1,11 +1,11 @@
 ---
 name: Review calibration for Claude Code skill audits
-description: "When auditing SKILL.md files (skill-adversary, blindspot, walkthrough on skills), reject seven recurring false-positive patterns: harness portability hedging, declared-prior anchoring concerns, CLAUDE.md duplication for tool-call narration, explicit-invocation false-negatives, half-read compound criteria, upstream-owned triggers restated per skill, and checklist items restating a neighbouring section"
+description: "When auditing SKILL.md files or Claude Code agent definitions (agents/*.md) (skill-adversary, blindspot, walkthrough on skills or agents), reject seven recurring false-positive patterns: harness portability hedging, declared-prior anchoring concerns, CLAUDE.md duplication for tool-call narration, explicit-invocation false-negatives, half-read compound criteria, upstream-owned triggers restated per skill, and checklist items restating a neighbouring section"
 metadata:
   type: feedback
 ---
 
-When reviewing or auditing `SKILL.md` files in `claude-code-plugins/` (and similar Claude Code skill repos), do **not** apply the following patterns from external/cross-model reviewers:
+When reviewing or auditing `SKILL.md` files, or the agent definitions (`agents/*.md`) a skill executes, in `claude-code-plugins/` (and similar Claude Code skill repos), do **not** apply the following patterns from external/cross-model reviewers:
 
 1. **Hypothetical-harness portability hedging.** Findings like "the skill assumes parallel agent calls in one message: might break in a harness that doesn't support that" are not actionable. The skill targets Claude Code, where parallel `Agent` tool calls in one assistant message are a documented, standard pattern (explicit in CLAUDE.md and used by every workflow skill in this repo). Portability to hypothetical reduced-capability MCP harnesses is not a goal.
 
