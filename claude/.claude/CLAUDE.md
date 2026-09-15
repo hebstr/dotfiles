@@ -59,6 +59,7 @@ For language-specific conventions (idioms and style, formatters, linters, CLI fl
 ## Git
 
 - Never run git write commands (commit, add, push, reset, branch, tag, merge, rebase, PR creation). User manages all git operations. A "y" or "ok" in conversation is not authorization. Note: the lint/format gate's auto-fixers and formatters (air, ruff format, shellharden, `ruff check --fix`) rewrite tracked files in place; that file mutation is part of the gate, not a git operation. Opt-in logic-rewriting fixers that are not part of the default gate (e.g. `cargo clippy --fix`, which requires a clean tree) are excluded from this exemption. If a rewrite produces an unwanted diff, surface it explicitly and let the user revert with their own git command.
+- **Every commit suggestion carries its message.** Whenever you suggest that the user commit, whether asked or on your own initiative, propose a message: header line only, no body, following Conventional Commits (`type(scope): subject`, with the scope taken from the repository's recent `git log` when it uses one). When you suggest splitting the work into several commits, give for each commit, in order, the staging command followed by its header, so each block runs as written; stage with explicit paths or `git add -u`, never `git add -A` (see `feedback_commit_sequence_add_all.md`). A split whose hunks share a file cannot be staged by path: say so and propose a single commit, or name the file that needs `git add -p`.
 
 ## Plan & memory discipline
 
