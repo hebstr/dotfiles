@@ -166,6 +166,24 @@ def test_reponses_rangees_sous_leur_racine(tmp_path: Path) -> None:
     assert items[0].index("> Réponse.") < items[0].index("> Relance.")
 
 
+def test_cycle_de_reponses_ne_perd_aucun_commentaire(tmp_path: Path) -> None:
+    a, b = ["A ?"], ["B."]
+    docx = make_docx(
+        tmp_path / "a.docx",
+        para(start(1), start(2), run("passage"), end(1), end(2)),
+        [comment(1, a), comment(2, b)],
+        extended=[
+            (last_para(1, a), last_para(2, b), False),
+            (last_para(2, b), last_para(1, a), False),
+        ],
+    )
+    proc, out = build(tmp_path, docx)
+    assert proc.returncode == 0, proc.stderr
+    md = out.read_text(encoding="utf-8")
+    assert "> A ?" in md and "> B." in md
+    assert len(entries(md)) == 2
+
+
 def test_sans_comments_extended_chaque_commentaire_est_un_point(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
@@ -175,7 +193,11 @@ def test_sans_comments_extended_chaque_commentaire_est_un_point(tmp_path: Path) 
     )
     proc, out = build(tmp_path, docx)
     assert proc.returncode == 0, proc.stderr
-    assert len(entries(out.read_text(encoding="utf-8"))) == 2
+    md = out.read_text(encoding="utf-8")
+    assert len(entries(md)) == 2
+    assert "sans réponse" not in md
+    assert "réponses non rangées, `word/commentsExtended.xml` absent" in md
+    assert "réponses non rangées" in proc.stderr
 
 
 def test_ancre_sur_plusieurs_paragraphes(tmp_path: Path) -> None:
@@ -321,6 +343,15 @@ def test_equation_et_objet_sans_texte(tmp_path: Path) -> None:
     assert "0 sans ancre" in proc.stderr
 
 
+def test_ancre_sur_un_passage_insere(tmp_path: Path) -> None:
+    body = para(run("la "), start(1), inserted("matrice"), end(1), run(" suit"))
+    docx = make_docx(tmp_path / "a.docx", body, [comment(1, ["Pourquoi ce mot ?"])])
+    _, out = build(tmp_path, docx)
+    md = out.read_text(encoding="utf-8")
+    assert "ancré sur un passage inséré en suivi de modifications « matrice »." in md
+    assert "objet sans texte" not in md
+
+
 def test_reponse_sans_date(tmp_path: Path) -> None:
     racine = ["Question ?"]
     sans_date = (
@@ -369,6 +400,17 @@ def test_section_par_niveau_de_plan_herite(tmp_path: Path) -> None:
     )
 
 
+def test_ponctuation_finale_retiree_des_titres(tmp_path: Path) -> None:
+    body = para(run("Questions en suspens ?"), style="Titre1") + para(
+        start(1), run("passage"), end(1)
+    )
+    docx = make_docx(tmp_path / "a.docx", body, [comment(1, ["Remarque"])])
+    _, out = build(tmp_path, docx)
+    assert "**Localisation** : « Questions en suspens », extrait visé" in out.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_titre_de_meme_niveau_remplace_le_precedent(tmp_path: Path) -> None:
     body = (
         para(run("Chapitre A"), style="Titre1")
@@ -389,6 +431,18 @@ def test_commentaire_sans_ancre(tmp_path: Path) -> None:
         encoding="utf-8"
     )
     assert "1 sans ancre" in proc.stderr
+
+
+def test_commentaire_hors_du_corps(tmp_path: Path) -> None:
+    body = para(run("Chapitre"), style="Titre1") + para(start(1), run("passage"), end(1))
+    docx = make_docx(
+        tmp_path / "a.docx", body, [comment(1, ["Dans le corps"]), comment(2, ["En-tête"])]
+    )
+    proc, out = build(tmp_path, docx)
+    md = out.read_text(encoding="utf-8")
+    assert "**Localisation** : hors du corps du document et de ses notes." in md
+    assert "avant le premier titre" not in md
+    assert "0 sans ancre, 1 hors du corps" in proc.stderr
 
 
 def test_ponctuation_finale_retiree_de_l_extrait(tmp_path: Path) -> None:
@@ -419,6 +473,21 @@ def test_localisation_contre_la_source(tmp_path: Path, source: str, attendu: str
     src.write_text(source, encoding="utf-8")
     _, out = build(tmp_path, docx, "--source", str(src))
     assert attendu in out.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("contenu", [None, b"\xff\xfe latin"], ids=["absente", "non_utf8"])
+def test_source_illisible(tmp_path: Path, contenu: bytes | None) -> None:
+    docx = make_docx(
+        tmp_path / "a.docx", para(start(1), run("passage"), end(1)), [comment(1, ["Remarque"])]
+    )
+    src = tmp_path / "index.qmd"
+    if contenu is not None:
+        src.write_bytes(contenu)
+    proc, out = build(tmp_path, docx, "--source", str(src))
+    assert proc.returncode != 0
+    assert "Traceback" not in proc.stderr
+    assert "illisible" in proc.stderr
+    assert not out.exists()
 
 
 def test_refus_d_ecraser_un_registre(tmp_path: Path) -> None:
@@ -480,8 +549,12 @@ def test_accord_une_seule_reponse(tmp_path: Path) -> None:
 
 
 def test_accord_sans_reponse(tmp_path: Path) -> None:
+    texts = ["Remarque"]
     docx = make_docx(
-        tmp_path / "a.docx", para(start(1), run("passage"), end(1)), [comment(1, ["Remarque"])]
+        tmp_path / "a.docx",
+        para(start(1), run("passage"), end(1)),
+        [comment(1, texts)],
+        extended=[(last_para(1, texts), None, False)],
     )
     proc, out = build(tmp_path, docx)
     assert "Le fichier porte 1 commentaire, sans réponse : 1 point." in out.read_text(

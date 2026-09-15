@@ -41,8 +41,10 @@ class Comment:
     parent: str | None = None
     done: bool = False
     anchor: str = ""
+    inserted: str = ""
     section: list[str] = field(default_factory=list)
     anchored: bool = False
+    located: bool = False
     replies: list["Comment"] = field(default_factory=list)
 
 
@@ -206,6 +208,7 @@ def walk_body(archive: zipfile.ZipFile, comments: dict[str, Comment]) -> list[st
         elif el.tag == W + "commentRangeStart" and cid in comments:
             open_ids.add(cid)
             comments[cid].anchored = True
+            comments[cid].located = True
             comments[cid].section = list(heads)
             if cid not in order:
                 order.append(cid)
@@ -220,11 +223,15 @@ def walk_body(archive: zipfile.ZipFile, comments: dict[str, Comment]) -> list[st
                 open_ids.clear()
                 open_ids.update(outer)
         elif el.tag == W + "commentReference" and cid in comments and cid not in order:
+            comments[cid].located = True
             comments[cid].section = list(heads)
             order.append(cid)
         elif text := original_text(el, parents):
             for oid in open_ids:
                 comments[oid].anchor += text
+        elif el.tag == W + "t" and open_ids and is_inserted(el, parents):
+            for oid in open_ids:
+                comments[oid].inserted += el.text or ""
         for child in el:
             visit(child)
         if el.tag == W + "p":
@@ -237,11 +244,14 @@ def walk_body(archive: zipfile.ZipFile, comments: dict[str, Comment]) -> list[st
 
 def thread(comments: dict[str, Comment], order: list[str]) -> list[Comment]:
     def root_of(c: Comment) -> Comment:
-        seen: set[str] = set()
-        while c.parent and c.parent in comments and c.parent not in seen:
-            seen.add(c.cid)
-            c = comments[c.parent]
-        return c
+        seen = {c.cid}
+        cur = c
+        while cur.parent and cur.parent in comments:
+            if cur.parent in seen:
+                return c
+            seen.add(cur.parent)
+            cur = comments[cur.parent]
+        return cur
 
     roots: list[Comment] = []
     for cid in order:
@@ -292,14 +302,18 @@ def quote(paragraphs: list[str]) -> str:
     return "\n".join(f"> {p}" for p in paragraphs) if paragraphs else "> (commentaire vide)"
 
 
-def render(docx: Path, roots: list[Comment], total: int, source: tuple[Path, str] | None) -> str:
+def render(
+    docx: Path, roots: list[Comment], total: int, threaded: bool, source: tuple[Path, str] | None
+) -> str:
     authors = sorted({c.author for c in roots} | {r.author for c in roots for r in c.replies})
     dates = sorted(
         {c.date for c in roots if c.date} | {r.date for c in roots for r in c.replies if r.date}
     )
     span = f"{dates[0]} au {dates[-1]}" if len(dates) > 1 else (dates[0] if dates else "non datés")
     replies = total - len(roots)
-    if replies == 0:
+    if not threaded:
+        threads = "réponses non rangées, `word/commentsExtended.xml` absent"
+    elif replies == 0:
         threads = "sans réponse"
     elif replies == 1:
         threads = "dont 1 réponse rangée sous le commentaire qu'elle prolonge"
@@ -328,12 +342,16 @@ def render(docx: Path, roots: list[Comment], total: int, source: tuple[Path, str
         "À établir après la pose de la liste.",
     ]
     for n, c in enumerate(roots, 1):
-        where = " > ".join(f"« {h} »" for h in c.section) or "avant le premier titre"
+        where = " > ".join(f"« {clean_extract(h)} »" for h in c.section) or "avant le premier titre"
         extract = clean_extract(c.anchor)
-        if c.anchored and extract:
+        if not c.located:
+            loc = "hors du corps du document et de ses notes"
+        elif c.anchored and extract:
             loc = f"{where}, extrait visé « {extract} »"
             if source is not None:
                 loc += f" ({locate(extract, source[1])})"
+        elif c.anchored and (inserted := clean_extract(c.inserted)):
+            loc = f"{where}, ancré sur un passage inséré en suivi de modifications « {inserted} »"
         elif c.anchored:
             loc = f"{where}, ancré sur un objet sans texte"
         else:
@@ -386,16 +404,27 @@ def main() -> None:
         if not comments:
             sys.exit(f"{args.docx} ne porte aucun commentaire")
         order = walk_body(archive, comments)
+        threaded = "word/commentsExtended.xml" in archive.namelist()
     roots = thread(comments, order)
-    source = (args.source, args.source.read_text(encoding="utf-8")) if args.source else None
+    try:
+        source = (args.source, args.source.read_text(encoding="utf-8")) if args.source else None
+    except (OSError, UnicodeDecodeError) as err:
+        sys.exit(f"{args.source} illisible : {err}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(render(args.docx, roots, len(comments), source), encoding="utf-8")
+    args.output.write_text(
+        render(args.docx, roots, len(comments), threaded, source), encoding="utf-8"
+    )
 
-    unanchored = sum(1 for c in roots if not c.anchored)
+    unanchored = sum(1 for c in roots if c.located and not c.anchored)
+    outside = sum(1 for c in roots if not c.located)
     summary = (
         f"{plural(len(comments), 'commentaire')}, {plural(len(roots), 'point')}, "
         f"{plural(len(comments) - len(roots), 'réponse')}, {unanchored} sans ancre"
     )
+    if outside:
+        summary += f", {outside} hors du corps"
+    if not threaded:
+        summary += ", réponses non rangées (word/commentsExtended.xml absent)"
     if source is not None:
         status = [
             locate(clean_extract(c.anchor), source[1])
