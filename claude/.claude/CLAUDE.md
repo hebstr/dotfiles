@@ -35,6 +35,12 @@ For language-specific conventions (idioms and style, formatters, linters, CLI fl
 - The source is a git working tree elsewhere on the system (typically under `~/Documents/`, `~/projects/`, or another dev path). Find it via `git remote get-url origin` inside the marketplace clone, then search `~` for another git repo with the same remote URL. If the search returns nothing or multiple candidates, ask the user where the source clone lives. Apply the edit on the source.
 - After patching the source, the downstream copies drift until the user pushes and refreshes the plugin. That is a git op under user control; do not attempt it.
 
+### Skills named in the user's message
+
+- **A `/<name>` the user types anywhere in a message, including at its end, is an invocation: call the `Skill` tool with that name before any other work.** The harness only expands a slash command that opens the message, so a trailing one reaches the model as plain text and nothing loads unless the model acts on it. The user habitually places it at the end.
+- **Absence from the skill listing proves nothing.** A skill carrying `disable-model-invocation: true` (`cadrer`, `relire`, `depouiller` among the user's own) is hidden from the listing yet still loads when the user typed its name, which the `Skill` tool accepts. Call it rather than concluding it does not exist; never read its `SKILL.md` as a substitute, which skips the harness loading.
+- Only when the `Skill` call itself fails, check `~/.claude/skills/<name>/SKILL.md` and the project's `.claude/skills/`, then report the actual error to the user. Never replace the skill's procedure with an improvised one without saying so.
+
 ## Coding preferences
 
 - No inline comments in code, with narrow exceptions: a single short line is allowed for a non-obvious regex, a workaround for a documented external bug, or a subtle invariant that would surprise a reader. The bar is "would removing this confuse a future reader who knows the language well?". Never explain WHAT the code does: only WHY when WHY is non-obvious.
