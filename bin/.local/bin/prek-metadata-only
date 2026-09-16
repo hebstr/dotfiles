@@ -2,12 +2,17 @@
 # prek-metadata-only: the metadata-only prek hook, refusing a commit whose staged binary outputs changed
 # only in write metadata.
 #
-# Takes the filenames prek passes and keeps those staged as modified. A file
-# whose `git diff --cached` patch comes out empty through the out-textconv diff
-# driver (git/.config/git/out-textconv.py) differed in timestamps, font keys or
-# PNG tIME chunks alone; the hook lists them and prints the `git restore`
-# command, restoring being left to the user. Added files always pass, so a new
-# dated deliverable is never blocked.
+# Hook mode takes the filenames prek passes and keeps those staged as modified.
+# A file whose `git diff --cached` patch comes out empty through the out-textconv
+# diff driver (git/.config/git/out-textconv.py) differed in timestamps, font keys
+# or PNG tIME chunks alone; the hook lists them and points to --restore,
+# restoring being left to the user. Added files always pass, so a new dated
+# deliverable is never blocked. The hook runs with require_serial in prek.toml,
+# so the message prints once rather than once per batch.
+#
+# --restore recomputes that set over the whole index when it runs and restores
+# each file from HEAD, or only unstages it when its working copy was re-rendered
+# since staging. Files not routed through out-textconv are left alone.
 #
 # Fails closed: without a diff.out-textconv.textconv entry, or on a file whose
 # diff attribute is not out-textconv, git would print
@@ -17,16 +22,65 @@ set -euo pipefail
 
 export GIT_LITERAL_PATHSPECS=1
 
+usage() {
+  echo "usage: prek-metadata-only <file>... | prek-metadata-only --restore" >&2
+  exit 2
+}
+
+is_routed() {
+  [[ "$(git check-attr --cached diff -- "$1")" == *": diff: out-textconv" ]]
+}
+
+is_noise() {
+  local patch
+  # errexit is off inside a condition, and a failing driver must not read as an empty patch
+  patch="$(git diff --cached --textconv --no-ext-diff --no-color -- "$1")" || exit
+  [[ -z "$patch" ]]
+}
+
+restore() {
+  local file restored=0
+  mapfile -d '' -t modified < <(git diff --cached --name-only -z --diff-filter=M)
+
+  for file in "${modified[@]}"; do
+    if ! is_routed "$file" || ! is_noise "$file"; then
+      continue
+    fi
+    if git diff --quiet -- "$file"; then
+      git restore --staged --worktree -- "$file"
+      printf 'restored  %s\n' "$file"
+    else
+      git restore --staged -- "$file"
+      printf 'unstaged  %s (working copy re-rendered, kept)\n' "$file"
+    fi
+    restored=$((restored + 1))
+  done
+
+  ((restored > 0)) || echo "no staged output changed only in write metadata"
+}
+
+if [[ "${1-}" == --restore ]]; then
+  (($# == 1)) || usage
+  mode=restore
+else
+  mode=check
+fi
+
 if [[ -z "$(git config --get diff.out-textconv.textconv)" ]]; then
   echo "diff driver out-textconv is not configured (stow git): cannot tell write metadata from content" >&2
   exit 1
+fi
+
+if [[ "$mode" == restore ]]; then
+  restore
+  exit 0
 fi
 
 mapfile -d '' -t modified < <(git diff --cached --name-only -z --diff-filter=M -- "$@")
 
 unmapped=()
 for file in "${modified[@]}"; do
-  [[ "$(git check-attr --cached diff -- "$file")" == *": diff: out-textconv" ]] || unmapped+=("$file")
+  is_routed "$file" || unmapped+=("$file")
 done
 
 if ((${#unmapped[@]} > 0)); then
@@ -40,19 +94,21 @@ fi
 
 noise=()
 for file in "${modified[@]}"; do
-  patch="$(git diff --cached --textconv --no-ext-diff --no-color -- "$file")"
-  [[ -z "$patch" ]] && noise+=("$file")
+  is_noise "$file" && noise+=("$file")
 done
 
 ((${#noise[@]} == 0)) && exit 0
 
+if ((${#noise[@]} == 1)); then
+  subject="1 staged output"
+else
+  subject="${#noise[@]} staged outputs"
+fi
+
 {
-  echo "staged outputs whose only change is write metadata (empty out-textconv patch):"
+  printf '%s changed only in write metadata (timestamps, IDs), not in content:\n\n' "$subject"
   printf '  %s\n' "${noise[@]}"
-  echo "restore them before committing (a working copy holding real changes is only unstaged):"
-  printf '  for f in'
-  printf ' %q' "${noise[@]}"
-  # shellcheck disable=SC2016
-  printf '; do git --literal-pathspecs diff --quiet -- "$f" && git --literal-pathspecs restore --staged --worktree -- "$f" || git --literal-pathspecs restore --staged -- "$f"; done\n'
+  printf '\nTo drop these rewrites (a file re-rendered since staging is only unstaged):\n\n'
+  printf '  prek-metadata-only --restore\n'
 } >&2
 exit 1

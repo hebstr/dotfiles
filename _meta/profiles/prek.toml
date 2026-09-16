@@ -17,7 +17,7 @@ hooks = [
   { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^bash/|\.bats$' },
   { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '(^|/)\.claude/|-context\.md$' },
   { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format --force-exclude", language = "system", files = '\.(md|qmd)$', exclude = '(^|/)(\.claude/|CLAUDE\.md$|PLAN\.md$|DEFERRED\.md$|LICENSE\.md$)|-context\.md$' },
-  { id = "metadata-only", name = "metadata-only rewrite (.docx/.pptx/.xlsx/.png)", entry = "prek-metadata-only", language = "system", files = '\.(docx|pptx|xlsx|png)$' },
+  { id = "metadata-only", name = "metadata-only rewrite (.docx/.pptx/.xlsx/.png)", entry = "prek-metadata-only", language = "system", files = '\.(docx|pptx|xlsx|png)$', require_serial = true },
 ]
 
 [[repos]]

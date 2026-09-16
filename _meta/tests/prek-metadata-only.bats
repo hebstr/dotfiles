@@ -233,26 +233,83 @@ _commit() {
   run -0 "$SCRIPT" out/b.docx
 }
 
-# ─── restore command ────────────────────────────────────────────────────────
+# ─── failure message ────────────────────────────────────────────────────────
 
-@test "restore command quotes a path with spaces and restores HEAD" {
+@test "failure message: one counted header, the list, the restore command last" {
+  _docx out/a.docx
+  _docx "out dir/b c.docx"
+  _commit
+  _docx out/a.docx --stamp 2027-01-01T00:00:00Z
+  _docx "out dir/b c.docx" --stamp 2027-01-01T00:00:00Z
+  git add -A
+
+  run -1 "$SCRIPT" out/a.docx "out dir/b c.docx"
+  [ "$output" = "2 staged outputs changed only in write metadata (timestamps, IDs), not in content:
+
+  out dir/b c.docx
+  out/a.docx
+
+To drop these rewrites (a file re-rendered since staging is only unstaged):
+
+  prek-metadata-only --restore" ]
+}
+
+@test "failure message: singular header for one file" {
+  _docx out/a.docx
+  _commit
+  _docx out/a.docx --stamp 2027-01-01T00:00:00Z
+  git add out/a.docx
+
+  run -1 "$SCRIPT" out/a.docx
+  [[ "$output" == "1 staged output changed only in write metadata"* ]]
+}
+
+# ─── --restore ──────────────────────────────────────────────────────────────
+
+@test "--restore restores a path with spaces from HEAD and reports it" {
   _docx "out dir/a b.docx"
   _commit
   _docx "out dir/a b.docx" --stamp 2027-01-01T00:00:00Z
   git add -A
 
-  run -1 "$SCRIPT" "out dir/a b.docx"
-  local command
-  command=$(printf '%s\n' "$output" | grep '^  for f in ')
-  # shellcheck disable=SC2016
-  [ "$command" = '  for f in out\ dir/a\ b.docx; do git --literal-pathspecs diff --quiet -- "$f" && git --literal-pathspecs restore --staged --worktree -- "$f" || git --literal-pathspecs restore --staged -- "$f"; done' ]
-
-  eval "$command"
+  run -0 "$SCRIPT" --restore
+  [ "$output" = "restored  out dir/a b.docx" ]
   run -0 git status --porcelain -- "out dir"
   [ "$output" = "" ]
 }
 
-@test "restore command keeps a newer unstaged render and only unstages it" {
+@test "--restore takes glob characters literally" {
+  _docx "out/fig[1].docx"
+  _docx out/fig1.docx
+  _commit
+  _docx "out/fig[1].docx" --stamp 2027-01-01T00:00:00Z
+  _docx out/fig1.docx --body "Age median 65"
+  git add -A
+
+  run -0 "$SCRIPT" --restore
+  [ "$output" = "restored  out/fig[1].docx" ]
+  run -0 git diff --cached --name-only
+  [ "$output" = "out/fig1.docx" ]
+}
+
+@test "--restore keeps a working copy re-rendered after staging and only unstages it" {
+  _docx out/a.docx
+  _commit
+  _docx out/a.docx --stamp 2027-01-01T00:00:00Z
+  git add out/a.docx
+
+  run -1 "$SCRIPT" out/a.docx
+  _docx out/a.docx --body "Age median 65"
+
+  run -0 "$SCRIPT" --restore
+  [ "$output" = "unstaged  out/a.docx (working copy re-rendered, kept)" ]
+  run -0 python3 -c "import sys, zipfile; print(zipfile.ZipFile(sys.argv[1]).read('word/document.xml').decode())" out/a.docx
+  [[ "$output" == *"Age median 65"* ]]
+  run -0 git diff --cached --name-only
+  [ "$output" = "" ]
+}
+
+@test "--restore includes a metadata-only file staged after the message" {
   _docx out/a.docx
   _docx out/b.docx
   _commit
@@ -260,18 +317,57 @@ _commit() {
   git add out/a.docx
 
   run -1 "$SCRIPT" out/a.docx
-  local command
-  command=$(printf '%s\n' "$output" | grep '^  for f in ')
+  _docx out/b.docx --stamp 2027-01-01T00:00:00Z
+  git add out/b.docx
 
-  _docx out/a.docx --body "Age median 65"
+  run -0 "$SCRIPT" --restore
+  [ "$output" = $'restored  out/a.docx\nrestored  out/b.docx' ]
+  run -0 git status --porcelain
+  [ "$output" = "" ]
+}
+
+@test "--restore leaves a content change staged after the message untouched" {
+  _docx out/a.docx
+  _docx out/b.docx
+  _commit
+  _docx out/a.docx --stamp 2027-01-01T00:00:00Z
+  git add out/a.docx
+
+  run -1 "$SCRIPT" out/a.docx
   _docx out/b.docx --body "Age median 65"
   git add out/b.docx
-  eval "$command"
 
-  run -0 python3 -c "import sys, zipfile; print(zipfile.ZipFile(sys.argv[1]).read('word/document.xml').decode())" out/a.docx
-  [[ "$output" == *"Age median 65"* ]]
+  run -0 "$SCRIPT" --restore
+  [ "$output" = "restored  out/a.docx" ]
   run -0 git diff --cached --name-only
   [ "$output" = "out/b.docx" ]
+  run -0 git diff --name-only
+  [ "$output" = "" ]
+}
+
+@test "--restore leaves a file not routed through out-textconv alone" {
+  _docx out/table.xlsx
+  _commit
+  _docx out/table.xlsx --stamp 2027-01-01T00:00:00Z
+  git add out/table.xlsx
+
+  run -0 "$SCRIPT" --restore
+  [ "$output" = "no staged output changed only in write metadata" ]
+  run -0 git diff --cached --name-only
+  [ "$output" = "out/table.xlsx" ]
+}
+
+@test "--restore with nothing staged: exit 0, says so" {
+  _docx out/a.docx
+  _commit
+
+  run -0 "$SCRIPT" --restore
+  [ "$output" = "no staged output changed only in write metadata" ]
+}
+
+@test "--restore with an extra argument: exit 2 with usage" {
+  run -2 "$SCRIPT" --restore out/a.docx
+  [[ "$output" == *"usage:"* ]]
 }
 
 # ─── fails closed on a missing driver ───────────────────────────────────────
@@ -287,6 +383,19 @@ _commit() {
   [[ "$output" == *"out-textconv is not configured"* ]]
 }
 
+@test "--restore without the driver configured: exit 1, nothing restored" {
+  _docx out/a.docx
+  _commit
+  _docx out/a.docx --stamp 2027-01-01T00:00:00Z
+  git add out/a.docx
+  git config --file "$GIT_CONFIG_GLOBAL" --unset diff.out-textconv.textconv
+
+  run -1 "$SCRIPT" --restore
+  [[ "$output" == *"out-textconv is not configured"* ]]
+  run -0 git diff --cached --name-only
+  [ "$output" = "out/a.docx" ]
+}
+
 @test "driver configured but not executable: non-zero exit" {
   _docx out/a.docx
   _commit
@@ -297,4 +406,18 @@ _commit() {
   run "$SCRIPT" out/a.docx
   [ "$status" -ne 0 ]
   [[ "$output" != *"write metadata"* ]]
+}
+
+@test "--restore with the driver configured but not executable: non-zero exit, nothing restored" {
+  _docx out/a.docx
+  _commit
+  _docx out/a.docx --stamp 2027-01-01T00:00:00Z
+  git add out/a.docx
+  git config --file "$GIT_CONFIG_GLOBAL" diff.out-textconv.textconv "${BATS_TEST_TMPDIR}/missing.py"
+
+  run "$SCRIPT" --restore
+  [ "$status" -ne 0 ]
+  [[ "$output" != *"restored"* ]]
+  run -0 git diff --cached --name-only
+  [ "$output" = "out/a.docx" ]
 }
