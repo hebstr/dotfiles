@@ -108,3 +108,34 @@ The tell is a diff limited to one element under `### docProps/`; the fix is one 
 It does not reduce the weight of the repository: a commit still stores the full new blob.
 It makes the decision possible, restoring the noise instead of committing it, and the decision stays manual.
 The `metadata-only` prek hook (`bin/.local/bin/prek-metadata-only`, declared in `_meta/profiles/prek.toml`) enforces it at commit: a staged, modified binary with an empty patch body fails the commit and the hook prints the `git restore` command, while restoring stays the user's act.
+
+## The hook's failure message prints once and ends on a short command
+
+Decided 2026-09-16, not yet implemented: the hook runs with `require_serial = true`, prints one header counting the files, the file list, and ends on `prek-metadata-only --restore`, a mode that recomputes the noise set and applies the restore-or-unstage split when it runs.
+Plain text, no colour, no symbol.
+
+The trigger was a real commit on md-nesrine the same day: 14 files reported under 5 repeated headers, each followed by a `for` loop of at least 208 characters, its length with a single path.
+The repetition is prek's, not the script's: without `require_serial`, prek 0.5.3 splits filenames into batches of `max(4, ceil(n / CPU count))` (`Partitions::split` in `crates/prek/src/run.rs`) and runs the script once per batch, each invocation printing its own header and command.
+With `require_serial` the whole list goes to one invocation, ARG_MAX permitting, which is also how ruff-pre-commit declares its hooks.
+The flag belongs in `_meta/profiles/prek.toml` and in every project copy of the hook, md-nesrine's `prek.toml` being one that does not follow the scaffold.
+
+The shape follows clig.dev (read in full 2026-09-16): same-type errors grouped under one explanatory header, the most important information last, a suggested next command that stays short, as its own examples `chmod +w file.txt` and `git restore <file>...` do.
+The layout mirrors `sys-orphans`, which lists findings under a counted header and closes on the reminder that fixes are the user's to run.
+
+### Why a recomputing mode rather than a printed command
+
+The restore is conditional per file: a working copy re-rendered after staging is only unstaged, never overwritten, and `_meta/tests/prek-metadata-only.bats` pins that with a render made between the hook's message and the command's execution.
+A printed command can only keep that guarantee by carrying the condition, which is what made the loop unreadable.
+`--restore` keeps it by deciding at execution time, and costs a second mode in the script with its own tests.
+
+### Ways rejected
+
+- Reformatting around the existing loop: the loop stays a compound shell construct to read before running, the exact complaint.
+- Splitting the files at hook time into `git restore -s@ -SW -- <paths>` for clean working copies and `git restore --staged -- <paths>` for the others: two plain commands, but a snapshot, so a render landing between message and paste is overwritten by the first. It drops the guarantee the bats test pins.
+- Installing a CLI-design agent skill: none is installed and none is official; `kergoth/dotfiles` `cli-design` fits shell tools best and `citypaul/.dotfiles` `cli-design` is the deepest, but clig.dev alone covers one hook message. Worth revisiting if more CLI tools get written.
+
+### Open
+
+- Whether `--restore` takes no argument and recomputes over every staged, modified file routed through `out-textconv`, or accepts paths to narrow it. The message above assumes no argument.
+- `--restore` acts on the index as it stands when run, so a file staged between the message and the command joins the set if it is noise too. Accepted as the intended semantics, not yet tested.
+- The 3, 3, 3, 4, 1 grouping does not match batches of 4 on 12 CPUs; the likely reading, one file per batch carrying a real change and so unlisted, is unverified (`prek run -vvv` shows `total_files` and `concurrency`).
