@@ -149,3 +149,4 @@ The second is the load-bearing one, since it guarantees drift never destroys con
 
 The 3, 3, 3, 4, 1 grouping, which does not match batches of 4 on 12 CPUs, is closed without investigation: `require_serial` leaves one invocation and makes the discrepancy moot, and a `prek run -vvv` on md-nesrine would cost an index manipulation on a live project to explain a behaviour about to disappear.
 The check after implementation is a single header on md-nesrine's next metadata-only commit.
+The grouping explained itself on the first run of the new message, 2026-09-16, before md-nesrine's `prek.toml` carried the flag: 17 matching staged files, 16 modified and 1 added, split 4, 4, 4, 4, 1, and the three files that pass (two content changes and the added one) fell one in each of the first, second and third batches, hence 3, 3, 3, 4, 1 listed.
