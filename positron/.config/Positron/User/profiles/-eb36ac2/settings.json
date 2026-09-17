@@ -244,8 +244,8 @@
 
   "packages.r.installer": "pak",
   "positron.r.quietMode": true,
-  "positron.r.customBinaries": ["/opt/R/4.6.0/bin/R"],
-  "positron.r.interpreters.default": "/opt/R/4.6.0/bin/R",
+  "positron.r.customBinaries": ["/opt/R/current/bin/R"],
+  "positron.r.interpreters.default": "/opt/R/current/bin/R",
   "positron.assistant.enable": false,
   "plots.darkFilter": "off",
   "positron.viewer.interactivePlotsInViewer": true,
@@ -295,7 +295,7 @@
 
   // APPARENCE GLOBALE -----------------------------------------------------------
 
-  "workbench.colorTheme": "Material Night Eighties",
+  "workbench.colorTheme": "Material Night Purple",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.startupEditor": "none",
   "workbench.settings.editor": "json",
@@ -311,7 +311,7 @@
   // COLORATION SYNTAXIQUE -------------------------------------------------------
 
   "editor.tokenColorCustomizations": {
-    "[Material Night Purple]": {
+    "[Material Night Eighties]": {
       "textMateRules": [
         {
           "name": "Comment",

@@ -57,7 +57,7 @@ La FAQ Positron mentionne « RHEL 8, 9, and 10 and Ubuntu 22/24 », mais cette p
 Ce n'est pas une contradiction avec la matrice de support.
 
 Les 8 dépôts tiers épinglés sur `noble` dans `/etc/apt/sources.list.d/` ont tous leur équivalent `resolute` en ligne : CRAN, Docker, QGIS, et les PPAs apt-fast, git-core, mozillateam, keepassxc.
-Les autres sources (`claude-desktop`, `github-cli`, `nodesource`, `rig`, `syncthing`, `protonvpn`, `vscode`) utilisent une suite `stable` indépendante du nom de code.
+Les autres sources (`github-cli`, `nodesource`, `rig`, `syncthing`, `protonvpn`, `vscode`) utilisent une suite `stable` indépendante du nom de code.
 
 ## Le risque réel : le cœur de l'OS
 

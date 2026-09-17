@@ -40,6 +40,34 @@ _fixture() {
   [ "$status" -eq 0 ]
 }
 
+@test "em dash inside shorter fence nested in a longer one: exit 0" {
+  local f
+  f=$(_fixture nested-fence.md "$(printf '%s\n' \
+    "Some prose." \
+    '````markdown' \
+    '```r' \
+    "x <- 'a — b'" \
+    '```' \
+    '````' \
+    "more prose.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "em dash inside fence indented under a list item: exit 0" {
+  local f
+  f=$(_fixture indented-fence.md "$(printf '%s\n' \
+    "- item" \
+    "" \
+    '  ```bash' \
+    '  echo "a — b"' \
+    '  ```' \
+    "" \
+    "more prose.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
 @test "em dash inside single-line display math: exit 0" {
   local f
   f=$(_fixture math-oneline.md "$(printf '%s\n' \
@@ -150,6 +178,33 @@ _fixture() {
   [[ "$output" == *"[em-dash]"* ]]
 }
 
+@test "em dash after longer fence holding an unpaired shorter one: flagged, exit 1" {
+  local f
+  f=$(_fixture nested-fence-resume.md "$(printf '%s\n' \
+    "Some prose." \
+    '````markdown' \
+    '```' \
+    "code" \
+    '````' \
+    "Closing prose with an em dash — must still be flagged.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
+}
+
+@test "em dash after math block closed at end of a content line: flagged, exit 1" {
+  local f
+  f=$(_fixture math-inline-close.md "$(printf '%s\n' \
+    '$$' \
+    "a = b" \
+    'c = d $$' \
+    "" \
+    "Closing prose with an em dash — must still be flagged after math.")")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[em-dash]"* ]]
+}
+
 @test "multi-file: 1 clean + 1 violation: exit 1, only violation reported" {
   local clean dirty
   clean=$(_fixture clean.md "")
@@ -170,6 +225,15 @@ _fixture() {
 
 @test "non-existent file: exit 2" {
   run "$SCRIPT" "${BATS_TEST_TMPDIR}/does-not-exist.md"
+  [ "$status" -eq 2 ]
+}
+
+@test "unreadable file: exit 2, not a silent pass" {
+  local f
+  f=$(_fixture unreadable.md "Bad — prose.")
+  chmod 000 "$f"
+  run "$SCRIPT" "$f"
+  chmod 644 "$f"
   [ "$status" -eq 2 ]
 }
 
