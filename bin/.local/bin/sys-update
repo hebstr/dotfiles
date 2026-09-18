@@ -89,9 +89,16 @@ print_summary() {
 trap print_summary EXIT
 
 update_apt() {
-  run_or_dry sudo apt-get update -q &&
-    run_or_dry sudo apt-get full-upgrade -y &&
+  local index_ok=1
+  # apt keeps a failed repository's previous index, so upgrading stays safe.
+  run_or_dry sudo apt-get update -q --error-on=any || index_ok=0
+  run_or_dry sudo apt-get full-upgrade -y || return
+  if ((index_ok)); then
     record apt OK
+  else
+    record apt "FAIL (index refresh)"
+    ANY_FAIL=1
+  fi
 }
 
 update_snap() {

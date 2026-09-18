@@ -442,8 +442,25 @@ EOF
   chmod +x "${STUBS}/apt-get"
   _run apt
   [ "$status" -eq 0 ]
-  grep -q '^update -q$' "${STUBS}/apt.log"
+  grep -q '^update -q --error-on=any$' "${STUBS}/apt.log"
   grep -q '^full-upgrade -y$' "${STUBS}/apt.log"
+}
+
+@test "failed index refresh still runs full-upgrade and reports apt as FAIL" {
+  cat >"${STUBS}/apt-get" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "${STUBS}/apt.log"
+[[ "\$1" == update && "\$*" == *--error-on=any* ]] && exit 100
+exit 0
+EOF
+  chmod +x "${STUBS}/apt-get"
+  _run apt
+  [ "$status" -eq 1 ]
+  grep -q '^full-upgrade -y$' "${STUBS}/apt.log"
+  summary="${output#*MODULE*STATUS}"
+  [[ "$summary" == *"apt"*"FAIL (index refresh)"* ]]
+  [[ "$summary" != *"OK"* ]]
+  [ "$(grep -c '^apt ' <<<"$summary")" -eq 1 ]
 }
 
 @test "module exit propagates: failing apt-get makes the script exit non-zero" {

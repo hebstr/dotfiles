@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031
 
 # Tests for rig-update
 # Mocks: gh, curl, rig, apt-get, sudo — no real network calls, no real installs
@@ -31,12 +32,15 @@ printf 'stow-rprofile ran\n'
 STUB
   chmod +x "$TMPDIR_TEST/bin/stow-rprofile"
 
+  export CURL_BODY="upstream-key"
+  export CURL_RC=0
   cat >"$TMPDIR_TEST/bin/curl" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$TMPDIR_TEST/curl-args"
+((CURL_RC == 0)) || exit "$CURL_RC"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -o) shift; touch "$1" ;;
+    -o) shift; printf '%s' "$CURL_BODY" >"$1" ;;
   esac
   shift
 done
@@ -62,6 +66,7 @@ STUB
   cat >"$TMPDIR_TEST/bin/sudo" <<'STUB'
 #!/usr/bin/env bash
 if [[ "${1:-}" == "-v" ]]; then exit 0; fi
+printf '%s\n' "$*" >>"$TMPDIR_TEST/sudo-log"
 exec "$@"
 STUB
   chmod +x "$TMPDIR_TEST/bin/sudo"
@@ -141,33 +146,80 @@ STUB
 # setup_apt_repo
 # ---------------------------------------------------------------------------
 
-@test "setup_apt_repo: skips everything if both files already present" {
-  touch "$RIG_GPG_KEY_DEST"
-  touch "$RIG_APT_SOURCE_FILE"
+@test "setup_apt_repo: leaves an existing source file alone" {
+  printf 'custom\n' >"$RIG_APT_SOURCE_FILE"
   run setup_apt_repo
   [ "$status" -eq 0 ]
   [ -z "$output" ]
-}
-
-@test "setup_apt_repo: downloads GPG key when absent" {
-  touch "$RIG_APT_SOURCE_FILE"
-  run setup_apt_repo
-  [ "$status" -eq 0 ]
-  [ -f "$RIG_GPG_KEY_DEST" ]
-}
-
-@test "setup_apt_repo: fetches the GPG key with --remove-on-error" {
-  touch "$RIG_APT_SOURCE_FILE"
-  run setup_apt_repo
-  [ "$status" -eq 0 ]
-  [[ "$(cat "$TMPDIR_TEST/curl-args")" == *"--remove-on-error"* ]]
+  [ "$(cat "$RIG_APT_SOURCE_FILE")" = "custom" ]
 }
 
 @test "setup_apt_repo: creates APT source file with correct content" {
-  touch "$RIG_GPG_KEY_DEST"
   run setup_apt_repo
   [ "$status" -eq 0 ]
   [ "$(cat "$RIG_APT_SOURCE_FILE")" = "deb http://rig.r-pkg.org/deb rig main" ]
+}
+
+# ---------------------------------------------------------------------------
+# refresh_gpg_key
+# ---------------------------------------------------------------------------
+
+@test "refresh_gpg_key: installs the key when absent" {
+  run refresh_gpg_key
+  [ "$status" -eq 0 ]
+  [ "$(cat "$RIG_GPG_KEY_DEST")" = "upstream-key" ]
+}
+
+@test "refresh_gpg_key: no sudo and no output when the key is unchanged" {
+  printf '%s' "upstream-key" >"$RIG_GPG_KEY_DEST"
+  run refresh_gpg_key
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [ ! -f "$TMPDIR_TEST/sudo-log" ]
+}
+
+@test "refresh_gpg_key: replaces a key that changed upstream" {
+  printf '%s' "expired-key" >"$RIG_GPG_KEY_DEST"
+  export TMPDIR="$TMPDIR_TEST/tmp"
+  mkdir -p "$TMPDIR"
+  run refresh_gpg_key
+  [ "$status" -eq 0 ]
+  [ "$(cat "$RIG_GPG_KEY_DEST")" = "upstream-key" ]
+  [[ "$output" == *"key changed"* ]]
+  [ -z "$(ls -A "$TMPDIR")" ]
+}
+
+@test "refresh_gpg_key: fetches from RIG_GPG_KEY_URL" {
+  export RIG_GPG_KEY_URL="https://override.test/rig.gpg"
+  run refresh_gpg_key
+  [ "$status" -eq 0 ]
+  [[ "$(cat "$TMPDIR_TEST/curl-args")" == *"https://override.test/rig.gpg"* ]]
+}
+
+@test "refresh_gpg_key: warns and returns 0 when the install fails" {
+  printf '%s' "expired-key" >"$RIG_GPG_KEY_DEST"
+  cat >"$TMPDIR_TEST/bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+[[ "${1:-}" == install ]] && exit 1
+exec "$@"
+STUB
+  chmod +x "$TMPDIR_TEST/bin/sudo"
+  run refresh_gpg_key
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Could not install"* ]]
+  [ "$(cat "$RIG_GPG_KEY_DEST")" = "expired-key" ]
+}
+
+@test "refresh_gpg_key: warns and keeps the installed key when the fetch fails" {
+  printf '%s' "expired-key" >"$RIG_GPG_KEY_DEST"
+  export CURL_RC=22
+  export TMPDIR="$TMPDIR_TEST/tmp"
+  mkdir -p "$TMPDIR"
+  run refresh_gpg_key
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Could not fetch"* ]]
+  [ "$(cat "$RIG_GPG_KEY_DEST")" = "expired-key" ]
+  [ -z "$(ls -A "$TMPDIR")" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -178,7 +230,24 @@ STUB
   run do_upgrade
   [ "$status" -eq 0 ]
   [[ "$output" == *"apt-get update"* ]]
+  [[ "$output" == *"apt-get update -qq -o Dir::Etc::SourceList=${RIG_APT_SOURCE_FILE} -o Dir::Etc::SourceParts=- --no-list-cleanup --error-on=any"* ]]
   [[ "$output" == *"r-rig"* ]]
+}
+
+@test "do_upgrade: a failed index refresh aborts before the install" {
+  cat >"$TMPDIR_TEST/bin/apt-get" <<'STUB'
+#!/usr/bin/env bash
+printf 'apt-get %s\n' "$*"
+# Real apt exits 0 on NO_PUBKEY unless asked otherwise.
+[[ "$1" == update && "$*" == *--error-on=any* ]] && exit 100
+exit 0
+STUB
+  chmod +x "$TMPDIR_TEST/bin/apt-get"
+  # The real script, not `run do_upgrade`: bats disables errexit inside `run`.
+  run "$SCRIPT"
+  [ "$status" -eq 100 ]
+  [[ "$output" == *"apt-get update"* ]]
+  [[ "$output" != *"install -y r-rig"* ]]
 }
 
 # ---------------------------------------------------------------------------
@@ -269,6 +338,15 @@ STUB
   run main
   [ "$status" -eq 0 ]
   [[ "$output" == *"stow-rprofile ran"* ]]
+  [[ "$output" == *"Already on ${FAKE_LATEST}"* ]]
+}
+
+@test "main: refreshes the GPG key even when rig is already current" {
+  make_rig_stub "$FAKE_LATEST"
+  printf '%s' "expired-key" >"$RIG_GPG_KEY_DEST"
+  run main
+  [ "$status" -eq 0 ]
+  [ "$(cat "$RIG_GPG_KEY_DEST")" = "upstream-key" ]
   [[ "$output" == *"Already on ${FAKE_LATEST}"* ]]
 }
 

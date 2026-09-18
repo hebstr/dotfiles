@@ -14,10 +14,19 @@ CHANNEL="${CHANNEL:-stable-v2}"
 
 sudo -v
 
-if [ ! -s "$KEYRING" ]; then
-  echo "Installing Syncthing GPG key to ${KEYRING}..."
-  sudo install -d -m 0755 /etc/apt/keyrings
-  curl -fsSL "$KEY_URL" | sudo install -m 0644 -o root -g root /dev/stdin "$KEYRING"
+key_tmp=$(mktemp)
+trap 'rm -f "$key_tmp"' EXIT
+
+# Compared on every run rather than on absence: the signing key rotates, and
+# an expired one makes apt keep a stale index.
+if curl -fsSL "$KEY_URL" -o "$key_tmp"; then
+  if ! cmp -s "$key_tmp" "$KEYRING"; then
+    echo "Installing Syncthing GPG key to ${KEYRING}..."
+    sudo install -d -m 0755 /etc/apt/keyrings
+    sudo install -m 0644 -o root -g root "$key_tmp" "$KEYRING"
+  fi
+else
+  echo "Could not fetch ${KEY_URL}: keeping the installed Syncthing key." >&2
 fi
 
 if [ ! -s "$SOURCES_LIST" ]; then
@@ -32,8 +41,11 @@ if [ ! -s "$PREFS_FILE" ]; then
     sudo install -m 0644 -o root -g root /dev/stdin "$PREFS_FILE"
 fi
 
-echo "Refreshing apt..."
-sudo apt-get update
+# Scoped to this source: a failure elsewhere is the sys-update apt module's to
+# report. List cleanup would erase every other repository's index.
+echo "Refreshing apt.syncthing.net..."
+sudo apt-get update -o Dir::Etc::SourceList="$SOURCES_LIST" -o Dir::Etc::SourceParts=- \
+  --no-list-cleanup --error-on=any
 
 echo "Installing/upgrading syncthing..."
 sudo apt-get install -y syncthing

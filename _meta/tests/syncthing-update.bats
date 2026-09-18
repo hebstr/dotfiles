@@ -13,12 +13,18 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/syncthing-update"
 # no real network / apt / sudo calls occur.
 
 _create_stubs() {
-  # curl ─ logs args, emits a fake key body on stdout
+  # curl ─ logs args, writes a fake key body to -o (stdout without it);
+  # ${CURL_RC} simulates a failed fetch
   cat >"${STUBS}/curl" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "${STUBS}/curl.log"
-printf 'FAKE-GPG-KEY\n'
-exit 0
+[ "\${CURL_RC:-0}" -eq 0 ] || exit "\${CURL_RC}"
+out=/dev/stdout
+while [ \$# -gt 0 ]; do
+    [ "\$1" = -o ] && { out="\$2"; shift; }
+    shift
+done
+printf 'FAKE-GPG-KEY\n' > "\$out"
 EOF
 
   # sudo ─ -v / -n behave like a cached credential; otherwise exec the rest
@@ -32,9 +38,9 @@ case "\$1" in
 esac
 EOF
 
-  # install ─ supports the two forms the script uses:
+  # install ─ supports the forms the script uses:
   #   install -d -m MODE DIR
-  #   install -m MODE -o USER -g GROUP /dev/stdin DEST
+  #   install -m MODE -o USER -g GROUP SRC DEST   (SRC: temp key file or /dev/stdin)
   cat >"${STUBS}/install" <<'EOF'
 #!/usr/bin/env bash
 mode_d=0
@@ -128,7 +134,7 @@ teardown() {
   [ "$(head -n1 "${STUBS}/sudo.log")" = "-v" ]
 }
 
-# ─── keyring install (absent → install, present → skip) ─────────────────────
+# ─── keyring refresh (fetched every run, installed when it differs) ─────────
 
 @test "installs the keyring when the file is absent" {
   run bash "${SCRIPT}"
@@ -138,12 +144,35 @@ teardown() {
   grep -q 'FAKE-GPG-KEY' "${KEYRING}"
 }
 
-@test "skips the keyring install when the file already has content" {
-  printf 'EXISTING-KEY-CONTENT\n' >"${KEYRING}"
+@test "replaces a keyring whose content differs from upstream" {
+  printf 'EXPIRED-KEY\n' >"${KEYRING}"
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Installing Syncthing GPG key"* ]]
+  grep -q 'FAKE-GPG-KEY' "${KEYRING}"
+}
+
+@test "leaves a keyring identical to upstream untouched" {
+  printf 'FAKE-GPG-KEY\n' >"${KEYRING}"
+  printf 'deb existing\n' >"${SOURCES_LIST}"
+  printf 'Pin: existing\n' >"${PREFS_FILE}"
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
   [[ "$output" != *"Installing Syncthing GPG key"* ]]
-  grep -q '^EXISTING-KEY-CONTENT$' "${KEYRING}"
+  run ! grep -qx install "${STUBS}/sudo.log"
+}
+
+@test "a failed key fetch warns, keeps the keyring and still updates" {
+  printf 'EXPIRED-KEY\n' >"${KEYRING}"
+  export CURL_RC=22
+  export TMPDIR="${APTROOT}/tmp"
+  mkdir -p "$TMPDIR"
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Could not fetch"* ]]
+  grep -q '^EXPIRED-KEY$' "${KEYRING}"
+  grep -q '^install -y syncthing$' "${STUBS}/apt.log"
+  [ -z "$(ls -A "$TMPDIR")" ]
 }
 
 @test "passes KEY_URL to curl when fetching the key" {
@@ -154,11 +183,11 @@ teardown() {
   grep -q 'https://override.test/key.gpg' "${STUBS}/curl.log"
 }
 
-@test "does not call curl when the keyring already exists" {
-  printf 'EXISTING-KEY\n' >"${KEYRING}"
+@test "fetches the key on every run, even when the keyring exists" {
+  printf 'FAKE-GPG-KEY\n' >"${KEYRING}"
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [ ! -f "${STUBS}/curl.log" ]
+  [ -f "${STUBS}/curl.log" ]
 }
 
 # ─── sources.list install (absent → install, present → skip) ────────────────
@@ -216,11 +245,10 @@ teardown() {
 
 # ─── apt-get invocations ────────────────────────────────────────────────────
 
-@test "invokes apt-get update" {
+@test "refreshes only the Syncthing source, failing on any error" {
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [ -f "${STUBS}/apt.log" ]
-  grep -q '^update$' "${STUBS}/apt.log"
+  grep -qxF "update -o Dir::Etc::SourceList=${SOURCES_LIST} -o Dir::Etc::SourceParts=- --no-list-cleanup --error-on=any" "${STUBS}/apt.log"
 }
 
 @test "invokes apt-get install -y syncthing" {
@@ -254,7 +282,7 @@ teardown() {
 # ─── idempotent path: all sentinels present ─────────────────────────────────
 
 @test "fully provisioned host: skips all three writes but still runs apt" {
-  printf 'EXISTING-KEY\n' >"${KEYRING}"
+  printf 'FAKE-GPG-KEY\n' >"${KEYRING}"
   printf 'deb existing\n' >"${SOURCES_LIST}"
   printf 'Pin: existing\n' >"${PREFS_FILE}"
   run bash "${SCRIPT}"
@@ -262,7 +290,6 @@ teardown() {
   [[ "$output" != *"Installing Syncthing GPG key"* ]]
   [[ "$output" != *"Adding apt.syncthing.net"* ]]
   [[ "$output" != *"Pinning apt.syncthing.net"* ]]
-  [ ! -f "${STUBS}/curl.log" ]
-  grep -q '^update$' "${STUBS}/apt.log"
+  grep -q '^update ' "${STUBS}/apt.log"
   grep -q '^install -y syncthing$' "${STUBS}/apt.log"
 }

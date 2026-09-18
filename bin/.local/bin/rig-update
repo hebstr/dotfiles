@@ -31,23 +31,38 @@ get_current_version() {
   printf '%s' "${ver:-unknown}"
 }
 
-setup_apt_repo() {
-  if [[ ! -f "$RIG_GPG_KEY_DEST" ]]; then
-    # No fingerprint pinning: a hardcoded fingerprint would require manual
-    # updates on key rotation. Accepted risk for a personal workstation script
-    # fetching from the official r-pkg.org domain over TLS.
-    # --remove-on-error: a transfer cut mid-flight otherwise leaves a partial
-    # key, which the existence guard above then accepts as installed, breaking
-    # apt verification until someone deletes it by hand.
-    sudo curl -fsSL --remove-on-error "$RIG_GPG_KEY_URL" -o "$RIG_GPG_KEY_DEST"
+# No fingerprint pinning: a hardcoded fingerprint would require manual updates
+# on key rotation. Accepted risk for a personal workstation script fetching
+# from the official r-pkg.org domain over TLS. Compared on every invocation
+# rather than on absence: the signing key rotates, and an expired one makes apt
+# keep a stale index while exiting 0.
+refresh_gpg_key() {
+  local tmp
+  tmp=$(mktemp)
+  if ! curl -fsSL "$RIG_GPG_KEY_URL" -o "$tmp"; then
+    rm -f "$tmp"
+    printf 'Could not fetch %s: keeping the installed rig key.\n' "$RIG_GPG_KEY_URL" >&2
+    return 0
   fi
+  if ! cmp -s "$tmp" "$RIG_GPG_KEY_DEST"; then
+    printf 'rig signing key changed upstream: installing it to %s.\n' "$RIG_GPG_KEY_DEST"
+    sudo install -m 0644 "$tmp" "$RIG_GPG_KEY_DEST" ||
+      printf 'Could not install the rig key to %s.\n' "$RIG_GPG_KEY_DEST" >&2
+  fi
+  rm -f "$tmp"
+}
+
+setup_apt_repo() {
   if [[ ! -f "$RIG_APT_SOURCE_FILE" ]]; then
     printf '%s\n' "$RIG_APT_SOURCE_LINE" | sudo tee "$RIG_APT_SOURCE_FILE" >/dev/null
   fi
 }
 
+# Scoped to the rig source: a failure elsewhere is the sys-update apt module's
+# to report. List cleanup would erase every other repository's index.
 do_upgrade() {
-  sudo apt-get update -qq
+  sudo apt-get update -qq -o Dir::Etc::SourceList="$RIG_APT_SOURCE_FILE" \
+    -o Dir::Etc::SourceParts=- --no-list-cleanup --error-on=any
   sudo apt-get install -y "$RIG_PACKAGE"
 }
 
@@ -97,6 +112,7 @@ main() {
   printf 'Current version:    %s\n' "$current"
 
   sync_rprofile
+  refresh_gpg_key
 
   if [[ "$current" == "$latest" ]]; then
     printf 'Already on %s: nothing to do.\n' "$latest"
