@@ -6,14 +6,13 @@ command -v gh >/dev/null 2>&1 || {
   exit 1
 }
 
-: "${RIG_GPG_KEY_URL:=https://rig.r-pkg.org/deb/rig.gpg}"
 : "${RIG_GPG_KEY_DEST:=/etc/apt/trusted.gpg.d/rig.gpg}"
 : "${RIG_APT_SOURCE_FILE:=/etc/apt/sources.list.d/rig.list}"
 : "${OPT_R:=/opt/R}"
 : "${RPROFILE_TEMPLATE:=$HOME/dotfiles/_meta/profiles/Rprofile.site}"
-RIG_APT_SOURCE_LINE="deb http://rig.r-pkg.org/deb rig main"
-RIG_PACKAGE="r-rig"
-RIG_API_PATH="repos/r-lib/rig/releases/latest"
+RIG_REPO="r-lib/rig"
+RIG_API_PATH="repos/${RIG_REPO}/releases/latest"
+RIG_TMP=""
 
 fetch_latest_version() {
   local tag
@@ -31,39 +30,57 @@ get_current_version() {
   printf '%s' "${ver:-unknown}"
 }
 
-# No fingerprint pinning: a hardcoded fingerprint would require manual updates
-# on key rotation. Accepted risk for a personal workstation script fetching
-# from the official r-pkg.org domain over TLS. Compared on every invocation
-# rather than on absence: the signing key rotates, and an expired one makes apt
-# keep a stale index while exiting 0.
-refresh_gpg_key() {
-  local tmp
-  tmp=$(mktemp)
-  if ! curl -fsSL "$RIG_GPG_KEY_URL" -o "$tmp"; then
-    rm -f "$tmp"
-    printf 'Could not fetch %s: keeping the installed rig key.\n' "$RIG_GPG_KEY_URL" >&2
-    return 0
-  fi
-  if ! cmp -s "$tmp" "$RIG_GPG_KEY_DEST"; then
-    printf 'rig signing key changed upstream: installing it to %s.\n' "$RIG_GPG_KEY_DEST"
-    sudo install -m 0644 "$tmp" "$RIG_GPG_KEY_DEST" ||
-      printf 'Could not install the rig key to %s.\n' "$RIG_GPG_KEY_DEST" >&2
-  fi
-  rm -f "$tmp"
+deb_arch() {
+  local machine
+  machine=$(uname -m)
+  case "$machine" in
+  x86_64) printf 'amd64' ;;
+  aarch64) printf 'arm64' ;;
+  *)
+    printf 'Unsupported architecture: %s\n' "$machine" >&2
+    exit 1
+    ;;
+  esac
 }
 
-setup_apt_repo() {
-  if [[ ! -f "$RIG_APT_SOURCE_FILE" ]]; then
-    printf '%s\n' "$RIG_APT_SOURCE_LINE" | sudo tee "$RIG_APT_SOURCE_FILE" >/dev/null
+# rig installs from the release .deb: upstream publishes the apt repository
+# through a manual workflow, behind the release, and a rotated key left in
+# place fails the sys-update apt module. The source goes first, so a failed
+# removal never leaves a source without its key.
+remove_apt_repo() {
+  if [[ -e "$RIG_APT_SOURCE_FILE" ]]; then
+    printf 'Removing the retired rig apt source %s.\n' "$RIG_APT_SOURCE_FILE"
+    sudo rm -f "$RIG_APT_SOURCE_FILE" || {
+      printf 'Could not remove %s.\n' "$RIG_APT_SOURCE_FILE" >&2
+      return 0
+    }
   fi
+  if [[ -e "$RIG_GPG_KEY_DEST" ]]; then
+    printf 'Removing the retired rig apt key %s.\n' "$RIG_GPG_KEY_DEST"
+    sudo rm -f "$RIG_GPG_KEY_DEST" ||
+      printf 'Could not remove %s.\n' "$RIG_GPG_KEY_DEST" >&2
+  fi
+  return 0
 }
 
-# Scoped to the rig source: a failure elsewhere is the sys-update apt module's
-# to report. List cleanup would erase every other repository's index.
+# No checksums are published, so TLS to GitHub is the integrity boundary, as
+# in pandoc-update and quarto-update.
 do_upgrade() {
-  sudo apt-get update -qq -o Dir::Etc::SourceList="$RIG_APT_SOURCE_FILE" \
-    -o Dir::Etc::SourceParts=- --no-list-cleanup --error-on=any
-  sudo apt-get install -y "$RIG_PACKAGE"
+  local version="$1" arch="$2" debs=()
+  RIG_TMP=$(mktemp -d)
+  trap 'rm -rf "$RIG_TMP"' EXIT
+
+  printf 'Downloading rig %s (%s)...\n' "$version" "$arch"
+  gh release download "v${version}" -R "$RIG_REPO" \
+    -p "r-rig_${version}-*_${arch}.deb" -D "$RIG_TMP" --clobber
+
+  mapfile -t debs < <(find "$RIG_TMP" -maxdepth 1 -type f -name '*.deb')
+  if ((${#debs[@]} != 1)); then
+    printf 'Expected exactly one r-rig .deb for %s, found %d\n' "$arch" "${#debs[@]}" >&2
+    exit 1
+  fi
+
+  sudo apt-get install -y "${debs[0]}"
 }
 
 # An R version installed by `rig add` gets no Rprofile.site, so `repos` stays
@@ -112,17 +129,18 @@ main() {
   printf 'Current version:    %s\n' "$current"
 
   sync_rprofile
-  refresh_gpg_key
+  remove_apt_repo
 
   if [[ "$current" == "$latest" ]]; then
     printf 'Already on %s: nothing to do.\n' "$latest"
     exit 0
   fi
 
-  sudo -v
+  local arch
+  arch=$(deb_arch)
 
-  setup_apt_repo
-  do_upgrade
+  sudo -v
+  do_upgrade "$latest" "$arch"
 
   printf '\nInstalled version:\n'
   rig --version
