@@ -87,6 +87,7 @@ print_summary() {
   printf -- '-----------------------------------\n'
 }
 trap print_summary EXIT
+trap 'exit 130' INT
 
 update_apt() {
   local index_ok=1

@@ -473,6 +473,26 @@ EOF
   [ "$status" -ne 0 ]
 }
 
+# A child that traps SIGINT and exits normally hides the Ctrl-C from bash's
+# wait-and-cooperative-exit; setsid gives the run its own process group so
+# `kill -INT 0` reaches sys-update without reaching bats.
+@test "Ctrl-C aborts the run even when the module's child traps SIGINT" {
+  cat >"${STUBS}/apt-get" <<'EOF'
+#!/usr/bin/env bash
+trap 'exit 130' INT
+kill -INT 0
+exit 0
+EOF
+  chmod +x "${STUBS}/apt-get"
+  _stub_command snap
+  _stub_command npm "touch '${STUBS}/npm.ran'"
+  run setsid env PATH="$STUBS" "$BASH" "$SCRIPT" snap apt npm
+  [ "$status" -eq 130 ]
+  [ ! -e "${STUBS}/npm.ran" ]
+  summary="${output#*MODULE*STATUS}"
+  [[ "$summary" == *"snap"*"OK"* ]]
+}
+
 # ─── summary table ──────────────────────────────────────────────────────────
 
 @test "summary table is printed with MODULE/STATUS header" {
