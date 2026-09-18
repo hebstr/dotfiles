@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+for cmd in npx jq git gh; do
+  command -v "$cmd" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$cmd" >&2
+    exit 1
+  }
+done
+
+AGENTS_DIR="${HOME}/.agents"
+LOCK="${AGENTS_DIR}/.skill-lock.json"
+CLAUDE_SKILLS="${HOME}/.claude/skills"
+FAILED=0
+
+if [ ! -f "$LOCK" ]; then
+  echo "No ${LOCK} found: nothing to update."
+  exit 0
+fi
+
+AGENTS_REAL=$(readlink -e "$AGENTS_DIR")
+
+# The skills must only move where git tracks them: a receive-only Syncthing
+# copy of the dotfiles (WSL) has no .git, and writing there diverges silently.
+if ! git -C "$AGENTS_REAL" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "Skipped: ${AGENTS_REAL} is not inside a git working tree, update skills on the machine that commits them."
+  exit 0
+fi
+
+echo "Updating agent skills..."
+npx -y skills update -g -y </dev/null || {
+  echo "skills update failed" >&2
+  FAILED=1
+}
+
+echo "Checking installed layout..."
+if ! ENTRIES=$(jq -r '.skills | to_entries[] | "\(.key)\t\(.value.source)"' "$LOCK"); then
+  echo "Could not read the skill list from ${LOCK}" >&2
+  exit 1
+fi
+
+if [ "$ENTRIES" != "" ]; then
+  while IFS=$'\t' read -r name source; do
+    canonical="${AGENTS_DIR}/skills/${name}"
+    link="${CLAUDE_SKILLS}/${name}"
+    if [ ! -d "$canonical" ]; then
+      echo "  ${name}: missing from ${AGENTS_DIR}/skills" >&2
+    elif [ ! -L "$link" ]; then
+      echo "  ${name}: ${link} is not a symlink (a copy, or absent)" >&2
+    elif [ "$(readlink -e "$link")" != "$(readlink -e "$canonical")" ]; then
+      echo "  ${name}: ${link} does not resolve to ${canonical}" >&2
+    else
+      continue
+    fi
+    echo "    repair: npx -y skills remove ${name} -g -y && npx -y skills add ${source} -g -s ${name} -a claude-code cline -y" >&2
+    FAILED=1
+  done <<<"$ENTRIES"
+fi
+
+# The CLI can skip a skill it cannot resolve and still report everything up to
+# date with exit 0, so each lock hash is compared with the upstream tree SHA.
+echo "Checking skills are current upstream..."
+if ! UPSTREAM=$(jq -r '.skills | to_entries[] | [.key, .value.source, .value.sourceType // "", .value.skillPath // "", .value.skillFolderHash // "", .value.ref // ""] | @tsv' "$LOCK"); then
+  echo "Could not read the skill list from ${LOCK}" >&2
+  exit 1
+fi
+
+if [ "$UPSTREAM" != "" ]; then
+  while IFS=$'\t' read -r name source type path hash ref; do
+    if [ "$type" != "github" ] || [[ "$path" != */SKILL.md ]] || [ "$hash" = "" ]; then
+      echo "  ${name}: currency not checkable (source type '${type}', path '${path}')"
+      continue
+    fi
+    folder="${path%/SKILL.md}"
+    parent=""
+    [[ "$folder" == */* ]] && parent="${folder%/*}"
+    endpoint="repos/${source}/contents${parent:+/${parent}}${ref:+?ref=${ref}}"
+    if ! listing=$(gh api "$endpoint" 2>/dev/null) ||
+      ! sha=$(jq -r --arg p "$folder" '.[] | select(.path == $p and .type == "dir") | .sha' <<<"$listing" 2>/dev/null); then
+      echo "  ${name}: could not query ${source} (${endpoint})" >&2
+      FAILED=1
+    elif [ "$sha" = "" ]; then
+      echo "  ${name}: ${folder} no longer exists in ${source}" >&2
+      FAILED=1
+    elif [ "$sha" != "$hash" ]; then
+      echo "  ${name}: not current with ${source} (${folder}), the update skipped it" >&2
+      FAILED=1
+    fi
+  done <<<"$UPSTREAM"
+fi
+
+CHANGES=$(git -C "$AGENTS_REAL" status --short -- .)
+if [ "$CHANGES" != "" ]; then
+  echo "Changes to review before committing (skills run with full agent permissions):"
+  printf '%s\n' "$CHANGES"
+fi
+
+exit "$FAILED"

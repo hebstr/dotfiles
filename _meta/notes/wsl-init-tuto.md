@@ -319,16 +319,12 @@ Règles de syntaxe :
 Presque tous les scripts `*-update` interrogent l'API GitHub via `gh`.
 
 ```bash
-sudo mkdir -p -m 755 /etc/apt/keyrings \
-  && out=$(mktemp) && wget -nv -O"$out" https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-  && sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg < "$out" > /dev/null \
-  && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-  && sudo apt update && sudo apt install -y gh
+gh-update
 gh auth login
 gh auth status
 ```
 
+- `gh-update` installe le `.deb` de la release `cli/cli` après contrôle sha256 et passe par `curl` et `jq`, pas par `gh` : il sert aussi à la première installation. Pas de dépôt apt, dont la clé a expiré en place le 2026-09-05.
 - Le jeton va dans `~/.config/gh/hosts.yml`, fichier réel grâce à `--no-folding`, donc hors du dossier synchronisé.
 - `gh auth login` réécrit `~/.config/gh/config.yml` à travers le lien stow : Syncthing signale une modification locale sur `dotfiles`. Faire « Revert Local Changes ».
 - Avec le protocole SSH, `gh auth login` génère `~/.ssh/id_ed25519` et l'ajoute au compte. Contrôle : `ssh -T git@github.com` (code de sortie 1 attendu).
@@ -535,6 +531,7 @@ sys-orphans
 
 Sans argument, `sys-update` lance tous les modules.
 Les modules `positron`, `anki` et `libreoffice` exigent que l'application soit déjà installée : dans WSL, ils sont ignorés (`skipped (<app> not installed)`), bien que `stow bin` y pose leurs scripts.
+Le module `agent-skills` n'agit que là où git suit `~/dotfiles` : dans WSL, sans `.git`, il affiche `Skipped:` et le tableau le note `OK`, les skills arrivant par Syncthing depuis la machine principale.
 
 `sys-orphans` ne supprime rien : il liste les reliquats et la commande de nettoyage de chacun.
 

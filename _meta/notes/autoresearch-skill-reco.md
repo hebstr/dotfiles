@@ -43,7 +43,7 @@ Lever la garde aurait une conséquence directe et durable : des dizaines de comm
 | Commande autoresearch | Déjà couvert |
 |---|---|
 | `:probe` (8 personas interrogent les exigences) | `/ouroboros:interview`, `/ouroboros:pm` |
-| `:predict` (5 experts débattent avant implémentation) | `ouroboros_lateral_think`, `/think` |
+| `:predict` (5 experts débattent avant implémentation) | `ouroboros_lateral_think` (`/think`, skill Waza, retiré le 2026-09-18) |
 | `:reason` (débat adversarial, juges aveugles) | `/audit:blindspot`, `/audit:skill-adversary` |
 | `:plan` (objectif vers Scope/Metric/Verify validés) | discipline « what does done look like », `ouroboros_generate_seed` |
 | `:fix` et `:debug` | gate lint+format+test par langage, `/audit:walkthrough` |

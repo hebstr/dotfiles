@@ -17,10 +17,12 @@ ALL_MODULES=(
   uv-tools
   rv
   rig
+  gh
   duckdb
   lua-toolchain
   css-toolchain
   claude-plugins
+  agent-skills
   quarto
   pandoc
   positron
@@ -29,7 +31,7 @@ ALL_MODULES=(
   syncthing
 )
 
-SUDO_MODULES=(apt snap devtools rig quarto pandoc positron anki libreoffice syncthing)
+SUDO_MODULES=(apt snap devtools rig gh quarto pandoc positron anki libreoffice syncthing)
 
 usage() {
   cat <<EOF
@@ -194,6 +196,14 @@ update_rig() {
   run_or_dry rig-update && record rig OK
 }
 
+update_gh() {
+  if ! command -v gh-update >/dev/null 2>&1; then
+    record gh "skipped (not found)"
+    return
+  fi
+  run_or_dry gh-update && record gh OK
+}
+
 update_duckdb() {
   if ! command -v duckdb-update >/dev/null 2>&1; then
     record duckdb "skipped (not found)"
@@ -224,6 +234,14 @@ update_claude_plugins() {
     return
   fi
   run_or_dry claude-plugins-update && record claude-plugins OK
+}
+
+update_agent_skills() {
+  if ! command -v agent-skills-update >/dev/null 2>&1; then
+    record agent-skills "skipped (not found)"
+    return
+  fi
+  run_or_dry agent-skills-update && record agent-skills OK
 }
 
 update_quarto() {

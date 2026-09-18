@@ -71,7 +71,7 @@ python3 ~/.agents/skills/developing-with-streamlit/scripts/discover.py 2>&1 | he
 
 Portée et réserve : le skill est un routeur, il ne charge qu'une ou deux références de `references/` selon la demande, le coût en contexte reste donc à la demande. Sa `description` est en revanche très large (elle liste `CSS`, `color`, `theme`, `button` parmi ses triggers) : elle se déclenchera aussi sur du CSS étranger à Streamlit, par exemple les thèmes Quarto. Ses conseils visent des dashboards génériques et restent une source, pas une autorité, face à du CSS écrit à la main.
 
-Nature exacte des deux emplacements : ce sont deux copies indépendantes, pas un symlink vers l'autre, contrairement aux skills installés par plugin (`check`, `design`, `hunt`), où `~/.claude/skills/` pointe vers `~/.agents/skills/`. Conséquence : une mise à jour du méta-skill impose de relancer `streamlit skills --global`, qui réécrit les deux. Le contenu de référence, lui, n'est pas concerné, `discover.py` le résolvant à l'exécution dans le venv du projet.
+Nature exacte des deux emplacements : ce sont deux copies indépendantes, pas un symlink vers l'autre, contrairement aux skills installés par plugin (`check`, `design`, `hunt`, skills Waza retirés le 2026-09-18), où `~/.claude/skills/` pointe vers `~/.agents/skills/`. Conséquence : une mise à jour du méta-skill impose de relancer `streamlit skills --global`, qui réécrit les deux. Le contenu de référence, lui, n'est pas concerné, `discover.py` le résolvant à l'exécution dans le venv du projet.
 
 ```sh
 ls -ld ~/.agents/skills/developing-with-streamlit ~/.claude/skills/developing-with-streamlit

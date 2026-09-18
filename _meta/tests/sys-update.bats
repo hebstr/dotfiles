@@ -85,7 +85,7 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
-    rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
+    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -117,9 +117,11 @@ teardown() {
   echo "$output" | grep -E '^positron[[:space:]]+yes$'
   echo "$output" | grep -E '^anki[[:space:]]+yes$'
   echo "$output" | grep -E '^rig[[:space:]]+yes$'
+  echo "$output" | grep -E '^gh[[:space:]]+yes$'
   echo "$output" | grep -E '^devtools[[:space:]]+yes$'
   echo "$output" | grep -E '^duckdb[[:space:]]+no$'
   echo "$output" | grep -E '^lua-toolchain[[:space:]]+no$'
+  echo "$output" | grep -E '^agent-skills[[:space:]]+no$'
 }
 
 # ─── argument parsing errors ────────────────────────────────────────────────
@@ -263,6 +265,13 @@ EOF
   [[ "$output" == *"[dry-run] claude-plugins-update"* ]]
 }
 
+@test "agent-skills module dispatches to agent-skills-update" {
+  _stub_command agent-skills-update
+  _run --dry-run agent-skills
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] agent-skills-update"* ]]
+}
+
 @test "libreoffice module dispatches to libreoffice-update" {
   _stub_command libreoffice
   _stub_command libreoffice-update
@@ -363,6 +372,19 @@ EOF
   [[ "$output" == *"[dry-run] pandoc-update"* ]]
 }
 
+@test "gh module dispatches to gh-update" {
+  _stub_command gh-update
+  _run --dry-run gh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] gh-update"* ]]
+}
+
+@test "gh module skips when gh-update is absent" {
+  _run --dry-run gh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"gh"*"skipped (not found)"* ]]
+}
+
 # ─── apt always runs (no command check) ─────────────────────────────────────
 
 @test "apt module has no command-availability guard" {
@@ -391,7 +413,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
-    rv rig duckdb lua-toolchain css-toolchain claude-plugins quarto pandoc positron anki libreoffice syncthing; do
+    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1

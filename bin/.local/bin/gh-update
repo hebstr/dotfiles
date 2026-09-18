@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+for dep in curl jq; do
+  command -v "$dep" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$dep" >&2
+    exit 1
+  }
+done
+
+: "${GH_GPG_KEY_DEST:=/etc/apt/keyrings/githubcli-archive-keyring.gpg}"
+: "${GH_APT_SOURCE_FILE:=/etc/apt/sources.list.d/github-cli.list}"
+GH_REPO="cli/cli"
+GH_API_URL="https://api.github.com/repos/${GH_REPO}/releases/latest"
+GH_TMP=""
+
+# curl rather than gh itself: the updater has to work when gh is absent or
+# broken, which is exactly when it is needed most.
+fetch_latest_version() {
+  local body tag
+  body=$(curl -fsSL "$GH_API_URL" 2>/dev/null) || body=""
+  tag=$(jq -r '.tag_name // empty | ltrimstr("v")' <<<"$body" 2>/dev/null || true)
+  if [[ -z "$tag" ]]; then
+    printf 'Failed to resolve latest gh version from GitHub API\n' >&2
+    exit 1
+  fi
+  printf '%s' "$tag"
+}
+
+get_current_version() {
+  local ver
+  ver=$(gh --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+  printf '%s' "${ver:-unknown}"
+}
+
+deb_arch() {
+  local machine
+  machine=$(uname -m)
+  case "$machine" in
+  x86_64) printf 'amd64' ;;
+  aarch64) printf 'arm64' ;;
+  *)
+    printf 'Unsupported architecture: %s\n' "$machine" >&2
+    exit 1
+    ;;
+  esac
+}
+
+# gh installs from the release .deb: the cli.github.com apt key rotated and
+# expired in place, which failed the sys-update apt module and left gh behind
+# with no updater owning the key. The source goes first, so a failed removal
+# never leaves a source without its key.
+remove_apt_repo() {
+  if [[ -e "$GH_APT_SOURCE_FILE" ]]; then
+    printf 'Removing the retired gh apt source %s.\n' "$GH_APT_SOURCE_FILE"
+    sudo rm -f "$GH_APT_SOURCE_FILE" || {
+      printf 'Could not remove %s.\n' "$GH_APT_SOURCE_FILE" >&2
+      return 0
+    }
+  fi
+  if [[ -e "$GH_GPG_KEY_DEST" ]]; then
+    printf 'Removing the retired gh apt key %s.\n' "$GH_GPG_KEY_DEST"
+    sudo rm -f "$GH_GPG_KEY_DEST" ||
+      printf 'Could not remove %s.\n' "$GH_GPG_KEY_DEST" >&2
+  fi
+  return 0
+}
+
+# The checksums file comes over the same TLS channel as the .deb, so it
+# catches a truncated or corrupted download, not a compromised release.
+do_upgrade() {
+  local version="$1" arch="$2" deb sums line
+  local base="https://github.com/${GH_REPO}/releases/download/v${version}"
+  deb="gh_${version}_linux_${arch}.deb"
+  sums="gh_${version}_checksums.txt"
+  GH_TMP=$(mktemp -d)
+  trap 'rm -rf "$GH_TMP"' EXIT
+
+  printf 'Downloading gh %s (%s)...\n' "$version" "$arch"
+  curl -fsSL -o "$GH_TMP/$deb" "$base/$deb"
+  curl -fsSL -o "$GH_TMP/$sums" "$base/$sums"
+
+  line=$(awk -v f="$deb" '$2 == f' "$GH_TMP/$sums")
+  if [[ -z "$line" ]]; then
+    printf 'No checksum for %s in %s\n' "$deb" "$sums" >&2
+    exit 1
+  fi
+  (cd "$GH_TMP" && sha256sum -c --status <<<"$line") || {
+    printf 'Checksum mismatch for %s\n' "$deb" >&2
+    exit 1
+  }
+
+  sudo apt-get install -y "$GH_TMP/$deb"
+}
+
+main() {
+  local latest current
+  latest=$(fetch_latest_version)
+  current=$(get_current_version)
+
+  printf 'Latest gh release: %s\n' "$latest"
+  printf 'Current version:   %s\n' "$current"
+
+  remove_apt_repo
+
+  if [[ "$current" == "$latest" ]]; then
+    printf 'Already on %s: nothing to do.\n' "$latest"
+    exit 0
+  fi
+
+  local arch
+  arch=$(deb_arch)
+
+  sudo -v
+  do_upgrade "$latest" "$arch"
+
+  printf '\nInstalled version:\n'
+  gh --version
+  printf '\nPrevious version was: %s\n' "$current"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
