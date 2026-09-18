@@ -56,8 +56,9 @@ Tout sert `resolute` depuis mai 2026 :
 La FAQ Positron mentionne « RHEL 8, 9, and 10 and Ubuntu 22/24 », mais cette phrase porte sur les fonctions Remote SSH et Workbench, pas sur le desktop.
 Ce n'est pas une contradiction avec la matrice de support.
 
-Les 8 dépôts tiers épinglés sur `noble` dans `/etc/apt/sources.list.d/` ont tous leur équivalent `resolute` en ligne : CRAN, Docker, QGIS, et les PPAs apt-fast, git-core, mozillateam, keepassxc.
-Les autres sources (`github-cli`, `nodesource`, `rig`, `syncthing`, `protonvpn`, `vscode`) utilisent une suite `stable` indépendante du nom de code.
+Les 6 dépôts tiers épinglés sur `noble` dans `/etc/apt/sources.list.d/` ont tous leur équivalent `resolute` en ligne : Docker, QGIS, et les PPAs apt-fast, git-core, mozillateam, keepassxc.
+Les autres sources utilisent une suite indépendante du nom de code : `nodesource` (`nodistro`), `syncthing` (`stable-v2`), `vscode` (`stable`).
+`gh` et `rig` s'installent depuis le `.deb` de leur release GitHub depuis le 2026-09-18, sans dépôt apt.
 
 ## Le risque réel : le cœur de l'OS
 

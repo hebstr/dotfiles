@@ -60,13 +60,13 @@ fi
 # The CLI can skip a skill it cannot resolve and still report everything up to
 # date with exit 0, so each lock hash is compared with the upstream tree SHA.
 echo "Checking skills are current upstream..."
-if ! UPSTREAM=$(jq -r '.skills | to_entries[] | [.key, .value.source, .value.sourceType // "", .value.skillPath // "", .value.skillFolderHash // "", .value.ref // ""] | @tsv' "$LOCK"); then
+if ! UPSTREAM=$(jq -r '.skills | to_entries[] | [.key, .value.source, .value.sourceType // "", .value.skillPath // "", .value.skillFolderHash // "", .value.ref // ""] | join([31] | implode)' "$LOCK"); then
   echo "Could not read the skill list from ${LOCK}" >&2
   exit 1
 fi
 
 if [ "$UPSTREAM" != "" ]; then
-  while IFS=$'\t' read -r name source type path hash ref; do
+  while IFS=$'\x1f' read -r name source type path hash ref; do
     if [ "$type" != "github" ] || [[ "$path" != */SKILL.md ]] || [ "$hash" = "" ]; then
       echo "  ${name}: currency not checkable (source type '${type}', path '${path}')"
       continue

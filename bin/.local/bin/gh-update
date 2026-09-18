@@ -18,7 +18,7 @@ GH_TMP=""
 # broken, which is exactly when it is needed most.
 fetch_latest_version() {
   local body tag
-  body=$(curl -fsSL "$GH_API_URL" 2>/dev/null) || body=""
+  body=$(curl -fsSL "$GH_API_URL") || body=""
   tag=$(jq -r '.tag_name // empty | ltrimstr("v")' <<<"$body" 2>/dev/null || true)
   if [[ -z "$tag" ]]; then
     printf 'Failed to resolve latest gh version from GitHub API\n' >&2

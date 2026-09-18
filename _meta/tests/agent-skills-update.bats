@@ -73,6 +73,9 @@ setup() {
   NPX_LOG="${STUBS}/npx.log"
   GH_FIXTURES="$(mktemp -d)"
   export STUBS FAKE_HOME REPO NPX_LOG GH_FIXTURES
+  # Keeps git from finding an enclosing repository when TMPDIR sits inside one.
+  GIT_CEILING_DIRECTORIES="$(dirname "$REPO")"
+  export GIT_CEILING_DIRECTORIES
   for cmd in jq git readlink; do
     ln -s "$(command -v "$cmd")" "${STUBS}/${cmd}"
   done
@@ -169,6 +172,7 @@ teardown() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"skills update failed"* ]]
   [[ "$output" == *"Checking installed layout"* ]]
+  [[ "$output" == *"Checking skills are current upstream"* ]]
 }
 
 @test "unreadable lock: exits 1 with message" {
@@ -298,6 +302,31 @@ teardown() {
   [[ "$output" == *"alpha: could not query owner/alpha"* ]]
 }
 
+@test "unparseable upstream listing: exits 1" {
+  _init_git
+  _add_skill alpha
+  _write_lock alpha
+  printf 'not json\n' >"${GH_FIXTURES}/repos/owner/alpha/contents/skills.json"
+  _commit_all
+  _run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"alpha: could not query owner/alpha"* ]]
+}
+
+@test "a skill at the repository root is queried on the root listing" {
+  _init_git
+  _add_skill alpha
+  _write_lock alpha
+  jq '.skills.alpha.skillPath = "alpha/SKILL.md"' "${REPO}/agents/.agents/.skill-lock.json" >"${REPO}/lock.tmp"
+  mv "${REPO}/lock.tmp" "${REPO}/agents/.agents/.skill-lock.json"
+  printf '[{"path": "alpha", "type": "dir", "sha": "h-alpha"}]\n' \
+    >"${GH_FIXTURES}/repos/owner/alpha/contents.json"
+  _commit_all
+  _run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"alpha:"* ]]
+}
+
 @test "a pinned ref is queried at that ref, not the default branch" {
   _init_git
   _add_skill alpha
@@ -310,6 +339,19 @@ teardown() {
   _commit_all
   _run
   [ "$status" -eq 0 ]
+  [[ "$output" != *"not current"* ]]
+}
+
+@test "an empty hash before a pinned ref is not checkable, not stale" {
+  _init_git
+  _add_skill alpha
+  _write_lock alpha
+  jq '.skills.alpha.skillFolderHash = "" | .skills.alpha.ref = "v1"' "${REPO}/agents/.agents/.skill-lock.json" >"${REPO}/lock.tmp"
+  mv "${REPO}/lock.tmp" "${REPO}/agents/.agents/.skill-lock.json"
+  _commit_all
+  _run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"alpha: currency not checkable"* ]]
   [[ "$output" != *"not current"* ]]
 }
 

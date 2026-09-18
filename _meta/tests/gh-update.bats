@@ -38,7 +38,10 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 printf '%s\n' "$url" >>"$TMPDIR_TEST/curl-log"
-[[ -n "$CURL_FAIL_ON" && "$url" == *"$CURL_FAIL_ON"* ]] && exit 22
+if [[ -n "$CURL_FAIL_ON" && "$url" == *"$CURL_FAIL_ON"* ]]; then
+  printf 'curl: (22) The requested URL returned error: 403\n' >&2
+  exit 22
+fi
 case "$url" in
   */releases/latest)
     printf '%s\n' "$CURL_API_BODY"
@@ -145,6 +148,7 @@ STUB
   run fetch_latest_version
   [ "$status" -eq 1 ]
   [[ "$output" == *"Failed to resolve"* ]]
+  [[ "$output" == *"curl: (22)"* ]]
 }
 
 # ---------------------------------------------------------------------------
