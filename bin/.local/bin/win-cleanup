@@ -118,6 +118,7 @@ purge_older_than() {
   local dir="$1" age="$2" entry
   [[ -d "$dir" ]] || return 0
   while IFS= read -r -d '' entry; do
+    [[ -z "$(find "$entry" -mmin "-${age}" -print -quit 2>/dev/null)" ]] || continue
     purge "$entry"
   done < <(find "$dir" -mindepth 1 -maxdepth 1 -mmin "+${age}" -print0 2>/dev/null)
 }
@@ -222,7 +223,6 @@ clean_steam_cache() {
   local targets=() root
   for root in "${roots[@]}"; do
     targets+=(
-      "${root}/steamapps/downloading"
       "${root}/steamapps/temp"
       "${root}/steamapps/shadercache"
     )
@@ -328,13 +328,13 @@ declare -A ADMIN_BEFORE=()
 
 queue_windows_temp() {
   ADMIN_BEFORE["windows-temp"]=$(bytes_of /mnt/c/Windows/Temp)
-  ADMIN_QUEUE+=('Get-ChildItem -LiteralPath "C:\Windows\Temp" -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue')
+  ADMIN_QUEUE+=("Get-ChildItem -LiteralPath \"C:\\Windows\\Temp\" -Force | Where-Object LastWriteTime -lt (Get-Date).AddMinutes(-${TEMP_MIN_AGE_MIN}) | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue")
 }
 
 finish_windows_temp() {
   local after
   after=$(bytes_of /mnt/c/Windows/Temp)
-  record windows-temp $((${ADMIN_BEFORE["windows-temp"]} - after)) OK
+  record windows-temp $((${ADMIN_BEFORE["windows-temp"]} - after)) "OK (older than ${TEMP_MIN_AGE_MIN} min)"
 }
 
 queue_component_store() {
@@ -343,9 +343,13 @@ queue_component_store() {
 }
 
 finish_component_store() {
-  local after
+  local after freed
   after=$(c_avail_bytes)
-  record component-store $((after - ${ADMIN_BEFORE["component-store"]})) OK
+  freed=$((after - ${ADMIN_BEFORE["component-store"]}))
+  if [[ -n "${ADMIN_BEFORE["windows-temp"]+set}" ]]; then
+    freed=$((freed - (${ADMIN_BEFORE["windows-temp"]} - $(bytes_of /mnt/c/Windows/Temp))))
+  fi
+  record component-store "$freed" OK
 }
 
 flush_admin() {
@@ -361,7 +365,10 @@ flush_admin() {
     return 1
   }
   local dir script marker win_script
-  dir=$(mktemp -d "${base}/win-cleanup.XXXXXX")
+  dir=$(mktemp -d "${base}/Temp/win-cleanup.XXXXXX" 2>/dev/null) || {
+    printf 'win-cleanup: cannot create the elevated batch directory under %%LOCALAPPDATA%%\\Temp\n' >&2
+    return 1
+  }
   script="${dir}/batch.ps1"
   marker="${dir}/done"
   {
@@ -440,11 +447,13 @@ main() {
   for m in "${SELECTED_MODULES[@]}"; do
     if in_list "$m" "${ADMIN_MODULES[@]}"; then
       admin_selected+=("$m")
-      "queue_${m//-/_}"
       continue
     fi
     printf '→ %s\n' "$m"
     "clean_${m//-/_}"
+  done
+  for m in "${admin_selected[@]}"; do
+    "queue_${m//-/_}"
   done
 
   local admin_ok=1

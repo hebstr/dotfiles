@@ -26,10 +26,18 @@ for arg in "$@"; do
   case "$arg" in
   *LOCALAPPDATA*) printf "lookup\n" >>"${LA_LOG}"; printf "C:\\\\FakeLocal\r\n"; exit 0 ;;
   *Clear-RecycleBin*) printf "recyclebin\n" >>"${PS_LOG}"; exit 0 ;;
-  *Start-Process*) printf "elevate\n" >>"${PS_LOG}"; exit 0 ;;
+  *Start-Process*)
+    printf "elevate\n" >>"${PS_LOG}"
+    for d in "${LOCAL_DIR}"/Temp/win-cleanup.*/; do : >"${d}done"; done
+    exit 0
+    ;;
   esac
 done
 exit 0'
+
+  _stub_command df '
+used=$(du -sb "${LOCAL_DIR}" | awk "{print \$1}")
+printf "Avail\n%s\n" "$((1000000000000 - used))"'
 
   # The Windows volume is case-insensitive, so the stub matches case-insensitively
   # and keeps the caller casing in the remainder.
@@ -57,11 +65,12 @@ printf "%s\n" "${RUNNING_IMAGES:-}"'
 setup() {
   STUBS="$(mktemp -d)"
   LOCAL_DIR="$(mktemp -d)"
+  mkdir "${LOCAL_DIR}/Temp"
   STEAM_DIR="$(mktemp -d)"
   PS_LOG="$(mktemp -u)"
   LA_LOG="$(mktemp -u)"
   export STUBS LOCAL_DIR STEAM_DIR PS_LOG LA_LOG
-  for cmd in cat paste du awk df find grep sed sort tr rm mktemp; do
+  for cmd in cat paste du awk find grep sed sort tr rm mktemp; do
     [ -e "/usr/bin/${cmd}" ] && ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
@@ -168,6 +177,19 @@ _run() {
   [ ! -e "${LOCAL_DIR}/Temp/stale.tmp" ]
 }
 
+@test "user-temp spares an old folder whose content is still being written" {
+  mkdir -p "${LOCAL_DIR}/Temp/live/sub" "${LOCAL_DIR}/Temp/dead/sub"
+  head -c 1024 /dev/zero >"${LOCAL_DIR}/Temp/live/sub/state.dat"
+  head -c 1024 /dev/zero >"${LOCAL_DIR}/Temp/dead/sub/state.dat"
+  touch -d '10 days ago' "${LOCAL_DIR}/Temp/dead/sub/state.dat" "${LOCAL_DIR}/Temp/dead/sub"
+  touch -d '10 days ago' "${LOCAL_DIR}/Temp/live/sub"
+  touch -d '10 days ago' "${LOCAL_DIR}/Temp/live" "${LOCAL_DIR}/Temp/dead"
+  _run user-temp
+  [ "$status" -eq 0 ]
+  [ -e "${LOCAL_DIR}/Temp/live/sub/state.dat" ]
+  [ ! -e "${LOCAL_DIR}/Temp/dead" ]
+}
+
 @test "steam-cache counts one library when registry and vdf disagree on case" {
   mkdir -p "${STEAM_DIR}/steamapps/shadercache/123"
   cat >"${STEAM_DIR}/steamapps/libraryfolders.vdf" <<'EOF'
@@ -183,6 +205,14 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" == *"OK (1 library)"* ]]
   [ ! -e "${STEAM_DIR}/steamapps/shadercache/123" ]
+}
+
+@test "steam-cache keeps paused downloads" {
+  mkdir -p "${STEAM_DIR}/steamapps/downloading/456" "${STEAM_DIR}/steamapps/temp/789"
+  _run steam-cache
+  [ "$status" -eq 0 ]
+  [ -e "${STEAM_DIR}/steamapps/downloading/456" ]
+  [ ! -e "${STEAM_DIR}/steamapps/temp/789" ]
 }
 
 @test "steam-cache skips while steam is running" {
@@ -235,10 +265,38 @@ EOF
   [ ! -e "$PS_LOG" ]
 }
 
+@test "windows-temp spares entries younger than the temp age floor" {
+  _run --dry-run windows-temp
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'C:\Windows\Temp'*'Where-Object LastWriteTime -lt (Get-Date).AddMinutes(-1440)'*'Remove-Item'* ]]
+}
+
 @test "both admin modules elevate once, not once each" {
   _run windows-temp component-store
   [ "$status" -eq 0 ]
   [ "$(grep -c elevate "$PS_LOG")" -eq 1 ]
+  [[ "$output" =~ windows-temp\ .*OK ]]
+  [[ "$output" =~ component-store\ .*OK ]]
+  [[ "$output" != *"failed (not elevated)"* ]]
+}
+
+@test "component-store does not count what the other modules freed" {
+  mkdir -p "${LOCAL_DIR}/NVIDIA/DXCache"
+  head -c 1048576 /dev/zero >"${LOCAL_DIR}/NVIDIA/DXCache/shader.bin"
+  _run component-store nvidia-cache
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ nvidia-cache\ +1\ MiB ]]
+  [[ "$output" =~ component-store\ +0\ B ]]
+  [[ "$output" =~ TOTAL\ +1\ MiB ]]
+}
+
+@test "an uncreatable batch directory is reported as such, not as a declined UAC" {
+  rmdir "${LOCAL_DIR}/Temp"
+  _run windows-temp
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"cannot create the elevated batch directory"* ]]
+  [[ "$output" != *"UAC declined"* ]]
+  [ ! -e "$PS_LOG" ]
 }
 
 @test "a declined elevation marks the admin modules failed" {
@@ -252,4 +310,5 @@ exit 0'
   _run windows-temp
   [ "$status" -eq 0 ]
   [[ "$output" == *"failed (not elevated)"* ]]
+  [[ "$output" != *"OK (older than"* ]]
 }

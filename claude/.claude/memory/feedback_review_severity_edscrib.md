@@ -215,7 +215,7 @@ Project context in [[project_edscrib_annotation_package]].
 
 **A tracking file that cannot cite a commit must say so rather than wait.** `ANNOT-PKG.md` records each pass as "figée par `<hash>`", and this pass has none, the user owning every git operation. Writing the record anyway, explicitly marked applied-and-not-committed with the hash to follow, is right: deferring it is how the previous pass's count chain went unwritten in the first place.
 
-**Line-number citations in `DEFERRED.md` rot on every pass and are worth converting on sight.** Three entries cited `app.py:39`, `app.py:48-76` and `app.py:235`, all shifted by this pass; two of the three had already been shifted by earlier ones. Cite the symbol and let the reader grep, or give the number with the date it was true and the instruction to search the name.
+**Line-number citations in `DEFERRED.md` rot on every pass and are worth converting on sight.** Three entries cited `app.py:39`, `app.py:48-76` and `app.py:235`, all shifted by this pass; two of the three had already been shifted by earlier ones. Cite the symbol and let the reader grep.
 
 **What the fourth `app.py` pass added (2026-08-01, reviewer `posit-dev:critical-code-reviewer`, 6 findings: 3 ACCEPTED, 1 REJECTED, 2 split accept/reject; 228 tests to 234, `test_app.py` 79 to 85).** Ninth pass, fourth on this module, and it found a Blocking the three before it had walked straight past: **none of the guards was a stop at all off the script thread.**
 
