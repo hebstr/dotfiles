@@ -70,7 +70,7 @@ setup() {
   PS_LOG="$(mktemp -u)"
   LA_LOG="$(mktemp -u)"
   export STUBS LOCAL_DIR STEAM_DIR PS_LOG LA_LOG
-  for cmd in cat paste du awk find grep sed sort tr rm mktemp; do
+  for cmd in cat paste du awk find grep ls sed sort tr rm mktemp; do
     [ -e "/usr/bin/${cmd}" ] && ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
@@ -82,8 +82,8 @@ teardown() {
 }
 
 _run() {
-  run env PATH="$STUBS" WSL_DISTRO_NAME=Ubuntu-test \
-    LOCAL_DIR="$LOCAL_DIR" STEAM_DIR="$STEAM_DIR" PS_LOG="$PS_LOG" LA_LOG="$LA_LOG" \
+  run env PATH="$STUBS" WSL_DISTRO_NAME=Ubuntu-test WIN_SYSTEM32=/nonexistent \
+    WIN_C_MOUNT="$STUBS" LOCAL_DIR="$LOCAL_DIR" STEAM_DIR="$STEAM_DIR" PS_LOG="$PS_LOG" LA_LOG="$LA_LOG" \
     RUNNING_IMAGES="${RUNNING_IMAGES:-}" \
     "$BASH" "$SCRIPT" "$@"
 }
@@ -120,9 +120,33 @@ _run() {
 # ─── environment guards ─────────────────────────────────────────────────────
 
 @test "outside WSL the script refuses to run" {
-  run env -u WSL_DISTRO_NAME PATH="$STUBS" "$BASH" "$SCRIPT" nvidia-cache
+  run env -u WSL_DISTRO_NAME PATH="$STUBS" WSL_INTEROP_FLAG=/nonexistent \
+    "$BASH" "$SCRIPT" nvidia-cache
   [ "$status" -eq 1 ]
   [[ "$output" == *"not running under WSL"* ]]
+}
+
+@test "a login shell finds the interop binaries under System32" {
+  local sys32="${STUBS}/System32"
+  mkdir -p "${sys32}/WindowsPowerShell/v1.0" "${LOCAL_DIR}/NVIDIA/DXCache"
+  head -c 1024 /dev/zero >"${LOCAL_DIR}/NVIDIA/DXCache/shader.bin"
+  mv "${STUBS}/reg.exe" "${STUBS}/tasklist.exe" "${sys32}/"
+  mv "${STUBS}/powershell.exe" "${sys32}/WindowsPowerShell/v1.0/"
+  touch "${STUBS}/WSLInterop"
+  run env -u WSL_DISTRO_NAME PATH="$STUBS" LOCAL_DIR="$LOCAL_DIR" LA_LOG="$LA_LOG" \
+    WSL_INTEROP_FLAG="${STUBS}/WSLInterop" WIN_SYSTEM32="$sys32" WIN_C_MOUNT="$STUBS" \
+    "$BASH" "$SCRIPT" nvidia-cache
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ nvidia-cache\ +1\ KiB\ +OK ]]
+}
+
+@test "an unreadable C: mount is named as such, with its remedy" {
+  run env PATH="$STUBS" WSL_DISTRO_NAME=Ubuntu-test WIN_C_MOUNT=/nonexistent \
+    "$BASH" "$SCRIPT" nvidia-cache
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"/nonexistent unreadable"* ]]
+  [[ "$output" == *"wsl --shutdown"* ]]
+  [[ "$output" != *"not on PATH"* ]]
 }
 
 @test "a missing interop binary refuses to run and names it" {

@@ -2,6 +2,9 @@
 set -Eeuo pipefail
 
 TEMP_MIN_AGE_MIN=1440
+WSL_INTEROP_FLAG="${WSL_INTEROP_FLAG:-/proc/sys/fs/binfmt_misc/WSLInterop}"
+WIN_SYSTEM32="${WIN_SYSTEM32:-/mnt/c/Windows/System32}"
+WIN_C_MOUNT="${WIN_C_MOUNT:-/mnt/c}"
 DRY_RUN=0
 SELECTED_MODULES=()
 
@@ -417,10 +420,20 @@ main() {
     esac
   done
 
-  if [[ "${WSL_DISTRO_NAME:-}" == "" ]]; then
+  if [[ "${WSL_DISTRO_NAME:-}" == "" && ! -e "$WSL_INTEROP_FLAG" ]]; then
     printf 'win-cleanup: not running under WSL, nothing to clean\n' >&2
     return 1
   fi
+  # A dead drvfs 9p link fails every read under /mnt/c with an I/O error, which
+  # would otherwise surface as the interop binaries missing from PATH.
+  if ! ls "$WIN_C_MOUNT" >/dev/null 2>&1; then
+    printf 'win-cleanup: %s unreadable (drvfs link down): run "wsl --shutdown" from Windows, then reopen the terminal\n' "$WIN_C_MOUNT" >&2
+    return 1
+  fi
+  # A login shell started through /bin/login -f (systemd=true) or ssh keeps the
+  # binfmt interop handler but loses WSL_DISTRO_NAME and the Windows PATH entries.
+  command -v powershell.exe >/dev/null 2>&1 ||
+    PATH="${PATH}:${WIN_SYSTEM32}:${WIN_SYSTEM32}/WindowsPowerShell/v1.0"
   local tool
   for tool in powershell.exe reg.exe tasklist.exe wslpath; do
     if ! command -v "$tool" >/dev/null 2>&1; then
