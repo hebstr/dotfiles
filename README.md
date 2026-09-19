@@ -5,7 +5,7 @@ Personal stow-managed dotfiles.
 ## Structure
 
 ```
-agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ panache/ positron/ prek/ R/ Rstudio/ ruff/ syncthing/   # config stow packages
+agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
@@ -22,18 +22,30 @@ Packages follow stow conventions: each top-level dir maps its tree relative to `
 sudo apt install -y stow
 git clone https://github.com/hebstr/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow -R -t ~ agents air bash bin claude css gh git obsidian panache positron prek R Rstudio ruff syncthing
-stow -R --no-folding -t ~ firefox
+stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin claude firefox gh git obsidian panache positron prek R Rstudio ruff ssh syncthing
+stow -R -t ~ agents css
+npm config set prefix "$HOME/.npm-global"
 npm --prefix css/.local/share/css-gate ci
 ```
 
-`firefox` is stowed on its own line and with `--no-folding` deliberately.
-It carries a single `user.js` under a randomly generated profile directory (`z24d9fn6.default-release`), and stow folds an arborescence whose target directory does not exist, which on a fresh machine would symlink `~/.mozilla` itself into the repo and put the whole Firefox profile (`places.sqlite`, `cookies.sqlite`, the cache) under version control.
-`--no-folding` creates real directories and links the leaf file only.
+`--no-folding` is the default here, deliberately.
+Stow folds an arborescence whose target directory does not exist into a single symlink to the repo, so on a fresh machine everything a program later writes there lands in `~/dotfiles` and in Syncthing: Claude Code sessions and `.credentials.json` under `~/.claude`, the `gh` token, editor state under `~/.config/Positron`, the whole notes vault through `~/notes`, SSH keys generated in `~/.ssh`, the Firefox profile (`places.sqlite`, `cookies.sqlite`, the cache) through `~/.mozilla`.
+`--no-folding` creates real directories and links the leaf files only.
+Two packages stay folded: `agents`, because `~/.agents` must remain a single link for the skills installer to write into the repo, and `css`, whose `~/.local/bin` links resolve through `~/.local/share/css-gate/node_modules`: folded, that directory follows whatever `npm ci` and `sys-update css-toolchain` install in the repo, where `--no-folding` would link each file one by one and miss those an update adds.
+On a machine that does not sync every Syncthing folder, add `--ignore='<folder>'` for each missing one, or stow creates empty directories just to hold their `.stignore`.
+
+`firefox` carries a single `user.js` under a randomly generated profile directory (`z24d9fn6.default-release`).
 That profile name is specific to one machine: elsewhere, rename the directory inside the package to match the local profile, otherwise the link lands where Firefox never reads and the setting vanishes with no error.
+
+`ssh` holds `.ssh/config` only, never a key, and that file stays `644`: `ssh` rejects a config others can write, and tolerates a group-writable one only because Ubuntu's build accepts a private user group.
+Setting up the servers and keys behind its aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
 
 The `npm ci` step is required, not optional: the `css` package ships pinned `package.json` + `package-lock.json` but its `node_modules/` is gitignored, so `~/.local/bin/{stylelint,prettier}` dangle until it runs, and `symlinks-check` fails.
 Thereafter `sys-update css-toolchain` keeps that toolchain current.
+
+The npm prefix step is required too: without it the global prefix is `/usr`, whose `npm` and `corepack` belong to the NodeSource `nodejs` deb, and `sys-update npm` fails with `EACCES` as soon as npm publishes a release newer than the deb's.
+With `~/.npm-global`, `npm update -g` only sees packages installed there, and apt keeps `npm` itself current.
+`npm config set` writes a machine-local `~/.npmrc`, deliberately not a stow package since `npm login` stores tokens in that file; `bash/.profile` puts `~/.npm-global/bin` on the `PATH`.
 
 The uv tools have no equivalent step, and the bootstrap above does not install them: `sys-update uv-tools` upgrades what is already present and installs nothing.
 `pyrefly` (the Python gate's type checker, also run by this repo's own commit hook), `sqlfluff[rs]` (the SQL gate), `showboat`, `ouroboros-ai`, `huggingface-hub` and `yt-dlp` each need a manual `uv tool install` on a fresh machine.

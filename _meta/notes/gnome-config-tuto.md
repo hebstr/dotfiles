@@ -46,7 +46,7 @@ Trois domaines ne se laissent pas dumper naïvement ; le script applique un filt
 
 ```bash
 git clone <dotfiles-repo> ~/dotfiles
-cd ~/dotfiles && stow bin
+cd ~/dotfiles && stow --no-folding bin
 gnome-config restore
 ```
 

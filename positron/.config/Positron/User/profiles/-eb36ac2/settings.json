@@ -310,6 +310,7 @@
 
   // COLORATION SYNTAXIQUE -------------------------------------------------------
 
+  "editor.semanticHighlighting.enabled": false,
   "editor.tokenColorCustomizations": {
     "[Material Night Eighties]": {
       "textMateRules": [

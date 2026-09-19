@@ -178,7 +178,7 @@ Le lien est sûr parce que **Firefox lit `user.js` et ne l'écrit jamais** : il 
 Vérifié par les mtimes, `user.js` figé à 13:35 pendant que `prefs.js` était réécrit à 13:51 au cours de la même session.
 
 Sur une machine où ce répertoire de profil n'existe pas encore, un `stow firefox` nu se comporterait autrement : stow replie les arborescences dont la cible est absente et lierait `~/.mozilla` lui-même vers le dépôt, ce qui y ferait atterrir le profil Firefox entier.
-D'où le `stow -R --no-folding -t ~ firefox` isolé dans le bootstrap du README.
+D'où le `--no-folding` du bootstrap du README, qui couvre `firefox` avec les autres paquets.
 Comportement documenté de stow, non mesuré ici.
 
 Fragilité assumée : `z24d9fn6` est un nom généré à la création du profil.
