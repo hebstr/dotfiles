@@ -1,0 +1,474 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+TEMP_MIN_AGE_MIN=1440
+DRY_RUN=0
+SELECTED_MODULES=()
+
+ALL_MODULES=(
+  nvidia-cache
+  user-temp
+  steam-cache
+  firefox-cache
+  explorer-cache
+  crashdumps
+  recycle-bin
+  windows-temp
+  component-store
+)
+
+# UAC cannot be cached the way sudo is, so these are queued and the whole batch
+# runs behind a single elevation prompt.
+ADMIN_MODULES=(windows-temp component-store)
+
+usage() {
+  cat <<EOF
+win-cleanup: modular disk cleanup for the Windows side, from WSL
+
+Usage:
+  win-cleanup [options] [module...]
+
+Options:
+  --dry-run    print what would be removed, change nothing
+  --list       list available modules
+  -h, --help   show this help
+
+Modules:
+  $(printf '%s\n' "${ALL_MODULES[@]}" | paste -sd ' ')
+
+With no module argument, all modules run.
+EOF
+}
+
+in_list() {
+  local needle="$1" item
+  shift
+  for item in "$@"; do
+    [[ "$item" == "$needle" ]] && return 0
+  done
+  return 1
+}
+
+list_modules() {
+  printf '%-20s %s\n' MODULE ADMIN
+  local m
+  for m in "${ALL_MODULES[@]}"; do
+    if in_list "$m" "${ADMIN_MODULES[@]}"; then
+      printf '%-20s %s\n' "$m" yes
+    else
+      printf '%-20s %s\n' "$m" no
+    fi
+  done
+}
+
+bytes_of() {
+  { du -sb "$@" 2>/dev/null || true; } | awk '{sum+=$1} END{print sum+0}'
+}
+
+c_avail_bytes() {
+  { df -B1 --output=avail /mnt/c 2>/dev/null || true; } | awk 'NR>1 {print $1+0; exit}'
+}
+
+format_bytes() {
+  local b="$1"
+  if ((b >= 1073741824)); then
+    awk "BEGIN{printf \"%.1f GiB\", $b/1073741824}"
+  elif ((b >= 1048576)); then
+    awk "BEGIN{printf \"%.0f MiB\", $b/1048576}"
+  elif ((b >= 1024)); then
+    awk "BEGIN{printf \"%.0f KiB\", $b/1024}"
+  else
+    echo "${b} B"
+  fi
+}
+
+RESULTS=()
+TOTAL_FREED=0
+
+record() {
+  local module="$1" freed="$2" status="$3"
+  ((freed < 0)) && freed=0
+  RESULTS+=("$(printf '%-20s %-10s %s' "$module" "$(format_bytes "$freed")" "$status")")
+  TOTAL_FREED=$((TOTAL_FREED + freed))
+}
+
+purge() {
+  local target
+  for target in "$@"; do
+    [[ -e "$target" ]] || continue
+    if ((DRY_RUN)); then
+      printf '  [dry-run] rm -rf %s\n' "$target"
+    else
+      # Windows holds cache files open while their owner runs; a locked entry is
+      # expected churn, not a failure of the module.
+      rm -rf -- "$target" 2>/dev/null || true
+    fi
+  done
+}
+
+purge_contents() {
+  local dir="$1" entry
+  [[ -d "$dir" ]] || return 0
+  while IFS= read -r -d '' entry; do
+    purge "$entry"
+  done < <(find "$dir" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
+}
+
+purge_older_than() {
+  local dir="$1" age="$2" entry
+  [[ -d "$dir" ]] || return 0
+  while IFS= read -r -d '' entry; do
+    purge "$entry"
+  done < <(find "$dir" -mindepth 1 -maxdepth 1 -mmin "+${age}" -print0 2>/dev/null)
+}
+
+# Resolved once in the main shell: callers read it through $(...), where a
+# lazily filled cache would be lost with the subshell.
+LOCALAPPDATA_DIR=""
+resolve_localappdata() {
+  local raw
+  # shellcheck disable=SC2016
+  raw=$(powershell.exe -NoProfile -NonInteractive -Command '$env:LOCALAPPDATA' 2>/dev/null | tr -d '\r') || return 0
+  [[ -n "$raw" ]] || return 0
+  LOCALAPPDATA_DIR=$(wslpath -u "$raw") || LOCALAPPDATA_DIR=""
+}
+
+localappdata() {
+  [[ -n "$LOCALAPPDATA_DIR" ]] || return 1
+  printf '%s' "$LOCALAPPDATA_DIR"
+}
+
+process_running() {
+  # tasklist output is localized, so match the image name and never the
+  # "no task is running" message.
+  tasklist.exe /FI "IMAGENAME eq $1" /NH 2>/dev/null | tr -d '\r' | grep -qiF "$1"
+}
+
+steam_roots() {
+  local raw root vdf line path key
+  # The registry spells the install path in lower case and libraryfolders.vdf in
+  # title case, so the same library reaches here twice on a case-insensitive volume.
+  local -A seen=()
+  raw=$(reg.exe query 'HKCU\Software\Valve\Steam' /v SteamPath 2>/dev/null |
+    tr -d '\r' | awk '/SteamPath/ {sub(/^.*REG_SZ[[:space:]]+/, ""); print}') || return 0
+  [[ -n "$raw" ]] || return 0
+  root=$(wslpath -u "$raw" 2>/dev/null) || return 0
+  if [[ -d "$root" ]]; then
+    seen["${root,,}"]=1
+    printf '%s\n' "$root"
+  fi
+
+  vdf="${root}/steamapps/libraryfolders.vdf"
+  [[ -f "$vdf" ]] || return 0
+  while IFS= read -r line; do
+    path=$(printf '%s' "$line" | sed -E 's/.*"path"[[:space:]]+"(.*)"/\1/; s/\\\\/\\/g')
+    [[ -n "$path" && "$path" != "$line" ]] || continue
+    path=$(wslpath -u "$path" 2>/dev/null) || continue
+    key="${path,,}"
+    [[ -d "$path" && -z "${seen[$key]:-}" ]] || continue
+    seen["$key"]=1
+    printf '%s\n' "$path"
+  done <"$vdf"
+}
+
+clean_nvidia_cache() {
+  local base
+  base=$(localappdata) || {
+    record nvidia-cache 0 "skipped (no %LOCALAPPDATA%)"
+    return
+  }
+  local targets=("${base}/NVIDIA/DXCache" "${base}/NVIDIA/GLCache")
+  local before
+  before=$(bytes_of "${targets[@]}")
+  local dir
+  for dir in "${targets[@]}"; do
+    purge_contents "$dir"
+  done
+  local after
+  after=$(bytes_of "${targets[@]}")
+  record nvidia-cache $((before - after)) OK
+}
+
+clean_user_temp() {
+  local base
+  base=$(localappdata) || {
+    record user-temp 0 "skipped (no %LOCALAPPDATA%)"
+    return
+  }
+  local target="${base}/Temp"
+  [[ -d "$target" ]] || {
+    record user-temp 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$target")
+  purge_older_than "$target" "$TEMP_MIN_AGE_MIN"
+  local after
+  after=$(bytes_of "$target")
+  record user-temp $((before - after)) "OK (older than ${TEMP_MIN_AGE_MIN} min)"
+}
+
+clean_steam_cache() {
+  if process_running steam.exe; then
+    record steam-cache 0 "skipped (steam running)"
+    return
+  fi
+  local roots=()
+  mapfile -t roots < <(steam_roots)
+  ((${#roots[@]} > 0)) || {
+    record steam-cache 0 "skipped (steam not found)"
+    return
+  }
+  local targets=() root
+  for root in "${roots[@]}"; do
+    targets+=(
+      "${root}/steamapps/downloading"
+      "${root}/steamapps/temp"
+      "${root}/steamapps/shadercache"
+    )
+  done
+  # depotcache stays: dropping its manifests only forces a re-download at the
+  # next integrity check, for about ten megabytes.
+  targets+=("${roots[0]}/logs" "${roots[0]}/dumps")
+  local before
+  before=$(bytes_of "${targets[@]}")
+  local dir
+  for dir in "${targets[@]}"; do
+    purge_contents "$dir"
+  done
+  local after
+  after=$(bytes_of "${targets[@]}")
+  record steam-cache $((before - after)) "OK (${#roots[@]} librar$([[ ${#roots[@]} -eq 1 ]] && echo y || echo ies))"
+}
+
+clean_firefox_cache() {
+  if process_running firefox.exe; then
+    record firefox-cache 0 "skipped (firefox running)"
+    return
+  fi
+  local base
+  base=$(localappdata) || {
+    record firefox-cache 0 "skipped (no %LOCALAPPDATA%)"
+    return
+  }
+  local root="${base}/Mozilla/Firefox/Profiles"
+  [[ -d "$root" ]] || {
+    record firefox-cache 0 "skipped (not found)"
+    return
+  }
+  local before
+  before=$(bytes_of "$root")
+  local profile
+  for profile in "$root"/*/; do
+    [[ -d "${profile}cache2" ]] || continue
+    purge_contents "${profile}cache2"
+  done
+  local after
+  after=$(bytes_of "$root")
+  record firefox-cache $((before - after)) OK
+}
+
+clean_explorer_cache() {
+  local base
+  base=$(localappdata) || {
+    record explorer-cache 0 "skipped (no %LOCALAPPDATA%)"
+    return
+  }
+  local explorer="${base}/Microsoft/Windows/Explorer"
+  local inetcache="${base}/Microsoft/Windows/INetCache"
+  local before
+  before=$(bytes_of "$explorer" "$inetcache")
+  local entry
+  while IFS= read -r -d '' entry; do
+    purge "$entry"
+  done < <(find "$explorer" -mindepth 1 -maxdepth 1 -type f \
+    \( -name 'thumbcache_*.db' -o -name 'iconcache_*.db' \) -print0 2>/dev/null)
+  purge_contents "$inetcache"
+  local after
+  after=$(bytes_of "$explorer" "$inetcache")
+  record explorer-cache $((before - after)) OK
+}
+
+clean_crashdumps() {
+  local base
+  base=$(localappdata) || {
+    record crashdumps 0 "skipped (no %LOCALAPPDATA%)"
+    return
+  }
+  local targets=("${base}/CrashDumps" "${base}/Microsoft/Windows/WER")
+  local before
+  before=$(bytes_of "${targets[@]}")
+  local dir
+  for dir in "${targets[@]}"; do
+    purge_contents "$dir"
+  done
+  local after
+  after=$(bytes_of "${targets[@]}")
+  record crashdumps $((before - after)) OK
+}
+
+clean_recycle_bin() {
+  # shellcheck disable=SC2016
+  local target='/mnt/c/$Recycle.Bin'
+  local before
+  before=$(bytes_of "$target")
+  if ((DRY_RUN)); then
+    printf '  [dry-run] Clear-RecycleBin -Force\n'
+  else
+    powershell.exe -NoProfile -NonInteractive -Command \
+      'Clear-RecycleBin -Force -ErrorAction SilentlyContinue' >/dev/null 2>&1 || true
+  fi
+  local after
+  after=$(bytes_of "$target")
+  record recycle-bin $((before - after)) OK
+}
+
+ADMIN_QUEUE=()
+declare -A ADMIN_BEFORE=()
+
+queue_windows_temp() {
+  ADMIN_BEFORE["windows-temp"]=$(bytes_of /mnt/c/Windows/Temp)
+  ADMIN_QUEUE+=('Get-ChildItem -LiteralPath "C:\Windows\Temp" -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue')
+}
+
+finish_windows_temp() {
+  local after
+  after=$(bytes_of /mnt/c/Windows/Temp)
+  record windows-temp $((${ADMIN_BEFORE["windows-temp"]} - after)) OK
+}
+
+queue_component_store() {
+  ADMIN_BEFORE["component-store"]=$(c_avail_bytes)
+  ADMIN_QUEUE+=('Dism.exe /Online /Cleanup-Image /StartComponentCleanup /Quiet')
+}
+
+finish_component_store() {
+  local after
+  after=$(c_avail_bytes)
+  record component-store $((after - ${ADMIN_BEFORE["component-store"]})) OK
+}
+
+flush_admin() {
+  ((${#ADMIN_QUEUE[@]} > 0)) || return 0
+  if ((DRY_RUN)); then
+    printf '→ elevated batch\n'
+    printf '  [dry-run] %s\n' "${ADMIN_QUEUE[@]}"
+    return 0
+  fi
+  local base
+  base=$(localappdata) || {
+    printf 'win-cleanup: cannot resolve %%LOCALAPPDATA%% for the elevated batch\n' >&2
+    return 1
+  }
+  local dir script marker win_script
+  dir=$(mktemp -d "${base}/win-cleanup.XXXXXX")
+  script="${dir}/batch.ps1"
+  marker="${dir}/done"
+  {
+    # shellcheck disable=SC2016
+    printf '$ErrorActionPreference = "SilentlyContinue"\n'
+    printf '%s\n' "${ADMIN_QUEUE[@]}"
+    printf '"done" | Out-File -LiteralPath "%s" -Encoding ascii\n' "$(wslpath -w "$marker")"
+  } >"$script"
+  win_script=$(wslpath -w "$script")
+  printf '→ elevated batch (one UAC prompt)\n'
+  powershell.exe -NoProfile -NonInteractive -Command \
+    "Start-Process powershell -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${win_script}'" \
+    >/dev/null 2>&1 || true
+  local rc=0
+  if [[ ! -f "$marker" ]]; then
+    printf 'win-cleanup: the elevated batch did not complete (UAC declined or blocked)\n' >&2
+    rc=1
+  fi
+  rm -rf -- "$dir" 2>/dev/null || true
+  return "$rc"
+}
+
+main() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    --list)
+      list_modules
+      return 0
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    -*)
+      printf 'win-cleanup: unknown option: %s\n' "$1" >&2
+      return 2
+      ;;
+    *)
+      SELECTED_MODULES+=("$1")
+      shift
+      ;;
+    esac
+  done
+
+  if [[ "${WSL_DISTRO_NAME:-}" == "" ]]; then
+    printf 'win-cleanup: not running under WSL, nothing to clean\n' >&2
+    return 1
+  fi
+  local tool
+  for tool in powershell.exe reg.exe tasklist.exe wslpath; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+      printf 'win-cleanup: %s not on PATH, WSL interop unavailable\n' "$tool" >&2
+      return 1
+    fi
+  done
+
+  if [[ ${#SELECTED_MODULES[@]} -eq 0 ]]; then
+    SELECTED_MODULES=("${ALL_MODULES[@]}")
+  fi
+
+  local m
+  for m in "${SELECTED_MODULES[@]}"; do
+    if ! in_list "$m" "${ALL_MODULES[@]}"; then
+      printf 'win-cleanup: unknown module: %s\n' "$m" >&2
+      return 2
+    fi
+  done
+
+  resolve_localappdata
+
+  local admin_selected=()
+  for m in "${SELECTED_MODULES[@]}"; do
+    if in_list "$m" "${ADMIN_MODULES[@]}"; then
+      admin_selected+=("$m")
+      "queue_${m//-/_}"
+      continue
+    fi
+    printf '→ %s\n' "$m"
+    "clean_${m//-/_}"
+  done
+
+  local admin_ok=1
+  if ((${#admin_selected[@]} > 0)); then
+    flush_admin || admin_ok=0
+    if ((DRY_RUN == 0)); then
+      for m in "${admin_selected[@]}"; do
+        if ((admin_ok)); then
+          "finish_${m//-/_}"
+        else
+          record "$m" 0 "failed (not elevated)"
+        fi
+      done
+    fi
+  fi
+
+  printf '\n%-20s %-10s %s\n' MODULE FREED STATUS
+  printf '%s\n' "$(printf '%.0s-' {1..40})"
+  local line
+  for line in "${RESULTS[@]}"; do
+    printf '%s\n' "$line"
+  done
+  printf '%s\n' "$(printf '%.0s-' {1..40})"
+  printf '%-20s %s\n' TOTAL "$(format_bytes "$TOTAL_FREED")"
+}
+
+main "$@"

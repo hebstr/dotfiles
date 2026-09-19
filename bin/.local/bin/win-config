@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILE_DIR="${HOME}/dotfiles/_meta/profiles/windows"
+
+# Ordered domains and their registry roots (single source of truth). Every root
+# lives under HKCU, which is what keeps dump, restore and diff free of elevation.
+DOMAINS=(
+  explorer-advanced explorer-startup search content-delivery
+  advertising run input-personalization desktop mouse
+)
+declare -A RPATH=(
+  ["explorer-advanced"]='HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+  ["explorer-startup"]='HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved'
+  ["search"]='HKCU\Software\Microsoft\Windows\CurrentVersion\Search'
+  ["content-delivery"]='HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+  ["advertising"]='HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
+  ["run"]='HKCU\Software\Microsoft\Windows\CurrentVersion\Run'
+  ["input-personalization"]='HKCU\Software\Microsoft\InputPersonalization'
+  ["desktop"]='HKCU\Control Panel\Desktop'
+  ["mouse"]='HKCU\Control Panel\Mouse'
+)
+
+usage() {
+  cat <<EOF
+Usage: win-config <command> [domain...]
+
+Commands:
+  dump     [domain...]   Export the live registry state to _meta/profiles/windows/
+  restore  [domain...]   Apply the saved state (adds/overwrites values, never deletes; backs up to \${TMPDIR:-/tmp} first)
+  diff     [domain...]   Show drift between live and saved state (exit 1 if any drift)
+
+With no domain, the command applies to all domains. Domains:
+  ${DOMAINS[*]}
+EOF
+  exit "${1:-0}"
+}
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || {
+    printf '%s is required\n' "$1" >&2
+    exit 1
+  }
+}
+
+require_windows() {
+  [ "${WSL_DISTRO_NAME:-}" != "" ] || {
+    printf 'win-config: not running under WSL\n' >&2
+    exit 1
+  }
+  local tool
+  for tool in reg.exe powershell.exe wslpath iconv; do
+    require "$tool"
+  done
+}
+
+# reg.exe reads and writes real Windows paths only, so the transfer file has to
+# sit on the NTFS side rather than in the WSL filesystem.
+# Set in the calling shell, never through $(...): a subshell would create a new
+# directory per call and the EXIT trap would never see it.
+WIN_TMP=""
+init_win_tmp() {
+  [ "$WIN_TMP" = "" ] || return 0
+  local raw base
+  # shellcheck disable=SC2016
+  raw=$(powershell.exe -NoProfile -NonInteractive -Command '$env:LOCALAPPDATA' | tr -d '\r')
+  [ "$raw" != "" ] || {
+    printf 'win-config: cannot resolve %%LOCALAPPDATA%%\n' >&2
+    exit 1
+  }
+  base=$(wslpath -u "$raw")
+  WIN_TMP=$(mktemp -d "${base}/Temp/win-config.XXXXXX")
+}
+
+cleanup() {
+  rc=$?
+  [ "$WIN_TMP" = "" ] || rm -rf "$WIN_TMP"
+  exit "$rc"
+}
+trap cleanup EXIT
+
+# Drop whole key blocks whose header matches, on the model of a keyfile group.
+drop_keys() {
+  awk -v pat="$1" '/^\[/ { skip = ($0 ~ pat) } !skip'
+}
+
+# Per-domain curation applied to a raw export: these subkeys hold rotating
+# server-pushed payloads and per-session state, so they churn on every dump.
+domain_filter() {
+  case "$1" in
+  content-delivery) drop_keys 'Subscriptions|SuggestedApps' ;;
+  search) drop_keys 'JumplistData|RecentApps|SearchHistory' ;;
+  *) cat ;;
+  esac
+}
+
+# Canonical UTF-8 representation of a domain, matching what is stored on disk so
+# `diff` is empty when in sync. reg.exe writes UTF-16LE with a BOM and CRLF.
+live_dump() {
+  local d="$1" out
+  out="${WIN_TMP}/${d}.reg"
+  reg.exe export "${RPATH[$d]}" "$(wslpath -w "$out")" /y >/dev/null 2>&1 || return 1
+  iconv -f UTF-16LE -t UTF-8 <"$out" | sed '1s/^\xef\xbb\xbf//' | tr -d '\r' | domain_filter "$d"
+}
+
+TARGETS=()
+resolve_targets() {
+  TARGETS=()
+  if [ "$#" -eq 0 ]; then
+    TARGETS=("${DOMAINS[@]}")
+    return 0
+  fi
+  local t
+  for t in "$@"; do
+    if [ "${RPATH[$t]:-}" = "" ]; then
+      printf 'Unknown domain: %s\n' "$t" >&2
+      printf 'Known domains: %s\n' "${DOMAINS[*]}" >&2
+      exit 1
+    fi
+    TARGETS+=("$t")
+  done
+}
+
+cmd_dump() {
+  require_windows
+  resolve_targets "$@"
+  init_win_tmp
+  mkdir -p "$PROFILE_DIR"
+  local d
+  for d in "${TARGETS[@]}"; do
+    if ! live_dump "$d" >"$PROFILE_DIR/$d.reg"; then
+      rm -f "$PROFILE_DIR/$d.reg"
+      printf 'export failed for %s (%s)\n' "$d" "${RPATH[$d]}" >&2
+      exit 1
+    fi
+    printf 'dumped %s\n' "$d"
+  done
+}
+
+cmd_restore() {
+  require_windows
+  resolve_targets "$@"
+  init_win_tmp
+  local d f backup ts staged
+  ts=$(date +%Y%m%d-%H%M%S)
+  for d in "${TARGETS[@]}"; do
+    f="$PROFILE_DIR/$d.reg"
+    [ -f "$f" ] || {
+      printf 'No dump file for %s (%s)\n' "$d" "$f" >&2
+      exit 1
+    }
+    backup="${TMPDIR:-/tmp}/win-config-backup-${d}-${ts}.reg"
+    live_dump "$d" >"$backup" || true
+    printf 'backed up %s to %s\n' "$d" "$backup"
+    staged="${WIN_TMP}/restore-${d}.reg"
+    # reg.exe import rejects anything but UTF-16LE with a BOM and CRLF endings.
+    {
+      printf '\xff\xfe'
+      sed 's/$/\r/' "$f" | iconv -f UTF-8 -t UTF-16LE
+    } >"$staged"
+    reg.exe import "$(wslpath -w "$staged")" >/dev/null 2>&1 || {
+      printf 'import failed for %s\n' "$d" >&2
+      exit 1
+    }
+    printf 'restored %s\n' "$d"
+  done
+  printf 'Explorer settings need a sign-out or a restarted explorer.exe to show.\n'
+}
+
+cmd_diff() {
+  require_windows
+  require diff
+  resolve_targets "$@"
+  init_win_tmp
+  local d f rc=0
+  for d in "${TARGETS[@]}"; do
+    f="$PROFILE_DIR/$d.reg"
+    [ -f "$f" ] || {
+      printf 'No dump file for %s (%s)\n' "$d" "$f" >&2
+      exit 1
+    }
+    if ! diff -u --label "live:$d" --label "saved:$d" <(live_dump "$d") "$f"; then
+      rc=1
+    fi
+  done
+  return "$rc"
+}
+
+case "${1:-}" in
+dump)
+  shift
+  cmd_dump "$@"
+  ;;
+restore)
+  shift
+  cmd_restore "$@"
+  ;;
+diff)
+  shift
+  cmd_diff "$@"
+  ;;
+-h | --help | "") usage ;;
+*)
+  printf 'Unknown command: %s\n' "$1" >&2
+  usage 1
+  ;;
+esac
