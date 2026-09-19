@@ -1,8 +1,9 @@
+# shellcheck shell=bash disable=SC1091
 ### INTERACTIVE CHECK -------------------------------------------------------
 
 case $- in
-  *i*) ;;
-  *) return ;;
+*i*) ;;
+*) return ;;
 esac
 
 ### HISTORY -----------------------------------------------------------------
@@ -35,20 +36,23 @@ bind 'set mark-symlinked-directories on'
 ### PATH --------------------------------------------------------------------
 
 case ":$PATH:" in
-  *":$HOME/.local/bin:"*) ;;
-  *) export PATH="$HOME/.local/bin:$PATH" ;;
+*":$HOME/.local/bin:"*) ;;
+*) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
 
-[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+if [ -f "$HOME/.cargo/env" ]; then
+  # shellcheck source=/dev/null
+  . "$HOME/.cargo/env"
+fi
 
 ### PROMPT ------------------------------------------------------------------
 
-if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+if [ "${debian_chroot:-}" = "" ] && [ -r /etc/debian_chroot ]; then
   debian_chroot=$(cat /etc/debian_chroot)
 fi
 
 case "$TERM" in
-  xterm-color | *-256color) color_prompt=yes ;;
+xterm-color | *-256color) color_prompt=yes ;;
 esac
 
 if [ "$color_prompt" = yes ]; then
@@ -59,42 +63,35 @@ fi
 unset color_prompt
 
 case "$TERM" in
-  xterm* | rxvt*)
-    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-    ;;
+xterm* | rxvt*)
+  PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+  ;;
 esac
 
 ### VENV PROMPT FIX (Positron shell integration workaround) -----------------
+
+PROMPT_COMMAND="__fix_venv_prompt; history -a"
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 
 __base_ps1="$PS1"
 
 __fix_venv_prompt() {
-  if [ -n "$VIRTUAL_ENV" ]; then
+  if [ "$VIRTUAL_ENV" != "" ]; then
     PS1="(${VIRTUAL_ENV_PROMPT:-$(basename "$VIRTUAL_ENV")}) $__base_ps1"
   else
     PS1="$__base_ps1"
   fi
 }
 
-### PROJECT ENV SYNC --------------------------------------------------------
-
-_SYNC_LAST_DIR=""
-
-__sync_env_hook() {
-  [[ "$PWD" == "$_SYNC_LAST_DIR" ]] && return
-  _SYNC_LAST_DIR="$PWD"
-  [[ -f pyproject.toml ]] && uv sync --quiet
-  # [[ -f rproject.toml ]] && rv sync --json > /dev/null
-}
-
-PROMPT_COMMAND="__fix_venv_prompt; __sync_env_hook; history -a"
-
 ### COLORS ------------------------------------------------------------------
 
 if [ -x /usr/bin/dircolors ]; then
-  test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+  if [ -r ~/.dircolors ]; then
+    eval "$(dircolors -b ~/.dircolors)"
+  else
+    eval "$(dircolors -b)"
+  fi
 fi
 
 ### PAGER -------------------------------------------------------------------
@@ -109,21 +106,20 @@ alias ls='ls --color=auto'
 alias ll='ls -lah'
 alias grep='grep --color=auto'
 alias qp='rm -rf .quarto; quarto preview'
-alias yolo='git add . && git commit -m "." && git push'
+alias yolo='git add . && git commit -m "."'
 alias fd=fdfind
 alias firefox='firefox --profile /home/julien/.mozilla/firefox/z24d9fn6.default-release'
 
-release() {
-  local tag="$1"
-  [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
-    echo "usage: release X.Y.Z (or vX.Y.Z)" >&2
-    return 1
-  }
-  git add -A &&
-    git commit -m "$tag" &&
-    git tag -a "$tag" -m "$tag" &&
-    git push &&
-    git push origin "$tag"
+st-tp2() {
+  ssh ju-TP2 bash -s <<'EOF'
+    url=http://127.0.0.1:8385
+    cmd=/mnt/c/Windows/System32/cmd.exe
+    interop=$(ls -t /run/WSL/*_interop | head -1)
+
+    systemctl --user start syncthing || exit
+    cd /mnt/c || exit
+    WSL_INTEROP=$interop "$cmd" /c start "" "$url"
+EOF
 }
 
 ### COMPLETION & EXTERNAL SOURCES -------------------------------------------
