@@ -4,6 +4,7 @@ set -euo pipefail
 PROFILE_DIR="${HOME}/dotfiles/_meta/profiles/windows"
 WSL_INTEROP_FLAG="${WSL_INTEROP_FLAG:-/proc/sys/fs/binfmt_misc/WSLInterop}"
 WIN_SYSTEM32="${WIN_SYSTEM32:-/mnt/c/Windows/System32}"
+WIN_C_MOUNT="${WIN_C_MOUNT:-/mnt/c}"
 
 # Ordered domains and their registry roots (single source of truth). Every root
 # lives under HKCU, which is what keeps dump, restore and diff free of elevation.
@@ -30,7 +31,7 @@ Usage: win-config <command> [domain...]
 Commands:
   dump     [domain...]   Export the live registry state to _meta/profiles/windows/
   dump --stdout domain   Print one domain's curated export instead of writing it
-                         (for a single-writer repo: ssh <host> '~/.local/bin/win-config dump --stdout <d>' > <d>.reg)
+                         (for a single-writer repo: ssh <host> '~/.local/bin/win-config dump --stdout <d>' > <d>.reg.tmp && mv <d>.reg.tmp <d>.reg)
   restore  [domain...]   Apply the saved state (adds/overwrites values, never deletes; backs up to \${TMPDIR:-/tmp} first)
   diff     [domain...]   Show drift between live and saved state (exit 1 if any drift)
 
@@ -50,6 +51,12 @@ require() {
 require_windows() {
   [ "${WSL_DISTRO_NAME:-}" != "" ] || [ -e "$WSL_INTEROP_FLAG" ] || {
     printf 'win-config: not running under WSL\n' >&2
+    exit 1
+  }
+  # A dead drvfs 9p link fails every read under /mnt/c with an I/O error, which
+  # would otherwise surface as the interop binaries missing from PATH.
+  ls "$WIN_C_MOUNT" >/dev/null 2>&1 || {
+    printf 'win-config: %s unreadable (drvfs link down): run "wsl --shutdown" from Windows, then reopen the terminal\n' "$WIN_C_MOUNT" >&2
     exit 1
   }
   # An ssh session into WSL gets the binfmt interop handler but neither
@@ -102,12 +109,21 @@ domain_filter() {
   esac
 }
 
+# reg.exe reports success on every call, so its output is shown on failure only.
+reg_run() {
+  local msg
+  msg=$(reg.exe "$@" 2>&1) || {
+    printf '%s\n' "$msg" | tr -d '\r' >&2
+    return 1
+  }
+}
+
 # Canonical UTF-8 representation of a domain, matching what is stored on disk so
 # `diff` is empty when in sync. reg.exe writes UTF-16LE with a BOM and CRLF.
 live_dump() {
   local d="$1" out
   out="${WIN_TMP}/${d}.reg"
-  reg.exe export "${RPATH[$d]}" "$(wslpath -w "$out")" /y >/dev/null 2>&1 || return 1
+  reg_run export "${RPATH[$d]}" "$(wslpath -w "$out")" /y || return 1
   iconv -f UTF-16LE -t UTF-8 <"$out" | sed '1s/^\xef\xbb\xbf//' | tr -d '\r' | domain_filter "$d"
 }
 
@@ -150,13 +166,15 @@ cmd_dump() {
     return 0
   fi
   mkdir -p "$PROFILE_DIR"
-  local d
+  local d tmp
   for d in "${TARGETS[@]}"; do
-    if ! live_dump "$d" >"$PROFILE_DIR/$d.reg"; then
-      rm -f "$PROFILE_DIR/$d.reg"
+    tmp="$PROFILE_DIR/.$d.reg.tmp"
+    if ! live_dump "$d" >"$tmp"; then
+      rm -f "$tmp"
       printf 'export failed for %s (%s)\n' "$d" "${RPATH[$d]}" >&2
       exit 1
     fi
+    mv "$tmp" "$PROFILE_DIR/$d.reg"
     printf 'dumped %s\n' "$d"
   done
 }
@@ -174,15 +192,19 @@ cmd_restore() {
       exit 1
     }
     backup="${TMPDIR:-/tmp}/win-config-backup-${d}-${ts}.reg"
-    live_dump "$d" >"$backup" || true
-    printf 'backed up %s to %s\n' "$d" "$backup"
+    if live_dump "$d" >"$backup"; then
+      printf 'backed up %s to %s\n' "$d" "$backup"
+    else
+      rm -f "$backup"
+      printf 'no backup for %s: export failed (the key may not exist yet)\n' "$d" >&2
+    fi
     staged="${WIN_TMP}/restore-${d}.reg"
     # reg.exe import rejects anything but UTF-16LE with a BOM and CRLF endings.
     {
       printf '\xff\xfe'
       sed 's/$/\r/' "$f" | iconv -f UTF-8 -t UTF-16LE
     } >"$staged"
-    reg.exe import "$(wslpath -w "$staged")" >/dev/null 2>&1 || {
+    reg_run import "$(wslpath -w "$staged")" || {
       printf 'import failed for %s\n' "$d" >&2
       exit 1
     }
@@ -196,14 +218,19 @@ cmd_diff() {
   require diff
   resolve_targets "$@"
   init_win_tmp
-  local d f rc=0
+  local d f live rc=0
   for d in "${TARGETS[@]}"; do
     f="$PROFILE_DIR/$d.reg"
     [ -f "$f" ] || {
       printf 'No dump file for %s (%s)\n' "$d" "$f" >&2
       exit 1
     }
-    if ! diff -u --label "live:$d" --label "saved:$d" <(live_dump "$d") "$f"; then
+    live="${WIN_TMP}/live-${d}.reg"
+    if ! live_dump "$d" >"$live"; then
+      : >"$live"
+      printf 'export failed for %s: comparing against an empty key\n' "$d" >&2
+    fi
+    if ! diff -u --label "live:$d" --label "saved:$d" "$live" "$f"; then
       rc=1
     fi
   done

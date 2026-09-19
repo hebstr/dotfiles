@@ -35,7 +35,10 @@ esac'
 case "$1" in
 export)
   body="${REG_BODY:-\"Enabled\"=dword:00000000}"
-  [ -n "${EXPORT_FAILS:-}" ] && exit 1
+  [ -n "${EXPORT_FAILS:-}" ] && {
+    printf "ERROR: The system was unable to find the specified registry key or value.\r\n" >&2
+    exit 1
+  }
   {
     printf "\xff\xfe"
     printf "Windows Registry Editor Version 5.00\r\n\r\n[%s]\r\n%s\r\n" "$2" "$body" |
@@ -43,6 +46,10 @@ export)
   } >"$3"
   ;;
 import)
+  [ -n "${IMPORT_FAILS:-}" ] && {
+    printf "ERROR: Error accessing the registry.\r\n" >&2
+    exit 1
+  }
   cp "$2" "${IMPORT_LOG}"
   ;;
 esac
@@ -57,7 +64,7 @@ setup() {
   IMPORT_LOG="$(mktemp -u)"
   mkdir -p "${LOCAL_DIR}/Temp"
   export STUBS LOCAL_DIR FAKE_HOME FAKE_TMP IMPORT_LOG
-  for cmd in cat awk sed tr diff iconv mktemp date rm mkdir cp; do
+  for cmd in cat awk sed tr diff iconv mktemp date rm mkdir cp mv ls; do
     [ -e "/usr/bin/${cmd}" ] && ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
@@ -69,9 +76,9 @@ teardown() {
 }
 
 _run() {
-  run env PATH="$STUBS" HOME="$FAKE_HOME" TMPDIR="$FAKE_TMP" WSL_DISTRO_NAME=Ubuntu-test \
+  run env PATH="$STUBS" HOME="$FAKE_HOME" TMPDIR="$FAKE_TMP" WSL_DISTRO_NAME=Ubuntu-test WIN_C_MOUNT="$STUBS" \
     LOCAL_DIR="$LOCAL_DIR" IMPORT_LOG="$IMPORT_LOG" \
-    REG_BODY="${REG_BODY:-}" EXPORT_FAILS="${EXPORT_FAILS:-}" \
+    REG_BODY="${REG_BODY:-}" EXPORT_FAILS="${EXPORT_FAILS:-}" IMPORT_FAILS="${IMPORT_FAILS:-}" \
     "$BASH" "$SCRIPT" "$@"
 }
 
@@ -108,6 +115,14 @@ _profile_dir() {
   [[ "$output" == *"not running under WSL"* ]]
 }
 
+@test "an unreadable C: mount is named with its remedy" {
+  run env PATH="$STUBS" HOME="$FAKE_HOME" WSL_DISTRO_NAME=Ubuntu-test \
+    WIN_C_MOUNT=/nonexistent "$BASH" "$SCRIPT" dump
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"/nonexistent unreadable"* ]]
+  [[ "$output" == *"wsl --shutdown"* ]]
+}
+
 # An ssh session into WSL carries neither WSL_DISTRO_NAME nor the interop
 # directories on PATH, only the binfmt handler.
 @test "an ssh session finds the interop binaries under System32" {
@@ -116,7 +131,7 @@ _profile_dir() {
   mv "${STUBS}/reg.exe" "${sys32}/reg.exe"
   mv "${STUBS}/powershell.exe" "${sys32}/WindowsPowerShell/v1.0/powershell.exe"
   touch "${FAKE_HOME}/WSLInterop"
-  run env -u WSL_DISTRO_NAME PATH="$STUBS" HOME="$FAKE_HOME" LOCAL_DIR="$LOCAL_DIR" \
+  run env -u WSL_DISTRO_NAME PATH="$STUBS" HOME="$FAKE_HOME" LOCAL_DIR="$LOCAL_DIR" WIN_C_MOUNT="$STUBS" \
     WSL_INTEROP_FLAG="${FAKE_HOME}/WSLInterop" WIN_SYSTEM32="$sys32" \
     "$BASH" "$SCRIPT" dump --stdout advertising
   [ "$status" -eq 0 ]
@@ -199,15 +214,44 @@ _profile_dir() {
   [ ! -e "$(_profile_dir)/advertising.reg" ]
 }
 
+@test "a failing export relays reg.exe's reason without CR" {
+  EXPORT_FAILS=1 _run dump advertising
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"unable to find the specified registry key"* ]]
+  [[ "$output" != *$'\r'* ]]
+}
+
+@test "a failing import relays reg.exe's reason" {
+  _run dump advertising
+  IMPORT_FAILS=1 _run restore advertising
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"import failed for advertising"* ]]
+  [[ "$output" == *"Error accessing the registry"* ]]
+}
+
+@test "a failing export keeps the previously saved profile intact" {
+  _run dump advertising
+  cp "$(_profile_dir)/advertising.reg" "${FAKE_TMP}/seed.reg"
+  EXPORT_FAILS=1 _run dump advertising
+  [ "$status" -eq 1 ]
+  cmp "$(_profile_dir)/advertising.reg" "${FAKE_TMP}/seed.reg"
+  [ "$(find "$(_profile_dir)" -mindepth 1 -not -name '*.reg' | wc -l)" -eq 0 ]
+}
+
 @test "the content-delivery filter drops the rotating subscription keys" {
   REG_BODY='"A"=dword:00000001
 
 [HKCU\Subscriptions\314559]
-"Payload"="junk"' _run dump content-delivery
+"Payload"="junk"
+
+[HKCU\Keep]
+"B"=dword:00000002' _run dump content-delivery
   [ "$status" -eq 0 ]
   run grep -c Subscriptions "$(_profile_dir)/content-delivery.reg"
   [ "$output" = "0" ]
   run grep -c '"A"=dword' "$(_profile_dir)/content-delivery.reg"
+  [ "$output" = "1" ]
+  run grep -c '"B"=dword' "$(_profile_dir)/content-delivery.reg"
   [ "$output" = "1" ]
 }
 
@@ -228,6 +272,14 @@ _profile_dir() {
   [[ "$output" == *"dword:00000001"* ]]
 }
 
+@test "diff names a failing export instead of hiding it in the drift" {
+  _run dump advertising
+  EXPORT_FAILS=1 _run diff advertising
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"export failed for advertising"* ]]
+  [[ "$output" == *"live:advertising"* ]]
+}
+
 @test "diff without a profile exits 1 and names the missing file" {
   _run diff advertising
   [ "$status" -eq 1 ]
@@ -238,11 +290,24 @@ _profile_dir() {
 
 @test "restore backs the live state up before importing" {
   _run dump advertising
-  _run restore advertising
+  REG_BODY='"Enabled"=dword:00000001' _run restore advertising
   [ "$status" -eq 0 ]
   [[ "$output" == *"backed up advertising to ${FAKE_TMP}/win-config-backup-advertising-"* ]]
   [[ "$output" == *"restored advertising"* ]]
   [ "$(find "$FAKE_TMP" -name 'win-config-backup-advertising-*' | wc -l)" -eq 1 ]
+  grep -q '"Enabled"=dword:00000001' "$FAKE_TMP"/win-config-backup-advertising-*
+}
+
+# A key absent from the live registry (a fresh install) fails the export, and
+# restore must still create it.
+@test "restore without a backup says so and still imports" {
+  _run dump advertising
+  EXPORT_FAILS=1 _run restore advertising
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"backed up"* ]]
+  [[ "$output" == *"no backup for advertising"* ]]
+  [ "$(find "$FAKE_TMP" -name 'win-config-backup-*' | wc -l)" -eq 0 ]
+  [ -f "$IMPORT_LOG" ]
 }
 
 @test "restore stages UTF-16LE with a BOM and CRLF endings" {
@@ -253,8 +318,11 @@ _profile_dir() {
   [[ "$output" == *"Windows Registry"* ]]
   run bash -c "head -c 2 '$IMPORT_LOG' | od -An -tx1 | tr -d ' \n'"
   [ "$output" = "fffe" ]
-  run bash -c "iconv -f UTF-16LE -t UTF-8 <'$IMPORT_LOG' | grep -c \$'\r'"
-  [ "$output" -gt 0 ]
+  local decoded="${FAKE_TMP}/staged.txt"
+  iconv -f UTF-16LE -t UTF-8 <"$IMPORT_LOG" | sed '1s/^\xef\xbb\xbf//' >"$decoded"
+  [ "$(grep -c $'\r$' "$decoded")" -eq "$(wc -l <"$decoded")" ]
+  [ "$(grep -c $'\r\r' "$decoded")" -eq 0 ]
+  tr -d '\r' <"$decoded" | cmp - "$(_profile_dir)/advertising.reg"
 }
 
 @test "restore without a profile exits 1 and imports nothing" {
