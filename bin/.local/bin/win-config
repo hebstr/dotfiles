@@ -2,6 +2,8 @@
 set -euo pipefail
 
 PROFILE_DIR="${HOME}/dotfiles/_meta/profiles/windows"
+WSL_INTEROP_FLAG="${WSL_INTEROP_FLAG:-/proc/sys/fs/binfmt_misc/WSLInterop}"
+WIN_SYSTEM32="${WIN_SYSTEM32:-/mnt/c/Windows/System32}"
 
 # Ordered domains and their registry roots (single source of truth). Every root
 # lives under HKCU, which is what keeps dump, restore and diff free of elevation.
@@ -27,6 +29,8 @@ Usage: win-config <command> [domain...]
 
 Commands:
   dump     [domain...]   Export the live registry state to _meta/profiles/windows/
+  dump --stdout domain   Print one domain's curated export instead of writing it
+                         (for a single-writer repo: ssh <host> '~/.local/bin/win-config dump --stdout <d>' > <d>.reg)
   restore  [domain...]   Apply the saved state (adds/overwrites values, never deletes; backs up to \${TMPDIR:-/tmp} first)
   diff     [domain...]   Show drift between live and saved state (exit 1 if any drift)
 
@@ -44,10 +48,14 @@ require() {
 }
 
 require_windows() {
-  [ "${WSL_DISTRO_NAME:-}" != "" ] || {
+  [ "${WSL_DISTRO_NAME:-}" != "" ] || [ -e "$WSL_INTEROP_FLAG" ] || {
     printf 'win-config: not running under WSL\n' >&2
     exit 1
   }
+  # An ssh session into WSL gets the binfmt interop handler but neither
+  # WSL_DISTRO_NAME nor the Windows directories on PATH.
+  command -v reg.exe >/dev/null 2>&1 ||
+    PATH="${PATH}:${WIN_SYSTEM32}:${WIN_SYSTEM32}/WindowsPowerShell/v1.0"
   local tool
   for tool in reg.exe powershell.exe wslpath iconv; do
     require "$tool"
@@ -122,9 +130,25 @@ resolve_targets() {
 }
 
 cmd_dump() {
+  local to_stdout=0
+  if [ "${1:-}" = "--stdout" ]; then
+    to_stdout=1
+    shift
+    [ "$#" -eq 1 ] || {
+      printf 'win-config: dump --stdout takes exactly one domain\n' >&2
+      exit 1
+    }
+  fi
   require_windows
   resolve_targets "$@"
   init_win_tmp
+  if ((to_stdout)); then
+    live_dump "${TARGETS[0]}" || {
+      printf 'export failed for %s (%s)\n' "${TARGETS[0]}" "${RPATH[${TARGETS[0]}]}" >&2
+      exit 1
+    }
+    return 0
+  fi
   mkdir -p "$PROFILE_DIR"
   local d
   for d in "${TARGETS[@]}"; do

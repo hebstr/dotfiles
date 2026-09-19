@@ -102,9 +102,25 @@ _profile_dir() {
 }
 
 @test "outside WSL the script refuses to run" {
-  run env -u WSL_DISTRO_NAME PATH="$STUBS" HOME="$FAKE_HOME" "$BASH" "$SCRIPT" dump
+  run env -u WSL_DISTRO_NAME PATH="$STUBS" HOME="$FAKE_HOME" \
+    WSL_INTEROP_FLAG=/nonexistent "$BASH" "$SCRIPT" dump
   [ "$status" -eq 1 ]
   [[ "$output" == *"not running under WSL"* ]]
+}
+
+# An ssh session into WSL carries neither WSL_DISTRO_NAME nor the interop
+# directories on PATH, only the binfmt handler.
+@test "an ssh session finds the interop binaries under System32" {
+  local sys32="${STUBS}/System32"
+  mkdir -p "${sys32}/WindowsPowerShell/v1.0"
+  mv "${STUBS}/reg.exe" "${sys32}/reg.exe"
+  mv "${STUBS}/powershell.exe" "${sys32}/WindowsPowerShell/v1.0/powershell.exe"
+  touch "${FAKE_HOME}/WSLInterop"
+  run env -u WSL_DISTRO_NAME PATH="$STUBS" HOME="$FAKE_HOME" LOCAL_DIR="$LOCAL_DIR" \
+    WSL_INTEROP_FLAG="${FAKE_HOME}/WSLInterop" WIN_SYSTEM32="$sys32" \
+    "$BASH" "$SCRIPT" dump --stdout advertising
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"AdvertisingInfo"* ]]
 }
 
 # ─── dump ───────────────────────────────────────────────────────────────────
@@ -125,6 +141,41 @@ _profile_dir() {
   [ "$output" = "0" ]
   run head -1 "$(_profile_dir)/advertising.reg"
   [[ "$output" == "Windows Registry Editor Version 5.00" ]]
+}
+
+@test "dump --stdout prints the curated export and writes no profile" {
+  _run dump --stdout advertising
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "Windows Registry Editor Version 5.00" ]
+  [[ "$output" == *'"Enabled"=dword:00000000'* ]]
+  [[ "$output" != *"dumped"* ]]
+  [ ! -e "$(_profile_dir)" ]
+  [ "$(find "${LOCAL_DIR}/Temp" -mindepth 1 | wc -l)" -eq 0 ]
+}
+
+@test "dump --stdout applies the domain filter" {
+  REG_BODY='"A"=dword:00000001
+
+[HKCU\Subscriptions\314559]
+"Payload"="junk"' _run dump --stdout content-delivery
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Subscriptions"* ]]
+  [[ "$output" == *'"A"=dword:00000001'* ]]
+}
+
+@test "dump --stdout requires exactly one domain" {
+  _run dump --stdout
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"exactly one domain"* ]]
+  _run dump --stdout advertising mouse
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"exactly one domain"* ]]
+}
+
+@test "dump --stdout exits 1 on a failing export" {
+  EXPORT_FAILS=1 _run dump --stdout advertising
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"export failed"* ]]
 }
 
 @test "dump leaves no transfer directory behind on the Windows side" {
