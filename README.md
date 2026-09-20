@@ -5,7 +5,7 @@ Personal stow-managed dotfiles.
 ## Structure
 
 ```
-agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/   # config stow packages
+agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
@@ -22,7 +22,7 @@ Packages follow stow conventions: each top-level dir maps its tree relative to `
 sudo apt install -y stow
 git clone https://github.com/hebstr/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin claude firefox gh git obsidian panache positron prek R Rstudio ruff ssh syncthing
+stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin claude firefox gh git obsidian opencode panache positron prek R Rstudio ruff ssh syncthing
 stow -R -t ~ agents css
 npm config set prefix "$HOME/.npm-global"
 npm --prefix css/.local/share/css-gate ci
