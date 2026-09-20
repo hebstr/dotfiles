@@ -44,7 +44,7 @@ Adding a note is three steps:
 3. Verify with `/ref --check <domain> <author>` (or `<domain> <author>-<topic>`) that the note's sources resolve correctly.
 
 No build, no code: pure markdown.
-Keep notes between 30 and 100 lines; if a note grows past that, split it by sub-topic.
+Keep notes between 30 and 250 lines. The ceiling is there so a note stays one angle on one author's work, readable in a single pass when `/ref` opens it; a note that runs past it is usually covering several angles and should be split by sub-topic, under the single-word topic rule above. Inlined extracts are what make these notes worth reading, so length alone is not the trigger: a long note covering one angle is fine, a short one covering three is not.
 
 ### Naming convention
 
