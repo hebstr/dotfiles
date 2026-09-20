@@ -5,6 +5,11 @@
 
 ## Contexte
 
+**État au 2026-09-20 : l'installation décrite ici a été supprimée de `ju-TP`.**
+Le smoke-test qu'elle servait était ponctuel, et le GGUF de 0,5B qui l'accompagnait a quitté le cache `hf` le même jour.
+La note subsiste comme référence de layout pour le build CUDA destiné à `ju-TP2` (`.claude/DESIGN-GPU-REMOTE.md`), où seul le nom de l'artefact change.
+Deux conséquences : rejouer les blocs ci-dessous réinstallerait sur `ju-TP` un binaire sans consommateur, et le `LLAMA_BIN` de la section `eds-avc` nomme un chemin qui n'existe plus.
+
 Installation d'un binaire `llama-server` (build CPU pur, x86_64) sur la machine perso `ju-TP` (Ubuntu 24.04, iGPU Intel uniquement, pas de CUDA).
 
 But : smoke-tester localement le pipeline LLM du projet `eds-avc` (script `note/auto/avc_note_auto_output_llama-server.py`, lanceur `note/auto/llama-server.sh`).
