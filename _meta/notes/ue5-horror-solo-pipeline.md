@@ -80,33 +80,29 @@ Intel a livré des correctifs Xe intégrés à UE 5.7, ce qui confirme que la co
 La machine permet d'apprendre le moteur, pas de produire ce rendu.
 Second frottement : sur Linux la distribution passe par une archive (environ 25 Go compressés, 43 Go décompressés) et non par l'Epic Games Launcher, donc pas d'intégration Fab et un packaging Windows compliqué.
 
-**Machine Windows, 16 Go de VRAM : validé.**
-Le double du seuil recommandé, au niveau du GPU de la station Epic.
-Lumen, Nanite et les Megascans pleine résolution passent sans réserve.
+**Machine Windows, RTX A3000 12 Go : validé.**
+Une fois et demie le seuil recommandé, sous les 16 Go de la station de référence d'Epic mais au-dessus du critère.
+Lumen, Nanite et les Megascans pleine résolution restent dans l'enveloppe, avec une marge de réserve et non de confort.
 Le GPU était le seul critère éliminatoire.
 
-## À vérifier au premier accès à la machine Windows
+## La machine Windows passe les quatre seuils, relevés le 2026-09-20
 
-La VRAM est validée, restent les deux facteurs limitants suivants.
+Mesuré depuis `ju-TP` par `ssh ju-TP2`, WSL interrogeant son hôte par `powershell.exe` en chemin absolu et le GPU par `/usr/lib/wsl/lib/nvidia-smi`.
 
-```powershell
-Get-CimInstance Win32_ComputerSystem | Select-Object -Expand TotalPhysicalMemory
-Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors
-Get-PSDrive C | Select-Object Used, Free
-```
+| Facteur | Relevé | Seuil Epic | Marge |
+| --- | --- | --- | --- |
+| GPU | RTX A3000 12GB Laptop, 11520 Mio, compute capability 8.6, driver 596.52 | 8 Go de VRAM | 1,5 fois |
+| RAM système | 31,7 Gio | 32 Go | au seuil |
+| CPU | Core i7-12850HX, 16 cœurs, 24 threads | 12 à 16 cœurs | haut de fourchette |
+| Disque `C:` | 515 Gio libres sur 953 | 200 Go libres | 2,5 fois |
 
-GPU exact et VRAM : `Win+R` puis `dxdiag`, onglet Affichage, ou Gestionnaire des tâches, onglet Performance, ligne « Mémoire GPU dédiée ».
-`Win32_VideoController` plafonne son champ `AdapterRAM` à 4 Go (champ codé sur 32 bits) et sous-déclare donc toute carte au-delà.
+Ce que chaque seuil protège, pour le jour où l'une de ces valeurs bouge.
+La RAM est au seuil exact et non au-dessus : à 16 Go le travail resterait possible, avec compilations de shaders lentes et ralentissements dès que l'éditeur, un navigateur et Blender coexistent, donc toute réaffectation de barrette se paie directement.
+Les cœurs comptent peu en Blueprint pur, mais la compilation de shaders et la construction de l'éclairage précalculé les saturent tous.
+Les 200 Go de disque viennent du pic d'installation du moteur, 120 à 130 Go de fichiers temporaires pour 30 à 40 Go finaux, auxquels s'ajoutent projet, assets Fab et caches de shaders.
 
-Seuils à confronter aux relevés :
-
-- RAM système : 32 Go recommandés.
-  À 16 Go le travail reste possible, avec compilations de shaders lentes et ralentissements dès que l'éditeur, un navigateur et Blender coexistent.
-  Ajout d'une barrette pour quelques dizaines d'euros si besoin, ce qui ne bloque pas le premier projet.
-- Cœurs CPU : 12 à 16 recommandés.
-  Moins critique en Blueprint pur, mais compilation de shaders et construction de l'éclairage précalculé saturent tous les cœurs.
-- Disque : prévoir 200 Go libres sur SSD NVMe.
-  L'installation du moteur demande 120 à 130 Go de pic (fichiers temporaires) pour 30 à 40 Go finaux, auxquels s'ajoutent projet, assets Fab et caches de shaders.
+Piège si le relevé GPU est refait depuis Windows plutôt que par `nvidia-smi` : `Win32_VideoController` plafonne son champ `AdapterRAM` à 4 Go (codé sur 32 bits) et sous-déclare donc toute carte au-delà.
+Les routes fiables sont `dxdiag` onglet Affichage, le Gestionnaire des tâches ligne « Mémoire GPU dédiée », ou `nvidia-smi` livré par WSL.
 
 ## Chaîne d'outils
 
