@@ -7,7 +7,7 @@ allowed-tools: Read, Edit, Glob, Grep, Bash, WebFetch
 # Ref
 
 Curated reference library.
-Each note is a short markdown file (30–100 lines) that **inlines real extracts** from public repositories of active practitioners and **cites the source** (repo + file path).
+Each note is a short markdown file (30–250 lines, see "Extending the library") that **inlines real extracts** from public repositories of active practitioners and **cites the source** (repo + file path).
 
 The point: ground design choices on the work of people who actually ship, not on training memory.
 
