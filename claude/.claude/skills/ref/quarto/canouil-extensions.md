@@ -6,7 +6,7 @@ sources:
   - kind: repo
     repo: mcanouil/quarto-code-window
     url: https://github.com/mcanouil/quarto-code-window
-    ref: v1.1.5
+    ref: "v1.1.5"
     captured: 2026-04-25
     files:
       - _extensions/code-window/_extension.yml

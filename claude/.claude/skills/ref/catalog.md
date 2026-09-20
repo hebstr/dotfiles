@@ -27,7 +27,7 @@ For brand.yml and accessibility, see `quarto:brand-yml` and `quarto:quarto-alt-t
 - [hvitfeldt-revealjs](quarto/hvitfeldt-revealjs.md): RevealJS slide patterns: SCSS theming, fragments (CSS + JS), layout, `r-fit-text` traps, per-slide themes, fonts, ~25 `quarto-revealjs-*` extensions. Source: Hvitfeldt's Slidecraft 101.
 - [hvitfeldt-extensions](quarto/hvitfeldt-extensions.md): Hvitfeldt's non-revealjs Quarto extensions (arrows, timeline, tegaki, designmode, color-classes) with verbatim usage and target formats. Source: `EmilHvitfeldt/quarto-*` repos.
 - [heiss-extensions](quarto/heiss-extensions.md): Heiss's multi-format extensions (`quarto-wordcount`, `quarto-output-styling`, `fancy-epigraphs-quarto`, `quarto-footnote-styles`) with target formats, `_extension.yml`, activation patterns. Source: `andrewheiss/*` repos.
-- [heiss-templates](quarto/heiss-templates.md): Heiss's `hikmah-academic-quarto` starter: 5 formats (PDF, manuscript-PDF/docx/odt, response-Typst), fancy multi-author title block, biblatex-chicago integration. Source: `andrewheiss/hikmah-academic-quarto`.
+- [heiss-templates](quarto/heiss-templates.md): Heiss's `hikmah-academic-quarto` starter: 7 formats (PDF, Typst-PDF, manuscript-PDF/Typst-PDF/docx/odt, response-Typst), fancy multi-author title block, biblatex-chicago integration. Source: `andrewheiss/hikmah-academic-quarto`.
 - [heiss-snippets](quarto/heiss-snippets.md): Heiss's advanced Quarto patterns: separate bibliographies via `multibib`, programmatic chunk generation with `knitr::knit(text=...)`, TikZ → SVG with embedded fonts. Source: andrewheiss.com blog posts.
 - *planned*: `multiformat` (`_extension.yml` patterns for shipping HTML + Typst + docx in one extension; sources: `mcanouil`, `posit-dev/quarto-cli`).
 

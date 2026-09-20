@@ -12,8 +12,8 @@ sources:
   - kind: repo
     repo: EmilHvitfeldt/quarto-revealjs-template
     url: https://github.com/EmilHvitfeldt/quarto-revealjs-template
-    ref: 5b870fe
-    captured: 2026-04-25
+    ref: "22a08a8"
+    captured: 2026-09-20
     files:
       - index.qmd
       - all-the-js-code.html

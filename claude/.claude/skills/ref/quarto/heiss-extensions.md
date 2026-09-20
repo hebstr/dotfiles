@@ -6,7 +6,7 @@ sources:
   - kind: repo
     repo: andrewheiss/quarto-wordcount
     url: https://github.com/andrewheiss/quarto-wordcount
-    ref: v1.8.0
+    ref: "v1.8.0"
     captured: 2026-04-25
     files:
       - _extensions/wordcount/_extension.yml
@@ -16,7 +16,7 @@ sources:
   - kind: repo
     repo: andrewheiss/quarto-output-styling
     url: https://github.com/andrewheiss/quarto-output-styling
-    ref: 59a4945
+    ref: "59a4945"
     captured: 2026-04-25
     files:
       - _extensions/output-styling/_extension.yml
@@ -24,7 +24,7 @@ sources:
   - kind: repo
     repo: andrewheiss/fancy-epigraphs-quarto
     url: https://github.com/andrewheiss/fancy-epigraphs-quarto
-    ref: b21f5d6
+    ref: "b21f5d6"
     captured: 2026-04-25
     files:
       - _extensions/epigraph/_extension.yml
@@ -32,7 +32,7 @@ sources:
   - kind: repo
     repo: andrewheiss/quarto-footnote-styles
     url: https://github.com/andrewheiss/quarto-footnote-styles
-    ref: v0.2.0
+    ref: "v0.2.0"
     captured: 2026-04-25
     files:
       - _extensions/footnote-styles/_extension.yml

@@ -6,32 +6,32 @@ sources:
   - kind: repo
     repo: ddsjoberg/gtsummary
     url: https://github.com/ddsjoberg/gtsummary
-    ref: v2.5.0
-    captured: 2026-04-25
+    ref: "v2.6.1"
+    captured: 2026-09-20
     files:
       - DESCRIPTION
       - NEWS.md
   - kind: blog
     url: https://www.danieldsjoberg.com/gtsummary/
-    captured: 2026-04-25
+    captured: 2026-09-20
   - kind: blog
     url: https://larmarange.github.io/broom.helpers/
-    captured: 2026-04-25
+    captured: 2026-09-20
   - kind: blog
     url: https://larmarange.github.io/labelled/
-    captured: 2026-04-25
+    captured: 2026-09-20
   - kind: blog
     url: https://larmarange.github.io/ggstats/
-    captured: 2026-04-25
+    captured: 2026-09-20
   - kind: blog
     url: https://larmarange.github.io/guide-R/
-    captured: 2026-04-25
+    captured: 2026-09-20
 ---
 
 # Biostat: gtsummary patterns for clinical summary tables (Sjoberg + Larmarange)
 
-Reference for **gtsummary** v2.5.0 (released 2025-12-05, last commit 2026-03-16), focused on clinical reporting patterns.
-Sources: [danieldsjoberg.com/gtsummary](https://www.danieldsjoberg.com/gtsummary/) and [larmarange.github.io](https://larmarange.github.io/) (captured 2026-04-25).
+Reference for **gtsummary** v2.6.1 (released 2026-09-04, last commit `c6f5082` the same day), focused on clinical reporting patterns.
+Sources: [danieldsjoberg.com/gtsummary](https://www.danieldsjoberg.com/gtsummary/) and [larmarange.github.io](https://larmarange.github.io/) (captured 2026-09-20).
 
 This is a **delta** on top of installed R skills (`r-skills:tidyverse-patterns`, `r-lib:*`, `quarto:quarto-authoring`). Those cover dplyr, broom, ggplot, package dev, Quarto basics. They do NOT cover:
 
@@ -249,8 +249,11 @@ gtsummary delegates rendering, never owns it:
 | `as_kable()` / `as_kable_extra()` | kable / kableExtra (PDF/LaTeX) |
 | `as_hux_table()` / `as_hux_xlsx()` | huxtable / xlsx export |
 | `as_tibble()` / `as.data.frame()` | raw tibble |
+| `save_flex_docx()` | write straight to a `.docx` file via flextable |
 
 Critical when journals require Word submission but websites need HTML: one table object, no re-authoring.
+
+`save_flex_docx()` (new in v2.6.0) goes further than `as_flex_table()` on the Word path. By default it moves the table's footnote region (footnotes, source notes, abbreviations) out of the body and into the Word page footer as a flextable, followed by a right-aligned `"Page X of Y"` line built from live Word fields. A `template` argument takes a `.docx` whose page setup and body content are carried through, and `pr_section` takes an `officer::prop_section()` for margins, page size, orientation and columns. The `body`, `footer` and `header` arguments are transformer functions, and all four defaults are configurable through theme elements (`save_flex_docx-arg:body` and siblings). A `tbl_split` object or a plain list of flextables is accepted as well, writing each table to its own Word section and page.
 
 ## Other clinical constructors
 
@@ -308,6 +311,8 @@ model_poly |>
 Composed steps: `tidy_and_attach()` → `tidy_identify_variables()` → `tidy_add_reference_rows()` → `tidy_add_estimate_to_reference_rows()` (fills OR=1 / HR=1) → `tidy_add_header_rows()` → `tidy_add_variable_labels()` / `tidy_add_term_labels()` → `tidy_add_n()` → `tidy_remove_intercept()`.
 
 **Escape hatch**: `...` in `tbl_regression()` flows to `tidy_plus_plus()` (PR #1387). When gtsummary doesn't expose the tidier option, pass it through.
+
+Since 1.23.0: `tidy_coxphms()`, an experimental tidier for `survival::coxphms.object` multi-state Cox models, and `model_get_coefficients_type()` support for `brmsfit`.
 
 ### `labelled`: labels picked up automatically
 
@@ -395,7 +400,7 @@ Also: `ggcoef_table()`, `ggcoef_compare()`, `gglikert()`, `stat_cross()`. Source
 - [Gallery](https://www.danieldsjoberg.com/gtsummary/articles/gallery.html)
 - [inline_text article](https://www.danieldsjoberg.com/gtsummary/articles/inline_text.html)
 - [Function index](https://www.danieldsjoberg.com/gtsummary/reference/index.html)
-- [Repo `ddsjoberg/gtsummary`](https://github.com/ddsjoberg/gtsummary): v2.5.0 (2025-12-05), commit `952b665` (2026-03-16)
+- [Repo `ddsjoberg/gtsummary`](https://github.com/ddsjoberg/gtsummary): v2.6.1 (2026-09-04), commit `c6f5082` (2026-09-04)
 
 ### Larmarange ecosystem
 

@@ -6,7 +6,7 @@ sources:
   - kind: repo
     repo: pingfan-hu/website
     url: https://github.com/pingfan-hu/website
-    ref: e20a6d1
+    ref: "e20a6d1"
     captured: 2026-04-25
     files:
       - styles/styles.scss

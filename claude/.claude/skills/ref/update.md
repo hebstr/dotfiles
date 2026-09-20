@@ -12,7 +12,9 @@ sources:
   - kind: repo
     repo: owner/name        # GitHub slug
     url: https://github.com/owner/name
-    ref: vX.Y.Z | <sha7>    # tag or 7-char commit SHA captured at write time
+    ref: "vX.Y.Z"           # tag or 7-char commit SHA captured at write time.
+                            # Always quote it: an all-digit SHA such as 6795554
+                            # otherwise parses as an integer, not a string.
     captured: YYYY-MM-DD
     files:                   # repo-relative paths whose content has been inlined or referenced
       - path/to/file.yml
@@ -125,7 +127,8 @@ Per stale source:
 
 - It does not rewrite editorial framing. The notes are curated: Claude proposes content updates that map to upstream changes, never restructures the note's pedagogy.
 - It does not auto-fix `BROKEN` sources by guessing the new path. If a file 404s, surface it to the user; let them decide whether the note should be edited, the path corrected, or the source dropped.
-- It does not touch `catalog.md` automatically. If a note's topic has shifted enough to need a new catalog line, flag it but ask the user.
+- It does not touch `catalog.md` automatically. If a note's topic has shifted enough to need a new catalog line, flag it but ask the user. A factual count in a catalog line that the update falsifies (a format count, a version) still goes through that same confirmation rather than being corrected in passing.
+- It does not bump `captured:` on a source whose content it did not actually re-read. A source that merely answered 200, the `UNKNOWN` case, has been checked for liveness and not for drift; dating it today would assert a verification that never happened and would hide it from the next audit. Bump `captured:` only where the note's claims were re-derived from the source.
 
 ## Implementation notes
 

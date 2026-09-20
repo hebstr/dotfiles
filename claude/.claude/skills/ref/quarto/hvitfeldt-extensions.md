@@ -6,48 +6,49 @@ sources:
   - kind: repo
     repo: EmilHvitfeldt/quarto-arrows
     url: https://github.com/EmilHvitfeldt/quarto-arrows
-    ref: 6795554
-    captured: 2026-04-25
+    ref: "74764d1"
+    captured: 2026-09-20
     files:
       - _extensions/arrows/_extension.yml
+      - _extensions/arrows/_schema.yml
       - _extensions/arrows/arrows.lua
   - kind: repo
     repo: EmilHvitfeldt/quarto-timeline
     url: https://github.com/EmilHvitfeldt/quarto-timeline
-    ref: 6a092ac
-    captured: 2026-04-25
+    ref: "bd76bc4"
+    captured: 2026-09-20
     files:
       - _extensions/timeline/_extension.yml
       - _extensions/timeline/timeline.lua
   - kind: repo
     repo: EmilHvitfeldt/quarto-tegaki
     url: https://github.com/EmilHvitfeldt/quarto-tegaki
-    ref: d2ad97e
-    captured: 2026-04-25
+    ref: "02eb964"
+    captured: 2026-09-20
     files:
       - _extensions/tegaki/_extension.yml
       - _extensions/tegaki/tegaki.lua
   - kind: repo
     repo: EmilHvitfeldt/quarto-designmode
     url: https://github.com/EmilHvitfeldt/quarto-designmode
-    ref: 424cb6a
-    captured: 2026-04-25
+    ref: "424cb6a"
+    captured: 2026-09-20
     files:
       - _extensions/designmode/_extension.yml
       - _extensions/designmode/designmode.lua
   - kind: repo
     repo: EmilHvitfeldt/quarto-snow
     url: https://github.com/EmilHvitfeldt/quarto-snow
-    ref: 7a12bc5
-    captured: 2026-04-25
+    ref: "7a12bc5"
+    captured: 2026-09-20
     files:
       - _extensions/snow/_extension.yml
       - _extensions/snow/snow.lua
   - kind: repo
     repo: EmilHvitfeldt/quarto-color-classes
     url: https://github.com/EmilHvitfeldt/quarto-color-classes
-    ref: v1.0.0
-    captured: 2026-04-25
+    ref: "v1.0.0"
+    captured: 2026-09-20
     files:
       - _extensions/color-classes/_extension.yml
       - _extensions/color-classes/color-classes.scss
@@ -69,7 +70,7 @@ For his revealjs-only extensions and slide patterns, see [hvitfeldt-revealjs](hv
 
 - Repo: <https://github.com/EmilHvitfeldt/quarto-arrows> · demo: <https://emilhvitfeldt.github.io/quarto-arrows/>
 - Type: **shortcode** (`arrows.lua`) with TikZ injection for PDF
-- Targets: **HTML, PDF (TikZ), Typst (CeTZ), RevealJS**
+- Targets: **HTML, PDF (TikZ), Typst (CeTZ), RevealJS**. Math labels are the one exception, HTML only: PDF and Typst fall back to an unlabelled arrow.
 - What: draws arrows (straight, Bézier, waypoints, styled heads, labels) between two coordinates, with `aria-label`/alt support.
 - Verbatim usage:
   ```markdown
@@ -77,7 +78,15 @@ For his revealjs-only extensions and slide patterns, see [hvitfeldt-revealjs](hv
   {{< arrow from="50,50" to="250,50" curve="0.5" color="blue" >}}
   {{< arrow from="50,50" to="250,50" head="stealth" label="Click here" >}}
   ```
-- `_extension.yml`: `quarto-required: ">=1.3.0"`, `shortcodes: arrows.lua` + `formats.pdf.include-in-header` for TikZ.
+- **Math and Markdown labels** (0.2.0): a label containing `$...$` is parsed as Markdown and typeset by the document's math renderer, MathJax or KaTeX. Other inline Markdown such as `**bold**` works too. From `examples/labels.qmd`:
+  ```markdown
+  {{< arrow from="50,80" to="250,80" control1="150,20" label="$F_{\mathrm{RP}} = \frac{a^2}{b}$" >}}
+  {{< arrow from="50,50" to="250,50" label="rate $\alpha_i$" >}}
+  {{< arrow from="50,50" to="250,50" label="**bold** and *italic*" label-math="true" >}}
+  ```
+  Detection is automatic. `label-math="true"` always renders the label as HTML, `"false"` always uses a plain SVG `<text>` element. `label-width` and `label-height` size the box the HTML label is centered in.
+- Plain text labels are XML-escaped since 0.2.0, so `&` and `<` no longer produce invalid markup.
+- `_extension.yml`: `version: 0.2.0`, `quarto-required: ">=1.3.0"`, `shortcodes: arrows.lua` + `formats.pdf.include-in-header` for TikZ. A `_schema.yml` declares the per-shortcode options.
 - Status: active.
 - Note: also works in revealjs (where `fragment="true"` adds keypress animation), but designed format-agnostic.
 
@@ -113,7 +122,7 @@ For his revealjs-only extensions and slide patterns, see [hvitfeldt-revealjs](hv
   ```markdown
   [Hello, World!]{.tegaki}
   ```
-- `_extension.yml`: `quarto-required: ">=1.4.0"`, `filters: tegaki.lua`.
+- `_extension.yml`: `quarto-required: ">=1.4.0"`, `filters: tegaki.lua`. A `_schema.yml` and a `_snippets.json` ship alongside for Quarto Wizard, with no change to the filter's behaviour.
 - Status: active.
 
 ### quarto-designmode

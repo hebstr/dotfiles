@@ -6,10 +6,12 @@ sources:
   - kind: repo
     repo: andrewheiss/hikmah-academic-quarto
     url: https://github.com/andrewheiss/hikmah-academic-quarto
-    ref: v1.0
-    captured: 2026-04-25
+    ref: "v1.1"
+    captured: 2026-09-20
     files:
       - _extensions/hikmah/_extension.yml
+      - _extensions/hikmah/partials/typst-show.typ
+      - _extensions/hikmah/partials/typst-template.typ
       - _extensions/hikmah-manuscript/_extension.yml
       - _extensions/hikmah-response/_extension.yml
       - template.qmd
@@ -31,22 +33,26 @@ For Heiss's standalone extensions (`quarto-wordcount`, `fancy-epigraphs-quarto`,
 quarto add andrewheiss/hikmah-academic-quarto
 ```
 
-One repo, **three extension folders**, **five named formats** (PDF, manuscript-PDF, manuscript-docx, manuscript-odt, response-Typst):
+One repo, **three extension folders**, **seven named formats** (PDF, Typst-PDF, manuscript-PDF, manuscript-Typst-PDF, manuscript-docx, manuscript-odt, response-Typst):
 
 ```
-_extensions/hikmah/                 # hikmah-pdf + hikmah-html
+_extensions/hikmah/                 # hikmah-pdf + hikmah-typst + hikmah-html
   _extension.yml
   include-in-header.tex
   partials/before-body.tex
   partials/title-block.html
   partials/title.tex
+  partials/typst-show.typ
+  partials/typst-template.typ
   styles/pretty.scss
 
-_extensions/hikmah-manuscript/      # hikmah-manuscript-{pdf,docx,odt,html}
+_extensions/hikmah-manuscript/      # hikmah-manuscript-{pdf,typst,docx,odt,html}
   _extension.yml
   include-in-header.tex
   partials/before-body.tex
   partials/title.tex
+  partials/typst-show.typ
+  partials/typst-template.typ
   styles/reference.docx
   styles/reference.odt
   templates/odt-manuscript.odt
@@ -65,17 +71,50 @@ Note: install path is `_extensions/hikmah/`, **not** `_extensions/andrewheiss/hi
 ### hikmah-pdf (LaTeX)
 
 - Type: LaTeX template via Pandoc partials (`title.tex`, `before-body.tex`, `include-in-header.tex`).
-- `quarto-required: ">=1.4.11"`, `version: 0.0.9`.
+- `quarto-required: ">=1.8"`, `version: 0.1.0`.
 - Defaults: `geometry: top=10pc bottom=10pc left=11pc right=11pc heightrounded`, `block-headings: false`, `indent: true`, `colorlinks: true`, `*color: DarkSlateBlue`.
 - Bibliography by default: `cite-method: citeproc`, `biblio-style: apa`, with `biblatex-chicago: false` flag exposed.
 - Sibling `hikmah-html` format reuses `partials/title-block.html` + `styles/pretty.scss`.
 
+### hikmah-typst (Typst)
+
+Added in v1.1 (2026-05-11), the Typst counterpart of `hikmah-pdf`.
+
+- Type: Typst template via two Pandoc partials, `partials/typst-show.typ` mapping Quarto metadata onto the template call and `partials/typst-template.typ` defining `#let article(...)`.
+- Declared in `_extension.yml`: `citeproc: true`, `link-citations: true`, `linkcolor` and `citecolor` at `"#483D8B"`, margins `top`/`bottom: 120pt` and `left`/`right: 132pt`, which is the LaTeX side's `10pc`/`11pc` expressed in points.
+- It accepts the same custom title-block fields as the LaTeX path, so one `template.qmd` renders to both with no YAML change. Verbatim from `partials/typst-template.typ`:
+
+```typst
+  // ---------------------------
+  // ↓ New arguments I added ↓
+  // ---------------------------
+  short-title: none,
+  published: none,
+  code-repo: none,
+  correspondence-prefix: "Correspondence concerning this article should be addressed to",
+  additional-info: none,
+  first-line-indent: 1em,
+  spacing: 0.65em,
+  running-header: false,
+  running-header-content: none,
+```
+
+- Knobs the LaTeX path does not expose: `title-size` (default `1.4em`), `subtitle-size` (`1.25em`), `heading-family`, plus `first-line-indent`, `spacing`, and the running-header pair above.
+- `_brand.yml` aware: `typst-show.typ` falls back to `brand.typography.*` for base family and size, for heading family, weight, style, color and line-height, and for the monospace family, whenever the corresponding YAML key is absent.
+
 ### hikmah-manuscript-pdf (LaTeX)
 
 - Type: LaTeX manuscript style, letter paper, 12pt, double-spaced, 1in margins.
-- `quarto-required: ">=1.4.11"`, `version: 0.0.15`.
+- `quarto-required: ">=1.8"`, `version: 0.1.0`.
 - `documentclass: article`, `papersize: letter`, `fontsize: 12pt`, `linestretch: 2`, `geometry: 1in`.
 - Custom YAML knobs: `left-aligned: true` (kills justification), `endnotes: true` (requires a `\theendnotes` block in the body, see the snippet below).
+
+### hikmah-manuscript-typst (Typst)
+
+Added in v1.1, the Typst counterpart of `hikmah-manuscript-pdf`.
+
+- Type: the same partial pair, shipped separately under `_extensions/hikmah-manuscript/partials/` rather than shared with `hikmah`.
+- Declared: `citeproc: true`, `fontsize: 12pt`, `link-citations: true`, `linkcolor` and `citecolor` at `"#483D8B"`, and `template-partials` pointing at its own `typst-show.typ` and `typst-template.typ`.
 
 ### hikmah-manuscript-docx (Pandoc docx)
 
@@ -90,7 +129,7 @@ Note: install path is `_extensions/hikmah/`, **not** `_extensions/andrewheiss/hi
 ### hikmah-response-typst (Typst)
 
 - Type: Typst template (`typst-template.typ`) + Lua filter (`response.lua`) + header (`include-in-header.typ`).
-- `quarto-required: ">=1.7.23"`, `version: 0.1.0`.
+- `quarto-required: ">=1.7.23"`, `version: 0.1.1`.
 - Custom Typst params: `color-reviewer: "dd5129"`, `color-excerpt: "0f7ba2"` (hex without `#`).
 - Lua filter expands custom Divs: `.memo-reviewer`, `.memo-excerpt`, `.memo-reviewer-inline`, `.memo-excerpt-inline`, used to typeset reviewer comments and excerpted manuscript passages in a response memo.
 
@@ -236,11 +275,11 @@ Endnotes block required in the body for `endnotes: true` (manuscript-pdf):
 
 | Extension | Minimum |
 |---|---|
-| `hikmah` | `>=1.4.11` |
-| `hikmah-manuscript` | `>=1.4.11` |
+| `hikmah` | `>=1.8` |
+| `hikmah-manuscript` | `>=1.8` |
 | `hikmah-response` | `>=1.7.23` |
 
-Global floor for the full set: **`>=1.7.23`**. The custom fonts stack (Libertine, Jost, InconsolataGo, Libertinus Math) requires **XeLaTeX or LuaLaTeX**.
+Global floor for the full set: **`>=1.8`**, raised from `>=1.7.23` by the v1.1 Typst work. The custom fonts stack (Libertine, Jost, InconsolataGo, Libertinus Math) requires **XeLaTeX or LuaLaTeX** on the LaTeX formats only; the Typst formats take font names directly.
 
 ## Patterns to copy
 
