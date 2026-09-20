@@ -53,7 +53,7 @@ With `~/.npm-global`, `npm update -g` only sees packages installed there, and ap
 `npm config set` writes a machine-local `~/.npmrc`, deliberately not a stow package since `npm login` stores tokens in that file; `bash/.profile` puts `~/.npm-global/bin` on the `PATH`.
 
 The uv tools have no equivalent step, and the bootstrap above does not install them: `sys-update uv-tools` upgrades what is already present and installs nothing.
-`pyrefly` (the Python gate's type checker, also run by this repo's own commit hook), `sqlfluff[rs]` (the SQL gate), `showboat`, `ouroboros-ai`, `huggingface-hub` and `yt-dlp` each need a manual `uv tool install` on a fresh machine.
+`pyrefly` (the Python gate's type checker, also run by this repo's own commit hook), `sqlfluff[rs]` (the SQL gate), `showboat`, `ouroboros-ai`, `ggsql-jupyter`, `yt-dlp` and, on a machine that serves local models, `huggingface-hub` each need a manual `uv tool install` on a fresh machine.
 The uv-managed Python interpreters behave the same way: `sys-update uv-python` moves them to the latest patch of each installed branch, so a fresh machine needs `uv python install` first.
 Tracked in `.claude/DEFERRED.md`.
 
