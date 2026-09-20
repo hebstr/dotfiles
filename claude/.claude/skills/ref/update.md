@@ -39,7 +39,7 @@ For each `sources[]` entry:
 - **`kind: repo`**:
   1. Fetch `https://api.github.com/repos/<repo>` to confirm the repo still exists and find the default branch.
   2. Resolve `ref` against current HEAD:
-     - If `ref` is a tag: fetch `releases/latest` and compare tag names.
+     - If `ref` is a tag: fetch `releases/latest` and compare tag names. When the two differ only by a leading `v`, check the repo's tag list before reporting drift: a stored `v1.1.5` against an upstream `1.1.5` is a transcription error at write time far more often than a changed tagging convention, and `canouil-extensions` carried exactly that until 2026-09-20.
      - If `ref` is a 7-char SHA: fetch `commits/<default-branch>` to get the latest SHA on the default branch (call it `<HEAD-sha>`). Compare to the stored SHA. Use `gh api repos/<repo>/compare/<ref>...<HEAD-sha> --jq .ahead_by` for a commit-distance number. (`<HEAD>` here means the SHA of the latest commit on the default branch returned by the previous step, not a literal string.)
   3. For each `files[]` path: HEAD `https://raw.githubusercontent.com/<repo>/<HEAD>/<path>`. Status 200 = present, 404 = missing/renamed/deleted.
 
@@ -126,7 +126,7 @@ Per stale source:
 ## What `--update` does NOT do
 
 - It does not rewrite editorial framing. The notes are curated: Claude proposes content updates that map to upstream changes, never restructures the note's pedagogy.
-- It does not auto-fix `BROKEN` sources by guessing the new path. If a file 404s, surface it to the user; let them decide whether the note should be edited, the path corrected, or the source dropped.
+- It does not auto-fix `BROKEN` sources by guessing the new path. If a file 404s, surface it to the user; let them decide whether the note should be edited, the path corrected, or the source dropped. Surface it with evidence rather than with a resemblance: `gh api repos/<repo>/commits?path=<candidate>` finds the commit that introduced the candidate path, and `gh api repos/<repo>/commits/<sha>` reports `status: renamed` with a `previous_filename` when git detected a rename. A declared `previous_filename` matching the stored path settles the question as fact; the user still confirms, but on a record instead of on a name that looks close.
 - It does not touch `catalog.md` automatically. If a note's topic has shifted enough to need a new catalog line, flag it but ask the user. A factual count in a catalog line that the update falsifies (a format count, a version) still goes through that same confirmation rather than being corrected in passing.
 - It does not bump `captured:` on a source whose content it did not actually re-read. A source that merely answered 200, the `UNKNOWN` case, has been checked for liveness and not for drift; dating it today would assert a verification that never happened and would hide it from the next audit. Bump `captured:` only where the note's claims were re-derived from the source.
 
