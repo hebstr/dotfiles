@@ -34,6 +34,11 @@ Stow folds an arborescence whose target directory does not exist into a single s
 Two packages stay folded: `agents`, because `~/.agents` must remain a single link for the skills installer to write into the repo, and `css`, whose `~/.local/bin` links resolve through `~/.local/share/css-gate/node_modules`: folded, that directory follows whatever `npm ci` and `sys-update css-toolchain` install in the repo, where `--no-folding` would link each file one by one and miss those an update adds.
 On a machine that does not sync every Syncthing folder, add `--ignore='<folder>'` for each missing one, or stow creates empty directories just to hold their `.stignore`.
 
+Agent skills are split across two packages on purpose.
+`agents/.agents/skills/` holds what the `skills` CLI installs from upstream and what its `.skill-lock.json` tracks, and nothing there is hand-edited: an update replaces a skill directory whole.
+`claude/.claude/skills/` holds the skills written here, and Claude Code reads only that one, through a symlink per skill.
+Stow such a skill with plain `stow claude`, never `--no-folding`, which would link each file and leave a symlinked `SKILL.md` instead of the symlinked skill directory Claude Code supports.
+
 `firefox` carries a single `user.js` under a randomly generated profile directory (`z24d9fn6.default-release`).
 That profile name is specific to one machine: elsewhere, rename the directory inside the package to match the local profile, otherwise the link lands where Firefox never reads and the setting vanishes with no error.
 
