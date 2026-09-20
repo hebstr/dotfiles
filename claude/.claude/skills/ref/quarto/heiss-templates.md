@@ -273,11 +273,13 @@ Endnotes block required in the body for `endnotes: true` (manuscript-pdf):
 
 ## quarto-required floor
 
+```
 | Extension | Minimum |
 |---|---|
 | `hikmah` | `>=1.8` |
 | `hikmah-manuscript` | `>=1.8` |
 | `hikmah-response` | `>=1.7.23` |
+```
 
 Global floor for the full set: **`>=1.8`**, raised from `>=1.7.23` by the v1.1 Typst work. The custom fonts stack (Libertine, Jost, InconsolataGo, Libertinus Math) requires **XeLaTeX or LuaLaTeX** on the LaTeX formats only; the Typst formats take font names directly.
 

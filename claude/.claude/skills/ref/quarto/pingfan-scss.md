@@ -99,6 +99,7 @@ pre > code.sourceCode > span {
 
 ## Palette (light mode, token-dark)
 
+```
 | Role          | Color     |
 |---------------|-----------|
 | Window border | `#383835` |
@@ -107,5 +108,6 @@ pre > code.sourceCode > span {
 | Code fg       | `#e8e4dc` |
 | Muted         | `#938e87` |
 | Line number   | `#5a5955` |
+```
 
 Dark mode inverts via `body.quarto-dark div.sourceCode { ... }`; see source.

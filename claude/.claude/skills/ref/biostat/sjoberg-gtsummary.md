@@ -80,6 +80,7 @@ tbl_summary(
 )
 ```
 
+```
 | Argument | Effect |
 |---|---|
 | `by =` | Stratify columns (e.g. by treatment arm) |
@@ -88,6 +89,7 @@ tbl_summary(
 | `add_n()` | Per-row N |
 | `missing = "no"` / `missing_text = "(Missing)"` | Suppress or relabel missingness row |
 | `type = ... ~ "continuous2"` | Multi-line continuous summary (NEJM-style) |
+```
 
 **Variable-type selectors** are gtsummary-specific: they target the table's metadata, not raw data. They are `all_continuous()`, `all_categorical()`, `all_dichotomous()`, `all_stat_cols()`.
 
@@ -115,6 +117,7 @@ trial |>
   add_nevent()
 ```
 
+```
 | Function | Purpose |
 |---|---|
 | `tbl_regression()` | Tidy one fitted model into a publication table |
@@ -126,6 +129,7 @@ trial |>
 | `add_significance_stars()` | Stars (used by `qjecon` theme) |
 | `add_glance_table()` / `add_glance_source_note()` | Append model fit stats |
 | `combine_terms()` | Pool multiple terms into one row (e.g., spline basis) |
+```
 
 Custom tidiers (slot into `tidy_fun =`): `tidy_robust`, `tidy_bootstrap`, `tidy_standardize`, `pool_and_tidy_mice`, `tidy_gam`.
 
@@ -151,12 +155,14 @@ reset_gtsummary_theme()
 with_gtsummary_theme(theme_gtsummary_journal("lancet"), { ... })   # scoped
 ```
 
+```
 | Journal | Effect |
 |---|---|
 | `"jama"` | Round large p to 2 decimals; CI separator `"ll to ul"`; tbl_summary: no `%` sign, em-dash IQR, runs `add_stat_label()`; tbl_regression: coef and CI in same column |
 | `"lancet"` | Mid-point as decimal separator; round large p to 2 decimals; CI `"ll to ul"`; tbl_summary: no `%`, em-dash IQR |
 | `"nejm"` | Round large p to 2 decimals; CI `"ll to ul"`; tbl_summary: no `%`, em-dash IQR |
 | `"qjecon"` | tbl_summary: percentages to 1 decimal; tbl_regression: significance stars, hides CI and p |
+```
 
 Other themes: `theme_gtsummary_compact()`, `theme_gtsummary_mean_sd()`, `theme_gtsummary_eda()`, `theme_gtsummary_continuous2()`, `theme_gtsummary_language()` (16 languages incl. fr, de, es, ja, ko, zh-Hans, zh-Hant), `theme_gtsummary_printer()` (default backend).
 
@@ -242,6 +248,7 @@ Adjacent tool for prose-from-model (different mechanism, complementary): [`easys
 
 gtsummary delegates rendering, never owns it:
 
+```
 | Converter | Target |
 |---|---|
 | `as_gt()` | gt (HTML default) |
@@ -250,6 +257,7 @@ gtsummary delegates rendering, never owns it:
 | `as_hux_table()` / `as_hux_xlsx()` | huxtable / xlsx export |
 | `as_tibble()` / `as.data.frame()` | raw tibble |
 | `save_flex_docx()` | write straight to a `.docx` file via flextable |
+```
 
 Critical when journals require Word submission but websites need HTML: one table object, no re-authoring.
 

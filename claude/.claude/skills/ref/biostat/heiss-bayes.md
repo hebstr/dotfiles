@@ -112,11 +112,13 @@ comparisons(
 
 From [guide-visualizing-types-posteriors](https://www.andrewheiss.com/blog/2022/09/26/guide-visualizing-types-posteriors/) (2022-09-26):
 
+```
 | Function (brms / tidybayes) | Scale | What you get | Interval width |
 |---|---|---|---|
 | `posterior_linpred()` / `linpred_draws()` | **link** (logit, log) by default | μ alone, the linear predictor | narrowest |
 | `posterior_epred()` / `epred_draws()` | **response** (probability, value) | E(y), the expectation of the predictive distribution | medium |
 | `posterior_predict()` / `predicted_draws()` | **response** | full draws from the predictive distribution (parameter uncertainty + observation noise) | widest |
+```
 
 Key clarifications from the post:
 

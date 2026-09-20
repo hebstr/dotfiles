@@ -83,6 +83,7 @@ Optional hot-fix filters are appended conditionally, wrapped so they read `code_
 
 Document-level options under `code-window:` in YAML front matter:
 
+```
 | Option              | Type                  | Default       | Notes                                   |
 |---------------------|-----------------------|---------------|-----------------------------------------|
 | `enabled`           | bool                  | `true`        | Master switch.                          |
@@ -93,6 +94,7 @@ Document-level options under `code-window:` in YAML front matter:
 | `lines-label`       | bool                  | `true`        | Chip showing the highlighted-line spec. |
 | `wrapper`           | string                | `code-window` | Typst wrapper function name.            |
 | `hotfix.<name>`     | bool or object        | `true`        | One key per hot-fix: `code-annotations`, `skylighting`, `typst-title`. The object form takes `enabled` and `quarto-version`. |
+```
 
 Per-block override via attributes:
 

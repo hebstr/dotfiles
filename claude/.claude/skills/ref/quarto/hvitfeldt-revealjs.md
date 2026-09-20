@@ -31,6 +31,7 @@ The Slidecraft posts have been consolidated into the [Slidecrafting book](https:
 
 Behavior plugins:
 
+```
 | Repo | Role | Activation |
 |---|---|---|
 | [revealjs-codewindow](https://github.com/EmilHvitfeldt/quarto-revealjs-codewindow) | IDE-style code blocks with filename tab + language icon | `revealjs-plugins: [codewindow]` + `::: {.codewindow}` |
@@ -44,6 +45,7 @@ Behavior plugins:
 | [revealjs-transitions](https://github.com/EmilHvitfeldt/quarto-revealjs-transitions) | 100+ GL Transitions GPU shaders between slides | `transition: none` then `## Title {gl-transition="crosswarp"}` |
 | [revealjs-tldraw](https://github.com/EmilHvitfeldt/quarto-revealjs-tldraw) | tldraw v4 layer over slides (key **T**), per-slide layer, localStorage persistence | `revealjs-plugins: [tldraw]` |
 | [roughnotation](https://github.com/EmilHvitfeldt/quarto-roughnotation) | rough-style animated annotations | filter `roughnotation` |
+```
 
 Themes (templates): [letterbox](https://github.com/EmilHvitfeldt/quarto-revealjs-letterbox) (xaringan port), [nes-theme](https://github.com/EmilHvitfeldt/quarto-nes-theme), [blackboard-theme](https://github.com/EmilHvitfeldt/quarto-blackboard-theme), [earth](https://github.com/EmilHvitfeldt/quarto-revealjs-earth), [seasons](https://github.com/EmilHvitfeldt/quarto-revealjs-seasons), [inverse](https://github.com/EmilHvitfeldt/quarto-revealjs-inverse), [revealjs-template](https://github.com/EmilHvitfeldt/quarto-revealjs-template) (his personal starter: 16:9, `code-line-numbers: false`, `styles.scss` + `all-the-js-code.html` pre-wired).
 
