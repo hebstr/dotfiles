@@ -47,16 +47,48 @@ remote() {
 }
 
 server_running() {
-  remote 'pgrep -x llama-server >/dev/null' 2>/dev/null
+  local rc=0
+  remote 'pgrep -x llama-server >/dev/null' 2>/dev/null || rc=$?
+  if [ "$rc" -eq 255 ]; then
+    return 2
+  fi
+  [ "$rc" -eq 0 ]
+}
+
+unreachable_warning() {
+  printf 'llama-session: cannot reach %s, llama-server may still be running there; run llama-session --stop later\n' "$REMOTE" >&2
 }
 
 stop_server() {
-  remote 'pkill -x llama-server' >/dev/null 2>&1 || true
+  local rc=0
+  remote 'pkill -x llama-server' >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq 255 ]; then
+    unreachable_warning
+    return 1
+  fi
   for ((i = 0; i < 15; i++)); do
-    server_running || return 0
+    rc=0
+    server_running || rc=$?
+    [ "$rc" -ne 1 ] || return 0
     sleep 2
   done
+  if [ "$rc" -eq 2 ]; then
+    unreachable_warning
+    return 1
+  fi
   remote 'pkill -9 -x llama-server' >/dev/null 2>&1 || true
+  sleep 1
+  rc=0
+  server_running || rc=$?
+  case $rc in
+  1) return 0 ;;
+  2)
+    unreachable_warning
+    return 1
+    ;;
+  esac
+  printf 'llama-session: llama-server still running on %s after SIGKILL\n' "$REMOTE" >&2
+  return 1
 }
 
 start_server() {
@@ -79,21 +111,40 @@ start_server() {
   STARTED_HERE=1
 }
 
+check_reused() {
+  local cmdline alias=${ALIAS:-${FILE%.gguf}}
+  cmdline=" $(remote 'pgrep -a -x llama-server' 2>/dev/null || true) "
+  case $cmdline in
+  *" --port ${PORT} "*) ;;
+  *" --port "*) die "the llama-server on ${REMOTE} listens on another port than ${PORT}; stop it with llama-session --stop or set LLAMA_PORT" ;;
+  esac
+  case $cmdline in
+  *" --alias ${alias} "*" --ctx-size ${CTX} "*) ;;
+  *) printf 'warning: the reused server was not started as %s with ctx %s; run llama-session --stop first to switch\n' "$alias" "$CTX" >&2 ;;
+  esac
+}
+
 open_tunnel() {
-  ssh -o BatchMode=yes -N -L "${PORT}:127.0.0.1:${PORT}" "$REMOTE" &
+  ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -N -L "${PORT}:127.0.0.1:${PORT}" "$REMOTE" &
   TUNNEL_PID=$!
 }
 
 wait_ready() {
-  local deadline=$((SECONDS + READY_TIMEOUT))
+  local deadline=$((SECONDS + READY_TIMEOUT)) rc
   while [ "$SECONDS" -lt "$deadline" ]; do
-    if ! server_running; then
+    rc=0
+    server_running || rc=$?
+    if [ "$rc" -eq 1 ]; then
       printf 'llama-server died at startup on %s, last log lines:\n' "$REMOTE" >&2
       remote "tail -15 ${REMOTE_LOG}" >&2 || true
       return 1
     fi
     if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
       return 0
+    fi
+    if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
+      printf 'port forward on %s to %s failed\n' "$PORT" "$REMOTE" >&2
+      return 1
     fi
     sleep 2
   done
@@ -112,13 +163,17 @@ cleanup() {
 }
 
 status() {
-  if server_running; then
+  local rc=0
+  server_running || rc=$?
+  case $rc in
+  0)
     printf 'remote: llama-server running on %s\n' "$REMOTE"
     remote "curl -sf http://127.0.0.1:${PORT}/v1/models" 2>/dev/null |
       sed -n 's/.*"id":"\([^"]*\)".*/remote: model \1/p' || true
-  else
-    printf 'remote: no llama-server on %s\n' "$REMOTE"
-  fi
+    ;;
+  1) printf 'remote: no llama-server on %s\n' "$REMOTE" ;;
+  *) printf 'remote: cannot reach %s\n' "$REMOTE" ;;
+  esac
   if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
     printf 'local: port %s answers\n' "$PORT"
   else
@@ -146,30 +201,43 @@ status)
   exit 0
   ;;
 stop)
-  if server_running; then
+  rc=0
+  server_running || rc=$?
+  case $rc in
+  0)
     stop_server
     printf 'remote server stopped\n'
-  else
-    printf 'no remote server to stop\n'
-  fi
+    ;;
+  1) printf 'no remote server to stop\n' ;;
+  *) die "cannot reach ${REMOTE}" ;;
+  esac
   exit 0
   ;;
 esac
+
+if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+  die "port ${PORT} already answers locally, and not through this session's forward"
+fi
 
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap cleanup EXIT
 
-if server_running; then
+rc=0
+server_running || rc=$?
+case $rc in
+0)
   printf 'reusing the llama-server already running on %s\n' "$REMOTE"
-else
-  start_server
-fi
+  check_reused
+  ;;
+1) start_server ;;
+*) die "cannot reach ${REMOTE}" ;;
+esac
 
 open_tunnel
 if ! wait_ready; then
   exit 1
 fi
 
-printf 'ready: http://127.0.0.1:%s/v1 — run opencode, interrupt here to tear down\n' "$PORT"
+printf 'ready: http://127.0.0.1:%s/v1; run opencode, interrupt here to tear down\n' "$PORT"
 wait "$TUNNEL_PID"
