@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+REMOTE=${LLAMA_REMOTE:-ju-TP2}
+PORT=${LLAMA_PORT:-8080}
+REPO=${LLAMA_MODEL_REPO:-unsloth/Qwen3.5-4B-GGUF}
+FILE=${LLAMA_MODEL_FILE:-Qwen3.5-4B-UD-Q4_K_XL.gguf}
+CTX=${LLAMA_CTX:-40960}
+PARALLEL=${LLAMA_PARALLEL:-1}
+NGL=${LLAMA_NGL:-99}
+ALIAS=${LLAMA_ALIAS:-}
+READY_TIMEOUT=${LLAMA_READY_TIMEOUT:-180}
+
+REMOTE_BIN=.local/opt/llama.cpp/llama-server
+REMOTE_HF=.local/bin/hf
+REMOTE_LOG=/tmp/llama-server.log
+
+KEEP=0
+STARTED_HERE=0
+TUNNEL_PID=
+ACTION=up
+
+usage() {
+  cat <<'EOF'
+Usage: llama-session [--keep] [--stop] [--status] [--help]
+
+Brings up a llama-server session on the remote GPU host and forwards its port
+to localhost, then holds until interrupted.
+
+  --keep     leave the remote server running on exit, even if started here
+  --stop     stop the remote server and exit
+  --status   report remote and local state, then exit
+
+Environment: LLAMA_REMOTE LLAMA_PORT LLAMA_MODEL_REPO LLAMA_MODEL_FILE
+             LLAMA_CTX LLAMA_PARALLEL LLAMA_NGL LLAMA_ALIAS LLAMA_READY_TIMEOUT
+EOF
+}
+
+die() {
+  printf 'llama-session: %s\n' "$1" >&2
+  exit 1
+}
+
+remote() {
+  ssh -o BatchMode=yes "$REMOTE" "$@" </dev/null
+}
+
+server_running() {
+  remote 'pgrep -x llama-server >/dev/null' 2>/dev/null
+}
+
+stop_server() {
+  remote 'pkill -x llama-server' >/dev/null 2>&1 || true
+  for ((i = 0; i < 15; i++)); do
+    server_running || return 0
+    sleep 2
+  done
+  remote 'pkill -9 -x llama-server' >/dev/null 2>&1 || true
+}
+
+start_server() {
+  local model
+  printf 'resolving %s (%s), downloading if absent\n' "$REPO" "$FILE"
+  model=$(remote "${REMOTE_HF} download $(printf '%q %q' "$REPO" "$FILE") -q | tail -1" | tr -d '\r')
+  [ "$model" != "" ] || die "could not resolve the model on ${REMOTE}"
+
+  local alias=${ALIAS:-${FILE%.gguf}}
+  printf 'starting llama-server on %s, ctx %s, %s layers offloaded\n' "$REMOTE" "$CTX" "$NGL"
+  remote "setsid nohup ${REMOTE_BIN} \
+    --model $(printf '%q' "$model") \
+    --alias $(printf '%q' "$alias") \
+    --host 127.0.0.1 --port $(printf '%q' "$PORT") \
+    -ngl $(printf '%q' "$NGL") \
+    --ctx-size $(printf '%q' "$CTX") \
+    --parallel $(printf '%q' "$PARALLEL") \
+    --jinja --reasoning-budget 0 \
+    >${REMOTE_LOG} 2>&1 &" >/dev/null
+  STARTED_HERE=1
+}
+
+open_tunnel() {
+  ssh -o BatchMode=yes -N -L "${PORT}:127.0.0.1:${PORT}" "$REMOTE" &
+  TUNNEL_PID=$!
+}
+
+wait_ready() {
+  local deadline=$((SECONDS + READY_TIMEOUT))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if ! server_running; then
+      printf 'llama-server died at startup on %s, last log lines:\n' "$REMOTE" >&2
+      remote "tail -15 ${REMOTE_LOG}" >&2 || true
+      return 1
+    fi
+    if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  printf 'llama-server still not answering after %ss, it is alive but loading\n' "$READY_TIMEOUT" >&2
+  return 1
+}
+
+cleanup() {
+  if [ "$TUNNEL_PID" != "" ]; then
+    kill "$TUNNEL_PID" 2>/dev/null || true
+  fi
+  if [ "$STARTED_HERE" -eq 1 ] && [ "$KEEP" -eq 0 ]; then
+    printf '\nstopping the remote server\n'
+    stop_server
+  fi
+}
+
+status() {
+  if server_running; then
+    printf 'remote: llama-server running on %s\n' "$REMOTE"
+    remote "curl -sf http://127.0.0.1:${PORT}/v1/models" 2>/dev/null |
+      sed -n 's/.*"id":"\([^"]*\)".*/remote: model \1/p' || true
+  else
+    printf 'remote: no llama-server on %s\n' "$REMOTE"
+  fi
+  if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+    printf 'local: port %s answers\n' "$PORT"
+  else
+    printf 'local: port %s silent, no forward\n' "$PORT"
+  fi
+}
+
+while [ $# -gt 0 ]; do
+  case $1 in
+  --keep) KEEP=1 ;;
+  --stop) ACTION=stop ;;
+  --status) ACTION=status ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *) die "unknown argument: $1" ;;
+  esac
+  shift
+done
+
+case $ACTION in
+status)
+  status
+  exit 0
+  ;;
+stop)
+  if server_running; then
+    stop_server
+    printf 'remote server stopped\n'
+  else
+    printf 'no remote server to stop\n'
+  fi
+  exit 0
+  ;;
+esac
+
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap cleanup EXIT
+
+if server_running; then
+  printf 'reusing the llama-server already running on %s\n' "$REMOTE"
+else
+  start_server
+fi
+
+open_tunnel
+if ! wait_ready; then
+  exit 1
+fi
+
+printf 'ready: http://127.0.0.1:%s/v1 — run opencode, interrupt here to tear down\n' "$PORT"
+wait "$TUNNEL_PID"
