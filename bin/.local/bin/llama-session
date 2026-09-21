@@ -112,8 +112,13 @@ start_server() {
 }
 
 check_reused() {
-  local cmdline alias=${ALIAS:-${FILE%.gguf}}
-  cmdline=" $(remote 'pgrep -a -x llama-server' 2>/dev/null || true) "
+  local cmdline alias=${ALIAS:-${FILE%.gguf}} rc=0
+  cmdline=$(remote 'pgrep -a -x llama-server' 2>/dev/null) || rc=$?
+  if [ "$rc" -eq 255 ]; then
+    printf 'warning: cannot check the reused server'\''s flags, %s dropped the connection\n' "$REMOTE" >&2
+    return 0
+  fi
+  cmdline=" ${cmdline} "
   case $cmdline in
   *" --port ${PORT} "*) ;;
   *" --port "*) die "the llama-server on ${REMOTE} listens on another port than ${PORT}; stop it with llama-session --stop or set LLAMA_PORT" ;;

@@ -23,6 +23,7 @@ printf "%s\n" "$*" >>"${SSH_LOG}"
 remote="${!#}"
 case "$remote" in
 *"pgrep -a -x llama-server"*)
+  [ -z "${PGREP_A_UNREACHABLE:-}" ] || exit 255
   [ -e "${STATE}/running" ] || exit 1
   cat "${STATE}/cmdline" 2>/dev/null
   exit 0
@@ -100,7 +101,7 @@ _run() {
   run env PATH="$STUBS" STATE="$STATE" SSH_LOG="$SSH_LOG" \
     START_FAILS="${START_FAILS:-}" HEALTH_SILENT="${HEALTH_SILENT:-}" \
     FAKE_MODEL_PATH="${FAKE_MODEL_PATH:-}" SSH_DROP_AT="${SSH_DROP_AT:-}" \
-    PKILL_UNREACHABLE="${PKILL_UNREACHABLE:-}" \
+    PKILL_UNREACHABLE="${PKILL_UNREACHABLE:-}" PGREP_A_UNREACHABLE="${PGREP_A_UNREACHABLE:-}" \
     TUNNEL_FAILS="${TUNNEL_FAILS:-}" TUNNEL_LIFE="${TUNNEL_LIFE:-}" \
     LLAMA_READY_TIMEOUT="${LLAMA_READY_TIMEOUT:-3}" \
     LLAMA_MODEL_REPO="${LLAMA_MODEL_REPO:-}" LLAMA_MODEL_FILE="${LLAMA_MODEL_FILE:-}" \
@@ -243,6 +244,13 @@ _server_up() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"another port than 8080"* ]]
   run ! grep -q -- " -N " "$SSH_LOG"
+}
+
+@test "a reused server whose flags cannot be read says so rather than passing silently" {
+  _server_up "4242 llama-server --alias Qwen3.5-4B-UD-Q4_K_XL --port 9090 --ctx-size 40960"
+  PGREP_A_UNREACHABLE=1 LLAMA_READY_TIMEOUT=1 _run
+  [[ "$output" == *"cannot check the reused server's flags"* ]]
+  [[ "$output" != *"was not started as"* ]]
 }
 
 @test "a reused server with another context is flagged but still used" {
