@@ -82,7 +82,7 @@ Available devices:
   CUDA0: NVIDIA RTX A3000 12GB Laptop GPU (11519 MiB, 10470 MiB free)
 ```
 
-What this does not establish. Device enumeration proves the backend loads and sees the GPU; it says nothing about a model actually running on it. The criterion `.claude/DESIGN-GPU-REMOTE.md` sets for this step is a non-zero VRAM allocation under `nvidia-smi` while a model is loaded, which belongs to step 2 and its smoke-test GGUF. Free VRAM also moves with the Windows desktop: 11262 MiB measured on 2026-09-20 against 10470 MiB here, with a Positron remote session open.
+What this does not establish. Device enumeration proves the backend loads and sees the GPU; it says nothing about a model actually running on it. The criterion `.claude/DESIGN-GPU-REMOTE.md` sets for this step is a non-zero VRAM allocation under `nvidia-smi` while a model is loaded, which belongs to step 3, where the smoke-test GGUF fetched at step 2 is served. Free VRAM also moves with the Windows desktop: 11262 MiB measured on 2026-09-20 against 10470 MiB here, with a Positron remote session open.
 
 Standing constraint this install inherits: WSL on `ju-TP2` idles out and nothing holds it up, the `WSL-KeepAlive` scheduled task having run once on 2026-09-19 and ended on exit code 1 (`.claude/DESIGN-SSH.md`, "Keeping WSL alive", reopened 2026-09-21). Every long transfer over this link needs a terminal or a Positron connection open on `ju-TP2` for the duration.
 
@@ -91,3 +91,5 @@ Criterion met 2026-09-21, under step 3 of the design note and recorded here beca
 Do not look for the per-layer offload lines in the server log to confirm this: `b11065` does not print them at default verbosity, the whole startup log being ten lines, so `nvidia-smi` is the evidence rather than a convenience. And a `rg` over that log under `set -e` fails the script when it matches nothing, which is how the first attempt died after proving the point it was testing.
 
 The command line above is the one that measured the criterion, not the one that serves an agent. Two settings were added later the same day and belong to any real use, both established in `.claude/DESIGN-GPU-REMOTE.md` under step 5: `--reasoning-budget 0`, Qwen3.5 otherwise spending over a thousand tokens of reasoning on a one-line edit, and `--ctx-size 40960 --parallel 1`, opencode's baseline request weighing about 23800 tokens so that the llama.cpp default of 8192 rejects every one of them. Add `--alias <name>` too, or `/v1/models` exposes the model under the blob hash that `hf` stores it by. VRAM then reads 4343 MiB instead of 3437.
+
+None of that is assembled by hand any more: `bin/.local/bin/llama-session` carries those flags as its defaults and owns both ends of a session, the forward included. Read the flags there rather than from this trace, which records what an install measured and not what serves an agent.

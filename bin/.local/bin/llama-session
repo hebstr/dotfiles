@@ -22,7 +22,7 @@ ACTION=up
 
 usage() {
   cat <<'EOF'
-Usage: llama-session [--keep] [--stop] [--status] [--help]
+Usage: llama-session [--keep] [--stop] [--status] [-h | --help]
 
 Brings up a llama-server session on the remote GPU host and forwards its port
 to localhost, then holds until interrupted.
@@ -30,6 +30,7 @@ to localhost, then holds until interrupted.
   --keep     leave the remote server running on exit, even if started here
   --stop     stop the remote server and exit
   --status   report remote and local state, then exit
+  -h, --help show this help
 
 Environment: LLAMA_REMOTE LLAMA_PORT LLAMA_MODEL_REPO LLAMA_MODEL_FILE
              LLAMA_CTX LLAMA_PARALLEL LLAMA_NGL LLAMA_ALIAS LLAMA_READY_TIMEOUT
