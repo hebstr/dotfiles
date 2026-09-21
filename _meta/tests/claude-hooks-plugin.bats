@@ -100,6 +100,44 @@ _drive() {
   [ ! -e "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin" ]
 }
 
+@test "guard: a write under ~/.claude is refused before any hook runs" {
+  mkdir -p "${HOME}/.claude"
+  _drive before write "{\"filePath\": \"${HOME}/.claude/probe.md\", \"content\": \"x\"}"
+  [[ "$output" == "THROWN: "*"must not modify"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin" ]
+}
+
+@test "guard: an edit under ~/dotfiles/claude/.claude is refused" {
+  mkdir -p "${HOME}/dotfiles/claude/.claude"
+  _drive before edit "{\"filePath\": \"${HOME}/dotfiles/claude/.claude/CLAUDE.md\", \"oldString\": \"a\", \"newString\": \"b\"}"
+  [[ "$output" == "THROWN: "*"must not modify"* ]]
+}
+
+@test "guard: a relative path climbing into ~/.claude is refused" {
+  mkdir -p "${HOME}/.claude"
+  _drive before write "{\"filePath\": \"../home/.claude/x.md\", \"content\": \"x\"}"
+  [[ "$output" == "THROWN: "*"must not modify"* ]]
+}
+
+@test "guard: a symlink resolving under the profile is refused" {
+  mkdir -p "${HOME}/dotfiles/claude/.claude/rules"
+  ln -s "${HOME}/dotfiles/claude/.claude/rules" "${PROJECT}/rules"
+  _drive before write "{\"filePath\": \"${PROJECT}/rules/new.md\", \"content\": \"x\"}"
+  [[ "$output" == "THROWN: "*"must not modify"* ]]
+}
+
+@test "guard: a project's own .claude directory stays writable" {
+  mkdir -p "${HOME}/.claude" "${PROJECT}/.claude"
+  _drive before write "{\"filePath\": \"${PROJECT}/.claude/PLAN.md\", \"content\": \"x\"}"
+  [ "$output" = "ALLOWED" ]
+}
+
+@test "guard: a sibling whose name only starts like the profile stays writable" {
+  mkdir -p "${HOME}/.claude" "${HOME}/.claude-notes"
+  _drive before write "{\"filePath\": \"${HOME}/.claude-notes/a.md\", \"content\": \"x\"}"
+  [ "$output" = "ALLOWED" ]
+}
+
 @test "after: format-on-edit.sh runs in the project directory with the payload" {
   _drive after edit '{"filePath": "/abs/x.R", "oldString": "a", "newString": "b"}'
   [ "$status" -eq 0 ]

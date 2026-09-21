@@ -23,15 +23,47 @@
     "paths": ["~/.local/share/opencode-claude-skills"]
   },
   "permission": {
+    "bash": {
+      "*": "ask",
+      "rg *": "allow",
+      "fdfind *": "allow",
+      "ls*": "allow",
+      "cat *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "wc *": "allow",
+      "pwd": "allow",
+      "echo *": "allow",
+      "readlink *": "allow",
+      "stat *": "allow",
+      "file *": "allow",
+      "command -v *": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git blame*": "allow",
+      "shellcheck *": "allow",
+      "shellharden *": "allow",
+      "shfmt *": "allow",
+      "bats *": "allow",
+      "air *": "allow",
+      "jarl *": "allow",
+      "ruff *": "allow",
+      "pyrefly *": "allow",
+      "prose-lint *": "allow",
+      "panache *": "allow",
+      "stylelint *": "allow",
+      "prettier *": "allow",
+      "sqlfluff *": "allow",
+      "stylua *": "allow",
+      "typstyle *": "allow",
+      "*>*": "ask"
+    },
     "external_directory": {
       "*": "ask",
       "~/.claude/**": "allow",
       "~/.local/share/opencode-claude-skills/**": "allow"
-    },
-    "edit": {
-      "*": "allow",
-      "~/.claude/**": "deny",
-      "~/dotfiles/claude/.claude/**": "deny"
     },
     "skill": {
       "*": "allow",

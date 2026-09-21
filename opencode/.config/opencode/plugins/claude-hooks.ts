@@ -1,7 +1,8 @@
 import type { Plugin } from "@opencode-ai/plugin"
 import { spawn } from "node:child_process"
+import { existsSync, realpathSync } from "node:fs"
 import { homedir } from "node:os"
-import { isAbsolute, join } from "node:path"
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path"
 
 type EditArgs = {
   filePath?: string
@@ -32,6 +33,28 @@ function claudePayload(args: EditArgs, directory: string): string {
   })
 }
 
+// A file about to be created does not exist yet, so the nearest existing ancestor is
+// resolved and the missing tail appended: symlinks into the profile are caught either way.
+function realTarget(file: string): string {
+  let head = file
+  const tail: string[] = []
+  while (!existsSync(head) && dirname(head) !== head) {
+    tail.unshift(basename(head))
+    head = dirname(head)
+  }
+  return join(realpathSync(head), ...tail)
+}
+
+// opencode matches `edit` permission patterns against a path relative to the project,
+// so no pattern can name these directories from every project: the guard lives here.
+function protectedRoot(file: string): string | undefined {
+  const target = realTarget(file)
+  const roots = [join(homedir(), ".claude"), join(homedir(), "dotfiles", "claude", ".claude")]
+  return roots
+    .map((root) => (existsSync(root) ? realpathSync(root) : root))
+    .find((root) => target === root || target.startsWith(root + sep))
+}
+
 function runHook(script: string, payload: string, cwd: string): Promise<Result> {
   return new Promise((resolve) => {
     const child = spawn("bash", [join(homedir(), ".claude", "hooks", script)], { cwd })
@@ -51,6 +74,15 @@ function runHook(script: string, payload: string, cwd: string): Promise<Result> 
 export const ClaudeHooks: Plugin = async ({ directory }) => ({
   "tool.execute.before": async (input, output) => {
     if (!EDIT_TOOLS.has(input.tool)) return
+    const file = output.args?.filePath
+    if (typeof file === "string" && file) {
+      const root = protectedRoot(resolve(directory, file))
+      if (root) {
+        throw new Error(
+          `${file} resolves under ${root}, the Claude Code profile, which opencode must not modify. Do not retry by any other means: tell the user.`,
+        )
+      }
+    }
     const r = await runHook("prose-lint-pretool.sh", claudePayload(output.args, directory), directory)
     // Exit 2 is Claude Code's blocking signal; any other failure stays advisory, as there.
     if (r.code === 2) throw new Error(r.err.trim() || "prose-lint-pretool.sh blocked this edit")
