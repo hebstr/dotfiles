@@ -26,11 +26,11 @@ Call `libreoffice`, never a hardcoded `/opt` path, which moves on every branch c
 
 1. **Start with the mechanical assertion.** `officer::docx_summary(x, detailed = TRUE)` returns one row per run and carries `paragraph_stylename`, `character_stylename`, `align`, `link`, `link_to_bookmark`, `bookmark_start`, plus fonts, `bold`, `italic`, `color`. A citation hyperlink comes back as `character_stylename` plus `link_to_bookmark` holding the anchor, which settles a `link-citations` question with no rendering at all.
 2. **Anything inherited from a named style needs the XML.** `docx_summary()` reports direct paragraph formatting only, so `align` is `NA` on a paragraph justified by its style rather than by its own `w:jc`. Read `word/styles.xml` for those, and remember that Pandoc resolves a style by its `w:name`, never by its `w:styleId`: comparing identifiers is how a French template reads as covering nothing.
-3. **Rasterize only for what the data cannot show**, page layout, spacing, a caption's position, a colour actually landing. `libreoffice --headless -env:UserInstallation=file:///tmp/<profile> --convert-to pdf --outdir <dir> <file>.docx`, then `pdftoppm -r 110 -png -f <first> -l <last> <file>.pdf <prefix>`, then the native `Read` tool on the PNG. Around 1,5 s for a short document.
+3. **Rasterize only for what the data cannot show**, page layout, spacing, a caption's position, a colour actually landing. `P=$(mktemp -d); trap 'rm -rf "$P"' EXIT; libreoffice --headless -env:UserInstallation="file://$P" --convert-to pdf --outdir <dir> <file>.docx`, then `pdftoppm -r 110 -png -f <first> -l <last> <file>.pdf <prefix>`, then the native `Read` tool on the PNG. Around 1,5 s for a short document.
 4. **Never turn a LibreOffice render into a claim about Word.** See the defects below; on appearance the gap falls exactly on justification and line breaking.
 5. **A docx assembled by anything other than Word owes a structural pass before handover**, which no render performs: LibreOffice converts and rasterizes documents Word refuses to open outright. See "Structural validity" below for the check.
 
-The isolated profile in step 3 is not optional hygiene: concurrent invocations sharing the default profile fail silently.
+The profile in step 3 is not optional hygiene, and it has to be fresh per invocation rather than merely non-default: concurrent invocations sharing one fail silently, a hardcoded path as surely as the default.
 
 ## Measured defects
 
@@ -66,6 +66,7 @@ bad = [
     if [k for k in tc if k.tag in (W + "p", W + "tbl")][-1:] != []
     and [k for k in tc if k.tag in (W + "p", W + "tbl")][-1].tag != W + "p"
 ]
+print(len(bad), "cell(s) not ending on w:p")
 ```
 
 The shape that produces it is a table nested as the last thing in a cell, which no author writes by hand and a pipeline reaches easily: Quarto wraps every cross-referenced float in a one-cell table to keep caption and content together, and a `flextable` or a `gt` table arrives from knitr as a raw `{=openxml}` block ending on `</w:tbl>`. Measured 2026-09-11 on a Quarto report of 36 tables: 14 cells left open, Word refusing the document outright while LibreOffice converted it to PDF without a warning. The fix belongs to whatever emits the raw block, an empty paragraph appended to its text; a Pandoc `Para` carrying no inline is dropped before the writer sees it, so it cannot be inserted at AST level. Its position relative to a trailing `w:bookmarkEnd` is free, both orders verified in Word that day.

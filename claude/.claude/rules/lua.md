@@ -45,7 +45,7 @@ Run the gate when the edit meets the non-trivial threshold in `CLAUDE.md` (new f
 ```sh
 stylua <file>.lua                                        # format in place
 stylua --check <file>.lua                                # confirm formatted (exit 1 if not)
-lua-language-server --check <workspace-root> --checklevel Warning
+L=$(mktemp -d); trap 'rm -rf "$L"' EXIT; lua-language-server --check <workspace-root> --checklevel Warning --logpath "$L"
 ```
 
 The linter's argument is the workspace root (the directory holding `.luarc.json`), not the edited file.
