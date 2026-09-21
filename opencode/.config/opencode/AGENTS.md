@@ -45,13 +45,21 @@ Read a file from it when a rule below points to it, and not before.
 
 ## Work
 
+- At the start of a session, if the project has `.claude/PLAN.md` (or a legacy `PLAN.md` at its root), read it and state the current objective, the current step and any blockers before anything else.
+
 - Change files with the edit and write tools, never with `sed`, `awk` or a heredoc: a shell edit can half-match and leave a broken file with exit code 0.
+
 - Search with `rg` rather than `grep`, and `fdfind` rather than `find`.
+
 - In Python, write a new import in the same edit as its first use, or after it: every edit is followed by `ruff check --fix`, which deletes an import nothing uses yet.
+
 - Investigate every error, warning or non-zero exit before going on.
   Never dismiss one as cosmetic.
+
 - After a rename, a moved file, or a changed config key, search the whole project for the old name, including strings and docs, and update what refers to it.
+
 - To fix a bug in a project that already has tests, first write a test that reproduces it, then fix it.
+
 - Before installing a package or changing the system (apt, uv tool, stow, shell rc, systemd), read `~/.claude/rules/showboat.md`.
 
 ## Code
@@ -101,4 +109,5 @@ After editing a `.md` or `.qmd` meant for readers, run `prose-lint <file>`.
 - Past decisions and user preferences: the index `~/.claude/memory/MEMORY.md`, then the one memory file whose description matches.
 - Anything not covered here: `~/.claude/CLAUDE.md`.
   It is written for Claude Code, so ignore what names tools you do not have (Skill, Agent, AskUserQuestion, hooks, plugins).
-- A project may carry its own `AGENTS.md` or `CLAUDE.md`, and `.claude/PLAN.md` or `.claude/DESIGN-*.md` notes: read them when the task touches what they cover.
+- A project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` are already in your instructions when they exist, and they bind as much as this file.
+  Its other `.claude/` notes (`DESIGN-*.md`, `DEFERRED.md` and the like) are read when the task touches what they cover.
