@@ -37,6 +37,8 @@ if ! PLUGINS=$(jq -r '.plugins | keys[]' "$INSTALLED"); then
 elif [ "$PLUGINS" != "" ]; then
   while IFS= read -r plugin; do
     echo "  → ${plugin}"
+    # No -y: a changed marketplace-declared command must reach a person, so
+    # such a plugin fails here until it is updated by hand.
     claude plugin update "$plugin" </dev/null || {
       echo "    [failed]" >&2
       FAILED=1

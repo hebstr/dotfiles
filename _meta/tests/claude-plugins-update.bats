@@ -39,9 +39,9 @@ setup() {
   STUBS="$(mktemp -d)"
   FAKE_HOME="$(mktemp -d)"
   export STUBS FAKE_HOME
-  # Real binaries the script drives directly. jq is deliberately real: the
-  # bugs under test are about propagating *its* exit status, so a stub would
-  # test the stub instead.
+  # Real binaries the script drives directly. jq is real because several
+  # tests assert how *its* exit status propagates, so a stub would test the
+  # stub instead.
   for cmd in jq mktemp dirname grep rm mv cat; do
     ln -s "$(command -v "$cmd")" "${STUBS}/${cmd}"
   done
@@ -116,23 +116,27 @@ EOF
 }
 
 @test "one plugin update fails: exits non-zero, marks that plugin failed" {
-  _stub_command claude 'case "$3" in beta@mkt) exit 1 ;; esac; exit 0'
+  _stub_command claude 'case "$3" in alpha@mkt) exit 1 ;; esac; [ "$2" = update ] && echo "UPDATED:$3"; exit 0'
   _write_installed <<'EOF'
 {"plugins": {"alpha@mkt": {}, "beta@mkt": {}}}
 EOF
   _run
   [ "$status" -ne 0 ]
   [[ "$output" == *"[failed]"* ]]
+  [[ "$output" == *"UPDATED:beta@mkt"* ]]
 }
 
-# ─── bug 1: unchecked jq on the plugin list ─────────────────────────────────
+# ─── plugin list read failure ───────────────────────────────────────────────
 
 @test "malformed installed_plugins.json: exits non-zero, does not claim success" {
   _write_installed <<'EOF'
 {"plugins": {"alpha@mkt":
 EOF
+  _stub_command opencode
+  _stub_command opencode-skills-sync 'echo SYNC-RAN'
   _run
   [ "$status" -ne 0 ]
+  [[ "$output" == *"SYNC-RAN"* ]]
 }
 
 @test "installed_plugins.json without a .plugins key: exits non-zero" {
@@ -189,12 +193,27 @@ EOF
 EOF
   _stub_command curl 'printf "{\"info\":{}}"'
   _run
+  [ "$status" -eq 0 ]
   [[ "$output" != *"→ null"* ]]
   [[ "$output" == *"could not fetch latest version"* ]]
   grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
 }
 
-# ─── bug 2: unchecked mcp.json rewrite ──────────────────────────────────────
+@test "pypi unreachable: transient miss stays out of the exit status" {
+  _write_installed <<'EOF'
+{"plugins": {}}
+EOF
+  _write_mcp <<'EOF'
+{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==1.0.0"]}}}
+EOF
+  _stub_command curl 'exit 22'
+  _run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"could not fetch latest version"* ]]
+  grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
+}
+
+# ─── mcp.json rewrite failure ───────────────────────────────────────────────
 
 @test "mcp rewrite jq failure: exits non-zero, no success line, file intact" {
   _write_installed <<'EOF'
@@ -231,7 +250,7 @@ EOF
   grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
 }
 
-# ─── bug 3: prerelease pins are prefix-patched instead of replaced ───────────
+# ─── prerelease pin replaced whole ──────────────────────────────────────────
 
 @test "prerelease pin outdated: whole specifier replaced, no orphan suffix" {
   _write_installed <<'EOF'
@@ -262,7 +281,7 @@ EOF
   grep -q 'ouroboros-ai==0.26.0"' "${FAKE_HOME}/.claude/mcp.json"
 }
 
-# ─── bug 4: the loop's plugin list reaches the child on stdin ───────────────
+# ─── plugin update stdin isolation ──────────────────────────────────────────
 
 @test "plugin update does not inherit the loop's plugin list on stdin" {
   _write_installed <<'EOF'
@@ -277,7 +296,7 @@ EOF
   [[ "$output" == *"gamma@mkt"* ]]
 }
 
-# ─── bug 5: a malformed mcp.json is silently skipped ────────────────────────
+# ─── malformed mcp.json ─────────────────────────────────────────────────────
 
 @test "malformed mcp.json: exits non-zero and names the file" {
   _write_installed <<'EOF'
@@ -304,7 +323,7 @@ EOF
   [[ "$output" != *"mcp.json"* ]]
 }
 
-# ─── bug 6: an unparsable pin is reported but not accounted for ─────────────
+# ─── unparsable pin ─────────────────────────────────────────────────────────
 
 @test "ouroboros entry without a version specifier: exits non-zero" {
   _write_installed <<'EOF'
