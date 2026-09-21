@@ -2,7 +2,7 @@
 repo = "local"
 hooks = [
   { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
-  { id = "bats-tests", name = "check bats tests", entry = "bash -c 'j=(); command -v parallel >/dev/null && j=(--jobs \"$(nproc)\"); exec bats \"${j[@]}\" _meta/tests/'", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/|git/\.config/git/)' },
+  { id = "bats-tests", name = "check bats tests", entry = "bash -c 'j=(); command -v parallel >/dev/null && j=(--jobs \"$(nproc)\"); exec bats \"${j[@]}\" _meta/tests/'", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/|git/\.config/git/|opencode/\.config/opencode/plugins/)' },
   { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^agents/|\.bats$' },
   { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '^(_meta/profiles|agents)/' },
   { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format", language = "system", files = '\.(md|qmd)$', exclude = '^(agents/|_meta/profiles/|_meta/notes/|claude/\.claude/(CLAUDE\.md|rules/|memory/|skills/))' },

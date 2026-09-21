@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# opencode's plugins/claude-hooks.ts builds this payload too: keep the keys read here in step with it.
 FILE=$(jq -r '.tool_input.file_path')
 REAL=$(realpath "$FILE" 2>/dev/null || printf '%s' "$FILE")
 

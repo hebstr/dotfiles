@@ -4,6 +4,7 @@ set -eu
 command -v prose-lint >/dev/null 2>&1 || exit 0
 command -v python3 >/dev/null 2>&1 || exit 0
 
+# opencode's plugins/claude-hooks.ts builds this payload too: keep the keys read here in step with it.
 INPUT=$(cat)
 FILE=$(jq -r '.tool_input.file_path // empty' <<<"$INPUT")
 [ "$FILE" = "" ] && exit 0
