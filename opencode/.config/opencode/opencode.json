@@ -26,7 +26,8 @@
     },
     "edit": {
       "*": "allow",
-      "~/.claude/**": "deny"
+      "~/.claude/**": "deny",
+      "~/dotfiles/claude/.claude/**": "deny"
     },
     "skill": {
       "*": "allow",
