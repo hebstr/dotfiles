@@ -111,7 +111,7 @@ _run() {
 
 _server_up() {
   touch "${STATE}/running"
-  printf '%s\n' "${1:-4242 llama-server --model /m.gguf --alias Qwen3.5-4B-UD-Q4_K_XL --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 40960 --parallel 1}" >"${STATE}/cmdline"
+  printf '%s\n' "${1:-4242 llama-server --model /m.gguf --alias Qwen3.5-9B-UD-Q5_K_XL --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 98304 --parallel 1}" >"${STATE}/cmdline"
 }
 
 # ─── argument handling ──────────────────────────────────────────────────────
@@ -208,7 +208,9 @@ _server_up() {
   FAKE_MODEL_PATH=/remote/cache/qwen.gguf _run
   [ "$status" -eq 0 ]
   grep -q -- "--model /remote/cache/qwen.gguf" "$SSH_LOG"
-  grep -q -- "--ctx-size 40960" "$SSH_LOG"
+  grep -q -- "download unsloth/Qwen3.5-9B-GGUF Qwen3.5-9B-UD-Q5_K_XL.gguf" "$SSH_LOG"
+  grep -q -- "--alias Qwen3.5-9B-UD-Q5_K_XL" "$SSH_LOG"
+  grep -q -- "--ctx-size 98304" "$SSH_LOG"
   grep -q -- "--parallel 1" "$SSH_LOG"
   grep -q -- "--reasoning-budget 0" "$SSH_LOG"
 }
@@ -238,7 +240,7 @@ _server_up() {
 }
 
 @test "a reused server on another port is refused before the forward opens" {
-  _server_up "4242 llama-server --alias Qwen3.5-4B-UD-Q4_K_XL --port 9090 --ctx-size 40960"
+  _server_up "4242 llama-server --alias Qwen3.5-9B-UD-Q5_K_XL --port 9090 --ctx-size 98304"
   _run
   [ "$status" -eq 1 ]
   [[ "$output" == *"another port than 8080"* ]]
@@ -246,7 +248,7 @@ _server_up() {
 }
 
 @test "a reused server whose flags cannot be read says so rather than passing silently" {
-  _server_up "4242 llama-server --alias Qwen3.5-4B-UD-Q4_K_XL --port 9090 --ctx-size 40960"
+  _server_up "4242 llama-server --alias Qwen3.5-9B-UD-Q5_K_XL --port 9090 --ctx-size 98304"
   PGREP_A_UNREACHABLE=1 LLAMA_READY_TIMEOUT=1 _run
   [[ "$output" == *"cannot check the reused server's flags"* ]]
   [[ "$output" != *"was not started as"* ]]
