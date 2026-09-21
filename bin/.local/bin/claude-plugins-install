@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Declarative restore of Claude Code marketplaces, plugins, and autoUpdate flags.
+# Declarative restore of Claude Code marketplaces and plugins.
 # Reads desired state from ~/.claude/settings.json (extraKnownMarketplaces + enabledPlugins).
 #
 # Run on a fresh machine (or after a wipe) to rebuild the plugin setup:
@@ -44,7 +44,10 @@ elif [ "$SOURCES" != "" ]; then
   while IFS= read -r src; do
     [ "$src" = "" ] && continue
     log "  marketplace add $src"
-    claude plugin marketplace add "$src" </dev/null || warn "    (already present or failed: $src)"
+    claude plugin marketplace add "$src" </dev/null || {
+      warn "    failed: $src"
+      FAILED=1
+    }
   done <<<"$SOURCES"
 fi
 
@@ -59,69 +62,11 @@ elif [ "$PLUGINS" != "" ]; then
   while IFS= read -r plugin; do
     [ "$plugin" = "" ] && continue
     log "  plugin install $plugin"
-    claude plugin install "$plugin" </dev/null || warn "    (already installed or failed: $plugin)"
+    claude plugin install "$plugin" </dev/null || {
+      warn "    failed: $plugin"
+      FAILED=1
+    }
   done <<<"$PLUGINS"
-fi
-
-# ---------------------------------------------------------------------------
-# 3. Antigravity skills (not available as individual plugins)
-# Pinned to a commit SHA: bump deliberately after reviewing upstream diff.
-# Upstream is trusted-on-pin, not trusted-on-HEAD.
-# ---------------------------------------------------------------------------
-# ANTIGRAVITY_REF="45bad85d0d4cff01426074756d14d429a60b8cca"
-# ANTIGRAVITY_SKILLS=(
-#   "bats-testing-patterns"
-#   "bash-defensive-patterns"
-# )
-
-# fetch_skill_file() {
-#   local repo_path="$1" dest="$2" tmp
-#   tmp=$(mktemp)
-#   if gh api "${repo_path}?ref=${ANTIGRAVITY_REF}" \
-#     --jq 'if .content then .content else error("no .content field") end' \
-#     2>/dev/null | base64 -d >"$tmp" &&
-#     [ "$(wc -c <"$tmp")" -gt 100 ]; then
-#     mv "$tmp" "$dest"
-#     return 0
-#   else
-#     rm -f "$tmp"
-#     return 1
-#   fi
-# }
-
-# if ! command -v gh >/dev/null 2>&1; then
-#   warn "gh CLI not found: skipping antigravity skills update"
-# else
-#   log "Updating antigravity skills (pinned: ${ANTIGRAVITY_REF:0:7})..."
-#   for skill in "${ANTIGRAVITY_SKILLS[@]}"; do
-#     mkdir -p ~/.claude/skills/"$skill"/resources
-#     fetch_skill_file \
-#       "repos/sickn33/antigravity-awesome-skills/contents/skills/${skill}/SKILL.md" \
-#       ~/.claude/skills/"$skill"/SKILL.md ||
-#       warn "    failed to fetch ${skill}/SKILL.md: keeping existing file"
-#     fetch_skill_file \
-#       "repos/sickn33/antigravity-awesome-skills/contents/skills/${skill}/resources/implementation-playbook.md" \
-#       ~/.claude/skills/"$skill"/resources/implementation-playbook.md ||
-#       warn "    failed to fetch ${skill}/resources/implementation-playbook.md: keeping existing file"
-#     log "  updated: ${skill}"
-#   done
-# fi
-
-# ---------------------------------------------------------------------------
-# 4. Enable autoUpdate on every installed plugin
-# ---------------------------------------------------------------------------
-REG="$HOME/.claude/plugins/installed_plugins.json"
-
-if [ -f "$REG" ]; then
-  log "Enabling autoUpdate on all installed plugins..."
-  BACKUP="$REG.bak.$(date +%Y%m%d-%H%M%S)"
-  cp "$REG" "$BACKUP"
-  TMP=$(mktemp)
-  jq '.plugins |= map_values(map(. + {autoUpdate: true}))' "$REG" >"$TMP"
-  mv "$TMP" "$REG"
-  log "  registry patched. backup: $BACKUP"
-else
-  warn "installed_plugins.json not found at $REG -- skipping autoUpdate patch"
 fi
 
 if [ "$FAILED" -ne 0 ]; then

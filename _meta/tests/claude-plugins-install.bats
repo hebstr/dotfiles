@@ -37,15 +37,6 @@ _write_settings() {
   cat >"${FAKE_HOME}/.claude/settings.json"
 }
 
-_write_registry() {
-  mkdir -p "${FAKE_HOME}/.claude/plugins"
-  cat >"${FAKE_HOME}/.claude/plugins/installed_plugins.json"
-}
-
-_registry() {
-  printf '%s' "${FAKE_HOME}/.claude/plugins/installed_plugins.json"
-}
-
 # ─── setup / teardown ───────────────────────────────────────────────────────
 
 setup() {
@@ -54,13 +45,11 @@ setup() {
   CLAUDE_LOG="${STUBS}/claude.log"
   export STUBS FAKE_HOME CLAUDE_LOG
   : >"$CLAUDE_LOG"
-  # Real binaries the script drives directly. jq is deliberately real: what the
-  # tests pin is how the script consumes *its* output and exit status, so a stub
-  # would test the stub instead. Resolved through command -v rather than a
-  # hardcoded /usr/bin so the harness survives a differently laid-out system.
-  for cmd in jq mktemp date cp mv cat; do
-    ln -s "$(command -v "$cmd")" "${STUBS}/${cmd}"
-  done
+  # jq is deliberately real: what the tests pin is how the script consumes *its*
+  # output and exit status, so a stub would test the stub instead. Resolved
+  # through command -v rather than a hardcoded /usr/bin so the harness survives
+  # a differently laid-out system.
+  ln -s "$(command -v jq)" "${STUBS}/jq"
   ln -s "$BASH" "${STUBS}/bash"
   _stub_claude
 }
@@ -153,15 +142,16 @@ EOF
   run ! grep -q 'marketplace add' "$CLAUDE_LOG"
 }
 
-@test "failing marketplace add: warns, stays non-fatal, plugin loop still runs" {
+@test "failing marketplace add: warns, exits non-zero, plugin loop still runs" {
   _stub_claude 'printf "%s\n" "$*" >>"$CLAUDE_LOG"; case "$2" in marketplace) exit 1 ;; esac; exit 0'
   _write_settings <<'EOF'
 {"extraKnownMarketplaces": {"mkt": {"source": {"repo": "owner/repo"}}},
  "enabledPlugins": {"p@mkt": true}}
 EOF
   _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"already present or failed: owner/repo"* ]]
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"failed: owner/repo"* ]]
+  [[ "$output" != *"Done."* ]]
   grep -qx 'plugin install p@mkt' "$CLAUDE_LOG"
 }
 
@@ -186,14 +176,15 @@ EOF
   run ! grep -q 'beta@mkt' "$CLAUDE_LOG"
 }
 
-@test "failing plugin install: warns, stays non-fatal, later plugins still run" {
+@test "failing plugin install: warns, exits non-zero, later plugins still run" {
   _stub_claude 'printf "%s\n" "$*" >>"$CLAUDE_LOG"; case "$3" in alpha@mkt) exit 1 ;; esac; exit 0'
   _write_settings <<'EOF'
 {"enabledPlugins": {"alpha@mkt": true, "beta@mkt": true}}
 EOF
   _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"already installed or failed: alpha@mkt"* ]]
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"failed: alpha@mkt"* ]]
+  [[ "$output" != *"Done."* ]]
   grep -qx 'plugin install beta@mkt' "$CLAUDE_LOG"
 }
 
@@ -255,76 +246,4 @@ EOF
   grep -qx 'plugin marketplace add o/one' "$CLAUDE_LOG"
   grep -qx 'plugin marketplace add o/two' "$CLAUDE_LOG"
   grep -qx 'plugin marketplace add o/three' "$CLAUDE_LOG"
-}
-
-# ─── autoUpdate patch on the registry ───────────────────────────────────────
-# Registry fixtures mirror the live file: each .plugins value is an array of
-# objects, which is what makes `map(. + {autoUpdate: true})` the right filter.
-
-@test "registry present: autoUpdate added to every entry, array shape preserved" {
-  _write_settings <<'EOF'
-{}
-EOF
-  _write_registry <<'EOF'
-{"plugins": {"alpha@mkt": [{"name": "alpha"}], "beta@mkt": [{"name": "beta"}]}}
-EOF
-  _run
-  [ "$status" -eq 0 ]
-  jq -e '.plugins["alpha@mkt"] | type == "array"' "$(_registry)" >/dev/null
-  jq -e '.plugins["alpha@mkt"][0].autoUpdate == true' "$(_registry)" >/dev/null
-  jq -e '.plugins["beta@mkt"][0].autoUpdate == true' "$(_registry)" >/dev/null
-  jq -e '.plugins["alpha@mkt"][0].name == "alpha"' "$(_registry)" >/dev/null
-}
-
-@test "registry present: a timestamped backup holds the pre-patch content" {
-  _write_settings <<'EOF'
-{}
-EOF
-  _write_registry <<'EOF'
-{"plugins": {"alpha@mkt": [{"name": "alpha"}]}}
-EOF
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"registry patched. backup:"* ]]
-  local backup
-  backup=$(echo "$FAKE_HOME"/.claude/plugins/installed_plugins.json.bak.*)
-  [ -f "$backup" ]
-  jq -e '.plugins["alpha@mkt"][0] | has("autoUpdate") | not' "$backup" >/dev/null
-}
-
-@test "already-patched registry: idempotent, autoUpdate stays true" {
-  _write_settings <<'EOF'
-{}
-EOF
-  _write_registry <<'EOF'
-{"plugins": {"alpha@mkt": [{"name": "alpha", "autoUpdate": true}]}}
-EOF
-  _run
-  [ "$status" -eq 0 ]
-  jq -e '.plugins["alpha@mkt"][0].autoUpdate == true' "$(_registry)" >/dev/null
-  jq -e '.plugins["alpha@mkt"] | length == 1' "$(_registry)" >/dev/null
-}
-
-@test "registry absent: warns and exits 0" {
-  _write_settings <<'EOF'
-{}
-EOF
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"skipping autoUpdate patch"* ]]
-  [[ "$output" == *"Done."* ]]
-}
-
-@test "malformed registry: exits non-zero, leaves the file intact, no success line" {
-  _write_settings <<'EOF'
-{}
-EOF
-  _write_registry <<'EOF'
-{"plugins":
-EOF
-  _run
-  [ "$status" -ne 0 ]
-  [[ "$output" != *"registry patched"* ]]
-  [[ "$output" != *"Done."* ]]
-  [ "$(cat "$(_registry)")" = '{"plugins":' ]
 }
