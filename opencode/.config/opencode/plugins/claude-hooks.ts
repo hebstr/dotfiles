@@ -85,7 +85,7 @@ function runHook(script: string, payload: string, cwd: string): Promise<Result> 
       try {
         process.kill(-child.pid, "SIGKILL")
       } catch {}
-    }, 60_000)
+    }, Number(process.env.CLAUDE_HOOKS_TIMEOUT_MS) || 60_000)
     let out = ""
     let err = ""
     child.stdout.on("data", (chunk) => (out += chunk))

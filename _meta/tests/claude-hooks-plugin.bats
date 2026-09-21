@@ -95,6 +95,12 @@ _drive() {
   [ "$output" = "ALLOWED" ]
 }
 
+@test "before: the verbatim oldString check covers .qmd files" {
+  printf 'one  two\n' >"${PROJECT}/doc.qmd"
+  _drive before edit "{\"filePath\": \"${PROJECT}/doc.qmd\", \"oldString\": \"one two\", \"newString\": \"x\"}"
+  [[ "$output" == "THROWN: oldString does not occur verbatim"* ]]
+}
+
 @test "before: a non-prose edit is not held to a verbatim oldString" {
   printf 'one  two\n' >"${PROJECT}/x.R"
   _drive before edit "{\"filePath\": \"${PROJECT}/x.R\", \"oldString\": \"one two\", \"newString\": \"x\"}"
@@ -107,10 +113,21 @@ _drive() {
   [ "$output" = "${PROJECT}/docs/doc.md" ]
 }
 
+@test "before: the hook runs in the project directory" {
+  _drive before write '{"filePath": "/abs/doc.md", "content": "x"}'
+  [ "$(cat "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.cwd")" = "$PROJECT" ]
+}
+
 @test "before: exit 2 blocks the edit with the hook's stderr" {
   _hook prose-lint-pretool.sh 'echo "em dash on line 3" >&2; exit 2'
   _drive before write '{"filePath": "/abs/doc.md", "content": "x"}'
   [ "$output" = "THROWN: em dash on line 3" ]
+}
+
+@test "before: exit 2 without stderr still blocks, with a default message" {
+  _hook prose-lint-pretool.sh 'exit 2'
+  _drive before write '{"filePath": "/abs/doc.md", "content": "x"}'
+  [ "$output" = "THROWN: prose-lint-pretool.sh blocked this edit" ]
 }
 
 @test "before: any other failure stays advisory" {
@@ -132,6 +149,15 @@ _drive() {
   [ "$output" = "ALLOWED" ]
 }
 
+@test "before: a hook whose child keeps the pipes open is killed at the timeout" {
+  _hook prose-lint-pretool.sh 'sleep 30 & exit 0'
+  export CLAUDE_HOOKS_TIMEOUT_MS=500
+  local start=$SECONDS
+  _drive before write '{"filePath": "/abs/doc.md", "content": "x"}'
+  [ "$output" = "ALLOWED" ]
+  [ $((SECONDS - start)) -lt 10 ]
+}
+
 @test "before: tools other than edit and write run no hook" {
   _drive before bash '{"command": "ls"}'
   [ "$output" = "ALLOWED" ]
@@ -143,6 +169,11 @@ _drive() {
   _drive before write "{\"filePath\": \"${HOME}/.claude/probe.md\", \"content\": \"x\"}"
   [[ "$output" == "THROWN: "*"must not modify"* ]]
   [ ! -e "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin" ]
+}
+
+@test "guard: a write creating ~/.claude itself is refused" {
+  _drive before write "{\"filePath\": \"${HOME}/.claude/rules/new.md\", \"content\": \"x\"}"
+  [[ "$output" == "THROWN: "*"must not modify"* ]]
 }
 
 @test "guard: an edit under ~/dotfiles/claude/.claude is refused" {
@@ -224,6 +255,14 @@ _profile_files() {
   [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
 }
 
+@test "system: a block whose content no longer matches the file is kept" {
+  _profile_files
+  input=$(_system_with "${HOME}/.claude/CLAUDE.md")
+  printf 'GLOBAL RULES EDITED\n' >"${HOME}/.claude/CLAUDE.md"
+  _drive system - "$input"
+  [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
+}
+
 @test "system: a missing profile file changes nothing" {
   mkdir -p "${PROJECT}/.claude"
   printf 'PROJECT RULES\n' >"${PROJECT}/.claude/CLAUDE.md"
@@ -251,6 +290,15 @@ _profile_files() {
   _drive after write '{"filePath": "/abs/x.R", "content": "x"}'
   [ "${lines[0]}" = "TOOL-OUTPUT" ]
   [[ "$output" == *"format-on-edit.sh:"*"jarl: 1 violation"* ]]
+}
+
+@test "after: a failing hook reports its stderr without throwing" {
+  _hook format-on-edit.sh 'echo "air: parse error" >&2; exit 1'
+  _drive after write '{"filePath": "/abs/x.R", "content": "x"}'
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "TOOL-OUTPUT" ]
+  [[ "$output" == *"format-on-edit.sh:"*"air: parse error"* ]]
+  [[ "$output" != *"THROWN"* ]]
 }
 
 @test "after: tools other than edit and write run no hook" {
