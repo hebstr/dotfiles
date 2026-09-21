@@ -237,7 +237,7 @@ _add_branch() {
   mkdir -p "$LO_OPT_ROOT/libreoffice${branch}/program"
   cat >"$LO_OPT_ROOT/libreoffice${branch}/program/soffice" <<EOF
 #!/usr/bin/env bash
-printf 'LibreOffice %s abcdef0123456789\n' "${ver}"
+printf 'LibreOffice %s abcdef0123456789\n\n' "${ver}"
 EOF
   chmod +x "$LO_OPT_ROOT/libreoffice${branch}/program/soffice"
   for pkg in "libobasis${branch}-core" "libobasis${branch}-calc" \
@@ -308,7 +308,7 @@ _make_libreoffice_stub() {
   else
     cat >"$TMPDIR_TEST/bin/libreoffice" <<EOF
 #!/usr/bin/env bash
-printf 'LibreOffice %s abcdef0123456789\n' "${ver}"
+printf 'LibreOffice %s abcdef0123456789\n\n' "${ver}"
 EOF
   fi
   chmod +x "$TMPDIR_TEST/bin/libreoffice"
