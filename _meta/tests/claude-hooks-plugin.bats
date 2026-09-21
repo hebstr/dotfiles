@@ -20,7 +20,12 @@ const { ClaudeHooks } = await import(plugin)
 const hooks = await ClaudeHooks({ directory })
 const args = JSON.parse(argsJson)
 try {
-  if (phase === "before") {
+  if (phase === "system") {
+    // opencode reads back its own array after the hook, so only in-place changes count.
+    const system = [args.system]
+    await hooks["experimental.chat.system.transform"]({ sessionID: "s" }, { system })
+    process.stdout.write(JSON.stringify(system))
+  } else if (phase === "before") {
     await hooks["tool.execute.before"]({ tool, sessionID: "s", callID: "c" }, { args })
     console.log("ALLOWED")
   } else {
@@ -136,6 +141,54 @@ _drive() {
   mkdir -p "${HOME}/.claude" "${HOME}/.claude-notes"
   _drive before write "{\"filePath\": \"${HOME}/.claude-notes/a.md\", \"content\": \"x\"}"
   [ "$output" = "ALLOWED" ]
+}
+
+# Builds a system prompt the way opencode joins it: header, one block per
+# instruction file ("Instructions from: <path>\n<content>"), then the skills text.
+_system_with() {
+  local parts=("HEADER") f content
+  for f in "$@"; do
+    content=$(
+      cat "$f"
+      printf x
+    )
+    parts+=("Instructions from: ${f}"$'\n'"${content%x}")
+  done
+  parts+=("Skills provide specialized instructions.")
+  local IFS=$'\n'
+  jq -n --arg s "${parts[*]}" '{system: $s}'
+}
+
+_profile_files() {
+  mkdir -p "${HOME}/.claude/memory" "${PROJECT}/.claude"
+  printf 'GLOBAL RULES\nline two\n' >"${HOME}/.claude/CLAUDE.md"
+  printf 'GLOBAL MEMORY\n' >"${HOME}/.claude/memory/MEMORY.md"
+  printf 'PROJECT RULES\n' >"${PROJECT}/.claude/CLAUDE.md"
+}
+
+@test "system: the global profile blocks are removed, the rest kept in order" {
+  _profile_files
+  _drive system - "$(_system_with "${HOME}/.claude/CLAUDE.md" "${PROJECT}/.claude/CLAUDE.md" "${HOME}/.claude/memory/MEMORY.md")"
+  [ "$status" -eq 0 ]
+  run jq -r '.[0]' <<<"$output"
+  [[ "$output" != *"GLOBAL"* ]]
+  [[ "$output" == "HEADER"$'\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n'"Skills provide specialized instructions." ]]
+}
+
+@test "system: a prompt without the profile passes unchanged" {
+  _profile_files
+  input=$(_system_with "${PROJECT}/.claude/CLAUDE.md")
+  _drive system - "$input"
+  [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
+}
+
+@test "system: a missing profile file changes nothing" {
+  mkdir -p "${PROJECT}/.claude"
+  printf 'PROJECT RULES\n' >"${PROJECT}/.claude/CLAUDE.md"
+  input=$(_system_with "${PROJECT}/.claude/CLAUDE.md")
+  _drive system - "$input"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
 }
 
 @test "after: format-on-edit.sh runs in the project directory with the payload" {

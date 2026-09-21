@@ -1,6 +1,6 @@
 import type { Plugin } from "@opencode-ai/plugin"
 import { spawn } from "node:child_process"
-import { existsSync, realpathSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path"
 
@@ -55,6 +55,19 @@ function protectedRoot(file: string): string | undefined {
     .find((root) => target === root || target.startsWith(root + sep))
 }
 
+// Outside a git repository opencode resolves the relative `instructions` entries by walking
+// up to `/`, which reaches the global profile under `~` and injects the files AGENTS.md exists
+// to keep out. The system prompt arrives here as one joined string, so each block is rebuilt
+// exactly as instruction.ts writes it and removed verbatim; a changed format removes nothing.
+function stripGlobalProfile(system: string): string {
+  const profile = [join(homedir(), ".claude", "CLAUDE.md"), join(homedir(), ".claude", "memory", "MEMORY.md")]
+  return profile.reduce((text, file) => {
+    if (!existsSync(file)) return text
+    const block = `Instructions from: ${file}\n${readFileSync(file, "utf8")}`
+    return text.replace(`${block}\n`, "").replace(`\n${block}`, "")
+  }, system)
+}
+
 function runHook(script: string, payload: string, cwd: string): Promise<Result> {
   return new Promise((resolve) => {
     const child = spawn("bash", [join(homedir(), ".claude", "hooks", script)], { cwd })
@@ -72,6 +85,12 @@ function runHook(script: string, payload: string, cwd: string): Promise<Result> 
 }
 
 export const ClaudeHooks: Plugin = async ({ directory }) => ({
+  // request.ts keeps its own reference to this array, so it is edited in place.
+  "experimental.chat.system.transform": async (_input, output) => {
+    output.system.forEach((text, i) => {
+      output.system[i] = stripGlobalProfile(text)
+    })
+  },
   "tool.execute.before": async (input, output) => {
     if (!EDIT_TOOLS.has(input.tool)) return
     const file = output.args?.filePath
