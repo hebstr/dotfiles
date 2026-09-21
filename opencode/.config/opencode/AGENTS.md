@@ -45,6 +45,7 @@ Read a file from it when a rule below points to it, and not before.
 
 - Change files with the edit and write tools, never with `sed`, `awk` or a heredoc: a shell edit can half-match and leave a broken file with exit code 0.
 - Search with `rg` rather than `grep`, and `fdfind` rather than `find`.
+- In Python, write a new import in the same edit as its first use, or after it: every edit is followed by `ruff check --fix`, which deletes an import nothing uses yet.
 - Investigate every error, warning or non-zero exit before going on.
   Never dismiss one as cosmetic.
 - After a rename, a moved file, or a changed config key, search the whole project for the old name, including strings and docs, and update what refers to it.
