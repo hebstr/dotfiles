@@ -53,7 +53,7 @@ case "$remote" in
   exit 0
   ;;
 *"/v1/models"*)
-  printf "{\"data\":[{\"id\":\"stub-alias\"}]}\n"
+  printf "{\"data\":[{\"id\":\"stub-alias\"}]}"
   exit 0
   ;;
 esac
@@ -144,8 +144,7 @@ _server_up() {
   _run --status
   [ "$status" -eq 0 ]
   [[ "$output" == *"llama-server running"* ]]
-  [[ "$output" == *"model stub-alias"* ]]
-  [[ "$output" == *"port 8080 answers"* ]]
+  [[ "$output" == *"model stub-alias"$'\n'"local: port 8080 answers"* ]]
 }
 
 @test "--status on an unreachable host says so rather than reporting no server" {

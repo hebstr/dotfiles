@@ -173,7 +173,10 @@ status() {
   case $rc in
   0)
     printf 'remote: llama-server running on %s\n' "$REMOTE"
-    remote "curl -sf http://127.0.0.1:${PORT}/v1/models" 2>/dev/null |
+    {
+      remote "curl -sf http://127.0.0.1:${PORT}/v1/models" 2>/dev/null
+      echo
+    } |
       sed -n 's/.*"id":"\([^"]*\)".*/remote: model \1/p' || true
     ;;
   1) printf 'remote: no llama-server on %s\n' "$REMOTE" ;;
