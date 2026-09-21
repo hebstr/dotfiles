@@ -11,7 +11,7 @@ La suggestion est celle que l'invocation porte ; à défaut, celle que la conver
 Elle n'écrit aucun code et ne crée aucun fichier hors la note. Elle s'arrête sur l'accord de l'utilisateur.
 
 La conversation se mène dans la langue de l'utilisateur.
-Les trois cas où ce cadrage est disproportionné se constatent aux étapes 1, 2 et 3 : lire « Quand le cadrage complet est disproportionné » avant de commencer.
+Deux familles de cas écartent le cadrage complet : trois sorties qui se constatent à l'entrée, avant l'étape 1, et trois abrègements qui se constatent aux étapes 1, 2 et 3. Lire « Quand le cadrage complet ne s'applique pas » avant de commencer.
 
 ## 1. Reformuler
 
@@ -79,7 +79,22 @@ Elle déclenche l'écriture de la note quand l'étape 5 la retient, et clôt le 
 
 Un refus rouvre l'étape 4 sur les voies déjà ouvertes. Quand elles sont toutes refusées, l'étape 3 rouvre et les refus deviennent sa matière : ce qu'ils écartent borne les voies neuves. Les étapes 1 et 2 ne se refont que si la demande elle-même a changé.
 
-## Quand le cadrage complet est disproportionné
+## Quand le cadrage complet ne s'applique pas
+
+Le cadrage arbitre entre plusieurs façons d'implémenter une suggestion. Ce qui n'appelle pas cet arbitrage en sort avant l'étape 1, et ce qui l'appelle à peine reçoit une réponse abrégée.
+
+### Sortir avant l'étape 1
+
+Trois cas, constatés à l'entrée sur l'invocation, la conversation et un grep ciblé du sujet dans `PLAN.md` et les notes `.claude/DESIGN-*.md` du projet :
+
+- la décision existe déjà, dans une note, une entrée de plan ou plus haut dans la conversation : la citer par son nom et demander si l'invocation la rouvre. Une réouverture confirmée lance le cadrage complet, et l'étape 5 retient alors la note au titre de la décision renversée ;
+- aucune suggestion ne se dégage, ni de l'invocation ni de la conversation : demander laquelle cadrer, sans en construire une ;
+- la demande relève d'autre chose qu'un arbitrage d'implémentation, par exemple un bug à corriger, une question d'explication, une recommandation qui tient à des sources externes (`/workflow:reco`) ou un travail d'analyse de données : dire en une ligne pourquoi, nommer ce qui convient, et s'arrêter.
+
+Une sortie signale et rend la main sans refuser : l'utilisateur a invoqué le cadrage délibérément, et sa confirmation le lance tel quel.
+Un sujet dont aucune note ne porte le nom échappe au grep ; la décision antérieure ne se découvre alors qu'à l'étape 2, qui la traite comme matière du cadrage.
+
+### Abréger
 
 Ramener la réponse à un paragraphe, recommandation et risque unique, dans trois cas : la demande est un correctif ou une édition que l'utilisateur a lui-même cadrée ; l'étape 2 montre que la capacité existe déjà et qu'elle couvre le besoin en entier, et la réponse est alors « déjà couvert, on ferme », qui est une issue de plein droit, une couverture partielle relevant au contraire du cadrage complet où « ne rien faire » concourt avec les voies qui feraient mieux ; une seule voie tient et son coût est négligeable.
 
@@ -109,3 +124,5 @@ Pour un cadrage complet :
 - Aucun fichier hors la note n'a été touché.
 
 Pour une réponse abrégée : le motif de l'abrègement est dit, la recommandation et son risque unique sont énoncés.
+
+Pour une sortie : le cas est nommé, la décision existante citée par son nom quand c'est elle qui motive la sortie, et aucune étape du cadrage n'a été engagée.
