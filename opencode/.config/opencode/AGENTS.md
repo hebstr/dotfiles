@@ -22,25 +22,42 @@ Read a file from it when a rule below points to it, and not before.
 - Never state a fact you have not checked with a tool.
   If you cannot check it, say so.
 - Never claim a change is applied unless you edited the file.
+- When you present options, end with your own recommendation and its reason in one sentence.
+- Never write a URL into a file without fetching it first.
+  If you cannot fetch it, leave it out and say so.
+- In prose, avoid "not X, but Y" constructions, rhetorical questions answered right after, and empty openers such as "It's worth noting".
 
 ## Hard limits
 
 - Never run a git command that writes: commit, add, push, reset, checkout of files, branch, tag, merge, rebase.
   The user runs git.
-  When a commit makes sense, propose the command with a Conventional Commits message (`type(scope): subject`).
+- When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form.
+  Never `git add -A`.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
   Reading them is fine.
 - Never print a secret.
   Before touching `.env*`, `~/.secrets`, `*.pem`, `*.key`, `id_*`, `credentials*` or any file whose path contains `secret`, `password` or `apikey`, read `~/.claude/rules/secrets.md`.
 - Never write under `~/.claude/` or `~/dotfiles/claude/.claude/`.
+- Never add a dependency on your own.
+  Propose it, with its cost and the alternative without it, and let the user decide.
+
+## Work
+
+- Change files with the edit and write tools, never with `sed`, `awk` or a heredoc: a shell edit can half-match and leave a broken file with exit code 0.
+- Search with `rg` rather than `grep`, and `fdfind` rather than `find`.
+- Investigate every error, warning or non-zero exit before going on.
+  Never dismiss one as cosmetic.
+- After a rename, a moved file, or a changed config key, search the whole project for the old name, including strings and docs, and update what refers to it.
+- To fix a bug in a project that already has tests, first write a test that reproduces it, then fix it.
+- Before installing a package or changing the system (apt, uv tool, stow, shell rc, systemd), read `~/.claude/rules/showboat.md`.
 
 ## Code
 
 - No inline comments, except one short line for a non-obvious regex, a workaround for a documented external bug, or a surprising invariant.
-  Comments explain why, never what.
+  Comments explain why, never what, and read in the timeless present: no "now", "added", "previously".
 - Only change code the task needs.
   Report unrelated problems instead of fixing them.
-- Before writing a helper, search the project and its dependencies for one that already exists.
+- Before writing a helper, search the project and its installed dependencies for one that already exists.
 - Never use deprecated APIs, flags or config keys.
 - In `.md` and `.qmd` files, one sentence per line, no manual line wrapping.
 
@@ -63,7 +80,10 @@ Read a file from it when a rule below points to it, and not before.
 ```
 
 Each language rule file gives the lint, format and test commands for that language.
-After changing code, run them in the order given, and report any failure with its output.
+After changing code, run them in the order given before saying the task is done.
+If one fails, fix and rerun once; if it still fails, stop and report the output.
+If a tool is missing, run the others and report the task as unvalidated, never as done.
+After editing a `.md` or `.qmd` meant for readers, run `prose-lint <file>`.
 
 ## Dotfiles
 
