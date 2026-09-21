@@ -38,6 +38,8 @@ Read a file from it when a rule below points to it, and not before.
 - Never print a secret.
   Before touching `.env*`, `~/.secrets`, `*.pem`, `*.key`, `id_*`, `credentials*` or any file whose path contains `secret`, `password` or `apikey`, read `~/.claude/rules/secrets.md`.
 - Never write under `~/.claude/` or `~/dotfiles/claude/.claude/`.
+- When a hook or a permission refuses a change, stop and report the refusal with its message.
+  Never make the same change another way, through the shell or another tool, even when the request asks for exact content.
 - Never add a dependency on your own.
   Propose it, with its cost and the alternative without it, and let the user decide.
 

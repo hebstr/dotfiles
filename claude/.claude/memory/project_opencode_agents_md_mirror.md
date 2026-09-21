@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-`~/dotfiles/opencode/.config/opencode/AGENTS.md` is opencode's global instruction file, a hand-picked digest of `~/.claude/CLAUDE.md` of about 5.5 KB, written 2026-09-21, plus one rule taken from memory `feedback_format_hook_strips_new_import`, since opencode's edits now run the same post-edit hook.
+`~/dotfiles/opencode/.config/opencode/AGENTS.md` is opencode's global instruction file, a hand-picked digest of `~/.claude/CLAUDE.md` of about 5.8 KB, written 2026-09-21, plus one rule taken from memory `feedback_format_hook_strips_new_import`, since opencode's edits now run the same post-edit hook, and one of its own from the first live run on the 9B (report a refused change, never redo it another way), which has no `CLAUDE.md` counterpart and must not be pruned as an orphan.
 It holds the rules any agent can apply without Claude Code's own tools and whose breach costs most or recurs every session (hard limits, conversation, work discipline, code, gate handling), plus a table pointing to `~/.claude/rules/<lang>.md`.
 Its existence also stops opencode from loading `CLAUDE.md` itself, so nothing else carries a rule change across.
 
