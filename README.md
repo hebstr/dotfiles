@@ -11,7 +11,7 @@ _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
 ├── notes/       # internal docs
 ├── profiles/    # exportable app profiles + reusable config templates
-└── tests/       # bats test suites for bin/ scripts, claude/ hooks and the git diff driver
+└── tests/       # bats test suites for bin/ scripts, claude/ hooks, the opencode plugin and the git diff driver
 ```
 
 Packages follow stow conventions: each top-level dir maps its tree relative to `~` (`bash/.bashrc` → `~/.bashrc`, `bin/.local/bin/` → `~/.local/bin/`).
@@ -45,7 +45,7 @@ That profile name is specific to one machine: elsewhere, rename the directory in
 `ssh` holds `.ssh/config` only, never a key, and that file stays `644`: `ssh` rejects a config others can write, and tolerates a group-writable one only because Ubuntu's build accepts a private user group.
 Setting up the servers and keys behind its aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
 
-The `npm ci` step is required, not optional: the `css` package ships pinned `package.json` + `package-lock.json` but its `node_modules/` is gitignored, so `~/.local/bin/{stylelint,prettier}` dangle until it runs, and `symlinks-check` fails.
+The `npm ci` step is required: the `css` package ships pinned `package.json` + `package-lock.json` but its `node_modules/` is gitignored, so `~/.local/bin/{stylelint,prettier}` dangle until it runs, and `symlinks-check` fails.
 Thereafter `sys-update css-toolchain` keeps that toolchain current.
 
 The npm prefix step is required too: without it the global prefix is `/usr`, whose `npm` and `corepack` belong to the NodeSource `nodejs` deb, and `sys-update npm` fails with `EACCES` as soon as npm publishes a release newer than the deb's.
@@ -55,9 +55,25 @@ With `~/.npm-global`, `npm update -g` only sees packages installed there, and ap
 The uv tools have no equivalent step, and the bootstrap above does not install them: `sys-update uv-tools` upgrades what is already present and installs nothing.
 `pyrefly` (the Python gate's type checker, also run by this repo's own commit hook), `sqlfluff[rs]` (the SQL gate), `showboat`, `ouroboros-ai`, `ggsql-jupyter`, `yt-dlp` and, on a machine that serves local models, `huggingface-hub` each need a manual `uv tool install` on a fresh machine.
 The uv-managed Python interpreters behave the same way: `sys-update uv-python` moves them to the latest patch of each installed branch, so a fresh machine needs `uv python install` first.
-Tracked in `.claude/DEFERRED.md`.
+The gap is tracked in `.claude/DEFERRED.md`.
 
-Hooks are run via [`prek`](https://github.com/j178/prek) (`prek install`, `prek run -a`).
+[`prek`](https://github.com/j178/prek) runs the hooks (`prek install`, `prek run -a`).
+
+## Local coding agent
+
+opencode runs on the main machine against a Qwen3.5 9B served by `llama-server` on the GPU machine, through an SSH forward, and reads the Claude Code profile through a harness (`opencode/.config/opencode/`: `opencode.json`, `AGENTS.md`, `plugins/claude-hooks.ts`).
+On the GPU machine, install the CUDA build with `llama-update` and the `hf` CLI with `uv tool install huggingface-hub`; `llama-session` downloads the model the first time it runs.
+On the main machine, beyond the `stow` line above:
+
+```sh
+npm install -g opencode-ai
+opencode-skills-sync
+```
+
+The second command links the skills of the enabled Claude Code plugins where opencode looks for them.
+`sys-update claude-plugins` reruns it after the updates it makes; a plugin changed any other way (Claude Code's own auto-update, `/plugin enable`, `disable` or `update`) needs a manual `opencode-skills-sync`, or opencode serves the old set until the next `sys-update`.
+To work, run `llama-session` in one terminal and `opencode` in another.
+`_meta/notes/opencode-harness-setup.md` holds the full procedure and the checks that `showboat verify` replays.
 
 ## Git content filter and diff driver
 
