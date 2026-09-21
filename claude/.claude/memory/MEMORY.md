@@ -5,6 +5,7 @@
 - [user_quarto_typst_only.md](user_quarto_typst_only.md): Quarto PDF via Typst only; user does not use LaTeX (do not suggest the `format: pdf` LaTeX path)
 
 ## Project
+- [project_opencode_agents_md_mirror.md](project_opencode_agents_md_mirror.md): opencode's global `AGENTS.md` is a hand-picked digest of CLAUDE.md's behavioral rules; after changing such a rule in CLAUDE.md, update or propose it there in the same response
 - [project_ju_tp2_receiveonly.md](project_ju_tp2_receiveonly.md): On ju-TP2 (WSL) never write to `~/dotfiles` or `~/.claude`: Syncthing receive-only there, ju-TP is the single writer
 - [project_ubuntu_26_04_migration.md](project_ubuntu_26_04_migration.md): Migration 24.04 → 26.04 différée à décembre 2026 au plus tôt (décision 2026-09-09); déclencheur = `Supported: 1` dans le meta-release Canonical; recherche complète dans `~/dotfiles/_meta/notes/ubuntu-26-04-migration-reco.md`, ne pas la refaire
 - [project_quarto_custom_crossref_float.md](project_quarto_custom_crossref_float.md): Custom crossref float types (`anx`): no native appendix prefix, knitr labels limited to `fig-`/`tbl-`, the working `pre-quarto` `FloatRefTarget` filter that retypes a `tbl-anx-` float, the `<ref>-cap` and per-type-numbering limits, and the two routes abandoned (R helper via `as_raw_html`, knitr `label` hook)
