@@ -14,5 +14,64 @@
         }
       }
     }
+  },
+  "skills": {
+    "paths": ["~/.local/share/opencode-claude-skills"]
+  },
+  "permission": {
+    "external_directory": {
+      "*": "ask",
+      "~/.claude/**": "allow",
+      "~/.local/share/opencode-claude-skills/**": "allow"
+    },
+    "edit": {
+      "*": "allow",
+      "~/.claude/**": "deny"
+    },
+    "skill": {
+      "*": "allow",
+      "blindspot": "ask",
+      "cadrer": "ask",
+      "claude-automation-recommender": "ask",
+      "commit": "ask",
+      "depouiller": "ask",
+      "implement": "ask",
+      "mcp-adversary": "ask",
+      "new-work": "ask",
+      "relire": "ask",
+      "skill-adversary": "ask",
+      "walkthrough": "ask",
+      "working-on": "ask",
+      "auto": "deny",
+      "brownfield": "deny",
+      "cancel": "deny",
+      "ouroboros-config": "deny",
+      "evaluate": "deny",
+      "evolve": "deny",
+      "ouroboros-help": "deny",
+      "interview": "deny",
+      "ooo": "deny",
+      "pm": "deny",
+      "publish": "deny",
+      "qa": "deny",
+      "ralph": "deny",
+      "resume-session": "deny",
+      "ouroboros-run": "deny",
+      "seed": "deny",
+      "setup": "deny",
+      "ouroboros-status": "deny",
+      "tutorial": "deny",
+      "unstuck": "deny",
+      "update": "deny",
+      "welcome": "deny",
+      "litrev": "deny",
+      "litrev-extract": "deny",
+      "litrev-screen": "deny",
+      "litrev-search": "deny",
+      "litrev-synthesize": "deny",
+      "docs": "deny",
+      "morning": "deny",
+      "import-memory": "deny"
+    }
   }
 }

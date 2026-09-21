@@ -86,4 +86,11 @@ if [ -f "$MCP_JSON" ]; then
   fi
 fi
 
+# opencode reaches plugin skills through links pinned to install paths, which
+# the updates above may have moved.
+if command -v opencode >/dev/null 2>&1 && command -v opencode-skills-sync >/dev/null 2>&1; then
+  echo "Resyncing plugin skills for opencode..."
+  opencode-skills-sync || FAILED=1
+fi
+
 exit "$FAILED"

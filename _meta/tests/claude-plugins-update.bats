@@ -318,3 +318,36 @@ EOF
   [ "$status" -ne 0 ]
   [[ "$output" == *"could not parse pinned version"* ]]
 }
+
+# ─── opencode skill links follow the updated install paths ──────────────────
+
+@test "opencode installed: resyncs its plugin skill links" {
+  _write_installed <<'EOF2'
+{"plugins": {}}
+EOF2
+  _stub_command opencode
+  _stub_command opencode-skills-sync 'echo SYNC-RAN'
+  _run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"SYNC-RAN"* ]]
+}
+
+@test "opencode skill resync failure: exits non-zero" {
+  _write_installed <<'EOF2'
+{"plugins": {}}
+EOF2
+  _stub_command opencode
+  _stub_command opencode-skills-sync 'exit 1'
+  _run
+  [ "$status" -ne 0 ]
+}
+
+@test "opencode absent: leaves the skill links alone" {
+  _write_installed <<'EOF2'
+{"plugins": {}}
+EOF2
+  _stub_command opencode-skills-sync 'echo SYNC-RAN'
+  _run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"SYNC-RAN"* ]]
+}
