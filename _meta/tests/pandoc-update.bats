@@ -204,6 +204,26 @@ teardown() {
   [[ "$output" == *"warning: installed pandoc lacks pandoc.utils.run_lua_filter"* ]]
 }
 
+@test "a verbose pandoc --version does not abort the run with SIGPIPE" {
+  export PANDOC_CURRENT=3.1.3
+  export GH_PANDOC_VERSION=3.10
+  cat >"${STUBS}/pandoc" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+    lua) exit "${PANDOC_LUA_EXIT:-0}" ;;
+    *)
+        printf 'pandoc %s\n' "${PANDOC_CURRENT}"
+        # Outlasts the pipe buffer, so `head -1` closes the pipe mid-write.
+        for _ in $(seq 1 4000); do printf 'Features: +server +lua\n'; done
+        ;;
+esac
+EOF
+  chmod +x "${STUBS}/pandoc"
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pandoc 3.1.3"* ]]
+}
+
 @test "notes the pandoc-data reliquat when it is still installed" {
   export PANDOC_CURRENT=3.1.3
   export GH_PANDOC_VERSION=3.10

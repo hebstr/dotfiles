@@ -118,7 +118,7 @@ main() {
 
   echo
   echo "Installed version:"
-  pandoc --version | head -1
+  pandoc --version | head -1 || true
   if ! pandoc lua -e 'os.exit(pandoc.utils.run_lua_filter ~= nil and 0 or 1)' 2>/dev/null; then
     echo "pandoc-update: warning: installed pandoc lacks pandoc.utils.run_lua_filter" >&2
   fi
