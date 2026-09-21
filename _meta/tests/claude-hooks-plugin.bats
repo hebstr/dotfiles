@@ -68,6 +68,39 @@ _drive() {
   [ "$output" = '{"file_path":"/abs/doc.md","old_string":"a","new_string":"b","replace_all":true}' ]
 }
 
+@test "before: an edit creating a missing file reaches the hook as a write" {
+  _drive before edit "{\"filePath\": \"${PROJECT}/new.md\", \"oldString\": \"\", \"newString\": \"body\"}"
+  [ "$output" = "ALLOWED" ]
+  run jq -c '.tool_input' "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin"
+  [ "$output" = "{\"file_path\":\"${PROJECT}/new.md\",\"content\":\"body\"}" ]
+}
+
+@test "before: an empty oldString on an existing file keeps the edit shape" {
+  printf 'old\n' >"${PROJECT}/doc.md"
+  _drive before edit "{\"filePath\": \"${PROJECT}/doc.md\", \"oldString\": \"\", \"newString\": \"body\"}"
+  run jq -c '.tool_input' "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin"
+  [ "$output" = "{\"file_path\":\"${PROJECT}/doc.md\",\"old_string\":\"\",\"new_string\":\"body\"}" ]
+}
+
+@test "before: a prose edit whose oldString is not verbatim in the file is refused" {
+  printf 'one  two\n' >"${PROJECT}/doc.md"
+  _drive before edit "{\"filePath\": \"${PROJECT}/doc.md\", \"oldString\": \"one two\", \"newString\": \"x\"}"
+  [[ "$output" == "THROWN: oldString does not occur verbatim"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin" ]
+}
+
+@test "before: a prose edit with a verbatim oldString reaches the hook" {
+  printf 'one  two\n' >"${PROJECT}/doc.md"
+  _drive before edit "{\"filePath\": \"${PROJECT}/doc.md\", \"oldString\": \"one  two\", \"newString\": \"x\"}"
+  [ "$output" = "ALLOWED" ]
+}
+
+@test "before: a non-prose edit is not held to a verbatim oldString" {
+  printf 'one  two\n' >"${PROJECT}/x.R"
+  _drive before edit "{\"filePath\": \"${PROJECT}/x.R\", \"oldString\": \"one two\", \"newString\": \"x\"}"
+  [ "$output" = "ALLOWED" ]
+}
+
 @test "before: a relative path is resolved against the project directory" {
   _drive before write '{"filePath": "docs/doc.md", "content": "x"}'
   run jq -r '.tool_input.file_path' "${BATS_TEST_TMPDIR}/prose-lint-pretool.sh.stdin"
@@ -173,6 +206,15 @@ _profile_files() {
   run jq -r '.[0]' <<<"$output"
   [[ "$output" != *"GLOBAL"* ]]
   [[ "$output" == "HEADER"$'\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n'"Skills provide specialized instructions." ]]
+}
+
+@test "system: the profile's dotfiles source is removed too" {
+  mkdir -p "${HOME}/dotfiles/claude/.claude/memory"
+  printf 'GLOBAL RULES\n' >"${HOME}/dotfiles/claude/.claude/CLAUDE.md"
+  printf 'GLOBAL MEMORY\n' >"${HOME}/dotfiles/claude/.claude/memory/MEMORY.md"
+  _drive system - "$(_system_with "${HOME}/dotfiles/claude/.claude/CLAUDE.md" "${HOME}/dotfiles/claude/.claude/memory/MEMORY.md")"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r '.[0]' <<<"$output")" = "HEADER"$'\n'"Skills provide specialized instructions." ]
 }
 
 @test "system: a prompt without the profile passes unchanged" {

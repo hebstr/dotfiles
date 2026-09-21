@@ -16,12 +16,19 @@ type Result = { code: number; out: string; err: string }
 
 const EDIT_TOOLS = new Set(["edit", "write"])
 
+const PROFILE_ROOTS = [join(homedir(), ".claude"), join(homedir(), "dotfiles", "claude", ".claude")]
+
 // The Claude Code hook scripts read the PreToolUse/PostToolUse payload on stdin,
 // so the opencode arguments are translated into that shape and the scripts run unchanged.
 // Only the plugin is exported: opencode calls every export of a plugin module as a plugin.
 function claudePayload(args: EditArgs, directory: string): string {
   const file =
     args.filePath && !isAbsolute(args.filePath) ? join(directory, args.filePath) : args.filePath
+  // opencode's edit creates a missing file from newString when oldString is empty, which
+  // Claude Code's Edit never does: the hook sees it as the Write it amounts to.
+  if (args.oldString === "" && file && !existsSync(file)) {
+    return JSON.stringify({ tool_input: { file_path: file, content: args.newString } })
+  }
   return JSON.stringify({
     tool_input: {
       file_path: file,
@@ -49,18 +56,18 @@ function realTarget(file: string): string {
 // so no pattern can name these directories from every project: the guard lives here.
 function protectedRoot(file: string): string | undefined {
   const target = realTarget(file)
-  const roots = [join(homedir(), ".claude"), join(homedir(), "dotfiles", "claude", ".claude")]
-  return roots
+  return PROFILE_ROOTS
     .map((root) => (existsSync(root) ? realpathSync(root) : root))
     .find((root) => target === root || target.startsWith(root + sep))
 }
 
 // Outside a git repository opencode resolves the relative `instructions` entries by walking
 // up to `/`, which reaches the global profile under `~` and injects the files AGENTS.md exists
-// to keep out. The system prompt arrives here as one joined string, so each block is rebuilt
+// to keep out; inside ~/dotfiles/claude the walk finds the same files under their stow source.
+// The system prompt arrives here as one joined string, so each block is rebuilt
 // exactly as instruction.ts writes it and removed verbatim; a changed format removes nothing.
 function stripGlobalProfile(system: string): string {
-  const profile = [join(homedir(), ".claude", "CLAUDE.md"), join(homedir(), ".claude", "memory", "MEMORY.md")]
+  const profile = PROFILE_ROOTS.flatMap((root) => [join(root, "CLAUDE.md"), join(root, "memory", "MEMORY.md")])
   return profile.reduce((text, file) => {
     if (!existsSync(file)) return text
     const block = `Instructions from: ${file}\n${readFileSync(file, "utf8")}`
@@ -70,13 +77,27 @@ function stripGlobalProfile(system: string): string {
 
 function runHook(script: string, payload: string, cwd: string): Promise<Result> {
   return new Promise((resolve) => {
-    const child = spawn("bash", [join(homedir(), ".claude", "hooks", script)], { cwd })
+    const child = spawn("bash", [join(homedir(), ".claude", "hooks", script)], { cwd, detached: true })
+    // A formatter the script started keeps the pipes open after bash dies, and "close" waits
+    // for them: the whole process group is killed, and the timeout stays advisory, as in Claude Code.
+    const timer = setTimeout(() => {
+      if (!child.pid) return
+      try {
+        process.kill(-child.pid, "SIGKILL")
+      } catch {}
+    }, 60_000)
     let out = ""
     let err = ""
     child.stdout.on("data", (chunk) => (out += chunk))
     child.stderr.on("data", (chunk) => (err += chunk))
-    child.on("error", (e) => resolve({ code: 127, out, err: err + String(e) }))
-    child.on("close", (code) => resolve({ code: code ?? 1, out, err }))
+    child.on("error", (e) => {
+      clearTimeout(timer)
+      resolve({ code: 127, out, err: err + String(e) })
+    })
+    child.on("close", (code) => {
+      clearTimeout(timer)
+      resolve({ code: code ?? 1, out, err })
+    })
     // A hook may exit before reading stdin (prose-lint-pretool.sh does when prose-lint is
     // absent); the resulting EPIPE would otherwise be an unhandled error that kills opencode.
     child.stdin.on("error", () => {})
@@ -99,6 +120,22 @@ export const ClaudeHooks: Plugin = async ({ directory }) => ({
       if (root) {
         throw new Error(
           `${file} resolves under ${root}, the Claude Code profile, which opencode must not modify. Do not retry by any other means: tell the user.`,
+        )
+      }
+      // opencode's edit falls back to fuzzy matches, while the hook replays oldString verbatim:
+      // without a verbatim match it would lint the file as it was before the edit.
+      const target = resolve(directory, file)
+      const old = output.args.oldString
+      if (
+        input.tool === "edit" &&
+        /\.(md|qmd|Rmd)$/.test(file) &&
+        typeof old === "string" &&
+        old !== "" &&
+        existsSync(target) &&
+        !readFileSync(target, "utf8").includes(old)
+      ) {
+        throw new Error(
+          `oldString does not occur verbatim in ${file}, so prose-lint cannot check this edit. Re-read the file and retry with the exact text, including whitespace and line endings.`,
         )
       }
     }
