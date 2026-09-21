@@ -58,6 +58,42 @@ EOF
   [ "$(readlink "${FARM}/one/alpha")" = "${CACHE}/m/one/h1/one/alpha" ]
 }
 
+@test "splits a shared repository between the plugins it hosts" {
+  _shared_repo "${CACHE}/m/one/h1"
+  _shared_repo "${CACHE}/m/two/h1"
+  _install one m "${CACHE}/m/one/h1"
+  _install two m "${CACHE}/m/two/h1"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -f "${FARM}/one/alpha/SKILL.md" ]
+  [ -f "${FARM}/one/shared/SKILL.md" ]
+  [ ! -e "${FARM}/one/gamma" ]
+  [ -f "${FARM}/two/gamma/SKILL.md" ]
+  [ ! -e "${FARM}/two/alpha" ]
+  [ ! -e "${FARM}/two/shared" ]
+  [[ "$output" == *"Linked 3 plugin skill(s)"* ]]
+}
+
+@test "accepts a single skill path given as a string" {
+  _skill "${CACHE}/m/p/1/x/only"
+  _skill "${CACHE}/m/p/1/skills/ignored"
+  mkdir -p "${CACHE}/m/p/1/.claude-plugin"
+  printf '{"plugins": [{"name": "p", "skills": "./x/only"}]}\n' >"${CACHE}/m/p/1/.claude-plugin/marketplace.json"
+  _install p m "${CACHE}/m/p/1"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -f "${FARM}/p/only/SKILL.md" ]
+  [ ! -e "${FARM}/p/ignored" ]
+}
+
+@test "ignores an enabled plugin that is not installed" {
+  jq '.enabledPlugins["ghost@m"] = true' "${HOME}/.claude/settings.json" >"${HOME}/s.tmp"
+  mv "${HOME}/s.tmp" "${HOME}/.claude/settings.json"
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ ! -e "${FARM}/ghost" ]
+}
+
 @test "skips disabled plugins and plugins absent from enabledPlugins" {
   _skill "${CACHE}/m/off/1/skills/s1"
   _install off m "${CACHE}/m/off/1" false
@@ -170,6 +206,37 @@ EOF
   [ -f "${FARM}/p/s1/SKILL.md" ]
 }
 
+@test "fails on an installed_plugins.json that is not valid JSON" {
+  printf '{"plugins": \n' >"${HOME}/.claude/plugins/installed_plugins.json"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Unexpected shape"* ]]
+}
+
+@test "fails on an unreadable marketplace manifest and keeps the last farm" {
+  _skill "${CACHE}/m/p/1/skills/s1"
+  _install p m "${CACHE}/m/p/1"
+  run "$SCRIPT"
+  mkdir -p "${CACHE}/m/p/1/.claude-plugin"
+  printf '{"plugins": [\n' >"${CACHE}/m/p/1/.claude-plugin/marketplace.json"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Cannot read"*"marketplace.json"* ]]
+  [ -f "${FARM}/p/s1/SKILL.md" ]
+  run bash -c "ls -A '${XDG_DATA_HOME}'"
+  [ "$output" = "opencode-claude-skills" ]
+}
+
+@test "fails on an unreadable plugin.json" {
+  _skill "${CACHE}/m/p/1/skills/s1"
+  mkdir -p "${CACHE}/m/p/1/.claude-plugin"
+  printf '{"skills": \n' >"${CACHE}/m/p/1/.claude-plugin/plugin.json"
+  _install p m "${CACHE}/m/p/1"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Cannot read"*"plugin.json"* ]]
+}
+
 @test "fails on a plugin entry without installPath" {
   printf '{"plugins": {"p@m": [{"scope": "user"}]}}\n' >"${HOME}/.claude/plugins/installed_plugins.json"
   run "$SCRIPT"
@@ -212,7 +279,17 @@ EOF
   _install one m "${CACHE}/m/one/h1"
   run "$SCRIPT"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"share the directory name alpha"* ]]
+  [[ "$output" == *"alpha collides with ${CACHE}/m/one/h1/one/alpha"* ]]
+}
+
+@test "fails when two marketplaces ship the same skill under one plugin name" {
+  _skill "${CACHE}/m/p/1/skills/s1"
+  _skill "${CACHE}/n/p/1/skills/s1"
+  _install p m "${CACHE}/m/p/1"
+  _install p n "${CACHE}/n/p/1"
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"p@n: s1 collides with ${CACHE}/m/p/1/skills/s1"* ]]
 }
 
 @test "leaves no staging directory behind" {

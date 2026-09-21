@@ -93,7 +93,7 @@ while IFS=$'\t' read -r key root; do
     while IFS= read -r d; do
       [ -f "${d}/SKILL.md" ] || die "${key}: ${d} has no SKILL.md"
       link="${STAGE}/${name}/$(basename "$d")"
-      [ -e "$link" ] && die "${key}: two skills share the directory name $(basename "$d")"
+      [ -e "$link" ] && die "${key}: $(basename "$d") collides with $(readlink "$link")"
       mkdir -p "${STAGE}/${name}"
       ln -s "$d" "$link"
       count=$((count + 1))
