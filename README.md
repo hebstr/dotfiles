@@ -61,7 +61,7 @@ The gap is tracked in `.claude/DEFERRED.md`.
 
 ## Local coding agent
 
-opencode runs on the main machine against a Qwen3.5 9B served by `llama-server` on the GPU machine, through an SSH forward, and reads the Claude Code profile through a harness (`opencode/.config/opencode/`: `opencode.json`, `AGENTS.md`, `plugins/claude-hooks.ts`).
+opencode runs on the main machine against a Qwen3.5 9B served by `llama-server` on the GPU machine, through an SSH forward, and reads the Claude Code profile through a harness (`opencode/.config/opencode/`: `opencode.json`, `AGENTS.md`, `plugins/claude-hooks.ts`), each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` included.
 On the GPU machine, install the CUDA build with `llama-update` and the `hf` CLI with `uv tool install huggingface-hub`; `llama-session` downloads the model the first time it runs.
 On the main machine, beyond the `stow` line above:
 

@@ -9,9 +9,9 @@ What the setup is made of, all tracked:
 
 - `bin/.local/bin/llama-session`: brings up one inference session, starting `llama-server` on `ju-TP2` if none runs, forwarding its port to `127.0.0.1:8080`, tearing both down on exit. Defaults to `unsloth/Qwen3.5-9B-GGUF`, file `Qwen3.5-9B-UD-Q5_K_XL.gguf`, context 98304, and downloads the model with `hf` when absent.
 - `bin/.local/bin/llama-update`: installs the llama.cpp CUDA build on `ju-TP2`.
-- `opencode/.config/opencode/opencode.json`: the `ju-tp2` provider and the 9B with its `limit`, `skills.paths` pointing at the link farm, and `permission` (`bash` on ask outside a read-and-gate allowlist, `external_directory` open on `~/.claude`, `skill` denying the MCP-bound and claude.ai skills and gating the user-invoked ones).
-- `opencode/.config/opencode/AGENTS.md`: the behavioral rules of `CLAUDE.md` that any agent can apply, and pointers into `~/.claude/rules/`. Its presence stops opencode from loading `~/.claude/CLAUDE.md` whole.
-- `opencode/.config/opencode/plugins/claude-hooks.ts`: refuses any `edit` or `write` resolving under `~/.claude` or `~/dotfiles/claude/.claude`, and runs the Claude Code hooks `prose-lint-pretool.sh` and `format-on-edit.sh` around the others.
+- `opencode/.config/opencode/opencode.json`: the `ju-tp2` provider and the 9B with its `limit`, `instructions` loading each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` (found by walking up to the git root), `skills.paths` pointing at the link farm, and `permission` (`bash` on ask outside a read-and-gate allowlist, `external_directory` open on `~/.claude`, `skill` denying the MCP-bound and claude.ai skills and gating the user-invoked ones).
+- `opencode/.config/opencode/AGENTS.md`: the behavioral rules of `CLAUDE.md` that any agent can apply, including reading a project's `.claude/PLAN.md` at session start, and pointers into `~/.claude/rules/`. Its presence stops opencode from loading `~/.claude/CLAUDE.md` whole.
+- `opencode/.config/opencode/plugins/claude-hooks.ts`: refuses any `edit` or `write` resolving under `~/.claude` or `~/dotfiles/claude/.claude`, runs the Claude Code hooks `prose-lint-pretool.sh` and `format-on-edit.sh` around the others, and strips the global profile from the system prompt when opencode runs outside a git repository, where the `instructions` walk climbs to `~/.claude`.
 - `bin/.local/bin/opencode-skills-sync`: links every skill of the enabled Claude Code plugins into `~/.local/share/opencode-claude-skills/`; `claude-plugins-update` reruns it, so `sys-update claude-plugins` keeps it current for the updates it makes itself.
 
 ## GPU host, `ju-TP2`
@@ -110,11 +110,11 @@ cadrer cli ooo
 ```
 
 ```bash
-jq -c "{model, permission: (.permission | keys), skills}" opencode/.config/opencode/opencode.json
+jq -c "{model, instructions, permission: (.permission | keys), skills}" opencode/.config/opencode/opencode.json
 ```
 
 ```output
-{"model":"ju-tp2/qwen3.5-9b","permission":["bash","external_directory","skill"],"skills":{"paths":["~/.local/share/opencode-claude-skills"]}}
+{"model":"ju-tp2/qwen3.5-9b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permission":["bash","external_directory","skill"],"skills":{"paths":["~/.local/share/opencode-claude-skills"]}}
 ```
 
 ```bash
@@ -125,5 +125,5 @@ bats _meta/tests/opencode-skills-sync.bats _meta/tests/claude-hooks-plugin.bats 
 suites pass
 ```
 
-What each check proves, in order: the configuration and scripts resolve into this repository; the link farm builds and holds a known plugin skill; opencode discovers a skill of each origin (`cli` from a plugin through the farm, `cadrer` from `~/.claude/skills`, `ooo` from a plugin, listed although denied, since `debug skill` ignores permissions); `bash` opens and closes on `ask`; the configuration names the 9B, carries no inert `edit` block and points `skills.paths` at the farm; the four bats suites behind the setup pass. `opencode debug skill` is read from a file, not a pipe: piped, its output comes out truncated.
+What each check proves, in order: the configuration and scripts resolve into this repository; the link farm builds and holds a known plugin skill; opencode discovers a skill of each origin (`cli` from a plugin through the farm, `cadrer` from `~/.claude/skills`, `ooo` from a plugin, listed although denied, since `debug skill` ignores permissions); `bash` opens and closes on `ask`; the configuration names the 9B, loads each project's `.claude/` files, carries no inert `edit` block and points `skills.paths` at the farm; the four bats suites behind the setup pass, the plugin's covering the profile guard, the hooks and the removal of the global profile outside git. `opencode debug skill` is read from a file, not a pipe: piped, its output comes out truncated.
 
