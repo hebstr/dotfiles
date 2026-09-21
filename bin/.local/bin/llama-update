@@ -1,0 +1,304 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Overridable so the test suite can point them at a temp tree.
+OPT_ROOT=${LLAMA_OPT_ROOT:-${HOME}/.local/opt}
+BIN_DIR=${LLAMA_BIN_DIR:-${HOME}/.local/bin}
+STAGE=${LLAMA_STAGE:-${HOME}/.cache/llama-install}
+REPO=ggml-org/llama.cpp
+RELEASES=${LLAMA_RELEASES:-https://github.com/${REPO}/releases}
+CUDA=${LLAMA_CUDA:-12.8}
+MAX_PAGES=10
+
+LINK="${OPT_ROOT}/llama.cpp"
+PARTIAL=
+EXTRACT=
+ACTION=install
+TAG=
+
+usage() {
+  cat <<'EOF'
+Usage: llama-update [<tag>] [--list] [-h | --help]
+
+Installs a llama.cpp CUDA build (bNNNNN) beside the current one and points
+~/.local/opt/llama.cpp at it once it lists a CUDA device. Without a tag, takes
+the build that the latest v* release names in nightly-tag.txt, or the first
+later build shipping the CUDA archives when that one ships none (needs gh),
+and never goes below the active build; downgrading takes an explicit tag.
+A tag already on disk is switched to without downloading, which is how a
+rollback is done.
+
+  --list     list the installed builds, the active one marked
+  -h, --help show this help
+
+Keeps the active build and the previous one, removes older ones.
+Environment: LLAMA_CUDA (default 12.8)
+EOF
+}
+
+die() {
+  printf 'llama-update: %s\n' "$1" >&2
+  exit 1
+}
+
+cleanup() {
+  [ "$PARTIAL" = "" ] || rm -rf -- "$PARTIAL"
+  [ "$EXTRACT" = "" ] || rm -rf -- "$EXTRACT"
+}
+trap cleanup EXIT
+
+active_tag() {
+  local target
+  [ -L "$LINK" ] || return 0
+  target=$(readlink "$LINK")
+  printf '%s' "${target##*llama.cpp-}"
+}
+
+build_of() {
+  local out
+  out=$("$1/llama-server" --version 2>&1) || true
+  sed -n 's/.*(build \([0-9][0-9]*\),.*/b\1/p' <<<"$out"
+}
+
+gpu_answers() {
+  local out
+  out=$("$1/llama-cli" --list-devices 2>&1) || true
+  grep -q 'CUDA0:' <<<"$out"
+}
+
+# The layout before llama-update was a plain directory at the link's path.
+migrate_legacy() {
+  local tag
+  [ -d "$LINK" ] && [ ! -L "$LINK" ] || return 0
+  tag=$(build_of "$LINK")
+  [ "$tag" != "" ] || die "${LINK} is a directory whose build cannot be read: move it aside by hand"
+  [ ! -e "${LINK}-${tag}" ] || die "${LINK}-${tag} already exists beside the directory ${LINK}"
+  echo "Moving the existing install to ${LINK}-${tag}"
+  mv -T -- "$LINK" "${LINK}-${tag}"
+  ln -s "llama.cpp-${tag}" "$LINK"
+}
+
+installed_tags() {
+  local dir
+  for dir in "$LINK"-b*; do
+    [ -d "$dir" ] && printf '%s\n' "${dir##*llama.cpp-}"
+  done | sort -V
+}
+
+list_builds() {
+  local active tag
+  if [ -d "$LINK" ] && [ ! -L "$LINK" ]; then
+    printf '%s is a plain directory, migrated on the next update\n' "$LINK"
+    return 0
+  fi
+  active=$(active_tag)
+  while read -r tag; do
+    if [ "$tag" = "$active" ]; then
+      printf '* %s\n' "$tag"
+    else
+      printf '  %s\n' "$tag"
+    fi
+  done < <(installed_tags)
+}
+
+archive_names() {
+  printf 'llama-%s-bin-ubuntu-cuda-%s-x64.tar.gz\n' "$1" "$CUDA"
+  printf 'cudart-llama-%s-bin-ubuntu-cuda-%s-x64.tar.gz\n' "$1" "$CUDA"
+}
+
+# One "<tag> <1|0>" line per b* release of the page, 1 when it ships both CUDA
+# archives.
+cuda_builds_page() {
+  local filter
+  # shellcheck disable=SC2016
+  filter='.[] | select(.tag_name | test("^b[0-9]+$")) | .tag_name as $t | [.assets[].name] as $a
+    | "\($t) \(if any($a[]; . == "llama-\($t)-bin-ubuntu-cuda-@CUDA@-x64.tar.gz")
+    and any($a[]; . == "cudart-llama-\($t)-bin-ubuntu-cuda-@CUDA@-x64.tar.gz") then 1 else 0 end)"'
+  gh api "repos/${REPO}/releases?per_page=100&page=$1" --jq "${filter//@CUDA@/$CUDA}"
+}
+
+# Upstream skips the CUDA build on some tags, the stable one included, so the
+# default is the first build at or after the stable tag that ships it.
+resolve_default_tag() {
+  local stable floor lowest out tag ok n page
+  local best=''
+  stable=$(curl -fsSL "${RELEASES}/latest/download/nightly-tag.txt") ||
+    die "could not fetch nightly-tag.txt from the latest release: pass a tag"
+  stable=$(tr -d '[:space:]' <<<"$stable")
+  [[ $stable =~ ^b[0-9]+$ ]] ||
+    die "the latest release names '${stable}' in nightly-tag.txt, not a build tag: pass a tag"
+  echo "Latest stable build: ${stable}"
+  command -v gh >/dev/null 2>&1 || die "gh is required to resolve the default build: pass a tag"
+
+  floor=${stable#b}
+  for ((page = 1; page <= MAX_PAGES; page++)); do
+    out=$(cuda_builds_page "$page") || die "could not list the releases through gh: pass a tag"
+    [ "$out" != "" ] || break
+    lowest=
+    while read -r tag ok; do
+      n=${tag#b}
+      if [ "$lowest" = "" ] || ((n < lowest)); then
+        lowest=$n
+      fi
+      if ((n >= floor)) && [ "$ok" = 1 ] && { [ "$best" = "" ] || ((n < best)); }; then
+        best=$n
+      fi
+    done <<<"$out"
+    ((lowest < floor)) && break
+  done
+
+  [ "$best" != "" ] ||
+    die "no build at or after ${stable} ships the CUDA ${CUDA} x64 archives: pass a tag"
+  TAG="b${best}"
+  if [ "$TAG" != "$stable" ]; then
+    echo "${stable} ships no CUDA ${CUDA} x64 archives, taking ${TAG}"
+  fi
+}
+
+check_archives() {
+  local f rc
+  while read -r f; do
+    rc=0
+    curl -fsIL -o /dev/null "${RELEASES}/download/$1/${f}" || rc=$?
+    case "$rc" in
+    0) ;;
+    22) die "build $1 publishes no ${f}: upstream skips the CUDA build on some tags, pick another" ;;
+    *) die "could not reach ${RELEASES} to check ${f} (curl exit ${rc})" ;;
+    esac
+  done < <(archive_names "$1")
+}
+
+install_tree() {
+  local tag=$1
+  local main rt src f
+  {
+    read -r main
+    read -r rt
+  } < <(archive_names "$tag")
+
+  check_archives "$tag"
+  mkdir -p "$STAGE"
+  for f in "$main" "$rt"; do
+    echo "Downloading ${f}"
+    curl -fL -C - --retry 5 --retry-all-errors -o "${STAGE}/${f}" \
+      "${RELEASES}/download/${tag}/${f}" ||
+      die "download of ${f} failed, rerun to resume it"
+  done
+
+  EXTRACT=$(mktemp -d "${STAGE}/extract.XXXXXX")
+  mkdir "${EXTRACT}/main" "${EXTRACT}/rt"
+  tar -xzf "${STAGE}/${main}" -C "${EXTRACT}/main"
+  tar -xzf "${STAGE}/${rt}" -C "${EXTRACT}/rt"
+  src=$(find "${EXTRACT}/main" -type f -name llama-server -print -quit)
+  [ "$src" != "" ] || die "no llama-server in ${main}"
+
+  # Binaries and the CUDA runtime share one directory so the $ORIGIN RPATH
+  # resolves libcudart without a CUDA toolkit installed.
+  PARTIAL="${OPT_ROOT}/.llama.cpp-${tag}.partial"
+  rm -rf -- "$PARTIAL"
+  mkdir -p "$PARTIAL"
+  cp -a "$(dirname "$src")/." "${PARTIAL}/"
+  find "${EXTRACT}/rt" -type f -exec cp -a {} "${PARTIAL}/" \;
+
+  gpu_answers "$PARTIAL" || die "build ${tag} lists no CUDA0 device, active build left in place"
+  mv -T -- "$PARTIAL" "${LINK}-${tag}"
+  PARTIAL=
+  rm -rf -- "$STAGE"
+  EXTRACT=
+}
+
+switch_to() {
+  ln -sfn "llama.cpp-$1" "${LINK}.new"
+  mv -T -- "${LINK}.new" "$LINK"
+}
+
+sync_bin_link() {
+  local bin="${BIN_DIR}/llama-server"
+  local target="${LINK}/llama-server"
+  [ "$(readlink "$bin" 2>/dev/null || true)" = "$target" ] && return 0
+  if [ -e "$bin" ] && [ ! -L "$bin" ]; then
+    echo "${bin} exists and is not a symlink: leaving it alone." >&2
+    return 0
+  fi
+  mkdir -p "$BIN_DIR"
+  ln -sfn "$target" "$bin"
+}
+
+prune() {
+  local tag
+  while read -r tag; do
+    if [ "$tag" = "$1" ] || [ "$tag" = "$2" ]; then
+      continue
+    fi
+    echo "Removing superseded build ${tag}"
+    rm -rf -- "${LINK}-${tag}"
+  done < <(installed_tags)
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  --list) ACTION=list ;;
+  -*) die "unknown argument: $1" ;;
+  *)
+    [ "$TAG" = "" ] || die "only one tag is accepted"
+    TAG=$1
+    ;;
+  esac
+  shift
+done
+
+if [ "$ACTION" = list ]; then
+  list_builds
+  exit 0
+fi
+
+if [ "$TAG" != "" ] && [[ ! $TAG =~ ^b[0-9]+$ ]]; then
+  die "not a build tag: ${TAG} (expected bNNNNN)"
+fi
+[[ $CUDA =~ ^[0-9]+\.[0-9]+$ ]] || die "LLAMA_CUDA must read like 12.8, got '${CUDA}'"
+
+[ "$(uname -m)" = x86_64 ] || die "only the x64 build is handled, this machine is $(uname -m)"
+for cmd in curl tar; do
+  command -v "$cmd" >/dev/null 2>&1 || die "${cmd} is required"
+done
+
+mkdir -p "$OPT_ROOT"
+migrate_legacy
+
+DEFAULTED=0
+if [ "$TAG" = "" ]; then
+  resolve_default_tag
+  DEFAULTED=1
+fi
+
+PREVIOUS=$(active_tag)
+if [ "$TAG" = "$PREVIOUS" ]; then
+  echo "Already on ${TAG}: nothing to do."
+  sync_bin_link
+  exit 0
+fi
+
+if [ "$DEFAULTED" = 1 ] && [[ $PREVIOUS =~ ^b[0-9]+$ ]] && ((${TAG#b} < ${PREVIOUS#b})); then
+  echo "The active ${PREVIOUS} is newer than the default ${TAG}: nothing to do (pass a tag to downgrade)."
+  sync_bin_link
+  exit 0
+fi
+
+if [ -d "${LINK}-${TAG}" ]; then
+  echo "Build ${TAG} is already on disk: switching to it without downloading."
+  gpu_answers "${LINK}-${TAG}" || die "build ${TAG} lists no CUDA0 device, active build left in place"
+else
+  install_tree "$TAG"
+fi
+
+switch_to "$TAG"
+sync_bin_link
+prune "$TAG" "$PREVIOUS"
+echo "Active build: ${TAG}${PREVIOUS:+ (previous ${PREVIOUS} kept for rollback)}"
+if pgrep -x llama-server >/dev/null 2>&1; then
+  echo "A running llama-server keeps its build until it is restarted."
+fi

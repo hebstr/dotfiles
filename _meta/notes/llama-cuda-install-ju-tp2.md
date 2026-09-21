@@ -67,10 +67,12 @@ du -sh "${DEST}"
 
 It reported `binaries in main/llama-b11065`, then the install, the symlink, and a tree of 1.1 GiB.
 
+Later builds are installed with `llama-update` (`bin` stow package), decided 2026-09-21 in `.claude/DESIGN-GPU-REMOTE.md`, rather than by replaying the script above. It keeps one tree per build in `~/.local/opt/llama.cpp-<tag>/` with `~/.local/opt/llama.cpp` as a symlink to the active one, so the path the verification below reads stays valid.
+
 Verification, replayable from `ju-TP` while the WSL instance on `ju-TP2` is up. Read-only: it starts nothing and writes nothing.
 
 ```bash
-ssh ju-TP2 'D=~/.local/opt/llama.cpp; "$D/llama-server" --version 2>&1 | rg "^version|^built"; ldd "$D/libggml-cuda.so" | rg -o "lib(cuda|cudart)[^ ]* => [^ ]*"; "$D/llama-cli" --list-devices 2>&1 | tail -2' </dev/null 2>&1 | tr -d "\r"
+ssh ju-TP2 'D=~/.local/opt/llama.cpp; "$D/llama-server" --version 2>&1 | rg "^version|^built"; ldd "$D/libggml-cuda.so" | rg -o "lib(cuda|cudart)[^ ]* => [^ ]*"; "$D/llama-cli" --list-devices 2>&1 | tail -2 | sed "s/ (.*//"' </dev/null 2>&1 | tr -d "\r"
 ```
 
 ```output
@@ -79,7 +81,7 @@ built with GNU 13.3.0 for Linux x86_64
 libcudart.so.12 => /home/julien/.local/opt/llama.cpp/libcudart.so.12
 libcuda.so.1 => /usr/lib/wsl/lib/libcuda.so.1
 Available devices:
-  CUDA0: NVIDIA RTX A3000 12GB Laptop GPU (11519 MiB, 10470 MiB free)
+  CUDA0: NVIDIA RTX A3000 12GB Laptop GPU
 ```
 
 What this does not establish. Device enumeration proves the backend loads and sees the GPU; it says nothing about a model actually running on it. The criterion `.claude/DESIGN-GPU-REMOTE.md` sets for this step is a non-zero VRAM allocation under `nvidia-smi` while a model is loaded, which belongs to step 3, where the smoke-test GGUF fetched at step 2 is served. Free VRAM also moves with the Windows desktop: 11262 MiB measured on 2026-09-20 against 10470 MiB here, with a Positron remote session open.

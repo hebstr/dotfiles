@@ -108,8 +108,6 @@ Ces ajustements ne sont **pas** appliqués ici, laissés au lanceur ad-hoc côt�
 
 ## Mise à jour
 
-Pour passer à une release plus récente :
+Remplacée le 2026-09-21 par `llama-update` (paquet `bin`), qui installe la build CUDA sur `ju-TP2` à côté de la précédente et ne bascule qu'une fois le GPU listé. Décision et voies écartées dans `.claude/DESIGN-GPU-REMOTE.md`, section « `llama-update` runs on the GPU host, one tree per build behind a stable link ».
 
-1. Récupérer le tag : `gh api repos/ggml-org/llama.cpp/releases/latest --jq '.tag_name'`
-2. Modifier `VER=b9106` dans le bloc exec ci-dessus
-3. `showboat verify` ce fichier → re-exécute l'install et compare les sorties
+La procédure qui figurait ici ne fonctionne plus : `gh api repos/ggml-org/llama.cpp/releases/latest --jq '.tag_name'` renvoie, constaté le 2026-09-21, une release `v*` (`v0.4.1`) qui ne porte aucun binaire, seulement un `nightly-tag.txt` nommant la build `b*` correspondante. La build CPU de `ju-TP` que ce document installait a été retirée le 2026-09-20.
