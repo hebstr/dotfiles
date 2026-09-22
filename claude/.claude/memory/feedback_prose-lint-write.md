@@ -23,7 +23,13 @@ Prose hygiene rules (anti-AI-slop, em/en dash) apply only to text **rendered to 
 
 ## Typographic vs rhetorical em/en dash
 
-The `prose-lint` AI-tell rule targets em dashes used as **rhetorical punctuation in continuous prose** (the AI-tic of `"Result — devastating"`, `"Not X — but Y"`). It does NOT target em/en dashes used as **typographic separators**: column placeholders (`| — |` meaning "no value"), label/description separators in table cells (`| /flag — what it does |`), section-header decoration (`### Section — Subtitle`), or numeric ranges (`2–4`, `v2.1–v2.2`, `5–15 %`, `pages 12–18`).
+The `prose-lint` AI-tell rule targets em dashes used as **rhetorical punctuation in continuous prose** (the AI-tic of `"Result — devastating"`, `"Not X — but Y"`, paired dashes as a parenthetical, a dash before a fragment). It does NOT target:
+
+- **typographic separators**: a column placeholder (`| — |` meaning "no value"), a label/description separator in a table cell (`| /flag — what it does |`), section-header decoration (`### Section — Subtitle`), a separator in ASCII or monospaced output, a numeric range (`2–4`, `v2.1–v2.2`, `5–15 %`, `pages 12–18`);
+- **a literal example** of the character, quoted to illustrate it (typography rules, skill references);
+- **code and strings**: a backticked identifier, a string literal, fenced code.
+
+**A dash inside a table cell that carries a sentence is prose** (decided by the user 2026-09-22): only the placeholder and the label/description cell are typography. The linter cannot see the difference, since it exempts every line starting with `|`, so a sentence in a cell is judged by hand. A frontmatter `description:` is prose too.
 
 **Why:** these are two semantically different uses of the same glyph. Conflating them produces ugly false fixes (`| — |` → `| n/a |`, `### X — Y` → `### X : Y`) that degrade typography without removing any AI tell. Concrete incident (2026-05-20): a /workflow:write pass on this repo replaced ~15 typographic em dashes in table cells and section headers with `n/a`/`none`/colons, triggering an explicit "STOP" from the user.
 

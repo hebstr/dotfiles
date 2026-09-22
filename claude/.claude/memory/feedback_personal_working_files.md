@@ -13,6 +13,6 @@ The rule is in `~/.claude/CLAUDE.md`, section "Plan & memory discipline": `NOTES
 - Reading them uninvited is expected, not a transgression. What stays gated is the follow-through: use their content for the task at hand, do not turn a half-formed line into an unsolicited suggestion or into a domain question the user never raised.
 - Editing is the whole gate, and nothing licenses an exception: not a typo, not a broken link, not a stale count. Surface it and let the user apply it.
 - A `NOTES.md:<n>` citation in another note now resolves by opening the target, but their line numbers stay volatile by design, so cite by section title or quoted fragment rather than by line ([[feedback_line_number_cross_refs]]).
-- History: this was a read-gate from 2026-07-28, opened after a `/workflow:sync` run in `eds-avc` read both files off the injected uncommitted-file list and raised a domain question sourced entirely from `NOTES.md`. Narrowed to a write-gate on 2026-08-25, on the user's correction: the failure was the unsolicited suggestion, not the read, and sealing the files off cost access to content the work depends on.
+- History: a read-gate from 2026-07-28, narrowed to a write-gate on 2026-08-25 because the failure was an unsolicited suggestion sourced from `NOTES.md`, not the read.
 
 Related: [[reference_todo_sync]], [[feedback_review_severity_skill_audits]], [[feedback_line_number_cross_refs]].

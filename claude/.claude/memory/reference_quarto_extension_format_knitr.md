@@ -1,6 +1,6 @@
 ---
 name: Format-scoped knitr options in a Quarto extension
-description: A Quarto extension can put `knitr: opts_chunk:` under a single format (not only under `common:`), which is how hebstr-doc scopes `dev: svglite` to HTML; plus svglite vs cairo evidence and the font-family caveat
+description: "A Quarto extension can put `knitr: opts_chunk:` under a single format (not only under `common:`), which is how hebstr-doc scopes `dev: svglite` to HTML; plus svglite vs cairo evidence and the font-family caveat"
 metadata:
   type: reference
 ---

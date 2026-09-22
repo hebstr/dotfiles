@@ -1,6 +1,6 @@
 ---
 name: edscrib, the annotation socle extracted out of eds-avc
-description: eds-avc's Streamlit annotation socle lives in the Python package edscrib (~/Documents/packages/py-edscrib): where the tracker lives, the constraints not to re-litigate, and what step 6 still owes
+description: "eds-avc's Streamlit annotation socle lives in the Python package edscrib (~/Documents/packages/py-edscrib): where the tracker lives, the constraints not to re-litigate, and what step 6 still owes"
 metadata:
   type: project
 ---

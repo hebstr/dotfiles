@@ -1,6 +1,6 @@
 ---
 name: Pitfalls of the Bash tool shell on this machine
-description: Traps met in Claude's own Bash tool session: find resolves to bfs (names starting with '-' become options), pkill -f matches the tool's own command line and kills the shell, rg -h is help not no-filename, sudo cannot prompt and the '!' prompt prefix has no TTY, bundled rm -rf commands get declined
+description: "Traps met in Claude's own Bash tool session: find resolves to bfs (names starting with '-' become options), pkill -f matches the tool's own command line and kills the shell, rg -h is help not no-filename, sudo cannot prompt and the '!' prompt prefix has no TTY, bundled rm -rf commands get declined"
 metadata:
   type: reference
 ---

@@ -1,6 +1,6 @@
 ---
 name: audit:walkthrough and audit:blindspot operating lessons
-description: Running /audit:walkthrough and /audit:blindspot here: weigh blindspot findings by the evidence they needed rather than by bucket, read the judge's coverage line first, never collapse a near-miss, brief L1 with the competing reading, re-read fixes as a set at wrap-up, check ListAgents before writing
+description: "Running /audit:walkthrough and /audit:blindspot here: weigh blindspot findings by the evidence they needed rather than by bucket, read the judge's coverage line first, never collapse a near-miss, brief L1 with the competing reading, re-read fixes as a set at wrap-up, check ListAgents before writing"
 metadata:
   type: feedback
 ---

@@ -1,6 +1,6 @@
 ---
 name: Review severity for personal shell installers
-description: Calibration rules for code reviews of personal shell scripts: installers and CLI tooling in ~/dotfiles/bin/.local/bin/ (workstation plus the multi-user servers running the same dotfiles) and Claude Code hook scripts in ~/dotfiles/claude/.claude/hooks/
+description: "Calibration rules for code reviews of personal shell scripts: installers and CLI tooling in ~/dotfiles/bin/.local/bin/ (workstation plus the multi-user servers running the same dotfiles) and Claude Code hook scripts in ~/dotfiles/claude/.claude/hooks/"
 metadata:
   type: feedback
 ---

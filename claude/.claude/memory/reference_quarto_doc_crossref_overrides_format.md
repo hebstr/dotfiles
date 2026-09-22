@@ -1,6 +1,6 @@
 ---
 name: A top-level crossref in a document drops the extension format's crossref keys
-description: `crossref:` at the top of a document's front matter replaced the extension format's crossref (lost `title-delim`, captions "Tableau 1:"), although `quarto inspect` showed the keys merged; nesting it under the format keeps them
+description: "`crossref:` at the top of a document's front matter replaced the extension format's crossref (lost `title-delim`, captions \"Tableau 1:\"), although `quarto inspect` showed the keys merged; nesting it under the format keeps them"
 metadata:
   type: reference
 ---

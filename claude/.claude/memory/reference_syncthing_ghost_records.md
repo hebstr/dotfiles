@@ -1,5 +1,5 @@
 ---
-name: Syncthing "Syncing 99 %" that never ends: diagnosing ghost records
+name: "Syncthing \"Syncing 99 %\" that never ends: diagnosing ghost records"
 description: How to find which device holds a stale valid record of an ignored path (syncthing debug database-file, not availability), and how the phones' hand-copied .stignore cause it
 metadata:
   type: reference

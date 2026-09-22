@@ -21,12 +21,9 @@ Seen on the same run: 8 top-cited EU seeds, 321 backward candidates → 254 pre-
 **Why:** Recent papers cite foundational work, most of it pre-2010. A strict recent window kills the backward yield. Forward snowballing is the productive direction here, but it needs S2 or OpenAlex citation lookups.
 **How to apply:** Default to skipping backward snowballing on scoping reviews with a window ≥10 years recent. Run it only if the user insists after the warning. Forward stays useful when S2 is available.
 
-**Rule 3.** `litrev-synthesize` self-check #9 (no DOI in BibTeX) used to break `audit_claims`. Fixed 2026-05-19.
+**Rule 3.** PMID-only BibTeX from `litrev-synthesize`.
 
-Seen: valid `references.bib` with 107 `@article{Key, ... pmid = {...}}` entries → `audit_claims` reports `bib_keys_parsed: 0` → 420/726 UNVERIFIED. The parser now accepts PMID-only entries (`parse_bib_keys_to_ids` returns `{doi, pmid}` and `_resolve_key` falls back to a PMID bridge).
-
-**Why:** The contract mismatch is resolved on the `audit_claims` side. `generate_bibliography` still has the same friction (DEFERRED F33).
-**How to apply:** On a fresh `audit_claims` run with PMID-only `references.bib`, no need to bypass anymore. Still sample `multi_citation: True` UNVERIFIED claims before flagging hallucination; disambiguation false positives remain a separate bucket. For `generate_bibliography` PMID-only, the workaround (extract embedded BibTeX block from the review) is still required until F33 lands.
+`generate_bibliography` PMID-only still needs the embedded-BibTeX workaround (extract the embedded BibTeX block from the review) until F33/B3 lands (`claude-code-litrev/.claude/DEFERRED.md`). On `audit_claims`, sample `multi_citation: True` UNVERIFIED claims before flagging hallucination; disambiguation false positives remain a separate bucket.
 
 **Rule 4.** Bypass `validate_gate` MCP on first stall.
 
@@ -35,12 +32,7 @@ Seen: `validate_gate` hung ≥30 min on the first call after `protocol.md` was w
 **Why:** No point waiting on a transport bug when the gate checks are trivial to reproduce manually.
 **How to apply:** First sign of stall on `validate_gate`, drop to manual validation via Read/Bash. Log the bug in the project's `.claude/litrev_feedback.md` and move on.
 
-**Rule 5.** Pseudo-GRADE in Conclusions. Self-check #10 now catches it (2026-05-19); remediation rule still applies.
-
-Seen: `litrev-synthesize` produced a "certainty of evidence: moderate / low / high" Conclusion bullet when (a) GRADE isn't in the protocol, (b) PRISMA-ScR doesn't prescribe grading, (c) no grading procedure is described in Methods. `skills/litrev-synthesize/SKILL.md` self-check #10 now scans Conclusions and Results subsections for FR + EN GRADE vocabulary and fails BLOCKING when no GRADE rubric is declared in Methods.
-
-**Why:** It reads as a methodological grade but is authorial. For a cadrage document feeding a protocol, that's a credibility risk.
-**How to apply:** When self-check #10 fires, remediate per the rule in `SKILL.md` Step 5: either rewrite as narrative description (robust registries / methodological heterogeneity / limited corpus) or formally declare the rubric in Methods. Don't override the check by adding a one-word "GRADE" mention to Methods; the check also requires a rating procedure. See [[feedback_review_severity_litrev_mcp]] for related calibrations on the same plugin.
+**Rule 5.** Pseudo-GRADE in Conclusions is caught and remediated by self-check #10 of `skills/litrev-synthesize/SKILL.md` ("No pseudo-GRADE in Conclusions and Results"); follow its remediation. See [[feedback_review_severity_litrev_mcp]] for related calibrations on the same plugin.
 
 **Rule 6.** Post-generation prose cleanup: two passes, two different problems.
 

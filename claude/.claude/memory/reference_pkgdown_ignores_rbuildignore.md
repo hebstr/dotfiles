@@ -1,6 +1,6 @@
 ---
 name: pkgdown publishes root *.md and vignettes regardless of .Rbuildignore
-description: pkgdown ignores .Rbuildignore entirely — every *.md at the package root becomes a published page and every vignette becomes an article; no config key excludes them, only the file's location does
+description: "pkgdown ignores .Rbuildignore entirely: every *.md at the package root becomes a published page and every vignette becomes an article; no config key excludes them, only the file's location does"
 metadata:
   type: reference
 ---

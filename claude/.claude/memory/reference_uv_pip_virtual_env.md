@@ -1,6 +1,6 @@
 ---
 name: uv pip targets $VIRTUAL_ENV, not the project you cd into
-description: `uv pip install` in project B installs into project A's venv when VIRTUAL_ENV still points at A (use `env -u VIRTUAL_ENV`); plus the two neighbouring traps of a cross-project editable install, `uv run` not purging it and a missing `-e` silently freezing a copy
+description: "`uv pip install` in project B installs into project A's venv when VIRTUAL_ENV still points at A (use `env -u VIRTUAL_ENV`); plus the two neighbouring traps of a cross-project editable install, `uv run` not purging it and a missing `-e` silently freezing a copy"
 metadata:
   type: reference
 ---

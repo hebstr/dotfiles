@@ -1,6 +1,6 @@
 ---
 name: Quarto extension install resolution (tag vs GitHub release)
-description: What `quarto add <owner>/<repo>` actually downloads: the main-branch tarball for the bare form and for `@latest`, `archive/refs/tags/<tag>.tar.gz` for a pinned one; Quarto never queries the GitHub releases API for an extension, so the tag is the whole distribution mechanism and the Release is human-facing
+description: "What `quarto add <owner>/<repo>` actually downloads: the main-branch tarball for the bare form and for `@latest`, `archive/refs/tags/<tag>.tar.gz` for a pinned one; Quarto never queries the GitHub releases API for an extension, so the tag is the whole distribution mechanism and the Release is human-facing"
 metadata:
   type: reference
 ---

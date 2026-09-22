@@ -1,6 +1,6 @@
 ---
 name: Review severity for eds-prise
-description: Calibration for code reviews of eds-prise, both subsystems (the R analysis pipeline under scripts/ and collect/, and the Streamlit annotation app under annot/): deliberate conventions not to re-flag, measurement traps, and the false-positive shapes of eight passes (2026-08-10 to 2026-09-02)
+description: "Calibration for code reviews of eds-prise, both subsystems (the R analysis pipeline under scripts/ and collect/, and the Streamlit annotation app under annot/): deliberate conventions not to re-flag, measurement traps, and the false-positive shapes of eight passes (2026-08-10 to 2026-09-02)"
 metadata:
   type: feedback
 ---

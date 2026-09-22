@@ -23,4 +23,4 @@ When a pipeline matches text against a **large regex alternation** (tens to hund
 
 **Decision for edstr:** re2 suffices, Rust ruled out (no cargo toolchain needed). Shipped; the ligature fix is commit `69f384c`, full measurements and traps in the project's `.claude/PERF.md`.
 
-General takeaway beyond edstr: for big-alternation matching over accented corpora, benchmark an automaton engine on identical work before blaming the language, and reconcile the Unicode `\b` gap with a fold rather than abandoning Unicode correctness. Pick the fold that matches your tokenisation, not the one with the easiest arithmetic. Relates to [[reference_modern_r_model_tooling]] and [[feedback_review_severity_edstr]].
+General takeaway beyond edstr: for big-alternation matching over accented corpora, benchmark an automaton engine on identical work before blaming the language, and reconcile the Unicode `\b` gap with a fold rather than abandoning Unicode correctness. Pick the fold that matches your tokenisation, not the one with the easiest arithmetic. Relates to [[feedback_review_severity_edstr]].
