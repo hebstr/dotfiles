@@ -44,7 +44,7 @@ The `title=` attribute renders identical HTML and escapes the formatter, but it 
 ## What stays in the scripts
 
 The `### SECTION ----` separators, and nothing else. They are a table of contents, and the document mirrors them. Count them with a leading `\s*`, never `^###`: an indented separator inside a Python function is still a separator, and missing it is how two real sub-sections got deleted as "invented" in `eds-prise` on 2026-08-25.
-The narrow exceptions of the global CLAUDE.md (non-obvious regex, external-bug workaround, subtle invariant) do not survive: they become notes.
+The global CLAUDE.md forbids code comments outright, so an explanation found in a script always becomes a note.
 A commented-out block is not a comment in this sense. It holds a reserve, it stays in the script, it does not go to the document.
 
 The migration is editorial, not a copy: pointer comments vanish into the presentation, neighbouring comments merge. Measured yield: about one note per three lines of comment.

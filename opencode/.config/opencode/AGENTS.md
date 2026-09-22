@@ -14,7 +14,7 @@ Read a file from it when a rule below points to it, and not before.
 ## Conversation
 
 - Answer in the user's language, with correct diacritics even when they omit them.
-  Code, comments and identifiers stay in English.
+  Code, identifiers and API documentation stay in English.
 - Be direct and brief.
   No apologies, no filler, no emojis.
 - Never use an em dash or an en dash as punctuation.
@@ -64,8 +64,9 @@ Read a file from it when a rule below points to it, and not before.
 
 ## Code
 
-- No inline comments, except one short line for a non-obvious regex, a workaround for a documented external bug, or a surprising invariant.
-  Comments explain why, never what, and read in the timeless present: no "now", "added", "previously".
+- No comments in code, with no exception.
+  Only section headers, API documentation (roxygen, docstrings) and lines a tool reads (shebang, `# shellcheck`, `# noqa`, `#|` chunk options) stay.
+  A reason a reader would need goes into the project note that covers the code, never into a comment; before saying the edit is done, search the lines you wrote for comment markers and move any hit there.
 - Only change code the task needs.
   Report unrelated problems instead of fixing them.
 - Before writing a helper, search the project and its installed dependencies for one that already exists.
