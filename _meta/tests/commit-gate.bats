@@ -8,16 +8,18 @@ setup() {
   RUNTIME="$WORK/runtime"
   PROJECT="$WORK/proj"
   FAKE_HOME="$WORK/home"
-  export WORK STUB_DIR RUNTIME PROJECT FAKE_HOME
+  OUTSIDE=$(realpath "$(mktemp -d)")
+  export WORK STUB_DIR RUNTIME PROJECT FAKE_HOME OUTSIDE
 
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
-  for cmd in cat jq realpath; do
+  git init -q "$WORK"
+  for cmd in cat jq realpath git; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
 
 teardown() {
-  rm -rf "$WORK"
+  rm -rf "$WORK" "$OUTSIDE"
 }
 
 run_gate() {
@@ -72,6 +74,13 @@ stamp() {
   [ -z "$output" ]
 }
 
+@test "reads a stamp written without a trailing newline" {
+  write_at 100 "$PROJECT/a.sh"
+  printf '%s' 150 >"$RUNTIME/claude-code-writes-s1.stamp"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
 @test "passes when the stamp equals the last write" {
   write_at 150 "$PROJECT/a.sh"
   stamp 150
@@ -119,6 +128,68 @@ stamp() {
   # shellcheck disable=SC2016
   run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" CLAUDE_PROJECT_DIR="$PROJECT" \
     /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$(payload "$(commit_message)" false "$PROJECT/sub")" "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "ignores writes under the git root's .claude when the project dir is a subdirectory" {
+  git init -q "$PROJECT"
+  mkdir -p "$PROJECT/sub/.claude"
+  write_at 200 "$PROJECT/.claude/PLAN.md"
+  write_at 201 "$PROJECT/sub/.claude/PLAN.md"
+  # shellcheck disable=SC2016
+  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" CLAUDE_PROJECT_DIR="$PROJECT/sub" \
+    /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$(payload "$(commit_message)" false "$PROJECT/sub")" "$SCRIPT"
+  [ "$status" -eq 0 ]
+}
+
+@test "ignores writes outside any git work tree" {
+  write_at 200 "$OUTSIDE/probe.sh"
+  write_at 201 "$OUTSIDE/gone/deeper/x.py"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "lists a repository write but not an out-of-repository one" {
+  write_at 200 "$OUTSIDE/probe.sh"
+  write_at 201 "$PROJECT/src/a.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/src/a.sh"* ]]
+  [[ $output != *"$OUTSIDE/probe.sh"* ]]
+  [[ $output == *"1 file(s)"* ]]
+}
+
+@test "still lists a write in another repository than the project's" {
+  git init -q "$OUTSIDE"
+  write_at 200 "$OUTSIDE/other.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$OUTSIDE/other.sh"* ]]
+}
+
+@test "passes when the message only mentions git commit -m in prose" {
+  write_at 200 "$PROJECT/a.sh"
+  # shellcheck disable=SC2016
+  run_gate "$(payload 'La porte lit `git commit -m` dans le texte final.')"
+  [ "$status" -eq 0 ]
+}
+
+@test "blocks a git commit -am line" {
+  write_at 200 "$PROJECT/a.sh"
+  run_gate "$(payload "$(printf '%s\n' '```bash' '  git commit -am "fix: y"' '```')")"
+  [ "$status" -eq 2 ]
+}
+
+@test "blocks a commit chained after its staging command" {
+  write_at 200 "$PROJECT/a.sh"
+  run_gate "$(payload "$(printf '%s\n' '```bash' 'git add a.sh && git commit -m "fix: y"' '```')")"
+  [ "$status" -eq 2 ]
+}
+
+@test "passes when prose quotes a chained commit" {
+  write_at 200 "$PROJECT/a.sh"
+  # shellcheck disable=SC2016
+  run_gate "$(payload 'Une ligne `git add … && git commit -m` passait inaperçue.')"
   [ "$status" -eq 0 ]
 }
 

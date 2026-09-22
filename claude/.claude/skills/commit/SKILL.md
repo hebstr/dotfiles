@@ -31,6 +31,14 @@ Dans cet ordre, sans en sauter.
 3. Appliquer ses constats par Edit, un par un, après avoir vérifié chacun : un constat que la vérification dément est écarté, et nommé comme tel.
    Un constat qui demande de modifier du code, et non du tracking, n'est pas appliqué d'office : le signaler à l'utilisateur.
 4. Vérifier que le tampon est écrit (`cat "$stamp_file"` égal à `stamp_value`). Sinon, l'écrire soi-même avec la même valeur, en le disant.
+   Si l'étape 3 a appliqué au moins un constat, lister les chemins journalisés après `stamp_value` :
+
+   ```bash
+   while IFS=$'\t' read -r ts p; do ((ts > stamp_value)) && printf '%s\n' "$p"; done <"$journal" | sort -u
+   ```
+
+   Chacun est un fichier de tracking visé par un constat appliqué : réécrire le tampon avec `date +%s%N`, sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
+   Un seul chemin hors de ce cas : garder le tampon tel quel et nommer ce chemin ; la porte bloquera, ce qui est voulu.
 
 Ce passage ne remplace pas la vérification que la session doit à chaque écriture de tracking ; il attrape ce qu'elle a laissé passer.
 

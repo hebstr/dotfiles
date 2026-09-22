@@ -11,7 +11,7 @@ cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 [[ $active == false ]] || exit 0
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] || exit 0
 
-printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | contains("git commit -m")' >/dev/null 2>&1 || exit 0
+printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(git [^\n]*[;&|][ \t]*)?git commit\\b")' >/dev/null 2>&1 || exit 0
 
 runtime="${XDG_RUNTIME_DIR:-/tmp}"
 journal="$runtime/claude-code-writes-${session}.log"
@@ -26,7 +26,17 @@ fi
 
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
 [[ -n $root ]] && root=$(realpath -m -- "$root" 2>/dev/null || printf '%s' "$root")
+top=""
+[[ -n $root ]] && top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null) || top=""
 memory=$(realpath -m -- "$HOME/.claude/memory" 2>/dev/null || printf '%s' "$HOME/.claude/memory")
+
+in_work_tree() {
+  local dir=${1%/*}
+  while [[ -n $dir && ! -d $dir ]]; do
+    dir=${dir%/*}
+  done
+  [[ $(git -C "${dir:-/}" rev-parse --is-inside-work-tree 2>/dev/null) == true ]]
+}
 
 declare -A seen=()
 stale=()
@@ -34,9 +44,11 @@ while IFS=$'\t' read -r ts path; do
   [[ $ts =~ ^[0-9]+$ && -n $path ]] || continue
   ((ts > stamp)) || continue
   [[ -n $root && $path == "$root/.claude/"* ]] && continue
+  [[ -n $top && $path == "$top/.claude/"* ]] && continue
   [[ $path == "$memory/"* ]] && continue
   [[ -n ${seen[$path]:-} ]] && continue
   seen[$path]=1
+  in_work_tree "$path" || continue
   stale+=("$path")
 done <"$journal"
 
