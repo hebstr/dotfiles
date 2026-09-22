@@ -18,7 +18,7 @@ Adversarial reviewers (skill-adversary, mcp-adversary, cross-model judges) tend 
 
 **Rule 2.** Reactive env-var tips are the idiomatic FastMCP pattern, not a "discoverability gap".
 
-The `_with_tips` helper in `lib/http.py` surfaces "set `LITREV_EMAIL` / `NCBI_API_KEY` / `S2_API_KEY` / `LITREV_REVIEW_DIR`" hints in the tool's response on first call. Reviewers occasionally flag this as suboptimal vs proactive schema-level declaration of required env vars.
+The `_with_tips` helper in `server.py` surfaces "set `LITREV_EMAIL` / `NCBI_API_KEY` / `S2_API_KEY` / `LITREV_REVIEW_DIR`" hints in the tool's response on first call. Reviewers occasionally flag this as suboptimal vs proactive schema-level declaration of required env vars.
 
 **Why:** FastMCP doesn't expose a clean schema hook for required env vars. The first call still succeeds (or fails gracefully) and the LLM caller sees the tip in the response. Proactive declaration would either clutter every tool signature or require non-standard MCP plumbing. Rejected in the 2026-05-17 audit (Point 24 / external-only E4).
 **How to apply:** Don't auto-accept "env-var declaration should be at schema level" findings unless FastMCP's API has evolved to support it cleanly.

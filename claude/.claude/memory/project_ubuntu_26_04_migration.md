@@ -1,14 +1,14 @@
 ---
-name: Migration Ubuntu 24.04 vers 26.04 différée
-description: Décision 2026-09-09 de rester sur 24.04 jusqu'à décembre 2026 au plus tôt, conditionnée au flag Supported du meta-release Canonical ; recherche complète déjà faite, ne pas la refaire
+name: Ubuntu 24.04 to 26.04 migration deferred
+description: Decision 2026-09-09 to stay on 24.04 until December 2026 at the earliest, gated on the Supported flag of Canonical's meta-release; full research already done, do not redo it
 metadata:
   type: project
 ---
 
-Le 2026-09-09, recherche `/workflow:reco` complète sur le passage de la machine (Ubuntu 24.04.5, noble) à 26.04 LTS « Resolute Raccoon ».
-Décision : ne pas migrer avant décembre 2026, fenêtre visée décembre 2026 à février 2027.
-Toute la recherche, les vérifications de dépôts et la checklist du jour J sont dans `~/dotfiles/_meta/notes/ubuntu-26-04-migration-reco.md`.
+On 2026-09-09 a full `/workflow:reco` research covered moving this machine (Ubuntu 24.04.5, noble) to 26.04 LTS "Resolute Raccoon".
+Decision: no migration before December 2026, target window December 2026 to February 2027.
+Research, repository checks and the day-of checklist: `~/dotfiles/_meta/notes/ubuntu-26-04-migration-reco.md`.
 
-**Why:** la stack data science est prête depuis mai 2026 (PPM, CRAN, r2u, rig, Positron, Docker, QGIS et les 4 PPAs servent tous `resolute`), le risque est passé au cœur de l'OS : rust-coreutils par défaut avec casse documentée et silencieuse sur `sort` et `dd`, `sudo-rs`, Wayland seul, cgroup v1 retiré. 24.04 est maintenue jusqu'en mai 2029, donc attendre coûte zéro.
+**Why:** the data science stack has served `resolute` since May 2026; the risk sits in the OS core (rust-coreutils by default with documented silent breakage on `sort` and `dd`, `sudo-rs`, Wayland only, cgroup v1 removed). 24.04 is supported until May 2029, so waiting costs nothing.
 
-**How to apply:** si le sujet revient, lire la note plutôt que relancer la recherche. Une routine cloud quotidienne surveille déjà le déclencheur (`trig_019wLpTCwdTRi8kKNBwaQLnw`, créée le 2026-09-09, silencieuse tant que le flag vaut 0) : ne pas en créer une seconde. Le déclencheur est aussi vérifiable à la main en une commande : `curl -s https://changelogs.ubuntu.com/meta-release-lts | grep -A4 '^Dist: resolute'` doit renvoyer `Supported: 1` (valait `Supported: 0` au 2026-09-09, chemin automatique fermé), puis deux à trois mois de tampon. Le jour de la migration, deux fichiers passent de `noble` à `resolute` : `~/dotfiles/_meta/profiles/Rprofile.site` et `~/dotfiles/claude/.claude/rules/environment.md`.
+**How to apply:** if the subject returns, read the note rather than rerun the research. A daily cloud routine already watches the trigger (`trig_019wLpTCwdTRi8kKNBwaQLnw`, created 2026-09-09, silent while the flag is 0): do not create a second one. Manual check: `curl -s https://changelogs.ubuntu.com/meta-release-lts | grep -A4 '^Dist: resolute'` must show `Supported: 1` (still `Supported: 0` on 2026-09-22), then allow two to three months of buffer. On migration day, two files move from `noble` to `resolute`: `~/dotfiles/_meta/profiles/Rprofile.site` and `~/dotfiles/claude/.claude/rules/environment.md`.

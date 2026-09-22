@@ -5,7 +5,7 @@ metadata:
   type: reference
 ---
 
-`QUARTO_R` is exported in the shell profile (measured at `/opt/R/4.6.0/bin` on 2026-08-29) and **Quarto honours it over `PATH`**.
+`QUARTO_R` is set in the environment and **Quarto honours it over `PATH`**. No shell profile sets it (`rg QUARTO_R` finds nothing in `~/dotfiles`, `~/.profile` or `/etc/profile.d`, 2026-09-22); a session started from Positron's integrated terminal sees `QUARTO_R=/opt/R/current/bin`, where `/opt/R/current` resolves to the same R as `/usr/local/bin/R` (4.6.1 that day). On 2026-08-29 it read `/opt/R/4.6.0/bin`, a version since removed. Check `echo $QUARTO_R` in the shell that will render rather than assuming either value.
 Prefixing `PATH` with another R's `bin` therefore changes nothing: `command -v Rscript` resolves to the other version while Quarto still runs the one `QUARTO_R` names.
 
 The failure mode this creates on an `rv` project is misleading.
@@ -20,9 +20,9 @@ For a one-off render against the pinned version, override the variable for that 
 QUARTO_R=/opt/R/4.5.3/bin quarto render doc.qmd
 ```
 
-`rig default <version>` is not a substitute: it repoints `/usr/local/bin/R` and leaves `QUARTO_R` as it was, so Quarto keeps using the old one.
+Whether `rig default <version>` moves Quarto depends on the value: with `QUARTO_R=/opt/R/current/bin` it follows whatever `/opt/R/current` resolves to, while a value naming a versioned directory (the 2026-08-29 case) stays put. Neither makes Quarto honour an `rv` pin.
 `rig list` shows which versions are installed.
 
-The durable question this leaves open, unresolved as of 2026-08-29: an exported `QUARTO_R` makes every `rv` pin inoperative under Quarto, silently degrading instead of failing on the version. Either the variable goes and Quarto follows `PATH`, or each pinned project needs the per-command override above.
+The durable question this leaves open, unresolved as of 2026-09-22: a set `QUARTO_R` makes every `rv` pin inoperative under Quarto, silently degrading instead of failing on the version. Either the variable goes and Quarto follows `PATH`, or each pinned project needs the per-command override above.
 
-Related: [[project_rv_install_deployment]]
+Related: [[feedback_review_severity_shell_installers]] (threat model on the multi-user servers)

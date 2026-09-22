@@ -22,4 +22,4 @@ Worked examples (2026-06-09):
 - **prek**: was installed by BOTH routines (cargo copy shadowed the `/usr/local/bin` one in PATH). Resolved by `cargo uninstall prek`, keeping the devtools-update entry so prek aligns with its cargo-dist peers. Pick one routine per tool.
 - **panache**: cargo-installed into `~/.cargo/bin` (`panache 3.0.0` in `.crates.toml`, confirmed crates.io registry source) → already covered by `cargo install-update`, NOT eligible for devtools-update. Same category as typstyle. Note its Positron extension `jolars.panache` uses `panache.executableStrategy: environment`, so this `~/.cargo/bin` binary IS the live consumer (not the extension-bundled `server/panache`).
 
-Related: [[feedback_verify_after_install]], [[project_rv_install_deployment]].
+Related: [[feedback_verify_after_install]], [[feedback_review_severity_shell_installers]].

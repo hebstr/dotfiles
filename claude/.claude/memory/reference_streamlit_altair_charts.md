@@ -25,4 +25,4 @@ Verified 2026-08-02 against Streamlit 1.60.0 and Altair 6.2.2, by dumping the re
 
 **Injecting JS into the Streamlit document**: `st.html(body, unsafe_allow_javascript=True)` executes it in the main document. `st.components.v1.html` is deprecated (removal 2026-06-01) in favour of `st.iframe`, which embeds a non-URL string as `srcdoc` with documented same-origin access to the parent, so `window.parent.document` from inside it is supported rather than a hack. Do not reach for the iframe when `st.html` suffices.
 
-See [[feedback_browser_layout_probe]] for how to inspect any of this without the user's browser, and [[project_prise_timeline_fixture]] for the app this came from.
+See [[feedback_browser_layout_probe]] for how to inspect any of this without the user's browser. The app this came from is eds-prise's annotation UI (`eds-prise/.claude/DESIGN-ANNOT-UI.md`).

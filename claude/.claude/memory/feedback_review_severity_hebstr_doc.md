@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Package-specific review dismissals for the `quarto-hebstr-doc` Quarto extension at `~/Documents/packages/quarto-hebstr-doc`, supplementing [[feedback_review_severity_personal]]. Distinct from [[feedback_review_severity_hebstr]] (the R package). See also [[reference_quarto_lua_shortcodes]] and [[reference_lua_gate_quarto_filters]].
+Package-specific review dismissals for the `quarto-hebstr-doc` Quarto extension at `~/Documents/packages/quarto-hebstr-doc`, supplementing [[feedback_review_severity_personal]]. Distinct from [[feedback_review_severity_hebstr]] (the R package). See also [[reference_quarto_lua_shortcodes]], and `rules/lua.md` for the Lua gate.
 
 **Why:** the 2026-07-20 `/audit:walkthrough` of `filters/filetree.lua` produced recurring idiom/perf/duplication findings that a future reviewer will re-flag; each was assessed and dismissed on the merits.
 

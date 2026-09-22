@@ -57,4 +57,4 @@ Then `local override = kw(kwargs, "exclude", nil); if override then ... else ...
 
 **`is_format("html:js")` differs from `is_format("html")` by EPUB alone.** `/opt/quarto/share/pandoc/datadir/_format.lua` defines the first as `isHtmlOutput() and not isEpubOutput()`, where `isHtmlOutput()` covers `html`, `html4`, `html5`, `epub`, `epub2`, `epub3` plus the HTML slide formats (`revealjs`, `slidy`, `s5`, `dzslides`, `slideous`). It is not a measured JavaScript-capability test, and `revealjs` passes both. Prefer `html:js` whenever the output depends on scripts: it names the dependency, and it costs nothing in an extension where no EPUB format is reachable.
 
-Related: [[feedback_verify_quarto_theming]] for the SCSS side of the same extension work, [[project_hebstr_doc_adaptive_figures]] for why that theme's custom adaptive-figure Lua filter was dropped in favor of Quarto's native `renderings`.
+Related: [[feedback_verify_quarto_theming]] for the SCSS side of the same extension work. That theme's custom adaptive-figure Lua filter was dropped in favor of Quarto's native `renderings` (quarto-hebstr-doc `README.md`).

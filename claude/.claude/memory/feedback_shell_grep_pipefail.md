@@ -94,4 +94,4 @@ The mirror of this is a *zero* status that means "nothing there": `jq -r '.a.b'`
 
 **Encountered:** `bin/.local/bin/claude-plugins-update`, 2026-08-29, both shapes in the same file: the `mcp.json` entry guard conflated absent-key with malformed, and the PyPI version query let a literal `null` through into the rewritten pin. Pinned by `_meta/tests/claude-plugins-update.bats`.
 
-When auditing a new shell script, run: `rg -n 'grep[^|]*\|' script | grep -v '|| (true|echo|{)'` to surface candidates.
+When auditing a new shell script, run: `rg -n 'grep[^|]*\|' script | grep -Ev '\|\| (true|echo|\{)'` to surface candidates. The `-E` is load-bearing: in basic syntax `|` and `(` are literal and the filter removes nothing.

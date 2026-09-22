@@ -1,5 +1,5 @@
 ---
-name: "Documentation technique des scripts : plan de document réutilisable"
+name: "Per-script technical documentation: reusable document plan"
 description: Pattern for a per-script technical doc (hebstr-doc Quarto, `{{< filetree >}}` + `{{< script >}}`), where comments leave the code and become titled callouts; carries the section plan, the CSS block and the traps
 metadata:
   type: reference

@@ -2,7 +2,7 @@
 name: "gtsummary and gt: the rendered image is the oracle, never the object's styling tables"
 description: A gt/gtsummary formatting defect (indentation, header wrapping, an empty column) is invisible in `table_styling` and hard to read in the HTML; render the artifact and look at it, because a helper that rewrites the table body can flatten a structure the styling table still describes correctly
 metadata:
-  type: reference
+  type: feedback
 ---
 
 After any formatting change to a gtsummary table, look at the rendered artifact. Reading the object's `table_styling$*` frames, or grepping the emitted HTML, does not establish what the reader will see.

@@ -15,4 +15,4 @@ Guards:
 - Design test model data to be **non-separable**: decouple the response from predictors (different periods, or a genuine noisy relationship). A well-conditioned fit shows finite, modest coefficients (`max(abs(coef)) ~ 1`, no "fitted probabilities 0 or 1" warning).
 - After adding a model-tidying test, run `devtools::check()`, not only `devtools::test()`. A green `test()` does not imply a green `check()` for this class of test.
 
-Concrete instance: hebstr `test-gtsum_format.R:142` (2026-07-05). Fixed by `y = rep(c(0,1,1,0,1,0),10)` (period 6) vs `sex` (period 2), `x = seq_len(60)`; removed the `suppressWarnings` on the now-clean `glm`.
+Concrete instance: hebstr `test-gtsum_format.R`, test "gtsum_format() annotates dichotomous reference levels with show_single_row" (2026-07-05). Fixed by `y = rep(c(0,1,1,0,1,0),10)` (period 6) vs `sex` (period 2), `x = seq_len(60)`; removed the `suppressWarnings` on the now-clean `glm`.

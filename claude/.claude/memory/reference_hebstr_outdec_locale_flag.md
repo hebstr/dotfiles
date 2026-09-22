@@ -5,7 +5,7 @@ metadata:
   type: reference
 ---
 
-`hebstr::lang_fr()` sets `options(OutDec = ",")` globally, and hebstr reads `getOption("OutDec")` as its **package-wide EN/FR locale flag** (not merely a number format): `set_opts` (opts.R:242 wording switch + 191/195 decimal marks), `easy_descr.R:136`, `acro_helpers.R:159`, `gtsum_format.R:329`, `gt_heatmap.R:137-138`, `easy_helpers.R:114/629`. So the comma OutDec is load-bearing by design; removing it breaks French wording across the package.
+`hebstr::lang_fr()` sets `options(OutDec = ",")` globally, and hebstr reads `getOption("OutDec")` as its **package-wide EN/FR locale flag** (not merely a number format): `set_opts` in `opts.R` (the wording switch and the decimal marks), `easy_descr()`, `acro()` in `acro_helpers.R`, `gtsum_format()` (the `beta` and `adj_label` templates), `gt_heatmap()` (`dec_mark`, `sep_mark`) and the label and `decimal.mark` localisation in `easy_helpers.R`; `rg 'getOption\("OutDec"\)' R/` lists them all. So the comma OutDec is load-bearing by design; removing it breaks French wording across the package.
 
 Consequence: the comma decimal mark leaks into any third-party package that formats a number to string then re-parses it with `as.numeric()`. `tidycmprsk::cuminc()` does exactly this in `cuminc_matrix_to_df` (event-time column names -> `as.numeric("29,47")` -> NA -> `missing value where TRUE/FALSE needed`). The next package doing a numeric round-trip will break the same way.
 

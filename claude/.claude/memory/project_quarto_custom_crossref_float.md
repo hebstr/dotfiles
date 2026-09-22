@@ -43,4 +43,4 @@ Two routes abandoned, do not reopen:
 - An R helper emitting the div through `knitr::asis_output()` (`anx_qmd()` in md-nesrine). It forces `gt::as_raw_html()` and three silent traps: `inline_css = TRUE` routes through juicyjuice and V8 and kills the render far from the cause; a table carrying a literal `id` is read as a subfloat once it is a direct child of the float div (this bit through `gt_qmd`, whose `id` defaulted to `"tbl-id"` until 2026-08-29 and now defaults to `NULL`, so it survives only for an explicit `id`); bare raw HTML makes Pandoc wrap gt's `<style>` in a `<p>`.
 - A `knitr::opts_hooks$set(label = )` rewriting `anx-x` to `tbl-anx-x` to get the bare prefix. Works, but hijacks the `label` option of every chunk, makes the feature R-only, and inverts the failure mode: without the hook the float loses number and caption, whereas `tbl-anx-x` without the filter degrades to a plain, visible `tbl` float.
 
-Related: [[project_hebstr_doc_adaptive_figures]], [[user_quarto_typst_only]]
+Related: [[user_quarto_typst_only]]
