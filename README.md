@@ -5,7 +5,7 @@ Personal stow-managed dotfiles.
 ## Structure
 
 ```
-agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/   # config stow packages
+agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/ zotero/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/      # backup script + systemd timer/service + excludes
@@ -22,7 +22,7 @@ Packages follow stow conventions: each top-level dir maps its tree relative to `
 sudo apt install -y stow
 git clone https://github.com/hebstr/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin claude firefox gh git obsidian opencode panache positron prek R Rstudio ruff ssh syncthing
+stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin claude firefox gh git obsidian opencode panache positron prek R Rstudio ruff ssh syncthing zotero
 stow -R -t ~ agents css
 npm config set prefix "$HOME/.npm-global"
 npm --prefix css/.local/share/css-gate ci
@@ -41,6 +41,9 @@ Stow such a skill with plain `stow claude`, never `--no-folding`, which would li
 
 `firefox` carries a single `user.js` under a randomly generated profile directory (`z24d9fn6.default-release`).
 That profile name is specific to one machine: elsewhere, rename the directory inside the package to match the local profile, otherwise the link lands where Firefox never reads and the setting vanishes with no error.
+`zotero` follows the same shape and carries the same caveat, with a single `user.js` under `.zotero/zotero/pucr7b5d.default/`.
+It holds the settings chosen by hand and nothing Zotero records as state, and it leaves out the sync user name.
+Zotero rewrites `prefs.js` by replacement, which would break a link to it, and applies `user.js` over it at every start: a setting changed in Zotero's own interface reverts on restart unless `user.js` changes with it.
 
 `ssh` holds `.ssh/config` only, never a key, and that file stays `644`: `ssh` rejects a config others can write, and tolerates a group-writable one only because Ubuntu's build accepts a private user group.
 Setting up the servers and keys behind its aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
