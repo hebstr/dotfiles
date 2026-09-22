@@ -99,7 +99,7 @@ Idempotence is worth one check as well, two passes over the same file yielding t
 
 ## Ways to lose it in silence
 
-- A `gt` or `htmlwidgets` upgrade changing the identifier length, or the shape of the div the program anchors on.
+- A `gt` or `htmlwidgets` upgrade changing the identifier length, or the shape of the div the program anchors on. `_meta/tests/clean-html-id.bats` pins the forms described above, so it catches an edit of the script that breaks them, never an upstream change: its fixtures are written by hand, and only a fresh render run through the filter shows that the forms still hold.
 - A machine where the `git` package is not stowed: git then stores the raw file without warning. That was the standing failure until the driver moved into the package on 2026-09-12, and it is what closed it.
 
 ## Settled elsewhere: the same churn on the OOXML artifacts

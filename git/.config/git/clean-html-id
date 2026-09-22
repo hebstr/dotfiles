@@ -5,7 +5,7 @@ use warnings;
 binmode STDIN;
 binmode STDOUT;
 
-my $html = do { local $/; <STDIN> } // '';
+my $html = do { local $/; <STDIN> };
 
 my %id;
 my ( $gt, $widget ) = ( 0, 0 );
