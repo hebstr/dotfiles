@@ -42,7 +42,7 @@ Pour tout changement structurel parmi les écritures (nouveau fichier, symbole p
 5. fichiers de test qui référencent l'entité ;
 6. instructions qui décrivent une limite que le changement lève.
 
-Grep est lexical : cherche aussi l'ancien nom, pas seulement le nouveau.
+Grep est lexical : cherche aussi l'ancien nom, pas seulement le nouveau, et les références par chaîne qui ne portent pas le nom nu (`sym()` et `.data[["..."]]` en R, `getattr` et `importlib` en Python, clés de configuration, noms de table ou de colonne, segments de route).
 
 ### 3. Re-dérivation des affirmations
 

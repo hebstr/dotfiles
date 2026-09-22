@@ -33,6 +33,8 @@ shellharden --replace script.sh && shfmt -w -i 2 script.sh && shellcheck script.
 
 Running only one or two tools is not sufficient, all three are complementary. If a Bats test exists, run `bats <test-file>` after the format+lint gate.
 
+SC2030/SC2031 in bats files (`export` in `setup()`) are documented false positives: note them and continue.
+
 The shfmt flags above match the prek hook in `prek.toml` (source of truth at commit gate). Running with extra flags locally (e.g. `-ci`, `-sr`) reformats files in ways the hook will revert.
 
 ## Useful shfmt flags
