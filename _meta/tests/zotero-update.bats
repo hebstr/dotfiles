@@ -66,8 +66,9 @@ case "\$1" in
 esac
 EOF
 
-  cat >"${STUBS}/dpkg-query" <<'EOF'
+  cat >"${STUBS}/dpkg-query" <<EOF
 #!/usr/bin/env bash
+printf '%s\n' "\$*" >> "${STUBS}/dpkg-query.log"
 printf '10.0.3\n'
 EOF
 
@@ -152,6 +153,17 @@ teardown() {
   [ -z "$(ls -A "$TMPDIR")" ]
 }
 
+@test "a failed key fetch with no keyring exits 1 before any write" {
+  export CURL_RC=22
+  run bash "${SCRIPT}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no Zotero key is installed"* ]]
+  [[ "$output" != *"keeping the installed"* ]]
+  [ ! -e "${KEYRING}" ]
+  [ ! -e "${SOURCES_LIST}" ]
+  [ ! -e "${STUBS}/apt.log" ]
+}
+
 @test "passes KEY_URL to curl when fetching the key" {
   export KEY_URL="https://override.test/key.gpg"
   run bash "${SCRIPT}"
@@ -217,6 +229,8 @@ teardown() {
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
   [[ "${lines[-1]}" == "zotero 10.0.3" ]]
+  # shellcheck disable=SC2016
+  grep -qxF -- '-W -f=${Version} zotero' "${STUBS}/dpkg-query.log"
 }
 
 # ─── idempotent path: all sentinels present ─────────────────────────────────

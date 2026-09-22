@@ -22,8 +22,11 @@ if curl -fsSL "$KEY_URL" -o "$key_tmp"; then
     sudo install -d -m 0755 "$(dirname "$KEYRING")"
     sudo install -m 0644 -o root -g root "$key_tmp" "$KEYRING"
   fi
-else
+elif [ -s "$KEYRING" ]; then
   echo "Could not fetch ${KEY_URL}: keeping the installed Zotero key." >&2
+else
+  echo "Could not fetch ${KEY_URL}: no Zotero key is installed, aborting." >&2
+  exit 1
 fi
 
 if [ ! -s "$SOURCES_LIST" ]; then
