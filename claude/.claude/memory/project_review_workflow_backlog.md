@@ -11,8 +11,7 @@ Listed here for reference; they belong in a proper issue tracker.
 
 ## Backlog
 
-- Tests for `hebstr` R package (`~/Documents/packages/R-hebstr/`): `test-easy_fct.R` done; remaining: `str_helpers.R`, `easy_descr.R`, `gt_heatmap.R`. Superseded by the fuller 2026-07-03 scan: prioritized plan (bugs, sanitization, test targets) lived in that repo's `.claude/PLAN.md`, which no longer exists on disk (verified 2026-07-20)
-- CI/CD: GitHub Actions with lint + tests + quarto render on `hebstr` (no `.github/workflows/` as of 2026-05-16)
+- CI/CD: GitHub Actions with lint + tests + quarto render on `hebstr` (still no `.github/workflows/` on 2026-09-22; the test files the backlog once listed, `str_helpers`, `easy_descr`, `gt_heatmap`, all exist by then)
 - Runtime data validation: pointblank (R) / pandera (Python) in pipelines
 - Occasional human review: rOpenSci community, biostat peers (quarterly on critical code)
 - LLM-generated tests as alternative to code review
@@ -22,5 +21,5 @@ Listed here for reference; they belong in a proper issue tracker.
 
 - ~~Human triage 2 min between reviewer and walkthrough~~ (handled by `/audit:walkthrough` severity reordering + author's defense gating)
 - ~~Pre-mortem 3-5 lines~~ (overlaps with CLAUDE.md "Before marking any step done, verify the output is usable" + walkthrough author's defense)
-- ~~ADR (Architecture Decision Records)~~ (covered by CLAUDE.md L111 named anchor pattern ("Decision: X because Y"))
-- ~~Reviewer prompt variants by code type~~ (adopted via CLAUDE.md L95-97 (`critical-code-reviewer` / `skill-adversary` / `blindspot`))
+- ~~ADR (Architecture Decision Records)~~ (covered by the named anchor pattern ("Decision: X because Y") of CLAUDE.md "Build discipline")
+- ~~Reviewer prompt variants by code type~~ (the reviewer choice now lives in step 0.3 of `skills/commit/SKILL.md`, `--reviewer posit-dev:critical-code-reviewer`, and in the `/audit:walkthrough` reviewer scan)

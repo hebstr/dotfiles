@@ -15,4 +15,4 @@ metadata:
 - It chains to `r-lib:testing-r-packages` for R conventions, by its own instruction. If a first pass already used that same skill, both reviews share a grid and therefore share blind spots. When the goal is independence from a review already done on the testthat grid rather than depth on test design, prefer `posit-dev:critical-code-reviewer`.
 - Both reviewers emit the same severity tiers (`Critical Issues (Blocking)` / `Required Changes` / `Suggestions`), so `/audit:walkthrough` parses either without adaptation. Reviewer choice is about lens, never about output compatibility.
 
-Related: [[feedback_review_workflow]], [[feedback_review_severity_personal]].
+Related: [[feedback_review_severity_personal]].

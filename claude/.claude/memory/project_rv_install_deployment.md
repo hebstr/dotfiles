@@ -1,12 +1,12 @@
 ---
 name: dotfiles install scripts deployment context
-description: rv-install and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability requirements
+description: rv-update and quarto-update are stored in dotfiles but deployed on multi-user servers; affects threat model and portability requirements
 metadata:
   type: project
 ---
-`bin/.local/bin/rv-install` (rv R-package-manager installer wrapper) and `bin/.local/bin/quarto-update` (Quarto release updater) are stored in this dotfiles repo but are deployed and executed in practice on multi-user servers, single ad-hoc execution per host.
+`bin/.local/bin/rv-update` (rv R-package-manager installer wrapper, named `rv-install` until `9f5a2a4`) and `bin/.local/bin/quarto-update` (Quarto release updater) are stored in this dotfiles repo but are deployed and executed in practice on multi-user servers, single ad-hoc execution per host.
 
-**Why:** the user works on shared servers (likely HPC or institutional infra) where these tools have to be bootstrapped or upgraded into system-level paths (e.g., `/usr/local/bin/rv-install`, `/opt/quarto`). The dotfiles location is just where the source lives, not where it runs.
+**Why:** the user works on shared servers (likely HPC or institutional infra) where these tools have to be bootstrapped or upgraded into system-level paths (e.g., `/usr/local/bin/rv-update`, `/opt/quarto`). The dotfiles location is just where the source lives, not where it runs.
 
 **How to apply:**
 - Threat model: assume multi-user host, unprivileged attackers (no root). Per-file permissions matter (`mktemp` mode `0600` blocks modification), but blast-radius arguments for upstream-trust issues (`curl | bash`, missing GPG verification) are *broader* than for a single-user laptop.

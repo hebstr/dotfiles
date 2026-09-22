@@ -15,4 +15,4 @@ The rule is in `~/.claude/CLAUDE.md`, section "Plan & memory discipline": `NOTES
 - A `NOTES.md:<n>` citation in another note now resolves by opening the target, but their line numbers stay volatile by design, so cite by section title or quoted fragment rather than by line ([[feedback_line_number_cross_refs]]).
 - History: this was a read-gate from 2026-07-28, opened after a `/workflow:sync` run in `eds-avc` read both files off the injected uncommitted-file list and raised a domain question sourced entirely from `NOTES.md`. Narrowed to a write-gate on 2026-08-25, on the user's correction: the failure was the unsolicited suggestion, not the read, and sealing the files off cost access to content the work depends on.
 
-Related: [[reference_todo_sync]], [[feedback_explicit_invocation_gate]], [[feedback_line_number_cross_refs]].
+Related: [[reference_todo_sync]], [[feedback_review_severity_skill_audits]], [[feedback_line_number_cross_refs]].

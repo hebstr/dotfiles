@@ -44,7 +44,7 @@ A module reporting `OK` through `sys-update` while its deliverable is unusable i
 
 ---
 
-For thin install-wrapper scripts in `~/dotfiles/bin/` (e.g. `sysinstall`, `rv-install`, `sys-update`), also do not raise:
+For thin install-wrapper scripts in `~/dotfiles/bin/` (e.g. `rv-update`, `sys-update`; `sysinstall`, the example below, is gone from `bin/`), also do not raise:
 
 - Version pinning / reproducibility (using `latest` URLs is by design; these wrappers are not configuration management tools)
 - Cosmetic locale concerns (Unicode glyphs like `→` `✓` in stderr; modern Linux targets default to UTF-8)
