@@ -78,8 +78,11 @@ To work, run `llama-session` in one terminal and `opencode` in another.
 ## Git content filter and diff driver
 
 The `git` package ships a `clean` filter named `html-id` and a `textconv` diff driver named `out-textconv`, so `stow git` is the whole setup and a fresh machine needs no extra step.
+Each program is a script in `git/.config/git/` (`clean-html-id`, `clean-positron-theme`, `out-textconv.py`) that `git/.gitconfig` calls by path, so a script added to the package reaches a machine only once `stow --no-folding git` is rerun there.
 The filter renumbers the random ids `gt` puts on its tables and `reactable` on its widgets, `gt1` and `htmlwidget-wdg1` upward in order of appearance, so a re-rendered HTML output diffs on content alone.
 The driver renders a `.docx`, `.xlsx`, `.pptx` or `.png` as stable text for `git diff`, hiding the metadata every render regenerates; it reads only and never rewrites a stored byte (`_meta/notes/git-out-textconv.md`).
+A second `clean` filter, `positron-theme`, serves this repository alone: it stores `workbench.colorTheme` in the Positron profile settings as `Material Night Eighties` whatever theme is active, so switching themes never reaches a commit or `git diff`.
+`git status` still lists the file after a switch to a theme name of another length, since git reads a size change as a modification without running the filter; staging the file clears it.
 
 A driver is inert until a repository asks for it, and that half stays versioned with each project: one attribute line per pattern in its own `.gitattributes`, of which `_meta/profiles/gitattributes` is the template.
 Declaring the filter in a global attributes file instead would apply it to every repository on the machine, third-party clones included, where it would rewrite ids on `git add` with no warning.

@@ -44,6 +44,6 @@
 [diff "out-textconv"]
 	textconv = ~/.config/git/out-textconv.py
 [filter "html-id"]
-	clean = "perl -0777 -pe 'my %m; my ($g, $w) = (0, 0); while (/<div id=\"([a-z]{10})\" style=\"padding-left/g) { $m{$1} //= \"gt\" . ++$g } while (/htmlwidget-([0-9a-f]{16,})/g) { $m{$1} //= \"wdg\" . ++$w } for my $k (keys %m) { s/(id=\"|#|htmlwidget-)\\Q$k\\E\\b/$1$m{$k}/g }'"
+	clean = ~/.config/git/clean-html-id
 [filter "positron-theme"]
-	clean = "sed -E 's/(\"workbench\\.colorTheme\"[[:space:]]*:[[:space:]]*)\"[^\"]*\"/\\1\"Material Night Eighties\"/'"
+	clean = ~/.config/git/clean-positron-theme

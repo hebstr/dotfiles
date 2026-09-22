@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+binmode STDIN;
+binmode STDOUT;
+
+my $html = do { local $/; <STDIN> } // '';
+
+my %id;
+my ( $gt, $widget ) = ( 0, 0 );
+
+while ( $html =~ /<div id="([a-z]{10})" style="padding-left/g ) {
+    $id{$1} //= 'gt' . ++$gt;
+}
+while ( $html =~ /htmlwidget-([0-9a-f]{16,})/g ) {
+    $id{$1} //= 'wdg' . ++$widget;
+}
+
+for my $old ( keys %id ) {
+    $html =~ s/(id="|#|htmlwidget-)\Q$old\E\b/$1$id{$old}/g;
+}
+
+print $html;

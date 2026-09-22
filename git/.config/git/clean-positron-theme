@@ -1,0 +1,2 @@
+#!/bin/sh
+exec sed -E 's/("workbench\.colorTheme"[[:space:]]*:[[:space:]]*)"[^"]*"/\1"Material Night Eighties"/'

@@ -45,15 +45,16 @@ A global attributes file would apply the filter to every repository on the machi
 
 ## Step 2: the driver
 
-It ships in `git/.gitconfig`, so a stowed machine already has it and a fresh clone needs nothing:
+It ships in the `git` stow package, so a stowed machine already has it and a fresh clone needs nothing: `git/.gitconfig` names the program, which lives beside it as a Perl script.
 
 ```
 [filter "html-id"]
-	clean = "perl -0777 -pe '...'"
+	clean = ~/.config/git/clean-html-id
 ```
 
-Read the exact value with `git config --get filter.html-id.clean` rather than copying it from here; git escapes `\Q`, `\E` and the quotes when it writes the file, and a hand-edited copy is where that breaks.
-Write it with `git config --file git/.gitconfig filter.html-id.clean '<value>'` and let git do the escaping.
+Edit `git/.config/git/clean-html-id` directly.
+Until 2026-09-22 the program was inline in the config value, where gitconfig escaping of `\Q`, `\E` and the quotes made it unreadable and a hand edit was where it broke; the script produced byte-identical output on 255 rendered HTML files when it replaced the inline value.
+A new script reaches `~/.config/git/` only once `stow --no-folding git` is rerun on the machine; until then the command is missing, git warns and stores the raw file.
 
 The program collects the identifiers from the `gt` div and the `htmlwidget-` token alone, numbers each family in document order, `gt1` and `wdg1` upward, then rewrites every occurrence.
 Numbering rather than collapsing onto a single token is what keeps the deliverable valid: the md-nesrine report holds fifteen `gt` tables in one file, and a shared id would make each style block apply to all fifteen at once.
