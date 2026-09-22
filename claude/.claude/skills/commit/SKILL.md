@@ -1,13 +1,13 @@
 ---
 name: commit
-description: À invoquer avant toute proposition de commit, demandée par l'utilisateur ou spontanée, avant d'écrire le moindre `git commit -m`, et pour clore une session. Aussi quand la porte de commit (hook Stop) le demande.
+description: À invoquer avant toute proposition de commit, demandée par l'utilisateur ou spontanée, avant d'écrire le moindre `git commit`, et pour clore une session. Aussi quand la porte de commit (hook Stop) le demande.
 ---
 
 # Proposition de commit
 
 La skill clôt le travail en cours puis rend une proposition de commit fondée sur l'état réel du dépôt.
 Elle ne lance aucune commande git d'écriture : l'utilisateur committe lui-même (section Git de `~/.claude/CLAUDE.md`).
-Aucun bloc `git commit -m` ne s'écrit hors de cette skill : le hook `Stop` `commit-gate.sh` bloque une réponse qui en contient un quand du code a été écrit depuis le dernier passage du vérificateur.
+Aucun bloc `git commit` ne s'écrit hors de cette skill : le hook `Stop` `commit-gate.sh` bloque une réponse qui en contient un quand du code a été écrit depuis le dernier passage du vérificateur.
 
 ## 0. Clore
 
@@ -21,24 +21,26 @@ Dans cet ordre, sans en sauter.
    journal="${XDG_RUNTIME_DIR:-/tmp}/claude-code-writes-${CLAUDE_CODE_SESSION_ID}.log"
    stamp_file="${journal%.log}.stamp"
    stamp_value=$(date +%s%N)
+   printf 'JOURNAL=%s\nSTAMP_FILE=%s\nSTAMP_VALUE=%s\n' "$journal" "$stamp_file" "$stamp_value"
    cut -f2 "$journal" | sort -u
    ```
 
+   L'état du shell ne survit pas d'un appel Bash à l'autre : les commandes des étapes suivantes reçoivent ces trois valeurs recopiées telles qu'affichées, à la place de `<JOURNAL>`, `<STAMP_FILE>` et `<STAMP_VALUE>`.
    Journal absent ou vide : aucune écriture par Edit ou Write dans la session, passer à 0.2.
    `CLAUDE_CODE_SESSION_ID` vide : le dire, et lancer quand même le vérificateur sur les fichiers que `git status` montre, sans tampon ; la porte bloquera de nouveau, ce qui est le comportement voulu.
 2. Lire `agents/verifier.md` (à côté de ce fichier) et lancer un agent `general-purpose` **au premier plan**, dont le prompt est ce fichier suivi de `REPO` (la racine git), `WRITES` (la liste ci-dessus), `STAMP_FILE` et `STAMP_VALUE`.
    Un contexte neuf est la raison d'être de l'étape : ne pas lui transmettre de résumé de la session, ni d'avis sur ce qui est à jour.
 3. Appliquer ses constats par Edit, un par un, après avoir vérifié chacun : un constat que la vérification dément est écarté, et nommé comme tel.
    Un constat qui demande de modifier du code, et non du tracking, n'est pas appliqué d'office : le signaler à l'utilisateur.
-4. Vérifier que le tampon est écrit (`cat "$stamp_file"` égal à `stamp_value`). Sinon, l'écrire soi-même avec la même valeur, en le disant.
-   Si l'étape 3 a appliqué au moins un constat, lister les chemins journalisés après `stamp_value` :
+4. Vérifier que le tampon est écrit (`cat '<STAMP_FILE>'` égal à `<STAMP_VALUE>`). Sinon, l'écrire soi-même avec la même valeur, en le disant.
+   Si l'étape 3 a appliqué au moins un constat, lister les chemins journalisés après `<STAMP_VALUE>` :
 
    ```bash
-   while IFS=$'\t' read -r ts p; do ((ts > stamp_value)) && printf '%s\n' "$p"; done <"$journal" | sort -u
+   while IFS=$'\t' read -r ts p; do ((ts > <STAMP_VALUE>)) && printf '%s\n' "$p"; done <'<JOURNAL>' | sort -u
    ```
 
-   Chacun est un fichier de tracking visé par un constat appliqué : réécrire le tampon avec `date +%s%N`, sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
-   Un seul chemin hors de ce cas : garder le tampon tel quel et nommer ce chemin ; la porte bloquera, ce qui est voulu.
+   Si chacun de ces chemins est un fichier de tracking visé par un constat appliqué, réécrire le tampon (`date +%s%N >'<STAMP_FILE>'`), sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
+   Si au moins un chemin sort de ce cas, garder le tampon tel quel et nommer ce chemin : la porte bloquera, ce qui est voulu.
 
 Ce passage ne remplace pas la vérification que la session doit à chaque écriture de tracking ; il attrape ce qu'elle a laissé passer.
 

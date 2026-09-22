@@ -55,7 +55,7 @@ For language-specific conventions (idioms and style, formatters, linters, CLI fl
 ## Git
 
 - Never run git write commands (commit, add, push, reset, branch, tag, merge, rebase, PR creation). User manages all git operations. A "y" or "ok" in conversation is not authorization. Note: the lint/format gate's auto-fixers and formatters (air, ruff format, shellharden, `ruff check --fix`) rewrite tracked files in place; that file mutation is part of the gate, not a git operation. Opt-in logic-rewriting fixers that are not part of the default gate (e.g. `cargo clippy --fix`, which requires a clean tree) are excluded from this exemption. If a rewrite produces an unwanted diff, surface it explicitly and let the user revert with their own git command.
-- **Every commit suggestion goes through the `commit` skill**, asked or spontaneous: invoke it before writing any `git commit -m`. It carries the closing sequence and the message and block format.
+- **Every commit suggestion goes through the `commit` skill**, asked or spontaneous: invoke it before writing any `git commit`. It carries the closing sequence and the message and block format.
 
 ## Plan & memory discipline
 
