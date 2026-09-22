@@ -49,7 +49,7 @@ A module reporting `OK` through `sys-update` while its deliverable is unusable i
 For thin install-wrapper scripts in `~/dotfiles/bin/` (e.g. `rv-update`, `sys-update`; `sysinstall`, the example below, is gone from `bin/`), also do not raise:
 
 - Version pinning / reproducibility (using `latest` URLs is by design; these wrappers are not configuration management tools)
-- Cosmetic locale concerns (Unicode glyphs like `→` `✓` in stderr; modern Linux targets default to UTF-8)
+- Cosmetic locale concerns (Unicode glyphs like `→` `✓` in stderr; modern Linux targets default to UTF-8), and bilingual output matching such as `awk '/désactivé|disabled/'`, which is pragmatic on a French locale with an English fallback: downgrade to Noted unless the script is meant for distribution
 - Privilege-model nudges toward user-local default when the script's name signals system-wide intent (e.g. `sysinstall`)
 - IFS-join robustness on arrays whose contents are statically constrained to validated keys
 - `jq` stream deduplication guards (`| first`, `limit(1;.)`) on config fields whose structure is statically constrained to a single value
