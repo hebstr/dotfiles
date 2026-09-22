@@ -95,6 +95,10 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/format-on-edit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/write-journal.sh"
           }
         ]
       }
@@ -105,6 +109,14 @@
           {
             "type": "command",
             "command": "[ -f \"$CLAUDE_PROJECT_DIR/.ouroboros_eval_artifact.md\" ] && mkdir -p \"$CLAUDE_PROJECT_DIR/.claude\" && mv \"$CLAUDE_PROJECT_DIR/.ouroboros_eval_artifact.md\" \"$CLAUDE_PROJECT_DIR/.claude/.ouroboros_eval_artifact.md\" || true"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/commit-gate.sh"
           }
         ]
       }
