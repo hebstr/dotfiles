@@ -44,6 +44,7 @@ Quand un fichier de tracking (PLAN, note de chantier) nomme l'étape suivante, l
 `git diff --numstat HEAD` pour les fichiers suivis, `git ls-files --others --exclude-standard` puis `wc -l` pour les fichiers nouveaux.
 Proposer `/audit:walkthrough <fichier> --reviewer posit-dev:critical-code-reviewer` seulement pour un fichier de code exécutable nouveau ou changé d'au moins 30 lignes (ajouts plus suppressions).
 Code exécutable : un langage de programmation (shell, Python, R, Rust, JS/TS, SQL, Lua, CSS/SCSS, Typst, Perl, bats), ou un fichier sans extension qui porte un shebang. Jamais la mémoire, `CLAUDE.md`, `rules/`, un `SKILL.md` ni un fichier de configuration : l'utilisateur lance ces revues quand il les veut.
+Pas davantage pour un fichier qu'un `/audit:walkthrough` ou un `/audit:blindspot` a traité dans la session : ses corrections ferment le cycle de revue, et en proposer une nouvelle relance la boucle.
 Prose destinée à un lecteur (README, CHANGELOG, documentation publiée) nouvelle ou réécrite : proposer `/workflow:write <fichier>`.
 Ni l'un ni l'autre : ne rien proposer, sans le commenter.
 Les deux skills sont invocables par l'utilisateur seul : donner la commande, ne pas l'invoquer.
