@@ -28,10 +28,11 @@ ALL_MODULES=(
   positron
   anki
   libreoffice
+  zotero
   syncthing
 )
 
-SUDO_MODULES=(apt snap devtools rig gh quarto pandoc positron anki libreoffice syncthing)
+SUDO_MODULES=(apt snap devtools rig gh quarto pandoc positron anki libreoffice zotero syncthing)
 
 usage() {
   cat <<EOF
@@ -297,6 +298,18 @@ update_libreoffice() {
     return
   fi
   run_or_dry libreoffice-update && record libreoffice OK
+}
+
+update_zotero() {
+  if ! command -v zotero-update >/dev/null 2>&1; then
+    record zotero "skipped (not found)"
+    return
+  fi
+  if ! command -v zotero >/dev/null 2>&1; then
+    record zotero "skipped (zotero not installed)"
+    return
+  fi
+  run_or_dry zotero-update && record zotero OK
 }
 
 update_syncthing() {

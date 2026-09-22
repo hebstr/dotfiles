@@ -85,7 +85,7 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
-    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice syncthing; do
+    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice zotero syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -110,6 +110,7 @@ teardown() {
   echo "$output" | grep -E '^apt[[:space:]]+yes$'
   echo "$output" | grep -E '^snap[[:space:]]+yes$'
   echo "$output" | grep -E '^libreoffice[[:space:]]+yes$'
+  echo "$output" | grep -E '^zotero[[:space:]]+yes$'
   echo "$output" | grep -E '^syncthing[[:space:]]+yes$'
   echo "$output" | grep -E '^npm[[:space:]]+no$'
   echo "$output" | grep -E '^quarto[[:space:]]+yes$'
@@ -286,8 +287,22 @@ EOF
   [[ "$output" == *"libreoffice"*"skipped (not found)"* ]]
 }
 
+@test "zotero module dispatches to zotero-update" {
+  _stub_command zotero
+  _stub_command zotero-update
+  _run --dry-run zotero
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] zotero-update"* ]]
+}
+
+@test "zotero module skips when zotero-update is absent" {
+  _run --dry-run zotero
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"zotero"*"skipped (not found)"* ]]
+}
+
 # ─── application modules update, never install ──────────────────────────────
-# positron, anki and libreoffice ship updaters that install the application
+# positron, anki, libreoffice and zotero ship updaters that install the application
 # when it is absent; sys-update must only run them where the app already is.
 
 _stub_logging_updater() {
@@ -322,23 +337,31 @@ EOF
   [ ! -f "${STUBS}/updater.log" ]
 }
 
+@test "zotero module skips when zotero is not installed" {
+  _stub_logging_updater zotero
+  _run zotero
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"zotero"*"skipped (zotero not installed)"* ]]
+  [ ! -f "${STUBS}/updater.log" ]
+}
+
 @test "application modules run their updater when the application is installed" {
-  for app in positron anki libreoffice; do
+  for app in positron anki libreoffice zotero; do
     _stub_command "$app"
     _stub_logging_updater "$app"
   done
-  _run positron anki libreoffice
+  _run positron anki libreoffice zotero
   [ "$status" -eq 0 ]
-  [ "$(cat "${STUBS}/updater.log")" = "$(printf '%s\n' positron-update anki-update libreoffice-update)" ]
+  [ "$(cat "${STUBS}/updater.log")" = "$(printf '%s\n' positron-update anki-update libreoffice-update zotero-update)" ]
 }
 
 @test "no module argument never installs absent applications" {
-  for app in positron anki libreoffice; do
+  for app in positron anki libreoffice zotero; do
     _stub_logging_updater "$app"
   done
   _run --dry-run
   [ "$status" -eq 0 ]
-  for app in positron anki libreoffice; do
+  for app in positron anki libreoffice zotero; do
     [[ "$output" != *"[dry-run] ${app}-update"* ]]
     [[ "$output" == *"${app}"*"skipped (${app} not installed)"* ]]
   done
@@ -413,7 +436,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
-    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice syncthing; do
+    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice zotero syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1

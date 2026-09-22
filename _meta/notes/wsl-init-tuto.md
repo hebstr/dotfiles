@@ -533,7 +533,7 @@ sys-orphans
 ```
 
 Sans argument, `sys-update` lance tous les modules.
-Les modules `positron`, `anki` et `libreoffice` exigent que l'application soit déjà installée : dans WSL, ils sont ignorés (`skipped (<app> not installed)`), bien que `stow bin` y pose leurs scripts.
+Les modules `positron`, `anki`, `libreoffice` et `zotero` exigent que l'application soit déjà installée : dans WSL, ils sont ignorés (`skipped (<app> not installed)`), bien que `stow bin` y pose leurs scripts.
 Le module `agent-skills` n'agit que là où git suit `~/dotfiles` : dans WSL, sans `.git`, il affiche `Skipped:` et le tableau le note `OK`, les skills arrivant par Syncthing depuis la machine principale.
 
 `sys-orphans` ne supprime rien : il liste les reliquats et la commande de nettoyage de chacun.

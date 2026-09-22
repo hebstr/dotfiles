@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command -v curl >/dev/null 2>&1 || {
+  printf 'curl is required\n' >&2
+  exit 1
+}
+
+KEY_URL="${KEY_URL:-https://raw.githubusercontent.com/retorquere/zotero-pkg/master/zotero-archive-keyring.gpg}"
+KEYRING="${KEYRING:-/etc/apt/keyrings/zotero-archive-keyring.gpg}"
+SOURCES_LIST="${SOURCES_LIST:-/etc/apt/sources.list.d/zotero.list}"
+REPO_URL="${REPO_URL:-https://zotero.retorque.re/file/apt-package-archive}"
+
+sudo -v
+
+key_tmp=$(mktemp)
+trap 'rm -f "$key_tmp"' EXIT
+
+if curl -fsSL "$KEY_URL" -o "$key_tmp"; then
+  if ! cmp -s "$key_tmp" "$KEYRING"; then
+    echo "Installing Zotero GPG key to ${KEYRING}..."
+    sudo install -d -m 0755 "$(dirname "$KEYRING")"
+    sudo install -m 0644 -o root -g root "$key_tmp" "$KEYRING"
+  fi
+else
+  echo "Could not fetch ${KEY_URL}: keeping the installed Zotero key." >&2
+fi
+
+if [ ! -s "$SOURCES_LIST" ]; then
+  echo "Adding the zotero-deb repository to ${SOURCES_LIST}..."
+  echo "deb [signed-by=${KEYRING} by-hash=force] ${REPO_URL} ./" |
+    sudo install -m 0644 -o root -g root /dev/stdin "$SOURCES_LIST"
+fi
+
+echo "Refreshing the zotero-deb repository..."
+sudo apt-get update -o Dir::Etc::SourceList="$SOURCES_LIST" -o Dir::Etc::SourceParts=- \
+  --no-list-cleanup --error-on=any
+
+echo "Installing/upgrading zotero..."
+sudo apt-get install -y zotero
+
+echo
+printf 'zotero %s\n' "$(dpkg-query -W -f='${Version}' zotero)"
