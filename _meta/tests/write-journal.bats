@@ -110,6 +110,12 @@ journal() {
   [ -z "$(ls -A "$RUNTIME")" ]
 }
 
+@test "ignores a path containing a tab" {
+  run_hook "$(payload s1 "$WORK/a"$'\t'"b.sh")"
+  [ "$status" -eq 0 ]
+  [ -z "$(ls -A "$RUNTIME")" ]
+}
+
 @test "exits 0 on malformed JSON" {
   run_hook 'not json'
   [ "$status" -eq 0 ]
