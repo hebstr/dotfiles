@@ -8,12 +8,20 @@ active=$(printf '%s' "$payload" | jq -r '.stop_hook_active // false | tostring' 
 session=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null) || exit 0
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 
-[[ $active == false ]] || exit 0
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] || exit 0
+
+runtime="${XDG_RUNTIME_DIR:-/tmp}"
+blocked="$runtime/claude-code-commit-gate-${session}.blocked"
+
+if [[ $active == false ]]; then
+  rm -f -- "$blocked"
+elif [[ -e $blocked ]]; then
+  rm -f -- "$blocked"
+  exit 0
+fi
 
 printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(git [^\n]*[;&|][ \t]*)?git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\\b")' >/dev/null 2>&1 || exit 0
 
-runtime="${XDG_RUNTIME_DIR:-/tmp}"
 journal="$runtime/claude-code-writes-${session}.log"
 stamp_file="$runtime/claude-code-writes-${session}.stamp"
 
@@ -82,6 +90,8 @@ if [[ -n $top ]]; then
 fi
 
 ((${#stale[@]} > 0)) || exit 0
+
+: >"$blocked" 2>/dev/null
 
 {
   printf 'Commit gate: the commit blocks just shown are stale. '

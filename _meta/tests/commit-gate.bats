@@ -14,7 +14,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ >>"$WORK/.git/info/exclude"
-  for cmd in cat jq realpath git stat; do
+  for cmd in cat jq realpath git stat rm; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -303,10 +303,33 @@ commit_file() {
   [ "$status" -eq 0 ]
 }
 
-@test "passes when stop_hook_active is true" {
+@test "passes its own continuation and consumes its marker" {
   write_at 200 "$PROJECT/a.sh"
+  : >"$RUNTIME/claude-code-commit-gate-s1.blocked"
   run_gate "$(payload "$(commit_message)" true)"
   [ "$status" -eq 0 ]
+  [ ! -e "$RUNTIME/claude-code-commit-gate-s1.blocked" ]
+}
+
+@test "blocks a continuation another Stop hook triggered" {
+  write_at 200 "$PROJECT/a.sh"
+  run_gate "$(payload "$(commit_message)" true)"
+  [ "$status" -eq 2 ]
+  [ -e "$RUNTIME/claude-code-commit-gate-s1.blocked" ]
+}
+
+@test "writes its marker when it blocks" {
+  write_at 200 "$PROJECT/a.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [ -e "$RUNTIME/claude-code-commit-gate-s1.blocked" ]
+}
+
+@test "clears a leftover marker on a stop that is not a continuation" {
+  : >"$RUNTIME/claude-code-commit-gate-s1.blocked"
+  run_gate "$(payload 'Le script est prêt.')"
+  [ "$status" -eq 0 ]
+  [ ! -e "$RUNTIME/claude-code-commit-gate-s1.blocked" ]
 }
 
 @test "passes with no journal and a clean tree" {
