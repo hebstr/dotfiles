@@ -52,6 +52,7 @@
       "Bash(rm -rf*)",
       "Bash(rm -fr*)",
       "Bash(rm -r -f*)",
+      "Bash(curl *better-bibtex/json-rpc*)",
       "Edit(~/.claude/plugins/marketplaces/**)",
       "Edit(~/.claude/plugins/cache/**)",
       "Edit(//**/NOTES.md)",
