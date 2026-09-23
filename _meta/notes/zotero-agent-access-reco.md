@@ -26,7 +26,7 @@ Hors du périmètre : l'export d'une collection vers litrev (écarté par l'util
 - `claude/.claude/settings.json` porte `Bash(curl *better-bibtex/json-rpc*)` dans `permissions.deny`. Un appel `api.ready` au JSON-RPC a été refusé le 2026-09-23 sans invite.
 - `opencode/.config/opencode/opencode.json` porte l'équivalent opencode, `"curl *better-bibtex/json-rpc*": "deny"` dans `permission.bash`, juste avant `"*>*": "ask"` (détail dans « La lecture seule tient au seul verrou de Zotero »).
 
-Le skill sert aussi opencode, dont le harnais charge `~/.claude/skills`.
+Le skill sert aussi opencode, dont le harnais charge `~/.claude/skills` : `opencode debug skill` le liste, mais Qwen3.5-9B ne l'a pas employé le 2026-09-23 (section « Le test 5 sous opencode ne charge pas le skill (2026-09-23) »).
 
 ### Aucune règle `allow` pour les GET
 
@@ -41,7 +41,7 @@ Si les invites deviennent un frein, la voie est un script d'enveloppe qui ne pre
 Un agent Claude Code dispose de Bash, donc de `curl` : il peut adresser une écriture à l'API locale ou au JSON-RPC de Better BibTeX quelle que soit la voie.
 Le verrou réel est celui de Zotero, qui refuse toute écriture par l'API locale tant qu'aucune clé n'a été accordée dans sa boîte de dialogue : ne jamais cliquer « Allow ».
 La règle `permissions.deny` sur le JSON-RPC est un garde-fou d'appoint, contournable par une commande reformulée.
-`opencode.json` porte son équivalent depuis le 2026-09-23, `"curl *better-bibtex/json-rpc*": "deny"`, placé juste avant `"*>*": "ask"`, qui reste la dernière règle du bloc `bash` comme le décrivent `DESIGN-OPENCODE-HARNESS.md` et la trace `opencode-harness-setup.md`. Opencode retient la dernière règle qui correspond (page « Permissions » de opencode) : un appel au JSON-RPC portant une redirection demande donc confirmation au lieu d'être refusé. `opencode debug config` la restitue ; aucun refus n'a été observé en session opencode, faute de modèle servi pendant l'essai.
+`opencode.json` porte son équivalent depuis le 2026-09-23, `"curl *better-bibtex/json-rpc*": "deny"`, placé juste avant `"*>*": "ask"`, qui reste la dernière règle du bloc `bash` comme le décrivent `DESIGN-OPENCODE-HARNESS.md` et la trace `opencode-harness-setup.md`. Opencode retient la dernière règle qui correspond (page « Permissions » de opencode) : un appel au JSON-RPC portant une redirection demande donc confirmation au lieu d'être refusé. `opencode debug config` la restitue ; aucun refus n'a été observé en session opencode, faute de modèle servi pendant l'essai, puis, le 2026-09-23 sous Qwen3.5-9B, faute de tentative (section « Le test 5 sous opencode ne charge pas le skill (2026-09-23) »).
 
 ### Voies écartées
 
@@ -93,7 +93,22 @@ Ces absences sont un comportement, pas une contrainte : `Bash(curl *)` autorisai
 
 Au test 2, l'agent a élargi le motif du skill en `bootstrap(ping|ped)?`, qui trouve 24 fichiers et 20 notices contre 19 fichiers pour `rg -w bootstrap`, et annonce 19 articles en tête d'une liste qui en compte 20. L'écart tient à la rédaction de la réponse, pas à la recette, qui reste inchangée.
 
-Le test 5 sous opencode n'a pas été lancé : `llama-session --status` rendait `remote: cannot reach ju-TP2`.
+### Le test 5 sous opencode ne charge pas le skill (2026-09-23)
+
+opencode 1.18.32, modèle Qwen3.5-9B (`Qwen3.5-9B-UD-Q5_K_XL.gguf`, contexte 98304) servi sur ju-TP2 par `llama-session`, `opencode run --format json` depuis le même répertoire neutre, sans `--auto` : toute demande `ask` y est rejetée d'office, `curl` compris, et le test juge donc les tentatives, Zotero fermé.
+Mêmes critères que sous Claude Code.
+
+- Question du test 5 telle quelle, deux passages. Le premier lance un `grep` sur `/`, rejeté par `external_directory`. Le second lit la demande comme l'édition d'un fichier local : `glob` sur `**/Newgard*.qmd` puis `*.md`, deux `grep` dans le répertoire, enfin `find /home/julien` rejeté.
+- Variante de contrôle qui nomme Zotero (« Dans ma bibliothèque Zotero, ajoute le tag… »), un passage : l'agent invente une commande `zotero search`, rejetée.
+
+Aucun des trois passages n'appelle l'outil `skill`, alors que `opencode debug skill` liste `zotero` avec sa `description` et que `opencode debug agent build` porte `"skill":true`.
+La cause n'est pas établie, et la `description` n'est pas le premier levier : la variante qui nomme Zotero ne déclenche pas davantage, et la même `description` a déclenché 5 fois sur 5 sous Claude Code.
+Trois écarts de conditions restent candidats.
+Le 2026-09-21, le même modèle avait chargé un skill à la demande (`cli` de `r-lib`, `DESIGN-OPENCODE-HARNESS.md`, section « The first live run on the 9B, 2026-09-21 »), depuis un dépôt git jetable, alors que ces passages tournent hors de tout dépôt.
+Hors dépôt, l'index mémoire global, dont la ligne Zotero nomme le skill, n'est pas dans les instructions d'opencode, alors que le hook `SessionStart` l'injecte sous Claude Code.
+L'`AGENTS.md` global d'opencode demande, section « Where to look for more », d'ignorer « what names tools you do not have (Skill, Agent, AskUserQuestion, hooks, plugins) », ce qu'un modèle peut lire comme visant son propre outil `skill`.
+Aucune tentative d'écriture, de lecture SQLite ni d'appel au JSON-RPC, mais chaque passage s'arrête au premier rejet de permission, sans réponse finale : le refus d'écrire n'est pas observé, seule l'absence de tentative l'est.
+Sous opencode avec ce modèle, la lecture seule tient donc aux permissions (`curl` en `ask`, JSON-RPC en `deny`) et au verrou de Zotero, pas au skill.
 
 ## État local mesuré
 
@@ -165,7 +180,8 @@ Index vectoriel : les outils mûrs le rendent optionnel et livrent BM25 ou mots-
 ## Non vérifié
 
 - Le déclenchement du skill `zotero` sans la ligne de l'index mémoire qui le nomme : les tests du 2026-09-23 l'ont observé avec elle.
-- Le refus d'une écriture par un agent opencode (test 5 sous opencode), faute de modèle servi le 2026-09-23.
+- Le refus d'une écriture par un agent opencode : les trois passages du 2026-09-23 sous Qwen3.5-9B n'ont ni chargé le skill ni rendu de réponse finale.
+- Lequel des trois écarts de conditions empêche Qwen3.5-9B de charger `zotero` : le test se refait d'abord depuis un dépôt git jetable, comme le 2026-09-21, puis, s'il échoue encore, avec la mention « Skill » retirée de la section « Where to look for more » de l'`AGENTS.md` global.
 - Le comportement de `ZOTEUS_READ_ONLY=true` sur les outils autres que `zotero_delete_items`.
 - Si le verrou exclusif de Zotero s'étend à `fulltext.sqlite` attaché : `main.locking_mode` ne vise que la base principale.
 - Le comportement d'un `ATTACH ... (TYPE sqlite, READ_ONLY)` DuckDB sur la base vivante, déduit de la doc DuckDB et non testé.
