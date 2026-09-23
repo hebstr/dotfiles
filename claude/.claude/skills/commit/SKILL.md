@@ -35,10 +35,11 @@ Dans cet ordre, sans en sauter.
 3. Appliquer ses constats par Edit, un par un, après avoir vérifié chacun : un constat que la vérification dément est écarté, et nommé comme tel.
    Un constat qui demande de modifier du code, et non du tracking, n'est pas appliqué d'office : le signaler à l'utilisateur.
 4. Vérifier que le tampon est écrit (`cat '<STAMP_FILE>'` égal à `<STAMP_VALUE>`). Sinon, l'écrire soi-même avec la même valeur, en le disant.
-   Si l'étape 3 a appliqué au moins un constat, lister les chemins journalisés après `<STAMP_VALUE>` :
+   Si l'étape 3 a appliqué au moins un constat, lister les chemins journalisés après `<STAMP_VALUE>` et ceux de `git status` modifiés après lui, les deux sources que lit la porte :
 
    ```bash
-   while IFS=$'\t' read -r ts p; do ((ts > <STAMP_VALUE>)) && printf '%s\n' "$p"; done <'<JOURNAL>' | sort -u
+   top=$(git rev-parse --show-toplevel)
+   { { while IFS=$'\t' read -r ts p; do ((ts > <STAMP_VALUE>)) && printf '%s\n' "$p"; done <'<JOURNAL>'; } 2>/dev/null; git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all | while IFS= read -r -d '' e; do p="$top/${e:3}"; m=$(stat -c %.9Y -- "$p" 2>/dev/null) && ((10#${m/./} > <STAMP_VALUE>)) && printf '%s\n' "$p"; done; } | sort -u
    ```
 
    Si chacun de ces chemins est un fichier de tracking visé par un constat appliqué, réécrire le tampon (`date +%s%N >'<STAMP_FILE>'`), sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
