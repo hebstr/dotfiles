@@ -123,8 +123,8 @@ Staleness has two independent causes, and a script needs both halves to be immun
 | prettier    | CSS/SCSS formatter (`~/.local/bin/prettier`, same toolchain). Gate in `rules/css.md` |
 | lua-language-server | Lua LSP + type checker (`~/.local/bin/lua-language-server` → `~/.local/share/lua-language-server/`); `--check <dir>` for CLI diagnostics against Quarto LuaCATS stubs. Gate in `rules/lua.md` |
 | sqlfluff    | SQL fixer + linter (`~/.local/bin/sqlfluff`, `uv tool install "sqlfluff[rs]"`); the whole gate on its own, `fix` then `lint`. Needs a project config naming a dialect (`.sqlfluff`, or `[tool.sqlfluff]` in `pyproject.toml`) or it exits 2. Gate in `rules/sql.md` |
-| detect-pdf  | PDF classification, text vs scanned, plus per-page OCR / table / column routing (`cargo install pdf-inspector`). Always the first step on a PDF; routing in `rules/pdf.md` |
-| pdf2md      | PDF to Markdown with multi-column reading order (same crate). Unsafe on slide decks: see the measured defects in `rules/pdf.md` |
+| detect-pdf  | PDF classification, text vs scanned, plus per-page OCR and column routing; its table map does not locate tables (`cargo install pdf-inspector`). Always the first step on a PDF; routing in `rules/pdf.md` |
+| pdf2md      | PDF to Markdown with multi-column reading order (same crate). Unsafe on slide decks, and its pipe tables are never a source, articles included: see the measured defects in `rules/pdf.md` |
 | pdftotext   | Raw PDF text extraction (poppler-utils); `-layout` keeps the spatial arrangement, plain mode is the default for `rg` searches |
 | pdfinfo     | PDF metadata: page count, `Creator`, `Producer` (poppler-utils). Its page size, `Page rot`, `Creator` and `Producer` fields feed the slide-deck test of `rules/pdf.md`, the union of orientation and producer |
 | pdftoppm    | PDF page to PNG (poppler-utils); the way to hand a scanned page to the native `Read` tool |

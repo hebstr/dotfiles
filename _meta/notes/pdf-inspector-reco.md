@@ -134,3 +134,44 @@ Le champ `title` du JSON sort parfois mal encodé (`Sant� publique`). Ne pas s
 L'OCR. Le build par défaut n'en a pas, et la feature `ocr` réclame PDFium et ONNX Runtime installés à part. Un PDF réellement scanné reste traité par l'outil `Read` natif, page par page. `pdf-inspector` améliore ce cas sur un seul point : il dit désormais quelles pages en relèvent, au lieu de laisser deviner.
 
 Si ce trou devait être comblé un jour, `ocrmypdf` avec `tesseract-ocr-fra` reste le chemin le plus court, et il est indépendant de la présente décision.
+
+## 2026-09-23 : tableaux des articles scientifiques
+
+La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Corpus, sorties et comptage cellule par cellule : `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-*.md`), non versionné.
+
+### Protocole
+
+- Sélection indépendante de l'outil testé : parmi les 295 PDF de `~/Zotero/storage`, les 188 qui portent une légende « Table N » ou « Tableau N » dans `pdftotext`, stratifiés par producteur (`pdfinfo`), puis 16 articles et 38 tableaux choisis pour varier la langue, la mise en page et la forme. `detect-pdf` n'a été relevé qu'après coup.
+- Producteurs : pdfTeX (3 articles), Acrobat Distiller (5), Word (2), Adobe PDF Library (2), PDFlib PLOP, PDFsharp, Antenna House et un PDF retouché par iText (1 chacun). Anglais et français, une et deux colonnes, pages pivotées et en paysage.
+- Référence : l'image de la page (pdftoppm puis `Read`), contrôlée par `pdftotext -layout`. L'image l'emporte en cas de divergence.
+- Métrique : grille de cellules comptée à la main, proche de GriTS_Con en correspondance exacte, avec appariement un à un des tableaux. TEDS et GriTS supposent des portées de cellules qu'un tableau Markdown ne peut pas exprimer : elles pénaliseraient le format, pas l'outil. Une cellule fusionnée est donc juste si son texte tombe dans l'une des positions qu'elle couvre.
+- Fabrication : 4 pages témoins sans tableau, plus un relevé sur toutes les pages des 16 sorties, chaque bloc Markdown étant rattaché à sa page physique par son contenu, puis vérifié sur l'image.
+- Comparaison répartie entre 4 agents, un lot de producteurs chacun, avec contrôles par sondage dans le fil principal.
+
+### Résultats
+
+| Mesure | `pdf2md` | `pdftotext -layout` |
+|---|---|---|
+| Tableaux fidèles / altérés / non détectés | 5 / 25 / 8 sur 38 | sans objet |
+| Cellules fausses ou non récupérables | 1 853 / 3 923 (47 %) | 337 / 3 923 (9 %) |
+| Même mesure, hors les deux tableaux de Silberzahn | 1 206 / 3 245 (37 %) | 52 / 3 245 (1,6 %) |
+| Médiane par tableau | 28 % | 0 % |
+
+- **Aucun producteur n'est sûr.** pdfTeX 44 % de cellules fausses, Distiller 43 %, Word 22 %, Adobe PDF Library 66 %. PLOP (5,5 %) et iText (4 %) restent les plus bas, sur un article chacun.
+- **Les tableaux fidèles sont les grilles simples** : une ligne d'en-tête, pas de texte long, pas de prose contiguë. Dès qu'un en-tête s'étage sur deux niveaux, qu'une cellule porte plusieurs lignes, ou qu'une ligne de groupe n'a pas de valeur, les lignes fusionnent (19 tableaux) et les colonnes glissent (14).
+- **Les valeurs sont altérées sans bruit.** Les exposants sortent des cellules (`2.3 · 10` dans la cellule, `<sup>19</sup>` sur une ligne après le tableau) ; les valeurs d'une colonne glissent dans la voisine quand une cellule est vide ; la prose et les légendes se collent aux cellules.
+- **8 tableaux non détectés**, sortis en prose sans appariement récupérable. Dont les deux pages pivotées de Burlacu et le Tableau 3 de Vaswani.
+- **Tableaux fabriqués dans les articles.** Sur 21 pages sans tableau, dans 11 des 16 documents, `pdf2md` émet un tableau Markdown fait de prose à deux colonnes, de pages de titre, d'étiquettes de figure ou de listings de code. Le défaut d'août sur les diaporamas s'étend aux articles, pdfTeX compris.
+- **`detect-pdf` ne localise pas les tableaux.** `pages_with_tables` manque au moins une page de 6 tableaux sur 38, liste des pages de texte ou de figures (schmidt p2, p3, p4, p7, p8), et diverge de `pdf2md`, dont il ne rejoue qu'une partie des détecteurs (source, fonction `compute_layout_complexity_with_chart_regions`).
+- **Les balises `<!-- Page N -->` de `--pages` ne sont pas fiables** : pages sans balise, et jusqu'à douze pages rangées sous une seule balise.
+- **`pdftotext -layout` reste lisible** : au plus une cellule perdue sur 29 tableaux. Ses échecs sont prévisibles : exposants aplatis (`1019`), glyphes mal codés dans le PDF, page pivotée dense, rangée d'en-tête compressée. Sur ces cas, l'image de la page seule fait foi.
+
+Recherche externe (détail dans `COMPARAISON.md`, section « Métrique ») : le score « Tables (TEDS) 0.814 » du README de pdf-inspector vient d'opendataloader-bench, soit 42 documents à tableaux, mesurés sur la version 0.2.6, et un benchmark qui ne pénalise aucun tableau inventé. Il ne se transpose pas à ce corpus. Upstream, des issues ouvertes décrivent les mêmes défauts : cellules fusionnées (#537), fausses tables sur pages à colonnes (#498, #219) et sur un bloc d'auteurs arXiv (#291), exposants (#297), en-têtes pivotés (#296). Aucune option ne désactive la détection des tableaux (`MarkdownOptions` n'en a pas).
+
+### Décision
+
+**`pdf2md` reste l'outil de lecture suivie des articles (règle 3), pour l'ordre de lecture de la prose, mais aucun tableau Markdown qu'il émet ne sert de source.** Toute valeur tirée d'un tableau se lit dans `pdftotext -layout` sur la page du tableau, trouvée par sa légende, et sur l'image de la page quand le tableau porte des exposants, des glyphes spéciaux, un en-tête sur plusieurs niveaux, ou quand la page est pivotée. Un tableau Markdown dans une sortie `pdf2md` ne prouve pas qu'un tableau existe. Ni `pages_with_tables` ni les balises `--pages` ne servent à localiser un tableau.
+
+Rien à construire. Un filtre qui supprimerait les tableaux de la sortie `pdf2md` jetterait aussi les tableaux justes, sans rien apporter que la règle ne couvre déjà : la valeur se relit de toute façon dans `-layout`. Appliqué le 2026-09-23 dans `~/.claude/rules/pdf.md` : une phrase ajoutée à la règle 3, une règle 6 (tableaux) avec la commande de localisation par légende, et la section des défauts mesurés étendue aux articles. L'entrée `pdf2md` de `rules/environment.md` suit.
+
+À réévaluer si les correctifs upstream des exposants (#297), des en-têtes pivotés (#296) et des tableaux scindés (#270) sont publiés : le corpus et `COMPARAISON.md` permettent de refaire la mesure à l'identique.
