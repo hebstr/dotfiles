@@ -60,6 +60,22 @@ Si un fichier mémoire a été écrit : l'index `~/.claude/memory/MEMORY.md` a-t
 
 Quand une note de design décrit le fonctionnement d'un fichier écrit dans la session, compare la description au fichier tel qu'il est maintenant : nom de fonction, option, chemin, comportement.
 
+### 5. Revues annoncées en attente et déjà lancées
+
+Ce contrôle porte sur tout le tracking du dépôt, pas seulement sur `WRITES` : une revue lancée n'écrit souvent rien dans le fichier qui l'annonçait.
+Liste les revues réellement lancées, d'après les transcripts du projet :
+
+```bash
+proj="$HOME/.claude/projects/$(printf '%s' "REPO" | sed 's#[/.]#-#g')"
+rg --no-filename -e '<command-name>/audit:(walkthrough|blindspot)</command-name>' -e '"skill":"audit:(walkthrough|blindspot)"' "$proj"/*.jsonl | jq -r '.timestamp[0:10] as $d | .message.content | (if type=="string" then [.] else [.[]? | select(.type=="text") | .text] end | .[] | capture("<command-name>/(?<k>audit:(walkthrough|blindspot))</command-name>\\s*<command-args>(?<a>[^<]*)")? | "\($d)\t\(.k)\t\(.a)"), (if type=="array" then .[] | select(.type=="tool_use" and .name=="Skill" and (.input.skill|test("^audit:(walkthrough|blindspot)$"))) | "\($d)\t\(.input.skill)\t\(.input.args // "" | split("\n")[0])" else empty end)' | sort -u
+```
+
+en remplaçant `REPO` par la valeur reçue.
+Puis liste les revues que le tracking annonce : `rg -n '/audit:(walkthrough|blindspot) ' REPO/.claude REPO/_meta/notes ~/.claude/memory`.
+Une annonce présentée comme à faire (« pending », « en attente », « à lancer », « proposée », « Left ») dont la cible désigne le même fichier qu'une revue lancée de même type (même nom de base, quelle que soit la forme du chemin ou du glob) est un constat : cite la ligne d'invocation (date, type, arguments) et propose de fermer l'annonce en la datant.
+Une annonce déjà datée comme faite, ou qui demande explicitement une nouvelle passe après un changement postérieur à la revue trouvée, n'est pas un constat.
+L'absence d'invocation ne prouve rien : les transcripts ne sont gardés que `cleanupPeriodDays` jours. Ne signale donc jamais une annonce faute de preuve.
+
 ## Ce que tu rends
 
 Un rapport en français, dans cet ordre :
