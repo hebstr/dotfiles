@@ -183,7 +183,7 @@ Comportement documenté de stow, non mesuré ici.
 
 Fragilité assumée : `z24d9fn6` est un nom généré à la création du profil.
 Une réinstallation ou une réinitialisation de Firefox produit un autre nom, le lien pointe alors dans le vide et le réglage disparaît sans message d'erreur.
-C'est le seul paquet dotfiles lié à une machine précise.
+Depuis le 2026-09-23, le paquet `zotero` partage cette fragilité avec son profil `pucr7b5d.default` : ce sont les deux paquets dotfiles liés à une machine précise.
 
 ### Changer de profil dnsforge
 
