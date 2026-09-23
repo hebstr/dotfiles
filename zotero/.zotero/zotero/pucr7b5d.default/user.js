@@ -10,6 +10,8 @@ user_pref("extensions.zotero.recursiveCollections", true);
 user_pref("extensions.zotero.search.quicksearch-mode", "everything");
 user_pref("extensions.zotero.tagSelector.showAutomatic", false);
 
+user_pref("extensions.zotero.httpServer.localAPI.enabled", true);
+
 user_pref("extensions.zotero.cite.automaticJournalAbbreviations", false);
 user_pref("extensions.zotero.export.quickCopy.setting", "export=b6e39b57-8942-4d11-8259-342c46ce395f");
 user_pref("extensions.zotero.import.createCollection", false);

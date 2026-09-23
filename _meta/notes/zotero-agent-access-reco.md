@@ -1,7 +1,7 @@
 # Accès en lecture des agents Claude Code à la bibliothèque Zotero
 
 Note de recherche issue de `/workflow:reco` (2026-09-23), dont la décision a été arrêtée par `/cadrer` le même jour.
-Aucune action engagée : l'API locale reste désactivée et aucun serveur MCP Zotero n'est installé.
+L'API locale est activée par `user.js` depuis le 2026-09-23 ; aucun serveur MCP Zotero n'est installé.
 Sources officielles lues dans le code de Zotero au tag `10.0.3` (via `gh api`) et sur les pages zotero.org, retorque.re et duckdb.org, vérifiées à cette date.
 
 ## Les agents passent par un skill et l'API locale, sans serveur MCP (décidé 2026-09-23)
@@ -21,9 +21,9 @@ Hors du périmètre : l'export d'une collection vers litrev (écarté par l'util
 
 ### Le montage vivra dans trois fichiers versionnés
 
-Aucun n'est encore modifié au 2026-09-23.
+Seul `user.js` est modifié au 2026-09-23 ; le skill et la règle `deny` restent à écrire.
 
-- `zotero/.zotero/zotero/pucr7b5d.default/user.js` activera l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
+- `zotero/.zotero/zotero/pucr7b5d.default/user.js` active l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
 - `claude/.claude/skills/zotero/` portera les recettes, et un script dans `scripts/` si les agents composent mal leurs requêtes, sur le modèle du skill `depouiller` et de son `scripts/squelette.py`.
 - `claude/.claude/settings.json` bloquera par `permissions.deny` l'appel au JSON-RPC de Better BibTeX.
 
@@ -41,11 +41,19 @@ La règle `permissions.deny` sur le JSON-RPC est un garde-fou d'appoint, contour
 - **Un serveur MCP maison dans un plugin**, sur le modèle de `litrev-mcp`. C'est la voie la plus coûteuse, un serveur à maintenir pour des lectures en GET, avec la même exclusion d'opencode, et aucun des trois usages ne demande d'outils typés.
 - **Ne rien faire.** `rg` sur les `.zotero-ft-cache` fonctionne déjà, même Zotero ouvert, mais il ne renvoie que des clés de pièce jointe, sans notice ni clé de citation : il ne couvre que la moitié du deuxième usage.
 
-### Le premier test précède l'écriture du skill
+### Les quatre GET répondent sans clé (mesuré 2026-09-23)
 
-La décision tient tant que l'API locale répond sans clé aux GET dont les usages ont besoin : recherche `q`, `GET /fulltext`, `parentItem` d'une pièce jointe, clé de citation dans la notice.
-Aucun n'a été essayé sur cette installation (voir « Non vérifié »), la mise en œuvre commence donc par ces requêtes, Zotero lancé et l'API activée.
-Si l'une manque, le cadrage se rouvre sur l'usage concerné plutôt que de basculer vers un serveur MCP, qui passerait par la même API.
+La décision tient tant que l'API locale répond sans clé aux GET dont les usages ont besoin.
+Mesuré le 2026-09-23, Zotero 10.0.3 lancé avec la pref à `true`, sur la pièce jointe `8P9NJ7XL` et sa notice `Q5JEE39T` :
+
+- `items?q=regression&format=json` renvoie les notices ; `Total-Results` porte le décompte (312 notices de premier niveau par `items/top`). Sur `q=bootstrap`, `qmode=titleCreatorYear` en trouve 3 et `qmode=everything` 33, contre 19 fichiers `.zotero-ft-cache` pour `rg -l -i -w` : l'API cherche donc aussi dans le texte intégral, sur un appariement plus large que le mot entier.
+- `items/<pièce jointe>` donne `data.parentItem`, et `links.enclosure.href` le chemin `file://` du PDF dans `~/Zotero/storage/`, ce qui sert le troisième usage sans reconstruire le chemin.
+- `items/<pièce jointe>/fulltext` renvoie `content` (40 999 caractères), `indexedPages` et `totalPages`.
+- `data.citationKey` porte la clé Better BibTeX : sur `Q5JEE39T`, la valeur de l'API et celle de `item.citationkey` du JSON-RPC sont identiques (`newgardAdvancedStatisticsPropensity2004`), et les 100 premières notices de `items/top` ont toutes une clé. `format=bibtex` sort l'entrée sous cette même clé.
+- Un `DELETE` sans clé reçoit `428`.
+
+Les clés en place ne suivent pas la formule `auth.lower + year` de `citekeyFormat` : aucune des 100 notices lues n'a la forme courte, alors que `prefs.js` porte `autoPinMigrated`. Les clés semblent épinglées d'une formule antérieure, ce qui reste à confirmer. Le skill lit donc la clé dans `data.citationKey` et ne la recalcule jamais depuis la formule.
+
 L'API exige que Zotero tourne : sans lui, seule la recherche `rg` fonctionne, et le skill demande alors de lancer Zotero.
 
 ### Ce qui reste valable de la recherche initiale
@@ -124,8 +132,6 @@ Index vectoriel : les outils mûrs le rendent optionnel et livrent BM25 ou mots-
 ## Non vérifié
 
 - Le comportement de `ZOTEUS_READ_ONLY=true` sur les outils autres que `zotero_delete_items`.
-- `GET /fulltext` sur l'API locale en conditions réelles : Zotero était fermé et l'API locale désactivée pendant la recherche. Le code du tag 10.0.3 le sert.
-- Les autres GET dont le skill dépend, tout aussi inessayés : la recherche `q`, le `parentItem` d'une pièce jointe, la présence de la clé de citation Better BibTeX dans la notice.
 - Si le verrou exclusif de Zotero s'étend à `fulltext.sqlite` attaché : `main.locking_mode` ne vise que la base principale.
 - Le comportement d'un `ATTACH ... (TYPE sqlite, READ_ONLY)` DuckDB sur la base vivante, déduit de la doc DuckDB et non testé.
 
