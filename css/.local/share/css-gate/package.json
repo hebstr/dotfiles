@@ -4,7 +4,7 @@
   "description": "Pinned toolchain backing the CSS/SCSS lint/format gate (rules/css.md)",
   "type": "module",
   "devDependencies": {
-    "prettier": "3.9.8",
+    "prettier": "3.9.9",
     "stylelint": "17.15.0",
     "stylelint-config-standard-scss": "17.0.0"
   }
