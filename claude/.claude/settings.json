@@ -134,6 +134,14 @@
             "command": "bash ~/.claude/hooks/commit-gate.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/ending-gate.sh"
+          }
+        ]
       }
     ],
     "Notification": [

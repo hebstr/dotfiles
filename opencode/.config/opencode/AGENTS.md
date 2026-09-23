@@ -25,6 +25,9 @@ Read a file from it when a rule below points to it, and not before.
 - When you present options, end with your own recommendation and its reason in one sentence.
   Check what it depends on before giving it.
   If the user asks again without a new fact, keep it; a changed recommendation names the fact or check that changed it.
+- An action you propose yourself also ends on your recommendation: do it or not, with the reason in one sentence.
+  Never end on a bare offer such as "si tu veux", "dis-moi si" or "let me know if".
+  An action these rules already require, such as updating the project's plan, is done, not offered.
 - Never write a URL into a file without fetching it first.
   If you cannot fetch it, leave it out and say so.
 - In prose, avoid "not X, but Y" constructions, rhetorical questions answered right after, and empty openers such as "It's worth noting".
@@ -35,6 +38,7 @@ Read a file from it when a rule below points to it, and not before.
   The user runs git.
 - When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form.
   Never `git add -A`.
+  When every task of the session is done, give that block unasked, instead of asking whether to.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
   Reading them is fine.
 - Never print a secret.

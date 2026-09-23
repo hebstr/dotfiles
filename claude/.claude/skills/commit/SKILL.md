@@ -1,6 +1,6 @@
 ---
 name: commit
-description: À invoquer avant toute proposition de commit, demandée par l'utilisateur ou spontanée, avant d'écrire le moindre `git commit`, et pour clore une session. Aussi quand la porte de commit (hook Stop) le demande.
+description: À invoquer avant toute proposition de commit, demandée par l'utilisateur ou spontanée, avant d'écrire le moindre `git commit`, et pour clore une session, par le modèle lui-même dès que toutes les tâches de la session sont faites, sans renvoyer l'utilisateur à `/commit` ni lui demander s'il faut la lancer. Aussi quand un hook Stop (`commit-gate.sh`, `ending-gate.sh`) le demande.
 ---
 
 # Proposition de commit
