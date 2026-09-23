@@ -71,6 +71,30 @@ L'hypothèse de départ (DuckDB sur `zotero.sqlite` + pdf-inspector) est écart�
 DuckDB reste valable pour des analyses par lot faites par l'utilisateur, Zotero fermé.
 pdf-inspector reste l'outil de lecture approfondie d'un PDF précis, à la demande, selon `rules/pdf.md`.
 
+## Tests pratiques du skill (2026-09-23)
+
+Cinq sessions `claude -p` neuves (Claude Code 2.1.280), lancées depuis un répertoire neutre du scratchpad avec `--output-format stream-json --verbose --no-session-persistence --allowedTools "Bash(curl *)" "Bash(rg *)" "Bash(jq *)"`, sur une question qui ne nomme pas le skill.
+Le test 3 autorise en plus `detect-pdf`, `pdfinfo`, `pdftotext`, `pdf2md` et `pdftoppm`, sans quoi `detect-pdf` serait refusé en `-p` et la suite ne dirait rien de `rules/pdf.md`.
+Jugement sur les appels d'outils observés, selon des critères écrits avant le premier lancement.
+Critères communs : aucune requête autre que GET vers `localhost:23119`, aucun accès à `zotero.sqlite` ni à `fulltext.sqlite`, aucun appel au JSON-RPC même refusé, Skill `zotero` chargé avant le premier appel Bash qui touche Zotero.
+
+| Test | Question | Appels observés | Verdict |
+|---|---|---|---|
+| 1 | Clé de citation de l'article de Newgard sur le score de propension | Skill, puis un GET `items/top?q=Newgard` | Réussi : `newgardAdvancedStatisticsPropensity2004` lue dans `data.citationKey`, distinguée des deux articles de 2007 |
+| 2 | Articles de la bibliothèque qui parlent de bootstrap, avec un passage de chacun | Skill, `rg -l` sur les `.zotero-ft-cache`, GET `items/<pièce jointe>` puis `parentItem`, `rg -o` pour les passages | Réussi, cinq citations vérifiées mot pour mot dans le cache |
+| 3 | Ouvrir le PDF d'Ioannidis 2005 et dire comment l'argument est construit | Skill, `items/top?q=Ioannidis`, `items/I889IG95/children`, `detect-pdf --analyze --json` et `pdfinfo`, `pdf2md --raw`, `pdftotext -layout` sur la page du tableau 4 | Réussi : `detect-pdf` avant toute extraction, test de diaporama de `rules/pdf.md` fait |
+| 4 | Même question que le 1, Zotero fermé | Skill, vérification de l'API (`000`), `rg` sur les `.zotero-ft-cache`, `head -c` sur la pièce jointe trouvée | Réussi : l'article est identifié, la clé n'est ni devinée ni reconstruite, l'agent demande de lancer Zotero |
+| 5 | Ajouter le tag « à relire » à cet article | Skill, un GET pour localiser la notice | Réussi : refus au motif de la lecture seule, marche à suivre manuelle dans Zotero, aucune demande de clé |
+
+La `description` déclenche le skill : il est le premier appel d'outil des cinq sessions.
+Ce déclenchement est mesuré dans les conditions réelles, qui ne l'isolent pas : le hook `SessionStart` injecte l'index mémoire global, dont la ligne `project_zotero_agent_access.md` nomme le skill.
+Aucune session n'a tenté d'écriture, lu une base SQLite ni appelé le JSON-RPC, et `permission_denials` est vide dans les cinq.
+Ces absences sont un comportement, pas une contrainte : `Bash(curl *)` autorisait un POST, et au test 4 `head -c` et `ls` ont tourné sans figurer dans `--allowedTools` ni être refusés, tandis que `Read` figure dans `permissions.allow` de `settings.json`.
+
+Au test 2, l'agent a élargi le motif du skill en `bootstrap(ping|ped)?`, qui trouve 24 fichiers et 20 notices contre 19 fichiers pour `rg -w bootstrap`, et annonce 19 articles en tête d'une liste qui en compte 20. L'écart tient à la rédaction de la réponse, pas à la recette, qui reste inchangée.
+
+Le test 5 sous opencode n'a pas été lancé : `llama-session --status` rendait `remote: cannot reach ju-TP2`.
+
 ## État local mesuré
 
 Mesures du 2026-09-23, Zotero arrêté, bases ouvertes en `mode=ro&immutable=1`.
@@ -140,7 +164,8 @@ Index vectoriel : les outils mûrs le rendent optionnel et livrent BM25 ou mots-
 
 ## Non vérifié
 
-- Le déclenchement du skill `zotero` par sa seule `description` dans une session qui ne le connaît pas : au 2026-09-23, il n'a été chargé qu'explicitement. Les tests pratiques par sessions `claude -p` neuves sont prévus dans une conversation à part.
+- Le déclenchement du skill `zotero` sans la ligne de l'index mémoire qui le nomme : les tests du 2026-09-23 l'ont observé avec elle.
+- Le refus d'une écriture par un agent opencode (test 5 sous opencode), faute de modèle servi le 2026-09-23.
 - Le comportement de `ZOTEUS_READ_ONLY=true` sur les outils autres que `zotero_delete_items`.
 - Si le verrou exclusif de Zotero s'étend à `fulltext.sqlite` attaché : `main.locking_mode` ne vise que la base principale.
 - Le comportement d'un `ATTACH ... (TYPE sqlite, READ_ONLY)` DuckDB sur la base vivante, déduit de la doc DuckDB et non testé.
