@@ -39,6 +39,8 @@ Porter la convention dans `claude/.claude/CLAUDE.md` ou dans un fichier de `clau
 Motif du report : rien ne presse tant qu'`eds-prise` est le seul dépôt concerné et que ses notes sont converties.
 Le risque assumé est la régression silencieuse, la convention n'étant portée que par l'exemple des fichiers déjà convertis.
 
+Fait le 2026-09-19 : la règle « Cite by name, never by line number, in every Claude tracking file » est entrée dans `claude/.claude/CLAUDE.md` avec `639a553`, et le détail est dans `feedback_line_number_cross_refs.md`.
+
 ## Ce qui est écarté, et pourquoi
 
 Un hook `prek` refusant tout `fichier.R:N` nouvellement introduit dans les notes de design.
@@ -51,3 +53,5 @@ Deux raisons, la première suffisante :
 
 Trancher entre `CLAUDE.md` global et fichier mémoire, puis écrire la règle en trois points : ancrer sur le symbole, nommer le symbole porteur plus la clause quand il n'y a pas de symbole propre, ne garder un numéro que s'il est épinglé à un commit.
 Proposer `/audit:blindspot` sur le fichier modifié, la règle touchant tous les projets.
+
+Fait : la règle est tranchée en faveur de `CLAUDE.md` global (`639a553`, 2026-09-19), et `/audit:blindspot` a été lancé sur `claude/.claude/CLAUDE.md` le 2026-09-20.
