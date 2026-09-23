@@ -1,7 +1,7 @@
 # Ancrage des notes de design : symbole plutôt que ligne
 
 Décision différée (2026-08-10), issue d'un `/workflow:sync` sur `eds-prise`.
-Rien n'est écrit dans `claude/.claude/CLAUDE.md` ni dans `claude/.claude/memory/`.
+Portée dans `claude/.claude/CLAUDE.md` global le 2026-09-19 (`639a553`), détail dans `feedback_line_number_cross_refs.md` (voir « Ce qui reste différé »).
 Elle existe pour que l'arbitrage n'ait pas à être repris de zéro.
 
 ## Constat
