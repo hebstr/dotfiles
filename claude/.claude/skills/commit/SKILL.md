@@ -29,7 +29,7 @@ Dans cet ordre, sans en sauter.
    La liste unit le journal et `git status`, parce que le journal ne voit ni les écritures d'une session antérieure à un `/clear` (l'id de session change), ni celles faites en Bash ou à la main.
    L'état du shell ne survit pas d'un appel Bash à l'autre : les commandes des étapes suivantes reçoivent ces trois valeurs recopiées telles qu'affichées, à la place de `<JOURNAL>`, `<STAMP_FILE>` et `<STAMP_VALUE>`.
    Liste vide : aucune écriture dans la session et un arbre propre, passer à 0.2.
-   `CLAUDE_CODE_SESSION_ID` vide : le dire, et lancer quand même le vérificateur sur les fichiers que `git status` montre, sans tampon ; la porte bloquera de nouveau, ce qui est le comportement voulu.
+   `CLAUDE_CODE_SESSION_ID` vide : le dire, et lancer quand même le vérificateur sur les fichiers que `git status` montre, sans tampon ; la porte bloquera de nouveau au prochain rendu de blocs hors de la continuation qu'elle a déclenchée, où `stop_hook_active` la fait sortir en 0, ce qui est le comportement voulu.
 2. Lire `agents/verifier.md` (à côté de ce fichier) et lancer un agent `general-purpose` **au premier plan**, dont le prompt est ce fichier suivi de `REPO` (la racine git), `WRITES` (la liste ci-dessus), `STAMP_FILE` et `STAMP_VALUE`.
    Un contexte neuf est la raison d'être de l'étape : ne pas lui transmettre de résumé de la session, ni d'avis sur ce qui est à jour.
 3. Appliquer ses constats par Edit, un par un, après avoir vérifié chacun : un constat que la vérification dément est écarté, et nommé comme tel.
@@ -39,11 +39,11 @@ Dans cet ordre, sans en sauter.
 
    ```bash
    top=$(git rev-parse --show-toplevel)
-   { { while IFS=$'\t' read -r ts p; do ((ts > <STAMP_VALUE>)) && printf '%s\n' "$p"; done <'<JOURNAL>'; } 2>/dev/null; git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all | while IFS= read -r -d '' e; do p="$top/${e:3}"; m=$(stat -c %.9Y -- "$p" 2>/dev/null) && ((10#${m/./} > <STAMP_VALUE>)) && printf '%s\n' "$p"; done; } | sort -u
+   { { while IFS=$'\t' read -r ts p; do ((ts > <STAMP_VALUE>)) && printf '%s\n' "$p"; done <'<JOURNAL>'; } 2>/dev/null; git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all | while IFS= read -r -d '' e; do p="$top/${e:3}"; m=$(stat -c %.9Z -- "$p" 2>/dev/null) && ((10#${m/./} > <STAMP_VALUE>)) && printf '%s\n' "$p"; done; } | sort -u
    ```
 
    Si chacun de ces chemins est un fichier de tracking visé par un constat appliqué, réécrire le tampon (`date +%s%N >'<STAMP_FILE>'`), sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
-   Si au moins un chemin sort de ce cas, garder le tampon tel quel et nommer ce chemin : la porte bloquera, ce qui est voulu.
+   Si au moins un chemin sort de ce cas, garder le tampon tel quel et nommer ce chemin à l'utilisateur : la porte ne rebloque pas dans la continuation qu'elle a déclenchée (`stop_hook_active`), et ne bloquera qu'au prochain rendu de blocs hors de celle-ci, ce qui est voulu.
 
 Ce passage ne remplace pas la vérification que la session doit à chaque écriture de tracking ; il attrape ce qu'elle a laissé passer.
 

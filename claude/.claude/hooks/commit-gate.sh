@@ -11,7 +11,7 @@ cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 [[ $active == false ]] || exit 0
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] || exit 0
 
-printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(git [^\n]*[;&|][ \t]*)?git commit\\b")' >/dev/null 2>&1 || exit 0
+printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(git [^\n]*[;&|][ \t]*)?git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\\b")' >/dev/null 2>&1 || exit 0
 
 runtime="${XDG_RUNTIME_DIR:-/tmp}"
 journal="$runtime/claude-code-writes-${session}.log"
@@ -29,12 +29,13 @@ top=""
 [[ -n $root ]] && top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null) || top=""
 memory=$(realpath -m -- "$HOME/.claude/memory" 2>/dev/null || printf '%s' "$HOME/.claude/memory")
 
-in_work_tree() {
+in_work_tree_unignored() {
   local dir=${1%/*}
   while [[ -n $dir && ! -d $dir ]]; do
     dir=${dir%/*}
   done
-  [[ $(git -C "${dir:-/}" rev-parse --is-inside-work-tree 2>/dev/null) == true ]]
+  [[ $(git -C "${dir:-/}" rev-parse --is-inside-work-tree 2>/dev/null) == true ]] || return 1
+  ! git -C "${dir:-/}" check-ignore -q -- "$1" 2>/dev/null
 }
 
 excluded() {
@@ -44,12 +45,12 @@ excluded() {
 }
 
 changed_since_stamp() {
-  local mtime
+  local ctime
   if [[ -e $1 || -L $1 ]]; then
-    mtime=$(stat -c '%.9Y' -- "$1" 2>/dev/null) || return 1
-    mtime=${mtime/./}
-    [[ $mtime =~ ^[0-9]+$ ]] || return 1
-    ((10#$mtime > stamp))
+    ctime=$(stat -c '%.9Z' -- "$1" 2>/dev/null) || return 1
+    ctime=${ctime/./}
+    [[ $ctime =~ ^[0-9]+$ ]] || return 1
+    ((10#$ctime > stamp))
   else
     ((stamp == 0))
   fi
@@ -64,7 +65,7 @@ if [[ -r $journal ]]; then
     excluded "$path" && continue
     [[ -n ${seen[$path]:-} ]] && continue
     seen[$path]=1
-    in_work_tree "$path" || continue
+    in_work_tree_unignored "$path" || continue
     stale+=("$path")
   done <"$journal"
 fi
@@ -77,7 +78,7 @@ if [[ -n $top ]]; then
     changed_since_stamp "$path" || continue
     seen[$path]=1
     stale+=("$path")
-  done < <(git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
+  done < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
 fi
 
 ((${#stale[@]} > 0)) || exit 0

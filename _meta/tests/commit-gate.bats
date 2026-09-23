@@ -74,20 +74,30 @@ commit_file() {
 @test "passes when a modified file predates the stamp" {
   commit_file proj/a.sh
   printf 'v2\n' >"$PROJECT/a.sh"
-  touch -d @1000 "$PROJECT/a.sh"
-  stamp 2000000000000
+  sleep 0.05
+  stamp "$(date +%s%N)"
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 0 ]
 }
 
 @test "blocks when a modified file is newer than the stamp" {
   commit_file proj/a.sh
+  stamp "$(date +%s%N)"
+  sleep 0.05
   printf 'v2\n' >"$PROJECT/a.sh"
-  touch -d @3000 "$PROJECT/a.sh"
-  stamp 2000000000000
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 2 ]
   [[ $output == *"$PROJECT/a.sh"* ]]
+}
+
+@test "blocks on a file renamed after the stamp" {
+  commit_file proj/a.sh
+  stamp "$(date +%s%N)"
+  sleep 0.05
+  mv "$PROJECT/a.sh" "$PROJECT/b.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/b.sh"* ]]
 }
 
 @test "ignores modified files under .claude and the memory directory" {
@@ -100,6 +110,13 @@ commit_file() {
 @test "ignores a git-ignored file" {
   printf 'x\n' >"$PROJECT/build.log"
   printf '%s\n' '*.log' >>"$WORK/.git/info/exclude"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "ignores a journaled write to a git-ignored file" {
+  printf '%s\n' '*.log' >>"$WORK/.git/info/exclude"
+  write_at 200 "$PROJECT/build.log"
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 0 ]
 }
@@ -265,6 +282,14 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
+@test "blocks a commit line carrying git global options" {
+  write_at 200 "$PROJECT/a.sh"
+  run_gate "$(payload "$(printf '%s\n' '```bash' 'git -C ~/dotfiles add a.sh && git -C ~/dotfiles commit -m "fix: y"' '```')")"
+  [ "$status" -eq 2 ]
+  run_gate "$(payload "$(printf '%s\n' '```bash' 'git -c user.name=t commit -m "fix: y"' '```')")"
+  [ "$status" -eq 2 ]
+}
+
 @test "passes when prose quotes a chained commit" {
   write_at 200 "$PROJECT/a.sh"
   # shellcheck disable=SC2016
@@ -284,7 +309,7 @@ commit_file() {
   [ "$status" -eq 0 ]
 }
 
-@test "passes when the session has no journal" {
+@test "passes with no journal and a clean tree" {
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 0 ]
 }
