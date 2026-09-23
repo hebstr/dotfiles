@@ -13,7 +13,8 @@ setup() {
 
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
-  for cmd in cat jq realpath git; do
+  printf '%s\n' .stubs/ runtime/ >>"$WORK/.git/info/exclude"
+  for cmd in cat jq realpath git stat; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -45,6 +46,83 @@ write_at() {
 
 stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
+}
+
+commit_file() {
+  mkdir -p "$(dirname "$WORK/$1")"
+  printf 'v1\n' >"$WORK/$1"
+  git -C "$WORK" add -- "$1"
+  git -C "$WORK" -c user.name=t -c user.email=t@t commit -qm init
+}
+
+@test "blocks on a modified tracked file when the session has no journal" {
+  commit_file proj/src/a.sh
+  printf 'v2\n' >"$PROJECT/src/a.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/src/a.sh"* ]]
+}
+
+@test "blocks on an untracked file when the session has no journal" {
+  mkdir -p "$PROJECT/src"
+  printf 'x\n' >"$PROJECT/src/new.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/src/new.sh"* ]]
+}
+
+@test "passes when a modified file predates the stamp" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  touch -d @1000 "$PROJECT/a.sh"
+  stamp 2000000000000
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "blocks when a modified file is newer than the stamp" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  touch -d @3000 "$PROJECT/a.sh"
+  stamp 2000000000000
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/a.sh"* ]]
+}
+
+@test "ignores modified files under .claude and the memory directory" {
+  printf 'x\n' >"$PROJECT/.claude/PLAN.md"
+  printf 'x\n' >"$FAKE_HOME/.claude/memory/feedback_x.md"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "ignores a git-ignored file" {
+  printf 'x\n' >"$PROJECT/build.log"
+  printf '%s\n' '*.log' >>"$WORK/.git/info/exclude"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "blocks on a deleted tracked file without a stamp and passes with one" {
+  commit_file proj/gone.sh
+  rm "$PROJECT/gone.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/gone.sh"* ]]
+  stamp 150
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
+}
+
+@test "lists a path seen in both the journal and git status once" {
+  mkdir -p "$PROJECT/src"
+  printf 'x\n' >"$PROJECT/src/a.sh"
+  write_at 200 "$PROJECT/src/a.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [ "$(grep -c "$PROJECT/src/a.sh" <<<"$output")" -eq 1 ]
+  [[ $output == *"1 file(s)"* ]]
 }
 
 @test "blocks a commit proposal after a code write with no stamp" {
@@ -104,6 +182,7 @@ stamp() {
   rm -rf "$FAKE_HOME/.claude/memory"
   mkdir -p "$WORK/dotfiles/claude/.claude/memory"
   ln -s "$WORK/dotfiles/claude/.claude/memory" "$FAKE_HOME/.claude/memory"
+  printf '%s\n' home/.claude/memory >>"$WORK/.git/info/exclude"
   write_at 200 "$WORK/dotfiles/claude/.claude/memory/feedback_x.md"
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 0 ]

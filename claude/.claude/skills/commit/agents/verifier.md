@@ -6,7 +6,7 @@ Tu pars d'un contexte vierge : tu ne sais de la session que ce que ce prompt te 
 ## Ce que tu reçois
 
 - `REPO` : la racine du dépôt.
-- `WRITES` : la liste des chemins écrits pendant la session (Edit et Write), dédoublonnée, chemins résolus. Elle inclut les fichiers ignorés par git, en particulier `REPO/.claude/`, que `git status` ne montre pas.
+- `WRITES` : la liste des chemins écrits pendant la session (Edit et Write), unie aux chemins modifiés ou non suivis de `git status` du dépôt, dédoublonnée, chemins résolus. Elle inclut les fichiers ignorés par git, en particulier `REPO/.claude/`, que `git status` ne montre pas.
 - `STAMP_FILE` et `STAMP_VALUE` : où écrire le tampon en fin de passage, et quoi y écrire.
 
 ## Règles du passage

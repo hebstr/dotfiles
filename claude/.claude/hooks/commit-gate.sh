@@ -16,7 +16,6 @@ printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ 
 runtime="${XDG_RUNTIME_DIR:-/tmp}"
 journal="$runtime/claude-code-writes-${session}.log"
 stamp_file="$runtime/claude-code-writes-${session}.stamp"
-[[ -r $journal ]] || exit 0
 
 stamp=0
 if [[ -r $stamp_file ]]; then
@@ -38,25 +37,54 @@ in_work_tree() {
   [[ $(git -C "${dir:-/}" rev-parse --is-inside-work-tree 2>/dev/null) == true ]]
 }
 
+excluded() {
+  [[ -n $root && $1 == "$root/.claude/"* ]] && return 0
+  [[ -n $top && $1 == "$top/.claude/"* ]] && return 0
+  [[ $1 == "$memory/"* ]]
+}
+
+changed_since_stamp() {
+  local mtime
+  if [[ -e $1 || -L $1 ]]; then
+    mtime=$(stat -c '%.9Y' -- "$1" 2>/dev/null) || return 1
+    mtime=${mtime/./}
+    [[ $mtime =~ ^[0-9]+$ ]] || return 1
+    ((10#$mtime > stamp))
+  else
+    ((stamp == 0))
+  fi
+}
+
 declare -A seen=()
 stale=()
-while IFS=$'\t' read -r ts path; do
-  [[ $ts =~ ^[0-9]+$ && -n $path ]] || continue
-  ((ts > stamp)) || continue
-  [[ -n $root && $path == "$root/.claude/"* ]] && continue
-  [[ -n $top && $path == "$top/.claude/"* ]] && continue
-  [[ $path == "$memory/"* ]] && continue
-  [[ -n ${seen[$path]:-} ]] && continue
-  seen[$path]=1
-  in_work_tree "$path" || continue
-  stale+=("$path")
-done <"$journal"
+if [[ -r $journal ]]; then
+  while IFS=$'\t' read -r ts path; do
+    [[ $ts =~ ^[0-9]+$ && -n $path ]] || continue
+    ((ts > stamp)) || continue
+    excluded "$path" && continue
+    [[ -n ${seen[$path]:-} ]] && continue
+    seen[$path]=1
+    in_work_tree "$path" || continue
+    stale+=("$path")
+  done <"$journal"
+fi
+
+if [[ -n $top ]]; then
+  while IFS= read -r -d '' entry; do
+    path="$top/${entry:3}"
+    excluded "$path" && continue
+    [[ -n ${seen[$path]:-} ]] && continue
+    changed_since_stamp "$path" || continue
+    seen[$path]=1
+    stale+=("$path")
+  done < <(git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
+fi
 
 ((${#stale[@]} > 0)) || exit 0
 
 {
   printf 'Commit gate: the commit blocks just shown are stale. '
-  printf '%d file(s) outside the tracking files were written after the last tracking verification:\n' "${#stale[@]}"
+  printf '%d file(s) outside the tracking files were changed after the last tracking verification:\n' "${#stale[@]}"
   for p in "${stale[@]:0:10}"; do
     printf '  %s\n' "$p"
   done

@@ -15,18 +15,20 @@ Dans cet ordre, sans en sauter.
 
 ### 0.1 Vérificateur
 
-1. Lire le journal de la session et prendre la valeur du tampon **avant** de lancer l'agent :
+1. Lire le journal de la session et les fichiers modifiés du dépôt, et prendre la valeur du tampon **avant** de lancer l'agent :
 
    ```bash
    journal="${XDG_RUNTIME_DIR:-/tmp}/claude-code-writes-${CLAUDE_CODE_SESSION_ID}.log"
    stamp_file="${journal%.log}.stamp"
    stamp_value=$(date +%s%N)
+   top=$(git rev-parse --show-toplevel)
    printf 'JOURNAL=%s\nSTAMP_FILE=%s\nSTAMP_VALUE=%s\n' "$journal" "$stamp_file" "$stamp_value"
-   cut -f2 "$journal" | sort -u
+   { cut -f2 "$journal" 2>/dev/null; git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all | while IFS= read -r -d '' e; do printf '%s/%s\n' "$top" "${e:3}"; done; } | sort -u
    ```
 
+   La liste unit le journal et `git status`, parce que le journal ne voit ni les écritures d'une session antérieure à un `/clear` (l'id de session change), ni celles faites en Bash ou à la main.
    L'état du shell ne survit pas d'un appel Bash à l'autre : les commandes des étapes suivantes reçoivent ces trois valeurs recopiées telles qu'affichées, à la place de `<JOURNAL>`, `<STAMP_FILE>` et `<STAMP_VALUE>`.
-   Journal absent ou vide : aucune écriture par Edit ou Write dans la session, passer à 0.2.
+   Liste vide : aucune écriture dans la session et un arbre propre, passer à 0.2.
    `CLAUDE_CODE_SESSION_ID` vide : le dire, et lancer quand même le vérificateur sur les fichiers que `git status` montre, sans tampon ; la porte bloquera de nouveau, ce qui est le comportement voulu.
 2. Lire `agents/verifier.md` (à côté de ce fichier) et lancer un agent `general-purpose` **au premier plan**, dont le prompt est ce fichier suivi de `REPO` (la racine git), `WRITES` (la liste ci-dessus), `STAMP_FILE` et `STAMP_VALUE`.
    Un contexte neuf est la raison d'être de l'étape : ne pas lui transmettre de résumé de la session, ni d'avis sur ce qui est à jour.
