@@ -61,6 +61,7 @@ Mesuré le 2026-09-23, Zotero 10.0.3 lancé avec la pref à `true`, sur la pièc
 - Un `DELETE` sans clé reçoit `428`.
 
 Les clés en place ne suivent pas la formule `auth.lower + year` de `citekeyFormat` : aucune des 100 notices lues n'a la forme courte, alors que `prefs.js` porte `autoPinMigrated`. Les clés semblent épinglées d'une formule antérieure, ce qui reste à confirmer. Le skill lit donc la clé dans `data.citationKey` et ne la recalcule jamais depuis la formule.
+Résolu le même jour : l'utilisateur avait changé la formule à la main dans Zotero. Les 312 clés de `zotero.sqlite` (lu en `mode=ro`, Zotero fermé) suivent toutes la formule par défaut de Better BibTeX, `auth.lower + shorttitle(3,3) + year` (page « Citation keys » de Better BibTeX), et aucune n'a été créée sous `auth.lower + year`. À la demande de l'utilisateur, `user.js` rétablit cette formule par défaut dans `citekeyFormat` et y aligne `citekeyFormatEditing`, comme Better BibTeX le fait de lui-même quand ce champ est vide : le `prefs.js` de son `.xpi` livre `citekeyFormat` à `" auth.lower + shorttitle(3,3) + year"`, avec une espace initiale qu'il élague, et `citekeyFormatEditing` vide. Le skill continue de lire la clé plutôt que de la recalculer, puisqu'une clé peut être fixée à la main.
 
 L'API exige que Zotero tourne : sans lui, seule la recherche `rg` fonctionne, et le skill demande alors de lancer Zotero.
 

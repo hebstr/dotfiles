@@ -29,7 +29,7 @@ curl -s --get "$B/items/top" --data-urlencode 'q=propensity score' --data-urlenc
 
 - `items/top` exclut les pièces jointes et les notes ; l'en-tête `Total-Results` (`curl -D -`) donne le décompte quand la page est pleine.
 - Par tag : `--data-urlencode 'tag=<tag>'`. Par collection : lister `"$B/collections"` (`.key`, `.data.name`, `.data.parentCollection`), puis `"$B/collections/<clé>/items/top"`.
-- La clé de citation est `data.citationKey`, celle de Better BibTeX. La lire, ne jamais la reconstruire depuis une formule : les clés en place ne suivent pas le `citekeyFormat` réglé.
+- La clé de citation est `data.citationKey`, celle de Better BibTeX. La lire, ne jamais la reconstruire depuis la formule : une clé peut être fixée à la main, et un changement de formule ne régénère pas les clés existantes.
 - `format=bibtex` sur `"$B/items/<clé>"` rend l'entrée BibTeX sous cette même clé.
 
 ## Chercher dans le texte intégral et citer un passage
