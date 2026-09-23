@@ -24,7 +24,7 @@ Hors du périmètre : l'export d'une collection vers litrev (écarté par l'util
 - `zotero/.zotero/zotero/pucr7b5d.default/user.js` active l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
 - `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne s'ajoute que si les agents composent mal leurs requêtes à l'usage.
 - `claude/.claude/settings.json` porte `Bash(curl *better-bibtex/json-rpc*)` dans `permissions.deny`. Un appel `api.ready` au JSON-RPC a été refusé le 2026-09-23 sans invite.
-- `opencode/.config/opencode/opencode.json` porte l'équivalent opencode, `"curl *better-bibtex/json-rpc*": "deny"` dans `permission.bash`, juste avant `"*>*": "ask"` (détail dans la section suivante).
+- `opencode/.config/opencode/opencode.json` porte l'équivalent opencode, `"curl *better-bibtex/json-rpc*": "deny"` dans `permission.bash`, juste avant `"*>*": "ask"` (détail dans « La lecture seule tient au seul verrou de Zotero »).
 
 Le skill sert aussi opencode, dont le harnais charge `~/.claude/skills`.
 
@@ -140,6 +140,7 @@ Index vectoriel : les outils mûrs le rendent optionnel et livrent BM25 ou mots-
 
 ## Non vérifié
 
+- Le déclenchement du skill `zotero` par sa seule `description` dans une session qui ne le connaît pas : au 2026-09-23, il n'a été chargé qu'explicitement. Les tests pratiques par sessions `claude -p` neuves sont prévus dans une conversation à part.
 - Le comportement de `ZOTEUS_READ_ONLY=true` sur les outils autres que `zotero_delete_items`.
 - Si le verrou exclusif de Zotero s'étend à `fulltext.sqlite` attaché : `main.locking_mode` ne vise que la base principale.
 - Le comportement d'un `ATTACH ... (TYPE sqlite, READ_ONLY)` DuckDB sur la base vivante, déduit de la doc DuckDB et non testé.
