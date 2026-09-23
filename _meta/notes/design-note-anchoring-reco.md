@@ -55,3 +55,4 @@ Trancher entre `CLAUDE.md` global et fichier mémoire, puis écrire la règle en
 Proposer `/audit:blindspot` sur le fichier modifié, la règle touchant tous les projets.
 
 Fait : la règle est tranchée en faveur de `CLAUDE.md` global (`639a553`, 2026-09-19), et `/audit:blindspot` a été lancé sur `claude/.claude/CLAUDE.md` le 2026-09-20.
+Le troisième point n'est pas repris, à dessein (2026-09-23) : la règle écrite dit « never by line number » sans exception pour un renvoi épinglé à un commit, et un renvoi épinglé existant reste protégé sans elle, puisque « A shift in line numbers alone is therefore never staleness » et qu'une cible épinglée ne disparaît jamais.
