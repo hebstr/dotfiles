@@ -60,21 +60,44 @@ Si un fichier mémoire a été écrit : l'index `~/.claude/memory/MEMORY.md` a-t
 
 Quand une note de design décrit le fonctionnement d'un fichier écrit dans la session, compare la description au fichier tel qu'il est maintenant : nom de fonction, option, chemin, comportement.
 
-### 5. Revues annoncées en attente et déjà lancées
+### 5. Annonces vivantes déjà accomplies
 
-Ce contrôle porte sur tout le tracking du dépôt, pas seulement sur `WRITES` : une revue lancée n'écrit souvent rien dans le fichier qui l'annonçait.
-Liste les revues réellement lancées, d'après les transcripts du projet :
+Ce contrôle porte sur tout le tracking du dépôt, pas seulement sur `WRITES` : l'action qui accomplit une annonce n'écrit souvent rien dans le fichier qui l'annonçait. Elle a pu être faite dans une session sans `/commit`, sans écriture (une mesure, une exécution, une revue), ou par l'utilisateur hors session.
+
+**Passages vivants seulement.** Un passage vivant dit ce qui reste à faire : ligne de statut, « Next », « Blockers », « Étape suivante », « Prochaine action », « Reste à faire », « Points ouverts », liste d'étapes, entrées d'un `DEFERRED.md`. Une section qui consigne un événement (décision, passage, mesure, journal, compte rendu, cadrage validé) ou que le fichier déclare dépassée est une archive : ne la signale jamais, même si ce qu'elle annonçait a été fait depuis. Une date dans le titre ne suffit pas à faire une archive (« Next, in the order agreed on … » reste vivant).
+Ne lis pas les fichiers entiers. Repère les candidats, puis lis seulement les passages retenus :
 
 ```bash
-proj="$HOME/.claude/projects/$(printf '%s' "REPO" | sed 's#[/.]#-#g')"
-rg --no-filename -e '<command-name>/audit:(walkthrough|blindspot)</command-name>' -e '"skill":"audit:(walkthrough|blindspot)"' "$proj"/*.jsonl | jq -r '.timestamp[0:10] as $d | .message.content | (if type=="string" then [.] else [.[]? | select(.type=="text") | .text] end | .[] | capture("<command-name>/(?<k>audit:(walkthrough|blindspot))</command-name>\\s*<command-args>(?<a>[^<]*)")? | "\($d)\t\(.k)\t\(.a)"), (if type=="array" then .[] | select(.type=="tool_use" and .name=="Skill" and (.input.skill|test("^audit:(walkthrough|blindspot)$"))) | "\($d)\t\(.input.skill)\t\(.input.args // "" | split("\n")[0])" else empty end)' | sort -u
+rg -n -i -e '^#{1,4} .*(next|blocker|étape|step|prochain|reste|ouvert|open|todo|à faire|pending|suite)' -e '^\*\*(statut|status)' REPO/.claude REPO/_meta/notes
 ```
 
-en remplaçant `REPO` par la valeur reçue.
-Puis liste les revues que le tracking annonce : `rg -n '/audit:(walkthrough|blindspot) ' REPO/.claude REPO/_meta/notes ~/.claude/memory`.
-Une annonce présentée comme à faire (« pending », « en attente », « à lancer », « proposée », « Left ») dont la cible désigne le même fichier qu'une revue lancée de même type (même nom de base, quelle que soit la forme du chemin ou du glob) est un constat : cite la ligne d'invocation (date, type, arguments) et propose de fermer l'annonce en la datant.
-Une annonce déjà datée comme faite, ou qui demande explicitement une nouvelle passe après un changement postérieur à la revue trouvée, n'est pas un constat.
-L'absence d'invocation ne prouve rien : les transcripts ne sont gardés que `cleanupPeriodDays` jours. Ne signale donc jamais une annonce faute de preuve.
+Ce repérage ne remonte pas les entrées d'un `DEFERRED.md`, qui vivent dans un tableau sans titre de ce type : lis en plus `REPO/.claude/DEFERRED.md` en entier quand il existe.
+
+Pour chaque annonce présentée comme à faire (« à faire », « à lancer », « en attente », « proposée », « pending », « Left », « Next », une étape non marquée faite), cherche une pièce qui établit l'action elle-même, parmi trois :
+
+1. **Un commit du dépôt.** `git -C REPO log --since=<date> --format='%h %ad %s' --date=short -- <chemin>` sur l'objet annoncé, ou `git -C REPO log --since=<date> -i --grep='<nom>' --format='%h %ad %s' --date=short`. Un commit de l'utilisateur vaut autant qu'un commit proposé par Claude.
+2. **Une invocation dans les transcripts du projet**, pour une skill ou une commande, tapée ou appelée par le modèle :
+
+   ```bash
+   proj="$HOME/.claude/projects/$(printf '%s' "REPO" | sed 's#[/.]#-#g')"
+   rg --no-filename -e '<command-name>/' -e '"name":"Skill"' "$proj"/*.jsonl | jq -r '.timestamp[0:10] as $d | .message.content | (if type=="string" then [.] else [.[]? | select(.type=="text") | .text] end | .[] | capture("<command-name>/(?<k>[^<]+)</command-name>\\s*<command-args>(?<a>[^<]*)")? | "\($d)\t\(.k)\t\((.a | split("\n")[0]) // "")"), (if type=="array" then .[] | select(.type=="tool_use" and .name=="Skill") | "\($d)\t\(.input.skill)\t\((.input.args // "" | split("\n")[0]) // "")" else empty end)' | sort -u
+   ```
+
+   et, pour une action faite en Bash (une mesure, un script lancé), en remplaçant `NOM` par le nom du script ou de la commande annoncée :
+
+   ```bash
+   rg --no-filename -F 'NOM' "$proj"/*.jsonl | jq -r --arg n 'NOM' '.timestamp[0:10] as $d | .message.content | if type=="array" then .[] | select(.type=="tool_use" and .name=="Bash" and (.input.command | contains($n))) | "\($d)\t\(.input.command | split("\n")[0] | .[0:160])" else empty end' | sort -u
+   ```
+
+3. **L'artefact annoncé**, quand l'annonce en nomme un : le fichier existe (`test -e`), le symbole ou la section se trouve (`rg -F`), le test cité passe.
+
+Remplace `REPO` par la valeur reçue. `<date>` est la date écrite dans le passage de l'annonce ; faute de date, n'impose aucune borne, et la pièce doit alors désigner l'action sans ambiguïté.
+Une pièce qui montre seulement une activité sur l'objet ne suffit pas. Un commit qui touche le fichier sans faire ce que l'annonce nomme ne prouve rien. Il en va de même pour une commande qui ne fait que lire ou chercher le nom (`rg`, `sed -n`, `cat`), et pour une invocation antérieure à la date de l'annonce.
+Pour une revue, la pièce est une invocation `audit:walkthrough` ou `audit:blindspot` de même type dont la cible désigne le même fichier (même nom de base, quelle que soit la forme du chemin ou du glob).
+
+Une annonce accomplie selon une pièce est un constat. Cite la pièce (empreinte et sujet du commit, ligne d'invocation avec sa date, ou commande qui établit l'artefact) et propose de dater l'annonce comme faite, dans le passage même.
+N'en fais pas un constat quand l'annonce est déjà datée comme faite, qu'elle demande explicitement une nouvelle passe après un changement postérieur à la pièce trouvée, ou que la pièce ne couvre qu'une partie de ce qu'elle annonce (nomme alors ce qui reste, en `Hors périmètre`).
+L'absence de pièce ne prouve rien : les transcripts ne sont gardés que `cleanupPeriodDays` jours, et une action peut n'avoir laissé ni commit ni artefact. Ne signale donc jamais une annonce faute de pièce.
 
 ## Ce que tu rends
 
