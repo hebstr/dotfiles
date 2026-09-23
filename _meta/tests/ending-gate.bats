@@ -104,6 +104,18 @@ assert_passes() {
   # shellcheck disable=SC2016
   run_gate "$(payload 'Run `/commit` to get the blocks.')"
   assert_close_blocked
+  run_gate "$(payload 'Lancez /commit une fois relu.')"
+  assert_close_blocked
+  run_gate "$(payload 'Tapez /commit pour clore.')"
+  assert_close_blocked
+  run_gate "$(payload 'Run /commit when ready.')"
+  assert_close_blocked
+}
+
+@test "passes a descriptive 'relance /commit'" {
+  # shellcheck disable=SC2016
+  run_gate "$(payload 'La porte relance `/commit` sur des blocs périmés.')"
+  assert_passes
 }
 
 @test "names both families when both occur" {
@@ -173,6 +185,9 @@ assert_passes() {
 
 @test "passes when stop_hook_active is true" {
   run_gate "$(payload 'Je peux le faire si tu veux.' true)"
+  assert_passes
+  # shellcheck disable=SC2016
+  run_gate "$(payload 'Lance `/commit` pour le bloc.' true)"
   assert_passes
 }
 

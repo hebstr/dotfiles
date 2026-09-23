@@ -31,7 +31,7 @@ done <<<"$hits"
 {
   if ((${#offers[@]} > 0)); then
     printf 'Ending gate: the response offers an action without taking a position (%s). ' "${offers[*]}"
-    printf 'Rewrite its ending as an explicit recommendation: do it or do not, with the reason in one line. '
+    printf 'That response is already displayed: follow it with an explicit recommendation, do it or do not, with the reason in one line. '
     printf 'An action the discipline already requires, such as a tracking update, is done, not offered.\n'
   fi
   if ((${#closes[@]} > 0)); then
