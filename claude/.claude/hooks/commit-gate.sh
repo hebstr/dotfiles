@@ -22,72 +22,8 @@ fi
 
 printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(git [^\n]*[;&|][ \t]*)?git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\\b")' >/dev/null 2>&1 || exit 0
 
-journal="$runtime/claude-code-writes-${session}.log"
-stamp_file="$runtime/claude-code-writes-${session}.stamp"
-
-stamp=0
-if [[ -r $stamp_file ]]; then
-  read -r stamp <"$stamp_file" || true
-  [[ $stamp =~ ^[0-9]+$ ]] || stamp=0
-fi
-
-root="${CLAUDE_PROJECT_DIR:-$cwd}"
-[[ -n $root ]] && root=$(realpath -m -- "$root" 2>/dev/null || printf '%s' "$root")
-top=""
-[[ -n $root ]] && top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null) || top=""
-memory=$(realpath -m -- "$HOME/.claude/memory" 2>/dev/null || printf '%s' "$HOME/.claude/memory")
-
-in_work_tree_unignored() {
-  local dir=${1%/*}
-  while [[ -n $dir && ! -d $dir ]]; do
-    dir=${dir%/*}
-  done
-  [[ $(git -C "${dir:-/}" rev-parse --is-inside-work-tree 2>/dev/null) == true ]] || return 1
-  ! git -C "${dir:-/}" check-ignore -q -- "$1" 2>/dev/null
-}
-
-excluded() {
-  [[ -n $root && $1 == "$root/.claude/"* ]] && return 0
-  [[ -n $top && $1 == "$top/.claude/"* ]] && return 0
-  [[ $1 == "$memory/"* ]]
-}
-
-changed_since_stamp() {
-  local ctime
-  if [[ -e $1 || -L $1 ]]; then
-    ctime=$(stat -c '%.9Z' -- "$1" 2>/dev/null) || return 1
-    ctime=${ctime/./}
-    [[ $ctime =~ ^[0-9]+$ ]] || return 1
-    ((10#$ctime > stamp))
-  else
-    ((stamp == 0))
-  fi
-}
-
-declare -A seen=()
 stale=()
-if [[ -r $journal ]]; then
-  while IFS=$'\t' read -r ts path; do
-    [[ $ts =~ ^[0-9]+$ && -n $path ]] || continue
-    ((ts > stamp)) || continue
-    excluded "$path" && continue
-    [[ -n ${seen[$path]:-} ]] && continue
-    seen[$path]=1
-    in_work_tree_unignored "$path" || continue
-    stale+=("$path")
-  done <"$journal"
-fi
-
-if [[ -n $top ]]; then
-  while IFS= read -r -d '' entry; do
-    path="$top/${entry:3}"
-    excluded "$path" && continue
-    [[ -n ${seen[$path]:-} ]] && continue
-    changed_since_stamp "$path" || continue
-    seen[$path]=1
-    stale+=("$path")
-  done < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
-fi
+mapfile -t stale < <("$BASH" "${BASH_SOURCE[0]%/*}/commit-stale.sh" "$session" "${CLAUDE_PROJECT_DIR:-$cwd}" 2>/dev/null)
 
 ((${#stale[@]} > 0)) || exit 0
 

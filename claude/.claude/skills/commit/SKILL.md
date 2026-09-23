@@ -18,31 +18,27 @@ Dans cet ordre, sans en sauter.
 1. Lire le journal de la session et les fichiers modifiés du dépôt, et prendre la valeur du tampon **avant** de lancer l'agent :
 
    ```bash
-   journal="${XDG_RUNTIME_DIR:-/tmp}/claude-code-writes-${CLAUDE_CODE_SESSION_ID}.log"
-   stamp_file="${journal%.log}.stamp"
-   stamp_value=$(date +%s%N)
-   top=$(git rev-parse --show-toplevel)
-   printf 'JOURNAL=%s\nSTAMP_FILE=%s\nSTAMP_VALUE=%s\n' "$journal" "$stamp_file" "$stamp_value"
-   { cut -f2 "$journal" 2>/dev/null; git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all | while IFS= read -r -d '' e; do printf '%s/%s\n' "$top" "${e:3}"; done; } | sort -u
+   bash ~/.claude/skills/commit/scripts/writes.sh
    ```
 
-   La liste unit le journal et `git status`, parce que le journal ne voit ni les écritures d'une session antérieure à un `/clear` (l'id de session change), ni celles faites en Bash ou à la main.
-   L'état du shell ne survit pas d'un appel Bash à l'autre : les commandes des étapes suivantes reçoivent ces trois valeurs recopiées telles qu'affichées, à la place de `<JOURNAL>`, `<STAMP_FILE>` et `<STAMP_VALUE>`.
+   Le script affiche `STAMP_FILE` et `STAMP_VALUE`, puis la liste `WRITES`, qui unit le journal et `git status`, parce que le journal ne voit ni les écritures d'une session antérieure à un `/clear` (l'id de session change), ni celles faites en Bash ou à la main.
+   L'état du shell ne survit pas d'un appel Bash à l'autre : les commandes des étapes suivantes reçoivent ces deux valeurs recopiées telles qu'affichées, à la place de `<STAMP_FILE>` et `<STAMP_VALUE>`.
    Liste vide : aucune écriture dans la session et un arbre propre, passer à 0.2.
-   `CLAUDE_CODE_SESSION_ID` vide : le dire, et lancer quand même le vérificateur sur les fichiers que `git status` montre, sans tampon ; la porte bloquera de nouveau au prochain rendu de blocs hors de la continuation qu'elle a déclenchée, où le marqueur qu'elle a écrit en bloquant la fait sortir en 0, ce qui est le comportement voulu.
+   Code de sortie 3, sans ligne `STAMP_` (`CLAUDE_CODE_SESSION_ID` vide ou inutilisable) : le dire, et lancer quand même le vérificateur sur les fichiers listés, sans tampon ; la porte bloquera de nouveau au prochain rendu de blocs hors de la continuation qu'elle a déclenchée, où le marqueur qu'elle a écrit en bloquant la fait sortir en 0, ce qui est le comportement voulu.
+   Code de sortie 1 (`git status` en échec) : le dire, et lancer le vérificateur sur la liste affichée, qui ne porte alors que le journal.
 2. Lire `agents/verifier.md` (à côté de ce fichier) et lancer un agent `general-purpose` **au premier plan**, dont le prompt est ce fichier suivi de `REPO` (la racine git), `WRITES` (la liste ci-dessus), `STAMP_FILE` et `STAMP_VALUE`.
    Un contexte neuf est la raison d'être de l'étape : ne pas lui transmettre de résumé de la session, ni d'avis sur ce qui est à jour.
 3. Appliquer ses constats par Edit, un par un, après avoir vérifié chacun : un constat que la vérification dément est écarté, et nommé comme tel.
    Un constat qui demande de modifier du code, et non du tracking, n'est pas appliqué d'office : le signaler à l'utilisateur.
 4. Vérifier que le tampon est écrit (`cat '<STAMP_FILE>'` égal à `<STAMP_VALUE>`). Sinon, l'écrire soi-même avec la même valeur, en le disant.
-   Si l'étape 3 a appliqué au moins un constat, lister les chemins journalisés après `<STAMP_VALUE>` et ceux de `git status` modifiés après lui, les deux sources que lit la porte :
+   Si l'étape 3 a appliqué au moins un constat, lister les chemins que la porte compterait maintenant, calculés par le script qu'elle appelle elle-même, contre le tampon qui vient d'être vérifié :
 
    ```bash
-   top=$(git rev-parse --show-toplevel)
-   { { while IFS=$'\t' read -r ts p; do ((ts > <STAMP_VALUE>)) && printf '%s\n' "$p"; done <'<JOURNAL>'; } 2>/dev/null; git -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all | while IFS= read -r -d '' e; do p="$top/${e:3}"; m=$(stat -c %.9Z -- "$p" 2>/dev/null) && ((10#${m/./} > <STAMP_VALUE>)) && printf '%s\n' "$p"; done; } | sort -u
+   bash ~/.claude/hooks/commit-stale.sh "$CLAUDE_CODE_SESSION_ID" "$PWD"
    ```
 
-   Si chacun de ces chemins est un fichier de tracking visé par un constat appliqué, réécrire le tampon (`date +%s%N >'<STAMP_FILE>'`), sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
+   Code de sortie non nul : une source n'a pas pu être lue, la liste est incomplète ; garder le tampon tel quel et le dire.
+   Sortie vide, ou chacun des chemins affichés est un fichier de tracking visé par un constat appliqué (la porte ignore déjà `.claude/` et la mémoire, mais compte par exemple `_meta/notes/`) : réécrire le tampon (`date +%s%N >'<STAMP_FILE>'`), sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
    Si au moins un chemin sort de ce cas, garder le tampon tel quel et nommer ce chemin à l'utilisateur : la porte ne rebloque pas dans la continuation qu'elle a déclenchée (le marqueur qu'elle a écrit en bloquant), et ne bloquera qu'au prochain rendu de blocs hors de celle-ci, ce qui est voulu.
 
 Ce passage ne remplace pas la vérification que la session doit à chaque écriture de tracking ; il attrape ce qu'elle a laissé passer.

@@ -11,7 +11,7 @@ Tu pars d'un contexte vierge : tu ne sais de la session que ce que ce prompt te 
 
 ## Règles du passage
 
-- **Lecture seule.** Aucun appel à Edit ni à Write. Bash sert à lire et chercher (`rg`, `fdfind`, `git status`, `git log`, `git diff`, `sed -n`, `wc`), jamais à modifier un fichier, à une exception près : le tampon, en dernière étape.
+- **Lecture seule.** Aucun appel à Edit ni à Write. Bash sert à lire et chercher (`rg`, `fdfind`, `git status`, `git log`, `git diff`, `sed -n`, `wc`, le script `transcripts.sh` de la section 5), jamais à modifier un fichier, à une exception près : le tampon, en dernière étape.
 - **Signaler, ne pas corriger.** Chaque constat propose la correction ; le fil principal l'applique.
 - **Sur pièces.** Chaque constat cite la commande qui l'établit et sa sortie utile. Un soupçon non vérifié n'est pas un constat : vérifie-le ou tais-le.
 - **Aucune commande git d'écriture**, aucune écriture dans `NOTES.md`, `TODO.md`, `CALENDRIER.md`, qui sont les carnets de l'utilisateur et restent hors de tes constats.
@@ -79,15 +79,16 @@ Pour chaque annonce présentée comme à faire (« à faire », « à lancer »,
 2. **Une invocation dans les transcripts du projet**, pour une skill ou une commande, tapée ou appelée par le modèle :
 
    ```bash
-   proj="$HOME/.claude/projects/$(printf '%s' "REPO" | sed 's#[/.]#-#g')"
-   rg --no-filename -e '<command-name>/' -e '"name":"Skill"' "$proj"/*.jsonl | jq -r '.timestamp[0:10] as $d | .message.content | (if type=="string" then [.] else [.[]? | select(.type=="text") | .text] end | .[] | capture("<command-name>/(?<k>[^<]+)</command-name>\\s*<command-args>(?<a>[^<]*)")? | "\($d)\t\(.k)\t\((.a | split("\n")[0]) // "")"), (if type=="array" then .[] | select(.type=="tool_use" and .name=="Skill") | "\($d)\t\(.input.skill)\t\((.input.args // "" | split("\n")[0]) // "")" else empty end)' | sort -u
+   bash ~/.claude/skills/commit/scripts/transcripts.sh invocations 'REPO'
    ```
 
-   et, pour une action faite en Bash (une mesure, un script lancé), en remplaçant `NOM` par le nom du script ou de la commande annoncée :
+   qui rend une ligne par invocation, date, nom et première ligne des arguments séparés par des tabulations, et, pour une action faite en Bash (une mesure, un script lancé), en remplaçant `NOM` par le nom du script ou de la commande annoncée :
 
    ```bash
-   rg --no-filename -F 'NOM' "$proj"/*.jsonl | jq -r --arg n 'NOM' '.timestamp[0:10] as $d | .message.content | if type=="array" then .[] | select(.type=="tool_use" and .name=="Bash" and (.input.command | contains($n))) | "\($d)\t\(.input.command | split("\n")[0] | .[0:160])" else empty end' | sort -u
+   bash ~/.claude/skills/commit/scripts/transcripts.sh bash 'REPO' 'NOM'
    ```
+
+   qui rend la date et la première ligne de chaque commande Bash qui contient `NOM`. Un message `no transcript directory` sur stderr veut dire qu'aucun transcript n'a été trouvé pour ce dépôt, ce qui ne prouve rien.
 
 3. **L'artefact annoncé**, quand l'annonce en nomme un : le fichier existe (`test -e`), le symbole ou la section se trouve (`rg -F`), le test cité passe.
 
