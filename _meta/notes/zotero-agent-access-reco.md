@@ -19,11 +19,12 @@ Pas de pré-extraction ni d'index vectoriel pour l'instant.
 
 Hors du périmètre : l'export d'une collection vers litrev (écarté par l'utilisateur le 2026-09-23, à rouvrir s'il revient), les annotations (0 dans la bibliothèque) et les notes (3), toute écriture.
 
-### Le montage vit dans trois fichiers versionnés (en place 2026-09-23)
+### Le montage vit dans quatre fichiers versionnés (en place 2026-09-23)
 
 - `zotero/.zotero/zotero/pucr7b5d.default/user.js` active l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
 - `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne s'ajoute que si les agents composent mal leurs requêtes à l'usage.
 - `claude/.claude/settings.json` porte `Bash(curl *better-bibtex/json-rpc*)` dans `permissions.deny`. Un appel `api.ready` au JSON-RPC a été refusé le 2026-09-23 sans invite.
+- `opencode/.config/opencode/opencode.json` porte l'équivalent opencode, `"curl *better-bibtex/json-rpc*": "deny"` dans `permission.bash`, juste avant `"*>*": "ask"` (détail dans la section suivante).
 
 Le skill sert aussi opencode, dont le harnais charge `~/.claude/skills`.
 
@@ -40,7 +41,7 @@ Si les invites deviennent un frein, la voie est un script d'enveloppe qui ne pre
 Un agent Claude Code dispose de Bash, donc de `curl` : il peut adresser une écriture à l'API locale ou au JSON-RPC de Better BibTeX quelle que soit la voie.
 Le verrou réel est celui de Zotero, qui refuse toute écriture par l'API locale tant qu'aucune clé n'a été accordée dans sa boîte de dialogue : ne jamais cliquer « Allow ».
 La règle `permissions.deny` sur le JSON-RPC est un garde-fou d'appoint, contournable par une commande reformulée.
-Elle ne vaut que sous Claude Code : `opencode.json` n'a aucune règle `curl`, donc sous opencode l'appel tombe sur `"*": "ask"` et demande confirmation au lieu d'être refusé.
+`opencode.json` porte son équivalent depuis le 2026-09-23, `"curl *better-bibtex/json-rpc*": "deny"`, placé juste avant `"*>*": "ask"`, qui reste la dernière règle du bloc `bash` comme le décrivent `DESIGN-OPENCODE-HARNESS.md` et la trace `opencode-harness-setup.md`. Opencode retient la dernière règle qui correspond (page « Permissions » de opencode) : un appel au JSON-RPC portant une redirection demande donc confirmation au lieu d'être refusé. `opencode debug config` la restitue ; aucun refus n'a été observé en session opencode, faute de modèle servi pendant l'essai.
 
 ### Voies écartées
 

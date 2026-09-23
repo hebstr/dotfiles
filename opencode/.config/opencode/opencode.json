@@ -59,6 +59,7 @@
       "sqlfluff *": "allow",
       "stylua *": "allow",
       "typstyle *": "allow",
+      "curl *better-bibtex/json-rpc*": "deny",
       "*>*": "ask"
     },
     "external_directory": {
