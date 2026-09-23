@@ -256,7 +256,8 @@ Ne jamais utiliser `--adopt`, qui copie le fichier local dans le paquet par-dess
 
 | Paquet | Commande | Raison |
 |---|---|---|
-| `bash`, `git`, `R`, `air`, `ruff`, `panache`, `prek`, `gh`, `bin`, `claude`, `ssh` | `stow --no-folding` | un dossier absent deviendrait un lien vers le dépôt, et tout ce que les programmes y écrivent (jeton `gh`, sessions Claude Code, `.credentials.json`, clés `~/.ssh/id_*`) atterrirait dans `~/dotfiles` |
+| `bash`, `git`, `R`, `air`, `ruff`, `panache`, `prek`, `gh`, `bin`, `ssh` | `stow --no-folding` | un dossier absent deviendrait un lien vers le dépôt, et tout ce que les programmes y écrivent (jeton `gh`, clés `~/.ssh/id_*`) atterrirait dans `~/dotfiles` |
+| `claude` | `stow` (replié), après `mkdir -p ~/.claude/skills` | chaque skill doit être un lien de répertoire, ce que `--no-folding` défait ; `~/.claude` et `~/.claude/skills` créés d'abord restent de vrais dossiers, si bien que les sessions Claude Code, `.credentials.json` et les skills installés ailleurs n'atterrissent pas dans `~/dotfiles` |
 | `agents` | `stow` (replié) | `~/.agents` doit rester un lien unique pour que l'installateur de skills écrive dans le dépôt |
 | `syncthing` | `stow --no-folding`, en excluant les dossiers non synchronisés | sinon stow crée des dossiers vides juste pour y poser un `.stignore` |
 | `css` | `stow` (replié), section 7 | les liens de `~/.local/bin` passent par `~/.local/share/css-gate/node_modules` : replié, ce dossier suit ce que `npm ci` et `sys-update css-toolchain` installent dans le dépôt ; en `--no-folding`, chaque fichier serait lié un par un et ceux qu'ajoute une mise à jour ne le seraient pas |
@@ -266,11 +267,14 @@ Test à blanc, puis application :
 
 ```bash
 cd ~/dotfiles
-stow -n -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin claude ssh
+mkdir -p ~/.claude/skills
+stow -n -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin ssh
+stow -n -v --ignore='\.ruff_cache' claude
 stow -n -v agents
 stow -n -v --no-folding --ignore='Musique' --ignore='Téléchargements' syncthing
 
-stow -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin claude ssh
+stow -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin ssh
+stow -v --ignore='\.ruff_cache' claude
 stow -v agents
 stow -v --no-folding --ignore='Musique' --ignore='Téléchargements' syncthing
 exec bash -l
@@ -563,7 +567,8 @@ locale -a | rg -i 'en_US|fr_FR'
 loginctl show-user "$USER" -p Linger
 systemctl --user is-active syncthing
 cd ~/dotfiles
-stow -n -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin claude ssh
+stow -n -v --no-folding --ignore='\.ruff_cache' bash git R air ruff panache prek gh bin ssh
+stow -n -v --ignore='\.ruff_cache' claude
 stow -n -v agents css
 stow -n -v --no-folding --ignore='Musique' --ignore='Téléchargements' syncthing
 symlinks-check && echo "aucun lien cassé"
@@ -863,7 +868,7 @@ Diagnostic commun : `ssh -v <alias> true` montre où la connexion s'arrête (ré
 | Symptôme | Cause | Correctif |
 |---|---|---|
 | `existing target is neither a link nor a directory` | fichier réel à la cible | le déplacer vers `~/dotfiles-backup`, jamais `--adopt` |
-| jeton ou données écrits dans `~/dotfiles` | dossier replié en un lien unique | `stow -D <paquet> && stow --no-folding <paquet>` |
+| jeton ou données écrits dans `~/dotfiles` | dossier replié en un lien unique | `stow -D <paquet> && stow --no-folding <paquet>`, et pour `claude` : `stow -D claude && mkdir -p ~/.claude/skills && stow claude` |
 | restow replié qui recrée des liens fichier par fichier | `stow -D` laisse les dossiers vides, et stow ne replie pas un dossier existant | vérifier qu'il ne reste aucun fichier (`fdfind -H -t f -t l . ~/<dossier>`), puis `find ~/<dossier> -depth -type d -empty -delete` avant `stow <paquet>` |
 | `~/.local/bin/.ruff_cache` | cache présent dans le paquet `bin` | `--ignore='\.ruff_cache'` |
 | dossier vide créé dans `~` | `stow syncthing` sur un dossier non synchronisé | `--ignore='<dossier>'` |
