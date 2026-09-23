@@ -1,19 +1,54 @@
 # Accès en lecture des agents Claude Code à la bibliothèque Zotero
 
-Note de recherche issue de `/workflow:reco` (2026-09-23).
+Note de recherche issue de `/workflow:reco` (2026-09-23), dont la décision a été arrêtée par `/cadrer` le même jour.
 Aucune action engagée : l'API locale reste désactivée et aucun serveur MCP Zotero n'est installé.
 Sources officielles lues dans le code de Zotero au tag `10.0.3` (via `gh api`) et sur les pages zotero.org, retorque.re et duckdb.org, vérifiées à cette date.
 
-## Décision
+## Les agents passent par un skill et l'API locale, sans serveur MCP (décidé 2026-09-23)
 
-Passer les agents par l'API locale de Zotero (`localhost:23119/api/`), servie par Zoteus avec `ZOTEUS_READ_ONLY=true` et sans clé cloud.
-Texte intégral lu dans les `.zotero-ft-cache`, sans pré-extraction ni index vectoriel pour l'instant.
-Confiance moyenne : Zoteus est jeune (44 étoiles) et son mode lecture seule n'a pas été testé sur cette installation.
-Repli si l'essai déçoit : 54yyyu/zotero-mcp, avec ses outils d'écriture bloqués par `permissions.deny` dans Claude Code.
+Décision issue de `/cadrer` le 2026-09-23, qui renverse le choix provisoire de Zoteus pris le même jour par `/workflow:reco`.
+Aucun serveur MCP Zotero.
+Les agents interrogent l'API locale de Zotero (`localhost:23119/api/users/0/...`) en GET par `curl` et lisent le texte intégral dans `~/Zotero/storage/*/.zotero-ft-cache` par `rg`, selon les recettes d'un skill `zotero`.
+Pas de pré-extraction ni d'index vectoriel pour l'instant.
 
-La lecture seule repose sur deux verrous indépendants.
-`ZOTEUS_READ_ONLY=true` retire les outils d'écriture de la liste (vérifié dans le README pour `zotero_delete_items` seulement).
-Zotero refuse toute écriture par l'API locale tant qu'aucune clé n'a été accordée dans sa boîte de dialogue : ne jamais cliquer « Allow ».
+### Trois usages délimitent le skill
+
+- Retrouver une référence et sa clé Better BibTeX pour la citer dans un `.qmd` : recherche par auteur, titre, tag ou collection.
+- Chercher dans le texte intégral (« quels articles parlent de X ») et citer un passage : `rg` sur les `.zotero-ft-cache` donne la clé de la pièce jointe, `parentItem` de l'API donne la notice.
+- Obtenir le chemin d'un PDF pour une lecture approfondie selon `rules/pdf.md`.
+
+Hors du périmètre : l'export d'une collection vers litrev (écarté par l'utilisateur le 2026-09-23, à rouvrir s'il revient), les annotations (0 dans la bibliothèque) et les notes (3), toute écriture.
+
+### Le montage vivra dans trois fichiers versionnés
+
+Aucun n'est encore modifié au 2026-09-23.
+
+- `zotero/.zotero/zotero/pucr7b5d.default/user.js` activera l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
+- `claude/.claude/skills/zotero/` portera les recettes, et un script dans `scripts/` si les agents composent mal leurs requêtes, sur le modèle du skill `depouiller` et de son `scripts/squelette.py`.
+- `claude/.claude/settings.json` bloquera par `permissions.deny` l'appel au JSON-RPC de Better BibTeX.
+
+Le skill sert aussi opencode, dont le harnais charge `~/.claude/skills`.
+
+### La lecture seule tient au seul verrou de Zotero
+
+Un agent Claude Code dispose de Bash, donc de `curl` : il peut adresser une écriture à l'API locale ou au JSON-RPC de Better BibTeX quelle que soit la voie.
+Le verrou réel est celui de Zotero, qui refuse toute écriture par l'API locale tant qu'aucune clé n'a été accordée dans sa boîte de dialogue : ne jamais cliquer « Allow ».
+La règle `permissions.deny` sur le JSON-RPC est un garde-fou d'appoint, contournable par une commande reformulée.
+
+### Voies écartées
+
+- **Zoteus en MCP, lecture seule** (le choix provisoire). `ZOTEUS_READ_ONLY=true` ne retire que des outils MCP et n'ajoute donc rien au verrou de Zotero. Le serveur est une dépendance tierce jeune (44 étoiles), dont le mode lecture seule n'est vérifié que pour `zotero_delete_items`. Sa déclaration vivrait dans `~/.claude.json`, qui n'est pas versionné. Et opencode ne le chargerait pas, `DESIGN-OPENCODE-HARNESS.md` gardant les serveurs MCP hors d'opencode depuis le 2026-09-21. Le repli par 54yyyu/zotero-mcp tombe pour les mêmes raisons.
+- **Un serveur MCP maison dans un plugin**, sur le modèle de `litrev-mcp`. C'est la voie la plus coûteuse, un serveur à maintenir pour des lectures en GET, avec la même exclusion d'opencode, et aucun des trois usages ne demande d'outils typés.
+- **Ne rien faire.** `rg` sur les `.zotero-ft-cache` fonctionne déjà, même Zotero ouvert, mais il ne renvoie que des clés de pièce jointe, sans notice ni clé de citation : il ne couvre que la moitié du deuxième usage.
+
+### Le premier test précède l'écriture du skill
+
+La décision tient tant que l'API locale répond sans clé aux GET dont les usages ont besoin : recherche `q`, `GET /fulltext`, `parentItem` d'une pièce jointe, clé de citation dans la notice.
+Aucun n'a été essayé sur cette installation (voir « Non vérifié »), la mise en œuvre commence donc par ces requêtes, Zotero lancé et l'API activée.
+Si l'une manque, le cadrage se rouvre sur l'usage concerné plutôt que de basculer vers un serveur MCP, qui passerait par la même API.
+L'API exige que Zotero tourne : sans lui, seule la recherche `rg` fonctionne, et le skill demande alors de lancer Zotero.
+
+### Ce qui reste valable de la recherche initiale
 
 L'hypothèse de départ (DuckDB sur `zotero.sqlite` + pdf-inspector) est écartée pour les agents.
 DuckDB reste valable pour des analyses par lot faites par l'utilisateur, Zotero fermé.
@@ -90,12 +125,13 @@ Index vectoriel : les outils mûrs le rendent optionnel et livrent BM25 ou mots-
 
 - Le comportement de `ZOTEUS_READ_ONLY=true` sur les outils autres que `zotero_delete_items`.
 - `GET /fulltext` sur l'API locale en conditions réelles : Zotero était fermé et l'API locale désactivée pendant la recherche. Le code du tag 10.0.3 le sert.
+- Les autres GET dont le skill dépend, tout aussi inessayés : la recherche `q`, le `parentItem` d'une pièce jointe, la présence de la clé de citation Better BibTeX dans la notice.
 - Si le verrou exclusif de Zotero s'étend à `fulltext.sqlite` attaché : `main.locking_mode` ne vise que la base principale.
 - Le comportement d'un `ATTACH ... (TYPE sqlite, READ_ONLY)` DuckDB sur la base vivante, déduit de la doc DuckDB et non testé.
 
 ## Sources
 
-- Code de Zotero au tag 10.0.3 : `chrome/content/zotero/xpcom/db.js`, `chrome/content/zotero/xpcom/fulltext.js`, `chrome/content/zotero/xpcom/server/server_localAPI.js`, dans <https://github.com/zotero/zotero>.
+- Code de Zotero au tag 10.0.3 : `chrome/content/zotero/xpcom/db.js`, `chrome/content/zotero/xpcom/fulltext.js`, `chrome/content/zotero/xpcom/server/server_localAPI.js`, `defaults/preferences/zotero.js`, dans <https://github.com/zotero/zotero>.
 - <https://www.zotero.org/support/dev/web_api/v3/local_api>
 - <https://www.zotero.org/support/dev/client_coding/direct_sqlite_database_access>
 - <https://retorque.re/zotero-better-bibtex/exporting/json-rpc/>
