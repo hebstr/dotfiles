@@ -26,7 +26,7 @@ Examples:
   st-add-folder ~/.claude
   st-add-folder ~/.claude --id claude-config --versioning 5
   st-add-folder ~/TODO --ignore ~/dotfiles/syncthing/TODO/.stignore
-  st-add-folder ~/snap/zotero-snap --devices "NAF4MBW-...,C2N42ZX-..."
+  st-add-folder ~/Zotero --devices "NAF4MBW-...,C2N42ZX-..."
   ST_URL=http://127.0.0.1:8385 st-add-folder ~/dotfiles
 EOF
   exit 0
