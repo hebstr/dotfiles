@@ -106,6 +106,16 @@ commit_file() {
   [ "$output" = "$PROJECT/a.sh" ]
 }
 
+@test "treats an unreadable stamp as absent and exits non-zero" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  stamp "$(date +%s%N)"
+  chmod 000 "$RUNTIME/claude-code-writes-s1.stamp"
+  run_stale
+  [ "$status" -ne 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
 @test "exits non-zero on an unreadable journal" {
   write_at 200 "$PROJECT/a.sh"
   chmod 000 "$RUNTIME/claude-code-writes-s1.log"

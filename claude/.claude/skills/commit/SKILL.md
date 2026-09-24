@@ -36,7 +36,7 @@ In this order, skipping none.
    If step 3 applied at least one finding, list the paths the gate would now count, computed by the very script the gate calls, against the stamp just checked:
 
    ```bash
-   bash ~/.claude/hooks/commit-stale.sh "$CLAUDE_CODE_SESSION_ID" "$PWD"
+   root=$(git rev-parse --show-toplevel) && bash ~/.claude/hooks/commit-stale.sh "$CLAUDE_CODE_SESSION_ID" "$root"
    ```
 
    Non-zero exit code: a source could not be read and the list is incomplete; leave the stamp as it is, and say so.
