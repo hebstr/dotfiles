@@ -1,6 +1,6 @@
 ---
 name: Review severity for personal shell installers
-description: "Calibration rules for code reviews of personal shell scripts: installers and CLI tooling in ~/dotfiles/bin/.local/bin/ (workstation plus the multi-user servers running the same dotfiles) and Claude Code hook scripts in ~/dotfiles/claude/.claude/hooks/"
+description: "Calibration rules for code reviews of personal shell scripts: installers and CLI tooling in ~/dotfiles/bin/.local/bin/ (workstation plus the multi-user servers running the same dotfiles), Claude Code hook scripts in ~/dotfiles/claude/.claude/hooks/, and the commit skill's scripts in ~/dotfiles/claude/.claude/skills/commit/scripts/"
 metadata:
   type: feedback
 ---
@@ -61,12 +61,13 @@ Excluded: this section does **not** disable findings on integrity verification b
 
 ---
 
-For Claude Code hook scripts in `~/dotfiles/claude/.claude/hooks/` (e.g. `inject-project-context.sh`), do not raise:
+For Claude Code hook scripts in `~/dotfiles/claude/.claude/hooks/` (e.g. `inject-project-context.sh`) and the `commit` skill's scripts in `~/dotfiles/claude/.claude/skills/commit/scripts/`, do not raise:
 
 - `set -euo pipefail` suggestions on the context injectors (`inject-project-context.sh` and its kind), which are best-effort by design; other hooks already run strict (`notify.sh` under `set -euo pipefail`, `prose-lint-pretool.sh` under `set -eu`, checked 2026-09-22), so this exclusion covers the injectors only. On an injector, `set -e` would abort the script on any failed `grep` (exit 1 when no match), leaving Claude with no context rather than partial context
 - Quoting / word-splitting findings already cleared by `shellcheck`; shellcheck is the authoritative reference. If it passes, the finding is a false positive
 - Portability concerns (GNU sed `\s`, etc.); target is Ubuntu 24.04 with GNU tools
 - In `write-journal.sh` / `commit-gate.sh` / `commit-stale.sh`, the journal "missing" Bash writes (`sed -i`, heredocs) or `NotebookEdit`: the Bash gap is documented with its fallback routes in `.claude/PLAN-SESSION-DISCIPLINE.md` § « Écritures hors Edit/Write » and covered by the CLAUDE.md rule routing every write through Edit/Write and, since 2026-09-23, mechanically in the project repo by the gate's union of the journal with `git status`; no user-authored `.ipynb` exists on the machine (only vendored copies under `~/.vscode` and `~/.cache`). Re-raise only with a measured Bash-only write in a repo other than the project's that escaped the gate (`commit-gate.sh` walkthrough, 2026-09-22)
+- In `skills/commit/scripts/writes.sh`, filtering the journal by the stored stamp "as `commit-stale.sh` does", to spare the verifier on a second `/commit`: `verifier.md` defines `WRITES` as every path written during the session, and its re-derivation of tracking claims needs the files written before the stamp. The gate and the verifier filter differently on purpose (`writes.sh` walkthrough, 2026-09-24)
 
 **Why hook scripts:** walkthrough on `claude/.claude/hooks/inject-project-context.sh` (2026-05-08): 5 of 7 findings rejected. The hook's design is deliberately best-effort; fail-fast patterns are counterproductive here.
 
