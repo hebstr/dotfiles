@@ -12,7 +12,7 @@ The full write-up lives in `~/dotfiles/_meta/notes/yaml-gate-reco.md`; read it b
 Conclusions that survive without reopening the research:
 
 - **Formatter is prettier, not yamlfmt.** yamlfmt converts `|` block scalars to escaped strings (upstream issue #185, open, labelled `yaml_v3_problem`), and `run: |` blocks are exactly the content of the four repos with GitHub Actions workflows. prettier is already pinned in `~/.local/share/css-gate/` and already tracked by `sys-update`'s `css-toolchain` module, so it adds no maintenance surface. See [[project_qmd_format_hook]] for the neighbouring formatter split.
-- **Linter is yamllint via `uv tool install`**, and a blocker has to be cleared first: `/usr/local/bin/yamllint` is a symlink to the npm `yaml-lint` 1.7.0 package, which has no style rules at all. The real yamllint is not installed.
+- **Linter is yamllint via `uv tool install`.** The former blocker is cleared: the npm `yaml-lint` 1.7.0 package that owned `/usr/local/bin/yamllint` was uninstalled 2026-09-25 (`.claude/PLAN-ORPHANS.md`, pass of 2026-09-24), and that path no longer exists. The real yamllint is not installed.
 - **`actionlint` on `.github/workflows/` only**; that is the one class with no existing coverage.
 - **No schema validation on Quarto configs.** SchemaStore has zero Quarto and zero pkgdown entries (catalogue inspected directly, 1402 schemas), and `rules/quarto.md` already forces a full `quarto render` on any `_quarto.yml` edit, which is stricter than a generic schema.
 

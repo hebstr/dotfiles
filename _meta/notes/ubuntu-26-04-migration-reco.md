@@ -57,6 +57,7 @@ La FAQ Positron mentionne « RHEL 8, 9, and 10 and Ubuntu 22/24 », mais cette p
 Ce n'est pas une contradiction avec la matrice de support.
 
 Les 6 dépôts tiers épinglés sur `noble` dans `/etc/apt/sources.list.d/` ont tous leur équivalent `resolute` en ligne : Docker, QGIS, et les PPAs apt-fast, git-core, mozillateam, keepassxc.
+Update 2026-09-25: the Docker, QGIS and apt-fast sources were removed with their packages (`.claude/PLAN-ORPHANS.md`, pass of 2026-09-24), which leaves 3: the git-core, mozillateam and keepassxc PPAs.
 Les autres sources utilisent une suite indépendante du nom de code : `nodesource` (`nodistro`), `syncthing` (`stable-v2`), `vscode` (`stable`).
 `gh` et `rig` s'installent depuis le `.deb` de leur release GitHub depuis le 2026-09-18, sans dépôt apt.
 

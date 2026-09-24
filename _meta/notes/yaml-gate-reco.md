@@ -87,6 +87,8 @@ Le vrai yamllint n'est pas installé.
 L'apt de noble propose 1.33.0-1 contre 1.38.0 upstream, donc `uv tool install yamllint` est le bon canal.
 Il faudra retirer ou renommer le symlink npm avant, sinon le PATH continuera de résoudre le mauvais binaire.
 
+Lifted 2026-09-25: the npm `yaml-lint` package was uninstalled and `/usr/local/bin/yamllint` no longer exists (`.claude/PLAN-ORPHANS.md`, pass of 2026-09-24).
+
 Également absents de la machine : `yamlfmt`, `actionlint`, `go`, `yaml-language-server`.
 
 ## Validation par schéma : ce qui existe et ce qui n'existe pas
