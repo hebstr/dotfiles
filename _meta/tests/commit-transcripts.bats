@@ -119,8 +119,7 @@ bash_call() {
   run_transcripts bash "$REPO" measure.py
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 1 ]
-  [[ ${lines[0]} == $'2026-09-22\t'*$'x && measure.py --all x'* ]]
-  [ "${#lines[0]}" -eq $((10 + 1 + 60 + 10 + 140)) ]
+  [ "${lines[0]}" = $'2026-09-22\t'"${long:0:56} && measure.py --all ${long:0:133}" ]
 }
 
 @test "lists a Bash command run by a subagent" {
@@ -134,6 +133,7 @@ bash_call() {
 @test "leaves out a Bash command that does not name the script" {
   bash_call 2026-09-22 'rg other'
   line "$(jq -nc '{timestamp: "2026-09-22T10:00:00Z", message: {content: [{type: "tool_result", content: "measure.py"}]}}')"
+  line "$(jq -nc '{timestamp: "2026-09-22T10:00:00Z", message: {content: [{type: "tool_use", name: "Bash", input: {command: "bats x.bats", description: "run measure.py"}}]}}')"
   run_transcripts bash "$REPO" measure.py
   [ "$status" -eq 0 ]
   [ -z "$output" ]
