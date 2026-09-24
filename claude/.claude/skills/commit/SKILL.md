@@ -17,7 +17,7 @@ In this order, skipping none.
 
 ### 0.1 Verifier
 
-1. Read the session's write log and the repository's modified files, and take the stamp value **before** launching the agent:
+1. Read the session's write log and the repository's modified files, and record the stamp value **before** launching the agent:
 
    ```bash
    bash ~/.claude/skills/commit/scripts/writes.sh
@@ -26,12 +26,12 @@ In this order, skipping none.
    The script prints `STAMP_FILE` and `STAMP_VALUE`, then the `WRITES` list, which combines the write log with `git status`, because the log sees neither the writes of a session that preceded a `/clear` (the session id changes) nor those made through Bash or by hand.
    Shell state does not persist from one Bash call to the next: the commands of the following steps take these two values copied exactly as printed, in place of `<STAMP_FILE>` and `<STAMP_VALUE>`.
    Empty list: no write in the session and a clean tree, go to 0.2.
-   Exit code 3, with no `STAMP_` line (`CLAUDE_CODE_SESSION_ID` empty or unusable): say so, and still run the verifier on the listed files, without a stamp; the gate will block again the next time blocks are rendered outside the continuation it triggered, inside which the marker it wrote when blocking makes it exit 0, and that is the intended behavior.
+   Exit code 3, with no `STAMP_` line (`CLAUDE_CODE_SESSION_ID` empty or unusable): say so, and still run the verifier on the listed files, without a stamp; the gate will block again the next time commit blocks are delivered outside the continuation it triggered, inside which the marker it wrote when blocking makes it exit 0, and that is the intended behavior.
    Exit code 1 (`git status` failed): say so, and run the verifier on the printed list, which then holds only the write log.
 2. Read `agents/verifier.md` (next to this file) and launch a `general-purpose` agent **in the foreground**, whose prompt is that file followed by `REPO` (the git root), `WRITES` (the list above), `STAMP_FILE` and `STAMP_VALUE`.
    A fresh context is the whole point of this step: give it no summary of the session and no opinion on what is up to date.
 3. Apply its findings with Edit, one at a time, after checking each one: a finding the check disproves is dropped, and named as dropped.
-   A finding that calls for a change to code rather than to tracking is not applied as a matter of course: report it to the user.
+   A finding that calls for a change to code rather than to tracking is not yours to apply: report it to the user.
 4. Check that the stamp was written (`cat '<STAMP_FILE>'` equals `<STAMP_VALUE>`). If it was not, write it yourself with the same value, and say so.
    If step 3 applied at least one finding, list the paths the gate would now count, computed by the very script the gate calls, against the stamp just checked:
 
@@ -40,8 +40,8 @@ In this order, skipping none.
    ```
 
    Non-zero exit code: a source could not be read and the list is incomplete; leave the stamp as it is, and say so.
-   Empty output, or every printed path is a tracking file targeted by an applied finding (the gate already ignores `.claude/` and memory, but counts `_meta/notes/`, for example): rewrite the stamp (`date +%s%N >'<STAMP_FILE>'`), otherwise the gate would declare stale the blocks rendered right after these corrections.
-   If at least one path falls outside that case, leave the stamp as it is and name that path to the user: the gate does not block again within the continuation it triggered (the marker it wrote when blocking), and will only block the next time blocks are rendered outside it, which is intended.
+   Empty output, or every printed path is a tracking file targeted by an applied finding (the gate already ignores `.claude/` and memory, but counts `_meta/notes/`, for example): rewrite the stamp (`date +%s%N >'<STAMP_FILE>'`), otherwise the gate would treat the commit blocks delivered right after these corrections as stale.
+   If at least one path falls outside that case, leave the stamp as it is and name that path to the user: the gate does not block again within the continuation it triggered (the marker it wrote when blocking), and will only block the next time commit blocks are delivered outside it, which is intended.
 
 This pass does not replace the check the session owes at every tracking write; it catches what that check let through.
 
@@ -54,7 +54,7 @@ When a tracking file (a PLAN, a workstream note) names the next step, base the r
 
 Run `git diff --numstat HEAD` for tracked files, and `git ls-files --others --exclude-standard` then `wc -l` for new files.
 Propose `/audit:walkthrough <file> --reviewer posit-dev:critical-code-reviewer` only for a new or changed executable code file with at least 30 changed lines (additions plus deletions).
-Executable code means a programming language (shell, Python, R, Rust, JS/TS, SQL, Lua, CSS/SCSS, Typst, Perl, bats), or an extensionless file that carries a shebang. Never memory, `CLAUDE.md`, `rules/`, a `SKILL.md` or a configuration file: the user runs those reviews when they want them.
+Executable code means code in a programming language (shell, Python, R, Rust, JS/TS, SQL, Lua, CSS/SCSS, Typst, Perl, bats), or an extensionless file that carries a shebang. Never memory, `CLAUDE.md`, `rules/`, a `SKILL.md` or a configuration file: the user runs those reviews when they want them.
 Nor for a file that an `/audit:walkthrough` or an `/audit:blindspot` handled during the session: its fixes close the review cycle, and proposing another review restarts the loop.
 New or rewritten prose meant for a reader (README, CHANGELOG, published documentation): propose `/workflow:write <file>`.
 Neither: propose nothing, and say nothing about it.
@@ -76,12 +76,12 @@ Nothing to commit: say so and stop.
 
 ## 2. Split
 
-One commit per independent subject. Whatever cannot stand on its own goes together: a change and its test, a rename and its call sites, a CHANGELOG entry and what it describes.
+One commit per independent topic. Whatever cannot stand on its own goes in the same commit: a change and its test, a rename and its call sites, a CHANGELOG entry and what it describes.
 
-Two subjects that share a file cannot be split by path: propose a single commit, or name the file that needs `git add -p`.
-Name each untracked file, with your advice on whether to include it; a single advice to leave one out rules out `git add .` for the commit it sits beside.
-A file whose name falls within the scope of "Secret files handling" in `CLAUDE.md` goes into no proposed staging: report it. The list is kept up to date there; copying it here would make the two diverge at the next edit of either.
-Report content that is already staged, since it will go out with the first commit.
+Two topics that share a file cannot be split by path: propose a single commit, or name the file that needs `git add -p`.
+Name each untracked file, with your advice on whether to include it; if you advise leaving even one out, do not use `git add .` for the commit that would sweep it in.
+A file whose name falls within the scope of "Secret files handling" in `CLAUDE.md` stays out of every staging command you propose: report it. The list is kept up to date there; copying it here would make the two diverge at the next edit of either.
+Report content that is already staged, since it will be included in the first commit.
 
 ## 3. Deliver
 
