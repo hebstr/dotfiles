@@ -36,7 +36,7 @@ Read a file from it when a rule below points to it, and not before.
 
 - Never run a git command that writes: commit, add, push, reset, checkout of files, branch, tag, merge, rebase.
   The user runs git.
-- When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form.
+- When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
   Never `git add -A`.
   When every task of the session is done, give that block unasked, instead of asking whether to.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.

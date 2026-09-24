@@ -1,6 +1,6 @@
 ---
 name: opencode AGENTS.md mirrors the behavioral rules of CLAUDE.md
-description: When a behavioral rule of ~/.claude/CLAUDE.md is added, changed or removed, check whether ~/dotfiles/opencode/.config/opencode/AGENTS.md carries it and update that copy in the same response
+description: When a behavioral rule of ~/.claude/CLAUDE.md, or the commit format of the commit skill's "3. Deliver", is added, changed or removed, check whether ~/dotfiles/opencode/.config/opencode/AGENTS.md carries it and update that copy in the same response
 metadata:
   type: project
 ---
@@ -11,4 +11,4 @@ Its existence also stops opencode from loading `CLAUDE.md` itself, so nothing el
 
 **Why:** no mechanism keeps the two in sync, and the selection is a judgement no script can redo. The user accepted the drift risk against the token budget of a 9B local model, on the condition that it be handled by hand.
 
-**How to apply:** after editing a behavioral rule in `CLAUDE.md`, grep `AGENTS.md` for it. If it is there, update it; if it is absent and matches the inclusion criterion of `~/dotfiles/.claude/DESIGN-OPENCODE-HARNESS.md` § "`AGENTS.md` keeps what any agent can apply, 2026-09-21", propose adding it. Rules about memory, plans, subagents, reviews, skills and hooks stay out, with one exception: reading a project's `.claude/PLAN.md` at session start, carried since the § "A project's `.claude/` is loaded like Claude Code loads it, 2026-09-21" of that design note. See [[project_ju_tp2_receiveonly]] for where such edits are made.
+**How to apply:** after editing a behavioral rule in `CLAUDE.md`, grep `AGENTS.md` for it. If it is there, update it; if it is absent and matches the inclusion criterion of `~/dotfiles/.claude/DESIGN-OPENCODE-HARNESS.md` § "`AGENTS.md` keeps what any agent can apply, 2026-09-21", propose adding it. Rules about memory, plans, subagents, reviews, skills and hooks stay out, with one exception: reading a project's `.claude/PLAN.md` at session start, carried since the § "A project's `.claude/` is loaded like Claude Code loads it, 2026-09-21" of that design note. The same holds for the commit format in "3. Deliver" of `claude/.claude/skills/commit/SKILL.md`: the commit line of `AGENTS.md` is a short version of it (72-character header limit mirrored on 2026-09-24), so a change there is checked against that line too. See [[project_ju_tp2_receiveonly]] for where such edits are made.
