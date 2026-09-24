@@ -20,6 +20,7 @@ Restituer la demande en quelques lignes, dans d'autres mots que les siens : repr
 Nommer ensuite ce que la demande laisse indéterminé, et pour chaque point, trancher entre deux traitements.
 Une ambiguïté est bloquante quand deux lectures conduisent à des travaux différents : là, poser la question et ne rien proposer avant la réponse.
 Tout le reste avance sous hypothèse explicite, énoncée comme telle.
+Un indéterminé qu'une lecture ou une commande en lecture seule tranche n'est pas une hypothèse : l'étape 2 le tranche, et la proposition en donne la réponse.
 
 Une demande qui ne laisse rien d'indéterminé existe ; le dire alors, plutôt que fabriquer une ambiguïté pour remplir la rubrique.
 
@@ -32,7 +33,7 @@ Vérifier au passage si la capacité existe déjà, sous forme d'un helper inter
 
 Quand le dépôt ne porte aucun précédent pour ce type d'artefact, la convention est probablement établie dans un projet voisin plutôt qu'absente : le dire, nommer le candidat trouvé ou demander lequel prendre pour modèle, et ne pas en inventer une localement.
 
-Lire aussi les notes de design du chantier concerné, que la table des chantiers de `PLAN.md` nomme, et l'entrée de plan correspondante : une décision antérieure ne vit pas dans les scripts, et c'est elle que l'étape 5 demande de constater renversée.
+Lire aussi, en entier, les notes du chantier concerné (son fichier de plan `PLAN*.md`, ses notes `.claude/DESIGN-*.md` ou `_meta/notes/`) et l'entrée de plan correspondante : une décision antérieure ne vit pas dans les scripts, et c'est elle que l'étape 5 demande de constater renversée.
 
 ## 3. Ouvrir plusieurs voies
 
@@ -53,6 +54,7 @@ Citer le précédent par son nom, fichier plus objet ou fichier plus section, pl
 
 Quand la voie recommandée n'est pas la plus robuste, dire ce qu'elle échange contre quoi.
 Nommer enfin l'hypothèse la plus fragile sur laquelle elle repose : « cela tient tant que X ; si X tombe, Y ».
+Quand un test sans effet de bord la vérifie (commande en lecture seule, essai dans le scratchpad), le lancer avant de recommander et en donner le résultat ; sinon la déclarer non testée. Une sonde à effet de bord, processus lancé ou machine distante, se demande avant.
 
 Une voie qui suppose une dépendance nouvelle ne se choisit pas seul : elle se propose, chiffrée à une dépendance de plus, avec l'alternative sans elle à côté.
 
@@ -68,14 +70,16 @@ La note suit la langue des notes du projet.
 
 Ce que la note porte : la décision en tête, la raison, les voies écartées avec ce qui condamne chacune, et les points laissés ouverts nommés comme ouverts, aucun tranché par défaut.
 Les titres de section affirment au lieu d'étiqueter.
-Le code se référence selon la section « Références au code dans les notes » du `CLAUDE.md` projet.
+Le code et la prose se citent par leur nom, jamais par numéro de ligne, selon la règle « Cite by name » du `CLAUDE.md` global.
 Les dates sont absolues.
 
 ## Arrêt
 
-Aucun code, aucun échafaudage, aucun pseudo-code, aucun fichier hors la note : le cadrage ne produit rien de tout cela, avant validation comme après.
+Aucun code, aucun échafaudage, aucun pseudo-code, aucun fichier hors la note : le cadrage ne produit rien de tout cela, avant validation comme après. L'essai jetable de l'étape 4 reste dans le scratchpad, qui ne compte pas comme un fichier du projet.
 La validation est explicite : ni le silence, ni un accord donné sur un point de détail ne la constituent.
+La question qui la demande nomme la voie, et sépare chaque décision que la proposition regroupe, pour qu'un accord ne couvre que ce qu'il nomme.
 Elle déclenche l'écriture de la note quand l'étape 5 la retient, et clôt le cadrage là. L'implémentation demande une instruction neuve, et relève du socle global à partir de là.
+La réponse de clôture finit sur la suite recommandée, implémenter maintenant ou dans une conversation neuve, et l'accord donné à cette suite est l'instruction neuve.
 
 Un refus rouvre l'étape 4 sur les voies déjà ouvertes. Quand elles sont toutes refusées, l'étape 3 rouvre et les refus deviennent sa matière : ce qu'ils écartent borne les voies neuves. Les étapes 1 et 2 ne se refont que si la demande elle-même a changé.
 
@@ -85,7 +89,7 @@ Le cadrage arbitre entre plusieurs façons d'implémenter une suggestion. Ce qui
 
 ### Sortir avant l'étape 1
 
-Trois cas, constatés à l'entrée sur l'invocation, la conversation et un grep ciblé du sujet dans `PLAN.md` et les notes `.claude/DESIGN-*.md` du projet :
+Trois cas, constatés à l'entrée sur l'invocation, la conversation et un grep ciblé du sujet dans les fichiers `.claude/*.md` et `_meta/notes/` du projet :
 
 - la décision existe déjà, dans une note, une entrée de plan ou plus haut dans la conversation : la citer par son nom et demander si l'invocation la rouvre. Une réouverture confirmée lance le cadrage complet, et l'étape 5 retient alors la note au titre de la décision renversée ;
 - aucune suggestion ne se dégage, ni de l'invocation ni de la conversation : demander laquelle cadrer, sans en construire une ;
@@ -119,7 +123,7 @@ Pour un cadrage complet :
 - Les fichiers touchés par la suggestion ont été lus, et le précédent local est nommé ou son absence déclarée.
 - Chaque voie porte son mécanisme en deux phrases, son coût et ce qu'elle interdit plus tard.
 - La recommandation est unique et nomme le référent atteint dans la cascade, précédent du dépôt cité par son nom, à défaut idiome de la pile, à défaut bibliothèque dominante.
-- L'hypothèse la plus fragile de la voie retenue est énoncée.
+- L'hypothèse la plus fragile de la voie retenue est énoncée, et testée ou déclarée non testée.
 - La décision d'écrire ou non une note est motivée en une ligne.
 - Aucun fichier hors la note n'a été touché.
 
