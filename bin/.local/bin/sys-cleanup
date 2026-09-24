@@ -11,6 +11,7 @@ ALL_MODULES=(
   uv
   rv
   prek
+  npm
   r-cache
   claude-versions
   flatpak
@@ -162,6 +163,19 @@ clean_prek() {
   local after
   after=$(bytes_of "${HOME}/.cache/prek")
   record prek $((before - after)) OK
+}
+
+clean_npm() {
+  if ! command -v npm >/dev/null 2>&1; then
+    record npm 0 "skipped (not found)"
+    return
+  fi
+  local before
+  before=$(bytes_of "${HOME}/.npm/_cacache")
+  run_or_dry npm cache verify
+  local after
+  after=$(bytes_of "${HOME}/.npm/_cacache")
+  record npm $((before - after)) OK
 }
 
 clean_r_cache() {

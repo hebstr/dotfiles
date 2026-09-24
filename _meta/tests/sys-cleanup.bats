@@ -81,7 +81,7 @@ teardown() {
 @test "--help lists every available module" {
   _run --help
   [ "$status" -eq 0 ]
-  for m in trash uv rv prek r-cache claude-versions flatpak \
+  for m in trash uv rv prek npm r-cache claude-versions flatpak \
     claude-cli chromium-headless positron-pycache workspace-storage \
     jedi apt journal snap; do
     [[ "$output" == *"$m"* ]] || {
@@ -115,6 +115,7 @@ teardown() {
   [ "$status" -eq 0 ]
   echo "$output" | grep -E '^trash[[:space:]]+no$'
   echo "$output" | grep -E '^uv[[:space:]]+no$'
+  echo "$output" | grep -E '^npm[[:space:]]+no$'
   echo "$output" | grep -E '^flatpak[[:space:]]+no$'
   echo "$output" | grep -E '^chromium-headless[[:space:]]+no$'
   echo "$output" | grep -E '^positron-pycache[[:space:]]+no$'
@@ -456,6 +457,38 @@ _make_prek_archive_entry() {
   _run --dry-run prek
   [ "$status" -eq 0 ]
   [[ "$output" == *"[dry-run] prek cache gc"* ]]
+}
+
+@test "npm module is skipped when npm is not on PATH" {
+  _run --dry-run npm
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"npm"*"skipped (not found)"* ]]
+}
+
+@test "--dry-run npm prints npm cache verify and does not run it" {
+  _stub_command npm "printf '%s\n' \"\$*\" >>\"${STUBS}/npm.calls\""
+  _run --dry-run npm
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] npm cache verify"* ]]
+  [ ! -e "${STUBS}/npm.calls" ]
+}
+
+@test "non-dry-run npm runs npm cache verify" {
+  _stub_command npm "printf '%s\n' \"\$*\" >>\"${STUBS}/npm.calls\""
+  _run npm
+  [ "$status" -eq 0 ]
+  [ "$(cat "${STUBS}/npm.calls")" = "cache verify" ]
+}
+
+@test "npm FREED reports what verify removed from ~/.npm/_cacache" {
+  mkdir -p "${FAKE_HOME}/.npm/_cacache/content-v2"
+  head -c 2097152 /dev/zero >"${FAKE_HOME}/.npm/_cacache/content-v2/garbage"
+  head -c 1024 /dev/zero >"${FAKE_HOME}/.npm/_cacache/content-v2/kept"
+  _stub_command npm "rm -f \"\${HOME}/.npm/_cacache/content-v2/garbage\""
+  _run npm
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -E '^npm[[:space:]]+2 MiB[[:space:]]+OK$'
+  [ -f "${FAKE_HOME}/.npm/_cacache/content-v2/kept" ]
 }
 
 @test "flatpak module is skipped when flatpak is not on PATH" {
@@ -986,7 +1019,7 @@ EOF
 @test "no module argument selects all modules" {
   _run --dry-run
   [ "$status" -eq 0 ]
-  for m in trash uv rv prek r-cache claude-versions flatpak \
+  for m in trash uv rv prek npm r-cache claude-versions flatpak \
     claude-cli chromium-headless positron-pycache workspace-storage \
     jedi apt journal snap; do
     [[ "$output" == *"→ ${m}"* ]] || {
