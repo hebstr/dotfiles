@@ -139,10 +139,49 @@ bash_call() {
   [ -z "$output" ]
 }
 
+@test "keeps every later occurrence of the name in the excerpt" {
+  bash_call 2026-09-22 'measure.py a | measure.py b'
+  run_transcripts bash "$REPO" measure.py
+  [ "$status" -eq 0 ]
+  [ "$output" = $'2026-09-22\tmeasure.py a | measure.py b' ]
+}
+
+@test "matches a name holding pattern metacharacters literally" {
+  bash_call 2026-09-22 'a+b.sh --all'
+  run_transcripts bash "$REPO" a+b.sh
+  [ "$status" -eq 0 ]
+  [ "$output" = $'2026-09-22\ta+b.sh --all' ]
+}
+
+@test "exits 0 with no output when no transcript line mentions a command" {
+  bash_call 2026-09-22 'rg other'
+  run_transcripts invocations "$REPO"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "exits non-zero when a matching transcript line is not valid JSON" {
+  line '{"timestamp": "2026-09-20T10:00:00Z", "message": {"content": "<command-name>/commit</command-name>'
+  run_transcripts invocations "$REPO"
+  [ "$status" -ne 0 ]
+}
+
+@test "prints nothing when the transcript directory holds no transcript" {
+  run_transcripts invocations "$REPO"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
 @test "prints nothing and says so when the project has no transcript directory" {
   run_transcripts invocations "$WORK/nowhere"
   [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 1 ]
   [[ $output == *"no transcript directory"* ]]
+}
+
+@test "rejects a call without a repository" {
+  run_transcripts invocations
+  [ "$status" -eq 2 ]
 }
 
 @test "rejects an unknown mode" {

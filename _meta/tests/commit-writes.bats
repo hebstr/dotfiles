@@ -67,6 +67,41 @@ commit_file() {
   [ "${lines[2]}" = "$WORK/sub/new.sh" ]
 }
 
+@test "lists both sides of a staged rename as separate paths" {
+  commit_file a.sh
+  git -C "$WORK" mv a.sh b.sh
+  run_writes
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 4 ]
+  [ "${lines[2]}" = "$WORK/a.sh" ]
+  [ "${lines[3]}" = "$WORK/b.sh" ]
+}
+
+@test "keeps a git status path holding a space or an accented letter verbatim" {
+  printf 'x\n' >"$WORK/my é.sh"
+  run_writes
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "$WORK/my é.sh" ]
+}
+
+@test "skips a journal line that carries no path" {
+  printf '100\n\n' >>"$RUNTIME/claude-code-writes-s1.log"
+  write_at 200 "$WORK/a.sh"
+  run_writes
+  [ "$status" -eq 0 ]
+  [[ $output != *$'\n\n'* ]]
+  [ "${lines[2]}" = "$WORK/a.sh" ]
+}
+
+@test "puts the stamp under /tmp when XDG_RUNTIME_DIR is unset" {
+  session="bats-writes-$$"
+  # shellcheck disable=SC2016
+  run env -u XDG_RUNTIME_DIR PATH="$STUB_DIR" CLAUDE_CODE_SESSION_ID="$session" \
+    /bin/bash -c 'cd "$1" && /bin/bash "$2"' _ "$WORK" "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "STAMP_FILE=/tmp/claude-code-writes-${session}.stamp" ]
+}
+
 @test "exits 1 with a notice outside any git repository, still listing journaled paths" {
   outside=$(realpath "$(mktemp -d)")
   write_at 100 "/elsewhere/a.sh"
