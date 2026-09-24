@@ -30,7 +30,7 @@ Side finding: the user unit `syncthing.service` was disabled on `ju-TP2` and did
 systemctl --user enable --now syncthing
 ~~~
 
-On `ju-TP`, `ju-TP.local` resolves locally to `docker0`'s `172.17.0.1` (avahi answers for the local host); the alias is only used from `ju-TP2`, where the LAN address comes back.
+On `ju-TP`, `ju-TP.local` resolves locally to its own LAN address (avahi answers for the local host; re-measured 2026-09-25 after the Docker purge and a reboot, where it had returned `docker0`'s `172.17.0.1`); the alias is only used from `ju-TP2`, where the LAN address comes back too.
 
 Replayable from `ju-TP`: the other direction resolves too (the address itself changes with the hotspot, so only resolution is asserted).
 
