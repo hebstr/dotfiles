@@ -4,129 +4,129 @@ description: Use when the user types `/design <suggestion>` to settle how to imp
 disable-model-invocation: true
 ---
 
-# Designing an implementation suggestion
+# Designing how to implement a suggestion
 
-The invocation receives an implementation idea, more or less formed, and returns a settled decision.
-The suggestion is the one the invocation carries; failing that, the one the conversation has just raised, and the restatement of step 1 exposes a wrong pick before it costs anything.
-It writes no code and creates no file other than the note. It stops at the user's approval.
+This skill takes an implementation idea, rough or fully formed, and turns it into a decision weighed against the alternatives.
+The suggestion is the one passed with the invocation or, failing that, the one just raised in the conversation; restating it in step 1 exposes a wrong pick before it costs anything.
+Write no code and create no file except the note. Stop at the user's approval.
 
 Conduct the conversation in the user's language, whatever the language of this text.
-Two families of cases set the full design aside: three exits observed on entry, before step 1, and three shortened answers observed at steps 1, 2 and 3. Read "When the full design does not apply" before starting.
+Two kinds of case skip the full design: three exits, detected on entry before step 1, and three shortened answers, detected at steps 1, 2 and 3. Read "When the full design does not apply" before starting.
 
-## 1. Restate
+## 1. Restate the request
 
-Restate the request in a few lines, in words other than its own: repeating its wording proves nothing, restating it exposes what was misunderstood.
+Restate the request in a few lines, in your own words: echoing its wording proves nothing, while rephrasing it exposes any misunderstanding.
 
-Then name what the request leaves undetermined, and for each point, choose between two treatments.
-An ambiguity is blocking when two readings lead to different work: there, ask the question and propose nothing before the answer.
-Everything else proceeds under an explicit hypothesis, stated as such.
-An unknown that a read or a read-only command settles is not a hypothesis: step 2 settles it, and the proposal gives the answer.
+Then name what the request leaves open, and sort each open point into one of two treatments.
+An ambiguity is blocking when two readings would lead to different work: ask the question, and propose nothing until it is answered.
+Everything else goes ahead on an explicit assumption, stated as one.
+An open point that a file read or a read-only command can settle is not an assumption: settle it in step 2, and give the answer in the proposal.
 
-A request that leaves nothing undetermined exists; say so then, rather than inventing an ambiguity to fill the heading.
+A request can leave nothing open; when it does, say so rather than inventing an ambiguity to fill the section.
 
 ## 2. Read before proposing
 
-The idiomaticity criterion only means something relative to a referent, and the referent is the repository, not general taste.
+"Idiomatic" only means something against a reference point, and the reference point is this repository, not general taste.
 
-Before opening any approach: read the files the suggestion touches, and look for the precedent, that is, the way a comparable thing is already done here.
-Check along the way whether the capability already exists, as an internal helper or as a function of a dependency already declared. Finding nothing on disk closes nothing: it establishes absence from the current dependencies, never from the ecosystem.
+Before opening any approach, read the files the suggestion touches and look for precedent: how something comparable is already done here.
+Check at the same time whether the capability already exists, as an internal helper or as a function of a dependency already declared. Finding nothing on disk settles nothing: it shows the capability is absent from the current dependencies, never from the ecosystem.
 
-When the repository holds no precedent for this kind of artifact, the convention is probably established in a sibling project rather than absent: say so, name the candidate found or ask which one to take as a model, and do not invent one locally.
+When the repository has no precedent for this kind of artifact, the convention most likely lives in a sibling project rather than nowhere: say so, name the candidate you found or ask which project to follow, and do not invent a local one.
 
-Also read, in full, the notes of the workstream concerned (its plan file `PLAN*.md`, its `.claude/DESIGN-*.md` or `_meta/notes/` notes) and the matching plan entry: a prior decision does not live in the scripts, and it is the one step 5 asks to record as overturned.
+Also read in full the notes of the workstream at hand (its `PLAN*.md` plan file, its `.claude/DESIGN-*.md` or `_meta/notes/` notes) and its plan entry: earlier decisions are not recorded in the scripts, and step 5 needs them to tell whether this decision overturns one.
 
 ## 3. Open several approaches
 
-Two to four, without the number acting as a quota: if only one holds, say so and say what rules out the others.
+Offer two to four, without treating the number as a quota: if only one holds up, say so and say what disqualifies the others.
 
-Two approaches are distinct when the responsibility lives in a different place. A name that changes, one more argument, a flag: that is a variant, and two variants of the same mechanism count as one approach.
+Two approaches are distinct when the responsibility sits in a different place. A different name, an extra argument, a flag: those are variants, and two variants of one mechanism count as a single approach.
 
-"Do nothing" is an approach in its own right as soon as a mechanism already in place covers the need, and it wins by default when that is the case. A feature with no consumer is dead metadata.
+"Do nothing" is a legitimate approach whenever an existing mechanism already covers the need, and in that case it wins by default. A feature with no consumer is dead metadata.
 
-Each approach carries three things and no more: the mechanism in two sentences, what it costs (a dependency, a coupling, a maintenance load, one more file the reader has to know), and what it rules out later.
+Each approach states three things and nothing more: its mechanism in two sentences, its cost (a dependency, a coupling, a maintenance burden, one more file the reader has to know about), and what it forecloses later.
 
-## 4. Decide
+## 4. Make the call
 
-One recommendation, never a list left open.
+Give one recommendation, never an open-ended list.
 
-Idiomatic reads in this order: consistent with a precedent of this repository, failing that with the idiom of the stack, failing that with that of the dominant library of the domain.
-Cite the precedent by its name, file plus object or file plus section, rather than asserting the property.
+Judge what is idiomatic in this order: consistent with a precedent in this repository; failing that, with the idiom of the stack; failing that, with the idiom of the dominant library in the domain.
+Cite the precedent by name, as file plus object or file plus section, instead of merely claiming the property.
 
-When the recommended approach is not the most robust, say what it trades for what.
-Finally, name the most fragile hypothesis it rests on: "this holds as long as X; if X falls, Y".
-When a side-effect-free test checks it (a read-only command, a trial in the scratchpad), run it before recommending and give its result; otherwise declare it untested. A probe with side effects, a launched process or a remote machine, is asked for first.
+When the recommended approach is not the most robust one, say what it trades away and for what.
+Finally, name the weakest assumption it rests on: "this holds as long as X; if X fails, Y".
+When a test without side effects can check it (a read-only command, a trial in the scratchpad), run it before recommending and report the result; otherwise declare it untested. Ask before running a probe with side effects, such as starting a process or touching a remote machine.
 
-An approach that requires a new dependency is not chosen alone: it is proposed, costed at one more dependency, with the alternative without it beside it.
+Never pick an approach that adds a dependency on your own: propose it, costed as one more dependency, next to the alternative that avoids it.
 
-## 5. The note, or not
+## 5. Write a note, or not
 
-The note is written after the user's approval, never before.
+Write the note only after the user approves, never before.
 
-Write a note when at least one of these three conditions holds: the decision constrains later sessions, it overturns a prior decision, or the rejected approaches would be proposed again by anyone who was not in this conversation.
-Say in one line which one holds; otherwise the decision stays in the conversation, and say that too, with the reason, rather than passing over it.
+Write one when at least one of three conditions holds: the decision constrains later sessions, it overturns an earlier decision, or anyone who missed this conversation would propose the rejected approaches again.
+Say in one line which condition holds; if none does, the decision stays in the conversation, and say that too, with the reason, instead of leaving it unsaid.
 
-Location: the workstream's note when one exists, `.claude/DESIGN-<TOPIC>.md` when nothing covers the subject.
-The note is written in English.
+Location: the workstream's existing note when there is one, `.claude/DESIGN-<TOPIC>.md` when nothing covers the subject.
+Write the note in English.
 
-What the note carries: the decision first, the reason, the rejected approaches with what rules out each, and the points left open named as open, none settled by default.
-Section headings assert instead of labeling.
-Code and prose are cited by name, never by line number, per the "Cite by name" rule of the global `CLAUDE.md`.
-Dates are absolute.
+The note holds the decision first, then the reason, the rejected approaches each with what disqualified it, and the open points marked as open, none decided by default.
+Section headings make a claim rather than label a topic.
+Cite code and prose by name, never by line number, per the "Cite by name" rule of the global `CLAUDE.md`.
+Use absolute dates.
 
 ## Stop
 
 No code, no scaffolding, no pseudo-code, no file other than the note: the design produces none of these, before approval or after. The throwaway trial of step 4 stays in the scratchpad, which does not count as a project file.
-Approval is explicit: neither silence nor agreement on a point of detail constitutes it.
-The question that asks for it names the approach, and separates every decision the proposal bundles, so that an agreement covers only what it names.
-Approval triggers writing the note when step 5 retains one, and closes the design there. Implementation requires a new instruction, and falls under the global baseline from then on.
-The closing reply ends on the recommended next step, implement now or in a new conversation, and agreement to that step is the new instruction.
+Approval must be explicit: silence does not count, and neither does agreement on a detail.
+The question that asks for it names the approach and lists separately each decision the proposal bundles, so that a yes covers only what it names.
+Approval triggers the note when step 5 calls for one, and ends the design there. Implementation needs a fresh instruction, and from then on the global baseline governs it.
+The closing reply ends on the recommended next step, implementing now or in a new conversation, and the user's agreement to that step is the fresh instruction.
 
-A refusal reopens step 4 on the approaches already opened. When they are all refused, step 3 reopens and the refusals become its material: what they rule out bounds the new approaches. Steps 1 and 2 are redone only if the request itself has changed.
+A refusal sends you back to step 4 with the approaches already on the table. If all of them are refused, reopen step 3 and use the refusals as input: what they rule out bounds the new approaches. Redo steps 1 and 2 only if the request itself has changed.
 
 ## When the full design does not apply
 
-The design arbitrates between several ways of implementing a suggestion. What does not call for that arbitration exits before step 1, and what barely calls for it receives a shortened answer.
+The design weighs several ways of implementing a suggestion. A request that calls for no such weighing exits before step 1, and one that barely calls for it gets a shortened answer.
 
 ### Exit before step 1
 
-Three cases, observed on entry from the invocation, the conversation and a targeted grep of the subject in the project's `.claude/*.md` files and `_meta/notes/`:
+Three cases, detected on entry from the invocation, the conversation and a targeted grep for the subject in the project's `.claude/*.md` files and `_meta/notes/`:
 
-- the decision already exists, in a note, a plan entry or earlier in the conversation: cite it by name and ask whether the invocation reopens it. A confirmed reopening starts the full design, and step 5 then retains the note on the ground of the overturned decision;
-- no suggestion emerges, neither from the invocation nor from the conversation: ask which one to design, without constructing one;
-- the request belongs to something other than an implementation decision, for example a bug to fix, a question of explanation, a recommendation that rests on external sources (`/workflow:reco`) or data analysis work: say why in one line, name what fits, and stop.
+- the decision already exists, in a note, a plan entry or earlier in the conversation: cite it by name and ask whether the invocation reopens it. If the user confirms, run the full design, and step 5 then keeps the note because the decision overturns an earlier one;
+- no suggestion can be drawn from the invocation or the conversation: ask which one to design, without making one up;
+- the request is not about choosing between ways of implementing something, for example a bug to fix, a request for an explanation, a recommendation that depends on external sources (`/workflow:reco`) or data analysis work: say why in one line, name what fits better, and stop.
 
-An exit signals and hands back without refusing: the user invoked the design deliberately, and their confirmation starts it as is.
-A subject whose name no note carries escapes the grep; the prior decision is then discovered only at step 2, which treats it as material for the design.
+An exit flags the case and hands control back without refusing: the user invoked the design on purpose, and if they confirm, it runs as is.
+A subject that no note names slips past the grep; an earlier decision then only surfaces in step 2, which treats it as input to the design.
 
 ### Shorten
 
-Reduce the answer to one paragraph, a recommendation and a single risk, in three cases: the request is a fix or an edit the user scoped themselves; step 2 shows that the capability already exists and covers the need entirely, and the answer is then "already covered, close it", an outcome in its own right, whereas a partial coverage calls for the full design, where "do nothing" competes with the approaches that would do better; only one approach holds and its cost is negligible.
+Cut the answer down to one paragraph, a recommendation and its single risk, in three cases: the request is a fix or an edit the user has scoped themselves; step 2 shows the capability already exists and fully covers the need, in which case the answer is "already covered, close it", a legitimate outcome in itself (partial coverage calls for the full design instead, where "do nothing" competes with the approaches that would do better); only one approach holds up and it costs next to nothing.
 
 Say that the answer is shortened, and why.
 
 ## What comes before
 
-`ouroboros:interview` first, on the criteria of the global baseline. Resistance can be observed at any step and suspends the design, which resumes on the answer: observed at step 1 it costs nothing, later the resumption restarts the steps the answer invalidates.
-Then the decomposition into features ordered by dependencies, when the request covers several interlocking workstreams.
-These two steps feed the design: running them after it forces redoing it.
+`ouroboros:interview` comes first, under the criteria of the global baseline. Those criteria can be met at any step; when they are, suspend the design and resume it on the answer: met at step 1 this costs nothing, met later it means rerunning the steps the answer invalidates.
+Then, when the request spans several interlocking workstreams, the breakdown into features ordered by dependency.
+Both feed the design: running them after it means redoing it.
 
-## What comes after, and that this design does not do
+## What comes after, and is not this skill's job
 
 The language's lint, format and test gate, the post-change consistency greps and the adversarial review proposal belong to the global baseline and apply to the implementation, once the decision is approved. Do not restate them here.
-The plan entry recording the approved decision belongs to the same baseline: the "no file other than the note" criterion bounds the design, it does not suspend plan upkeep.
+The plan entry recording the approved decision belongs to the same baseline: the "no file other than the note" rule bounds the design, it does not suspend plan upkeep.
 
 ## What "done" means
 
 For a full design:
 
-- The restatement names at least one unknown of the request, or declares that it leaves none.
-- The files the suggestion touches have been read, and the local precedent is named or its absence declared.
-- Each approach carries its mechanism in two sentences, its cost and what it rules out later.
-- The recommendation is unique and names the referent reached in the cascade: a repository precedent cited by name, failing that the stack idiom, failing that the dominant library.
-- The most fragile hypothesis of the chosen approach is stated, and tested or declared untested.
-- The decision to write a note or not is justified in one line.
+- The restatement names at least one open point in the request, or states that it leaves none.
+- The files the suggestion touches have been read, and the local precedent is named or its absence stated.
+- Each approach gives its mechanism in two sentences, its cost and what it forecloses later.
+- There is a single recommendation, and it names the reference point reached in the cascade: a repository precedent cited by name, failing that the stack idiom, failing that the dominant library.
+- The weakest assumption of the chosen approach is stated, and either tested or declared untested.
+- The choice to write a note or not is justified in one line.
 - No file other than the note has been touched.
 
-For a shortened answer: the reason for shortening is stated, and so are the recommendation and its single risk.
+For a shortened answer: the reason for shortening is given, along with the recommendation and its single risk.
 
-For an exit: the case is named, the existing decision is cited by name when it motivates the exit, and no step of the design has been started.
+For an exit: the case is named, the existing decision is cited by name when it is the reason for the exit, and no design step has been started.
