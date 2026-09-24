@@ -13,6 +13,7 @@ metadata:
 - Machines:
   - `ju-TP`: the daily driver, Ubuntu 24.04, no usable GPU for inference.
   - `ju-TP2`: Ubuntu under WSL2, reachable as `ssh ju-TP2`, with a CUDA-capable GPU; anything needing a GPU runs there (`~/dotfiles/.claude/DESIGN-GPU-REMOTE.md`). See [[project_ju_tp2_receiveonly]] before writing anything there.
+  - `cpd000001` (alias `cpd`): the CHU workstation, 3 Quadro RTX 6000, shared with other users, no network path from `ju-TP` or `ju-TP2`; its opencode and shared `llama-server` setup is `~/dotfiles/.claude/DESIGN-CPD.md`, applied by hand from `_meta/notes/opencode-cpd-setup.md`.
 - Network:
   - No home router: connectivity is a personal mobile plan through a relay, so router-level configuration is out of reach and bandwidth is a real cost.
   - Cloudflare WARP owns system DNS, so any system-wide resolver change means dropping WARP (`~/dotfiles/_meta/notes/warp-state.md`).

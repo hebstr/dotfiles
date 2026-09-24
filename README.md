@@ -81,6 +81,7 @@ The second command links the skills of the enabled Claude Code plugins where ope
 `sys-update claude-plugins` reruns it after the updates it makes; a plugin changed any other way (Claude Code's own auto-update, `/plugin enable`, `disable` or `update`) needs a manual `opencode-skills-sync`, or opencode serves the old set until the next `sys-update`.
 To work, run `llama-session` in one terminal and `opencode` in another.
 `_meta/notes/opencode-harness-setup.md` holds the full procedure and the checks that `showboat verify` replays.
+The CHU workstation `cpd000001` is set up separately, by hand, from `_meta/notes/opencode-cpd-setup.md`: a shared `llama-server` under systemd, opencode in `/usr/local/bin` for every user, and the harness without the Claude Code plugins; of the `bin` scripts above, only `llama-update` runs there, as root with its paths redirected to `/opt/llama`.
 
 ## Git content filter and diff driver
 
