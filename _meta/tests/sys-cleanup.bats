@@ -81,9 +81,9 @@ teardown() {
 @test "--help lists every available module" {
   _run --help
   [ "$status" -eq 0 ]
-  for m in trash uv rv prek go r-cache claude-versions flatpak \
+  for m in trash uv rv prek r-cache claude-versions flatpak \
     claude-cli chromium-headless positron-pycache workspace-storage \
-    jedi apt journal snap r-renv; do
+    jedi apt journal snap; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -99,7 +99,7 @@ teardown() {
   [[ "$output" == *"MODULE"* ]]
   [[ "$output" == *"SUDO"* ]]
   [[ "$output" == *"trash"* ]]
-  [[ "$output" == *"r-renv"* ]]
+  [[ "$output" == *"snap"* ]]
 }
 
 @test "--list marks apt, journal, and snap as sudo modules" {
@@ -119,7 +119,6 @@ teardown() {
   echo "$output" | grep -E '^chromium-headless[[:space:]]+no$'
   echo "$output" | grep -E '^positron-pycache[[:space:]]+no$'
   echo "$output" | grep -E '^workspace-storage[[:space:]]+no$'
-  echo "$output" | grep -E '^r-renv[[:space:]]+no$'
 }
 
 # ─── argument parsing errors ────────────────────────────────────────────────
@@ -480,37 +479,10 @@ _make_prek_archive_entry() {
 
 # ─── module skip behavior: missing directory ────────────────────────────────
 
-@test "go module is skipped when ~/.cache/go-build is absent" {
-  _run --dry-run go
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"go"*"skipped (not found)"* ]]
-}
-
-@test "go module runs go clean -cache when go binary is on PATH" {
-  mkdir -p "${FAKE_HOME}/.cache/go-build"
-  _stub_command go
-  _run --dry-run go
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"[dry-run] go clean -cache"* ]]
-}
-
-@test "go module falls back to rm -rf when go binary is missing but dir exists" {
-  mkdir -p "${FAKE_HOME}/.cache/go-build"
-  _run --dry-run go
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.cache/go-build"* ]]
-}
-
 @test "claude-cli module is skipped when ~/.cache/claude-cli-nodejs is absent" {
   _run --dry-run claude-cli
   [ "$status" -eq 0 ]
   [[ "$output" == *"claude-cli"*"skipped (not found)"* ]]
-}
-
-@test "r-renv module is skipped when ~/.cache/R/renv is absent" {
-  _run --dry-run r-renv
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"r-renv"*"skipped (not found)"* ]]
 }
 
 @test "rv module is skipped when ~/.cache/rv is absent" {
@@ -1014,9 +986,9 @@ EOF
 @test "no module argument selects all modules" {
   _run --dry-run
   [ "$status" -eq 0 ]
-  for m in trash uv rv prek go r-cache claude-versions flatpak \
+  for m in trash uv rv prek r-cache claude-versions flatpak \
     claude-cli chromium-headless positron-pycache workspace-storage \
-    jedi apt journal snap r-renv; do
+    jedi apt journal snap; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1

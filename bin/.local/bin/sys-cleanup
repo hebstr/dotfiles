@@ -11,7 +11,6 @@ ALL_MODULES=(
   uv
   rv
   prek
-  go
   r-cache
   claude-versions
   flatpak
@@ -23,7 +22,6 @@ ALL_MODULES=(
   apt
   journal
   snap
-  r-renv
 )
 
 SUDO_MODULES=(apt journal snap)
@@ -164,24 +162,6 @@ clean_prek() {
   local after
   after=$(bytes_of "${HOME}/.cache/prek")
   record prek $((before - after)) OK
-}
-
-clean_go() {
-  local target="${HOME}/.cache/go-build"
-  [[ -d "$target" ]] || {
-    record go 0 "skipped (not found)"
-    return
-  }
-  local before
-  before=$(bytes_of "$target")
-  if command -v go >/dev/null 2>&1; then
-    run_or_dry go clean -cache
-  else
-    run_or_dry rm -rf "$target"
-  fi
-  local after
-  after=$(bytes_of "$target")
-  record go $((before - after)) OK
 }
 
 clean_r_cache() {
@@ -394,23 +374,6 @@ clean_snap() {
   local after
   after=$(bytes_of /var/lib/snapd/snaps)
   record snap $((before - after)) OK
-}
-
-clean_r_renv() {
-  local target="${HOME}/.cache/R/renv"
-  [[ -d "$target" ]] || {
-    record r-renv 0 "skipped (not found)"
-    return
-  }
-  local before
-  before=$(bytes_of "$target")
-  # renv locks its sandbox dirs read-only (no owner write bit), which blocks rm
-  # from removing their entries; restore write before deleting.
-  [[ -d "${target}/sandbox" ]] && run_or_dry chmod -R u+w "${target}/sandbox"
-  run_or_dry rm -rf "$target"
-  local after
-  after=$(bytes_of "$target")
-  record r-renv $((before - after)) OK
 }
 
 needs_sudo() {
