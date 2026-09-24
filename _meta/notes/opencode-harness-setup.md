@@ -94,11 +94,11 @@ link farm built
 ```
 
 ```bash
-f=$(mktemp); (cd /tmp && opencode debug skill >"$f" 2>/dev/null); jq -r "[.[] | select(.name == \"cli\" or .name == \"cadrer\" or .name == \"ooo\") | .name] | sort | join(\" \")" "$f"; rm -f "$f"
+f=$(mktemp); (cd /tmp && opencode debug skill >"$f" 2>/dev/null); jq -r "[.[] | select(.name == \"cli\" or .name == \"design\" or .name == \"ooo\") | .name] | sort | join(\" \")" "$f"; rm -f "$f"
 ```
 
 ```output
-cadrer cli ooo
+cli design ooo
 ```
 
 ```bash
@@ -125,5 +125,5 @@ bats _meta/tests/opencode-skills-sync.bats _meta/tests/claude-hooks-plugin.bats 
 suites pass
 ```
 
-What each check proves, in order: the configuration and scripts resolve into this repository; the link farm builds and holds a known plugin skill; opencode discovers a skill of each origin (`cli` from a plugin through the farm, `cadrer` from `~/.claude/skills`, `ooo` from a plugin, listed although denied, since `debug skill` ignores permissions); `bash` opens and closes on `ask`; the configuration names the 9B, loads each project's `.claude/` files, carries no inert `edit` block and points `skills.paths` at the farm; the four bats suites behind the setup pass, the plugin's covering the profile guard, the hooks and the removal of the global profile outside git. `opencode debug skill` is read from a file, not a pipe: piped, its output comes out truncated.
+What each check proves, in order: the configuration and scripts resolve into this repository; the link farm builds and holds a known plugin skill; opencode discovers a skill of each origin (`cli` from a plugin through the farm, `design` from `~/.claude/skills` (named `cadrer` until 2026-09-24), `ooo` from a plugin, listed although denied, since `debug skill` ignores permissions); `bash` opens and closes on `ask`; the configuration names the 9B, loads each project's `.claude/` files, carries no inert `edit` block and points `skills.paths` at the farm; the four bats suites behind the setup pass, the plugin's covering the profile guard, the hooks and the removal of the global profile outside git. `opencode debug skill` is read from a file, not a pipe: piped, its output comes out truncated.
 

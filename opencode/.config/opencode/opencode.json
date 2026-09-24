@@ -70,10 +70,10 @@
     "skill": {
       "*": "allow",
       "blindspot": "ask",
-      "cadrer": "ask",
       "claude-automation-recommender": "ask",
       "commit": "ask",
       "depouiller": "ask",
+      "design": "ask",
       "implement": "ask",
       "mcp-adversary": "ask",
       "new-work": "ask",
