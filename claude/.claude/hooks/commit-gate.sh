@@ -20,7 +20,7 @@ elif [[ -e $blocked ]]; then
   exit 0
 fi
 
-printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(git [^\n]*[;&|][ \t]*)?git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\\b")' >/dev/null 2>&1 || exit 0
+printf '%s' "$payload" | jq -e '(.last_assistant_message // "") | test("(^|\n)[ \t]*(([A-Za-z_][A-Za-z0-9_]*=(\"[^\"\n]*\"|[^ \t\n\"])*[ \t]+)*git [^\n]*[;&|][ \t]*)?([A-Za-z_][A-Za-z0-9_]*=(\"[^\"\n]*\"|[^ \t\n\"])*[ \t]+)*git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\\b")' >/dev/null 2>&1 || exit 0
 
 stale=()
 mapfile -t stale < <("$BASH" "${BASH_SOURCE[0]%/*}/commit-stale.sh" "$session" "${CLAUDE_PROJECT_DIR:-$cwd}" 2>/dev/null)

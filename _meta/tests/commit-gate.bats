@@ -290,6 +290,16 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
+@test "blocks a commit line carrying an environment prefix" {
+  write_at 200 "$PROJECT/a.sh"
+  run_gate "$(payload "$(printf '%s\n' '```bash' 'SKIP=metadata-only git commit -m "v5.4.1"' '```')")"
+  [ "$status" -eq 2 ]
+  run_gate "$(payload "$(printf '%s\n' '```bash' 'git add a.sh && SKIP=a,b git commit -m "fix: y"' '```')")"
+  [ "$status" -eq 2 ]
+  run_gate "$(payload "$(printf '%s\n' '```bash' 'GIT_AUTHOR_NAME="J D" GIT_AUTHOR_EMAIL=j@d git commit -m "fix: y"' '```')")"
+  [ "$status" -eq 2 ]
+}
+
 @test "passes when prose quotes a chained commit" {
   write_at 200 "$PROJECT/a.sh"
   # shellcheck disable=SC2016
