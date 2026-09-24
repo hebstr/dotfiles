@@ -88,6 +88,7 @@ Report content that is already staged, since it will be included in the first co
 Every commit proposal, whether requested or not, carries its message:
 
 - the header alone, with no body, in Conventional Commits format (`type(scope): subject`), the scope taken from the recent `git log` when the repository uses one;
+- a short header: 72 characters at most, about 50 as the target, one clause naming what changed, with no "and" joining a second change and no "so that" or "because" justifying it; the detail belongs in the tracking note, not the message. The recent `git log` sets the type and scope only, never the length: many of its headers run past 72 and are no model;
 - each commit in its own fenced block tagged `bash`, holding its staging command then the full line `git commit -m "<header>"`; never the header alone, never a command as inline code or in prose;
 - several commits: the blocks in execution order, so that each one runs as written;
 - every staged path comes from `git status`, never from what the session remembers editing;
