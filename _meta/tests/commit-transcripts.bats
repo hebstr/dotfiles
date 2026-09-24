@@ -6,8 +6,8 @@ setup() {
   WORK=$(realpath "$(mktemp -d)")
   STUB_DIR="$WORK/.stubs"
   FAKE_HOME="$WORK/home"
-  REPO="$WORK/my.repo"
-  PROJ="$FAKE_HOME/.claude/projects/${REPO//[\/.]/-}"
+  REPO="$WORK/my_repo.x"
+  PROJ="$FAKE_HOME/.claude/projects/${REPO//[^a-zA-Z0-9]/-}"
   export WORK STUB_DIR FAKE_HOME REPO PROJ
 
   mkdir -p "$STUB_DIR" "$PROJ" "$REPO"
@@ -21,7 +21,7 @@ teardown() {
 }
 
 run_transcripts() {
-  run env PATH="$STUB_DIR" HOME="$FAKE_HOME" /bin/bash "$SCRIPT" "$@"
+  run env TZ=Europe/Paris PATH="$STUB_DIR" HOME="$FAKE_HOME" /bin/bash "$SCRIPT" "$@"
 }
 
 line() {
@@ -60,6 +60,35 @@ bash_call() {
   [ "$output" = $'2026-09-20\tcadrer\tx' ]
 }
 
+@test "lists a typed command without arguments, with an empty argument field" {
+  line "$(jq -nc '{timestamp: "2026-09-20T10:00:00Z", message: {content: "<command-message>workflow:sync</command-message>\n<command-name>/workflow:sync</command-name>"}}')"
+  run_transcripts invocations "$REPO"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'2026-09-20\tworkflow:sync\t' ]
+}
+
+@test "leaves out a command tag quoted inside a message" {
+  line "$(jq -nc '{timestamp: "2026-09-20T10:00:00Z", message: {content: "Evaluate this: <command-name>/commit</command-name>"}}')"
+  run_transcripts invocations "$REPO"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "dates an invocation by its local day, not its UTC day" {
+  line "$(jq -nc '{timestamp: "2026-09-23T22:30:00.123Z", message: {content: "<command-name>/commit</command-name>"}}')"
+  run_transcripts invocations "$REPO"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'2026-09-24\tcommit\t' ]
+}
+
+@test "skips a record without a timestamp and keeps the others" {
+  line '{"message": {"content": "<command-name>/cadrer</command-name>"}}'
+  typed 2026-09-20 commit x
+  run_transcripts invocations "$REPO"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'2026-09-20\tcommit\tx' ]
+}
+
 @test "lists a Skill tool call with its arguments" {
   skill_call 2026-09-21 '{"skill": "audit:blindspot", "args": "CLAUDE.md\nmore"}'
   run_transcripts invocations "$REPO"
@@ -84,14 +113,22 @@ bash_call() {
   [ "${lines[0]}" = $'2026-09-20\tcadrer\tx' ]
 }
 
-@test "lists a Bash command naming the script, first line cut to 160 characters" {
+@test "lists a Bash command naming the script, cut to 60 characters before the name and 140 after" {
   long=$(printf 'x%.0s' {1..200})
-  bash_call 2026-09-22 $'measure.py --all '"$long"$'\nsecond'
+  bash_call 2026-09-22 $'cd /tmp && \\\n'"$long"$' && measure.py --all '"$long"$'\nsecond'
   run_transcripts bash "$REPO" measure.py
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 1 ]
-  [[ ${lines[0]} == $'2026-09-22\tmeasure.py --all x'* ]]
-  [ "${#lines[0]}" -eq $((10 + 1 + 160)) ]
+  [[ ${lines[0]} == $'2026-09-22\t'*$'x && measure.py --all x'* ]]
+  [ "${#lines[0]}" -eq $((10 + 1 + 60 + 10 + 140)) ]
+}
+
+@test "lists a Bash command run by a subagent" {
+  mkdir -p "$PROJ/sess/subagents"
+  line "$(jq -nc '{timestamp: "2026-09-22T10:00:00Z", message: {content: [{type: "tool_use", name: "Bash", input: {command: "measure.py --all"}}]}}')" sess/subagents/agent-a
+  run_transcripts bash "$REPO" measure.py
+  [ "$status" -eq 0 ]
+  [ "$output" = $'2026-09-22\tmeasure.py --all' ]
 }
 
 @test "leaves out a Bash command that does not name the script" {

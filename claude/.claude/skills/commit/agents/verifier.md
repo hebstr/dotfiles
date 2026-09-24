@@ -89,7 +89,7 @@ For each item presented as still to do ("à faire", "à lancer", "en attente", "
    bash ~/.claude/skills/commit/scripts/transcripts.sh bash 'REPO' 'NAME'
    ```
 
-   which prints the date and first line of every Bash command that contains `NAME`. A `no transcript directory` message on stderr means no transcript was found for this repository, which proves nothing.
+   which prints, for every Bash command that contains `NAME`, including those run by subagents, the date and an excerpt of the first line holding `NAME`: up to 60 characters before its first occurrence and 140 after. A `no transcript directory` message on stderr means no transcript was found for this repository, which proves nothing.
 
 3. **The artifact the item names**, when it names one: the file exists (`test -e`), the symbol or section is found (`rg -F`), the cited test passes.
 
