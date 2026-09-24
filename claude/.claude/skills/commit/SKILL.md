@@ -1,100 +1,102 @@
 ---
 name: commit
-description: À invoquer avant toute proposition de commit, demandée par l'utilisateur ou spontanée, avant d'écrire le moindre `git commit`, et pour clore une session, par le modèle lui-même dès que toutes les tâches de la session sont faites, sans renvoyer l'utilisateur à `/commit` ni lui demander s'il faut la lancer. Aussi quand un hook Stop (`commit-gate.sh`, `ending-gate.sh`) le demande.
+description: Use before proposing any commit, whether the user asked for one or not, and before writing any `git commit`. Also use to close a session: invoke it yourself as soon as every task of the session is done, without sending the user to `/commit` or asking whether to run it. Also use when a Stop hook (`commit-gate.sh`, `ending-gate.sh`) asks for it.
 ---
 
-# Proposition de commit
+# Proposing a commit
 
-La skill clôt le travail en cours puis rend une proposition de commit fondée sur l'état réel du dépôt.
-Elle ne lance aucune commande git d'écriture : l'utilisateur committe lui-même (section Git de `~/.claude/CLAUDE.md`).
-Aucun bloc `git commit` ne s'écrit hors de cette skill : le hook `Stop` `commit-gate.sh` bloque une réponse qui en contient un quand du code a été écrit depuis le dernier passage du vérificateur.
+Conduct the conversation in the user's language, whatever the language of this text.
 
-## 0. Clore
+This skill closes out the work in progress, then delivers a commit proposal based on the actual state of the repository.
+It runs no git write command: the user commits themselves (Git section of `~/.claude/CLAUDE.md`).
+No `git commit` block is written outside this skill: the `Stop` hook `commit-gate.sh` blocks a response that contains one when code has been written since the verifier last ran.
 
-Dans cet ordre, sans en sauter.
+## 0. Close out
 
-### 0.1 Vérificateur
+In this order, skipping none.
 
-1. Lire le journal de la session et les fichiers modifiés du dépôt, et prendre la valeur du tampon **avant** de lancer l'agent :
+### 0.1 Verifier
+
+1. Read the session's write log and the repository's modified files, and take the stamp value **before** launching the agent:
 
    ```bash
    bash ~/.claude/skills/commit/scripts/writes.sh
    ```
 
-   Le script affiche `STAMP_FILE` et `STAMP_VALUE`, puis la liste `WRITES`, qui unit le journal et `git status`, parce que le journal ne voit ni les écritures d'une session antérieure à un `/clear` (l'id de session change), ni celles faites en Bash ou à la main.
-   L'état du shell ne survit pas d'un appel Bash à l'autre : les commandes des étapes suivantes reçoivent ces deux valeurs recopiées telles qu'affichées, à la place de `<STAMP_FILE>` et `<STAMP_VALUE>`.
-   Liste vide : aucune écriture dans la session et un arbre propre, passer à 0.2.
-   Code de sortie 3, sans ligne `STAMP_` (`CLAUDE_CODE_SESSION_ID` vide ou inutilisable) : le dire, et lancer quand même le vérificateur sur les fichiers listés, sans tampon ; la porte bloquera de nouveau au prochain rendu de blocs hors de la continuation qu'elle a déclenchée, où le marqueur qu'elle a écrit en bloquant la fait sortir en 0, ce qui est le comportement voulu.
-   Code de sortie 1 (`git status` en échec) : le dire, et lancer le vérificateur sur la liste affichée, qui ne porte alors que le journal.
-2. Lire `agents/verifier.md` (à côté de ce fichier) et lancer un agent `general-purpose` **au premier plan**, dont le prompt est ce fichier suivi de `REPO` (la racine git), `WRITES` (la liste ci-dessus), `STAMP_FILE` et `STAMP_VALUE`.
-   Un contexte neuf est la raison d'être de l'étape : ne pas lui transmettre de résumé de la session, ni d'avis sur ce qui est à jour.
-3. Appliquer ses constats par Edit, un par un, après avoir vérifié chacun : un constat que la vérification dément est écarté, et nommé comme tel.
-   Un constat qui demande de modifier du code, et non du tracking, n'est pas appliqué d'office : le signaler à l'utilisateur.
-4. Vérifier que le tampon est écrit (`cat '<STAMP_FILE>'` égal à `<STAMP_VALUE>`). Sinon, l'écrire soi-même avec la même valeur, en le disant.
-   Si l'étape 3 a appliqué au moins un constat, lister les chemins que la porte compterait maintenant, calculés par le script qu'elle appelle elle-même, contre le tampon qui vient d'être vérifié :
+   The script prints `STAMP_FILE` and `STAMP_VALUE`, then the `WRITES` list, which combines the write log with `git status`, because the log sees neither the writes of a session that preceded a `/clear` (the session id changes) nor those made through Bash or by hand.
+   Shell state does not persist from one Bash call to the next: the commands of the following steps take these two values copied exactly as printed, in place of `<STAMP_FILE>` and `<STAMP_VALUE>`.
+   Empty list: no write in the session and a clean tree, go to 0.2.
+   Exit code 3, with no `STAMP_` line (`CLAUDE_CODE_SESSION_ID` empty or unusable): say so, and still run the verifier on the listed files, without a stamp; the gate will block again the next time blocks are rendered outside the continuation it triggered, inside which the marker it wrote when blocking makes it exit 0, and that is the intended behavior.
+   Exit code 1 (`git status` failed): say so, and run the verifier on the printed list, which then holds only the write log.
+2. Read `agents/verifier.md` (next to this file) and launch a `general-purpose` agent **in the foreground**, whose prompt is that file followed by `REPO` (the git root), `WRITES` (the list above), `STAMP_FILE` and `STAMP_VALUE`.
+   A fresh context is the whole point of this step: give it no summary of the session and no opinion on what is up to date.
+3. Apply its findings with Edit, one at a time, after checking each one: a finding the check disproves is dropped, and named as dropped.
+   A finding that calls for a change to code rather than to tracking is not applied as a matter of course: report it to the user.
+4. Check that the stamp was written (`cat '<STAMP_FILE>'` equals `<STAMP_VALUE>`). If it was not, write it yourself with the same value, and say so.
+   If step 3 applied at least one finding, list the paths the gate would now count, computed by the very script the gate calls, against the stamp just checked:
 
    ```bash
    bash ~/.claude/hooks/commit-stale.sh "$CLAUDE_CODE_SESSION_ID" "$PWD"
    ```
 
-   Code de sortie non nul : une source n'a pas pu être lue, la liste est incomplète ; garder le tampon tel quel et le dire.
-   Sortie vide, ou chacun des chemins affichés est un fichier de tracking visé par un constat appliqué (la porte ignore déjà `.claude/` et la mémoire, mais compte par exemple `_meta/notes/`) : réécrire le tampon (`date +%s%N >'<STAMP_FILE>'`), sans quoi la porte déclarerait périmés les blocs rendus juste après ces corrections.
-   Si au moins un chemin sort de ce cas, garder le tampon tel quel et nommer ce chemin à l'utilisateur : la porte ne rebloque pas dans la continuation qu'elle a déclenchée (le marqueur qu'elle a écrit en bloquant), et ne bloquera qu'au prochain rendu de blocs hors de celle-ci, ce qui est voulu.
+   Non-zero exit code: a source could not be read and the list is incomplete; leave the stamp as it is, and say so.
+   Empty output, or every printed path is a tracking file targeted by an applied finding (the gate already ignores `.claude/` and memory, but counts `_meta/notes/`, for example): rewrite the stamp (`date +%s%N >'<STAMP_FILE>'`), otherwise the gate would declare stale the blocks rendered right after these corrections.
+   If at least one path falls outside that case, leave the stamp as it is and name that path to the user: the gate does not block again within the continuation it triggered (the marker it wrote when blocking), and will only block the next time blocks are rendered outside it, which is intended.
 
-Ce passage ne remplace pas la vérification que la session doit à chaque écriture de tracking ; il attrape ce qu'elle a laissé passer.
+This pass does not replace the check the session owes at every tracking write; it catches what that check let through.
 
-### 0.2 Suite ou clôture
+### 0.2 Continue or close
 
-Une recommandation sur la suite, en une phrase et sa raison en une ligne, ou l'indication explicite qu'il n'y a rien à poursuivre et que la session peut se clore.
-Quand un fichier de tracking (PLAN, note de chantier) nomme l'étape suivante, la recommandation part de lui.
+A recommendation on what to do next, in one sentence with its reason in one line, or an explicit statement that nothing remains to pursue and the session can be closed.
+When a tracking file (a PLAN, a workstream note) names the next step, base the recommendation on it.
 
-### 0.3 Revue
+### 0.3 Review
 
-`git diff --numstat HEAD` pour les fichiers suivis, `git ls-files --others --exclude-standard` puis `wc -l` pour les fichiers nouveaux.
-Proposer `/audit:walkthrough <fichier> --reviewer posit-dev:critical-code-reviewer` seulement pour un fichier de code exécutable nouveau ou changé d'au moins 30 lignes (ajouts plus suppressions).
-Code exécutable : un langage de programmation (shell, Python, R, Rust, JS/TS, SQL, Lua, CSS/SCSS, Typst, Perl, bats), ou un fichier sans extension qui porte un shebang. Jamais la mémoire, `CLAUDE.md`, `rules/`, un `SKILL.md` ni un fichier de configuration : l'utilisateur lance ces revues quand il les veut.
-Pas davantage pour un fichier qu'un `/audit:walkthrough` ou un `/audit:blindspot` a traité dans la session : ses corrections ferment le cycle de revue, et en proposer une nouvelle relance la boucle.
-Prose destinée à un lecteur (README, CHANGELOG, documentation publiée) nouvelle ou réécrite : proposer `/workflow:write <fichier>`.
-Ni l'un ni l'autre : ne rien proposer, sans le commenter.
-Les deux skills sont invocables par l'utilisateur seul : donner la commande, ne pas l'invoquer.
+Run `git diff --numstat HEAD` for tracked files, and `git ls-files --others --exclude-standard` then `wc -l` for new files.
+Propose `/audit:walkthrough <file> --reviewer posit-dev:critical-code-reviewer` only for a new or changed executable code file with at least 30 changed lines (additions plus deletions).
+Executable code means a programming language (shell, Python, R, Rust, JS/TS, SQL, Lua, CSS/SCSS, Typst, Perl, bats), or an extensionless file that carries a shebang. Never memory, `CLAUDE.md`, `rules/`, a `SKILL.md` or a configuration file: the user runs those reviews when they want them.
+Nor for a file that an `/audit:walkthrough` or an `/audit:blindspot` handled during the session: its fixes close the review cycle, and proposing another review restarts the loop.
+New or rewritten prose meant for a reader (README, CHANGELOG, published documentation): propose `/workflow:write <file>`.
+Neither: propose nothing, and say nothing about it.
+Only the user can invoke these two skills: give the command, do not invoke it.
 
-### 0.4 Blocs
+### 0.4 Blocks
 
-Les sections 1 à 3.
+Sections 1 to 3.
 
-## 1. Lire l'état réel
+## 1. Read the actual state
 
-- `git status --short`, qui montre aussi les fichiers non suivis.
-- `git diff --stat` et `git diff --cached --stat`, puis le diff lui-même, pour qualifier chaque changement.
-- `git log --format=%s -15`, pour les types et les scopes en usage.
+- `git status --short`, which also shows untracked files.
+- `git diff --stat` and `git diff --cached --stat`, then the diff itself, to characterize each change.
+- `git log --format=%s -15`, for the types and scopes in use.
 
-La proposition repose sur ce que le diff montre, jamais sur le souvenir de la conversation : une modification faite à la main par l'utilisateur compte autant qu'une édition de la session.
-Un fichier édité pendant la session et absent de `git status` passe par `git check-ignore` : ignoré, il est signalé comme tel et n'entre dans aucun staging, puisque `git add` sur un chemin ignoré échoue et casse la suite de la séquence.
-Rien à committer : le dire et s'arrêter.
+The proposal rests on what the diff shows, never on what you remember of the conversation: a change the user made by hand counts as much as an edit made in the session.
+A file edited during the session that `git status` does not show goes through `git check-ignore`: if it is ignored, report it as such and keep it out of every staging command, since `git add` on an ignored path fails and breaks the rest of the sequence.
+Nothing to commit: say so and stop.
 
-## 2. Découper
+## 2. Split
 
-Un commit par sujet indépendant. Ce qui ne tient pas seul part ensemble : un changement et son test, un renommage et ses appels, une entrée de CHANGELOG et ce qu'elle décrit.
+One commit per independent subject. Whatever cannot stand on its own goes together: a change and its test, a rename and its call sites, a CHANGELOG entry and what it describes.
 
-Deux sujets qui partagent un fichier ne se séparent pas par chemin : proposer un commit unique, ou nommer le fichier qui demande `git add -p`.
-Un fichier non suivi est nommé, avec l'avis d'inclure ou non ; un seul avis contraire exclut `git add .` du commit qui le côtoie.
-Un fichier dont le nom tombe dans la portée « Secret files handling » de `CLAUDE.md` n'entre dans aucun staging proposé : le signaler. La liste y est tenue à jour ; la recopier ici la ferait diverger au prochain edit de l'une ou de l'autre.
-Un contenu déjà stagé est signalé, puisqu'il partira avec le premier commit.
+Two subjects that share a file cannot be split by path: propose a single commit, or name the file that needs `git add -p`.
+Name each untracked file, with your advice on whether to include it; a single advice to leave one out rules out `git add .` for the commit it sits beside.
+A file whose name falls within the scope of "Secret files handling" in `CLAUDE.md` goes into no proposed staging: report it. The list is kept up to date there; copying it here would make the two diverge at the next edit of either.
+Report content that is already staged, since it will go out with the first commit.
 
-## 3. Rendre
+## 3. Deliver
 
-Chaque proposition de commit, demandée ou spontanée, porte son message :
+Every commit proposal, whether requested or not, carries its message:
 
-- l'en-tête seul, sans corps, au format Conventional Commits (`type(scope): sujet`), le scope repris du `git log` récent quand le dépôt en utilise un ;
-- chaque commit dans son propre bloc délimité étiqueté `bash`, qui contient sa commande de staging puis la ligne complète `git commit -m "<en-tête>"` ; jamais l'en-tête seul, jamais une commande en code inline ou en prose ;
-- plusieurs commits : les blocs dans l'ordre d'exécution, pour que chacun s'exécute tel qu'écrit ;
-- chaque chemin stagé vient de `git status`, jamais de ce que la session se souvient d'avoir édité ;
-- `git add .` depuis la racine quand le commit prend tout ce que `git status` montre et qu'aucune commande antérieure de la séquence ne modifie `.gitignore` ni ne lance `git rm --cached` ; sinon des chemins explicites ou `git add -u`, jamais `git add -A` (voir `feedback_commit_sequence_add_all.md`).
+- the header alone, with no body, in Conventional Commits format (`type(scope): subject`), the scope taken from the recent `git log` when the repository uses one;
+- each commit in its own fenced block tagged `bash`, holding its staging command then the full line `git commit -m "<header>"`; never the header alone, never a command as inline code or in prose;
+- several commits: the blocks in execution order, so that each one runs as written;
+- every staged path comes from `git status`, never from what the session remembers editing;
+- `git add .` from the root when the commit takes everything `git status` shows and no earlier command in the sequence modifies `.gitignore` or runs `git rm --cached`; otherwise explicit paths or `git add -u`, never `git add -A` (see `feedback_commit_sequence_add_all.md`).
 
-Signaler en une ligne ce qui manque visiblement au diff, par exemple l'entrée de CHANGELOG d'un changement visible quand le dépôt en tient un, sans l'ajouter soi-même.
+Point out in one line what the diff visibly lacks, for example the CHANGELOG entry for a visible change when the repository keeps one, without adding it yourself.
 
-Quand la porte de commit a bloqué la réponse précédente, dire en tête que les blocs déjà affichés sont périmés et ne doivent pas être lancés, puis rendre les nouveaux.
+When the commit gate blocked the previous response, start by saying that the blocks already shown are stale and must not be run, then deliver the new ones.
 
-## Après
+## After
 
-Quand l'utilisateur annonce que c'est fait, vérifier avec `git log --oneline -<n>` et `git status --short` que la séquence a produit ce qui était proposé.
+When the user says it is done, check with `git log --oneline -<n>` and `git status --short` that the sequence produced what was proposed.

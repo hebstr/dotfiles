@@ -13,6 +13,6 @@ A French text moved to English (skills, rules, `.claude/` notes, per the "All co
 - Translate each sentence from what the French rule asks for, then check the English against the source line by line so that no rule is lost, weakened or strengthened.
 - Watch faux amis that change a rule's scope: "hypothèse" is usually an assumption, "constater" is establish or observe (not record), "seul" in "ne se choisit pas seul" is unilaterally, "arbitrage" is weighing options (not any decision).
 - In a fidelity review, report calqued phrasing as a finding alongside meaning shifts; "ignore pure style" covers word order and synonyms, not unidiomatic English.
-- The remaining translations (`commit` with its verifier, then `relire`, `depouiller`, `zotero`) are listed in `~/dotfiles/.claude/DESIGN-CADRER.md`, which now records this standard.
+- The remaining translations (`relire`, `depouiller`, `zotero`, after the fidelity review of `commit` and its verifier, translated on 2026-09-24) are listed in `~/dotfiles/.claude/DESIGN-CADRER.md`, which now records this standard.
 
 Related: [[feedback_french_prose]].
