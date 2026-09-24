@@ -67,13 +67,22 @@ commit_file() {
   [ "${lines[2]}" = "$WORK/sub/new.sh" ]
 }
 
-@test "lists journaled paths outside any git repository" {
+@test "exits 1 with a notice outside any git repository, still listing journaled paths" {
   outside=$(realpath "$(mktemp -d)")
   write_at 100 "/elsewhere/a.sh"
   run_writes s1 "$outside"
   rm -rf "$outside"
-  [ "$status" -eq 0 ]
-  [ "${lines[2]}" = "/elsewhere/a.sh" ]
+  [ "$status" -eq 1 ]
+  [[ $output == *"no git repository"* ]]
+  [ "${lines[-1]}" = "/elsewhere/a.sh" ]
+}
+
+@test "keeps exit 3 over the missing repository when both apply" {
+  outside=$(realpath "$(mktemp -d)")
+  run_writes '' "$outside"
+  rm -rf "$outside"
+  [ "$status" -eq 3 ]
+  [[ $output == *"no git repository"* ]]
 }
 
 @test "prints no stamp and exits 3 without a session id, still listing git status" {

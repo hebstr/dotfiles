@@ -32,6 +32,9 @@ if top=$(git rev-parse --show-toplevel 2>/dev/null); then
   for entry in "${entries[@]}"; do
     paths+=("$top/${entry:3}")
   done
+else
+  printf 'writes.sh: no git repository from %s, so no git status\n' "$PWD" >&2
+  ((failed == 0)) && failed=1
 fi
 
 ((${#paths[@]} == 0)) || printf '%s\n' "${paths[@]}" | LC_ALL=C sort -u

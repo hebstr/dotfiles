@@ -25,9 +25,9 @@ In this order, skipping none.
 
    The script prints `STAMP_FILE` and `STAMP_VALUE`, then the `WRITES` list, which combines the write log with `git status`, because the log sees neither the writes of a session that preceded a `/clear` (the session id changes) nor those made through Bash or by hand.
    Shell state does not persist from one Bash call to the next: the commands of the following steps take these two values copied exactly as printed, in place of `<STAMP_FILE>` and `<STAMP_VALUE>`.
-   Empty list: no write in the session and a clean tree, go to 0.2.
+   Empty list with exit code 0: no write in the session and a clean tree, go to 0.2.
    Exit code 3, with no `STAMP_` line (`CLAUDE_CODE_SESSION_ID` empty or unusable): say so, and still run the verifier on the listed files, without a stamp; the gate will block again the next time commit blocks are delivered outside the continuation it triggered, inside which the marker it wrote when blocking makes it exit 0, and that is the intended behavior.
-   Exit code 1 (`git status` failed): say so, and run the verifier on the printed list, which then holds only the write log.
+   Exit code 1 (`git status` failed, or no git repository from the current directory): say so. If the working directory has drifted out of the project's repository (a `cd` persists across Bash calls), `cd` back to the project root and rerun the script. Otherwise run the verifier on the printed list, which then holds only the write log.
 2. Read `agents/verifier.md` (next to this file) and launch a `general-purpose` agent **in the foreground**, whose prompt is that file followed by `REPO` (the git root), `WRITES` (the list above), `STAMP_FILE` and `STAMP_VALUE`.
    A fresh context is the whole point of this step: give it no summary of the session and no opinion on what is up to date.
 3. Apply its findings with Edit, one at a time, after checking each one: a finding the check disproves is dropped, and named as dropped.
