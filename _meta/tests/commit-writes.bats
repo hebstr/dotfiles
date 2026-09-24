@@ -3,6 +3,8 @@
 SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/skills/commit/scripts/writes.sh"
 
 setup() {
+  mapfile -t git_env < <(git rev-parse --local-env-vars)
+  unset "${git_env[@]}"
   WORK=$(realpath "$(mktemp -d)")
   STUB_DIR="$WORK/.stubs"
   RUNTIME="$WORK/runtime"
@@ -37,12 +39,22 @@ commit_file() {
   git -C "$WORK" -c user.name=t -c user.email=t@t commit -qm init
 }
 
+fail_git_status() {
+  local real_git
+  real_git=$(command -v git)
+  rm "$STUB_DIR/git"
+  # shellcheck disable=SC2016
+  printf '#!/bin/bash\nfor a in "$@"; do [[ $a == status ]] && exit 128; done\nexec %q "$@"\n' "$real_git" >"$STUB_DIR/git"
+  chmod +x "$STUB_DIR/git"
+}
+
 @test "prints the stamp file and a nanosecond stamp value first" {
   run_writes
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "STAMP_FILE=$RUNTIME/claude-code-writes-s1.stamp" ]
   [[ ${lines[1]} =~ ^STAMP_VALUE=[0-9]{19}$ ]]
   [ "${#lines[@]}" -eq 2 ]
+  [ ! -e "$RUNTIME/claude-code-writes-s1.stamp" ]
 }
 
 @test "unions the journal and git status, sorted, each path once" {
@@ -57,6 +69,17 @@ commit_file() {
   [ "${lines[2]}" = "$WORK/.claude/PLAN.md" ]
   [ "${lines[3]}" = "$WORK/a.sh" ]
   [ "${lines[4]}" = "$WORK/new.sh" ]
+}
+
+@test "lists journal paths written before the stored stamp" {
+  printf '300\n' >"$RUNTIME/claude-code-writes-s1.stamp"
+  write_at 100 "$WORK/.claude/PLAN.md"
+  write_at 200 "$WORK/a.sh"
+  run_writes
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 4 ]
+  [ "${lines[2]}" = "$WORK/.claude/PLAN.md" ]
+  [ "${lines[3]}" = "$WORK/a.sh" ]
 }
 
 @test "resolves git status paths against the repository root from a subdirectory" {
@@ -134,15 +157,18 @@ commit_file() {
   [[ $output != *STAMP_* ]]
 }
 
-@test "exits non-zero and keeps the journal paths when git status fails" {
+@test "exits 1 and keeps the journal paths when git status fails" {
   write_at 100 "$WORK/a.sh"
-  real_git=$(command -v git)
-  rm "$STUB_DIR/git"
-  # shellcheck disable=SC2016
-  printf '#!/bin/bash\nfor a in "$@"; do [[ $a == status ]] && exit 128; done\nexec %q "$@"\n' "$real_git" >"$STUB_DIR/git"
-  chmod +x "$STUB_DIR/git"
+  fail_git_status
   run_writes
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 1 ]
   [[ $output == *"git status failed"* ]]
   [ "${lines[-1]}" = "$WORK/a.sh" ]
+}
+
+@test "keeps exit 3 over a failed git status when both apply" {
+  fail_git_status
+  run_writes ''
+  [ "$status" -eq 3 ]
+  [[ $output == *"git status failed"* ]]
 }
