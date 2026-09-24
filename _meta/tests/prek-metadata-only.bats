@@ -10,6 +10,8 @@ DRIVER="${BATS_TEST_DIRNAME}/../../git/.config/git/out-textconv.py"
 # Each test runs in a fresh repository under a git config of its own, so neither
 # the user's global config nor a system one decides whether the driver exists.
 setup() {
+  mapfile -t git_env < <(git rev-parse --local-env-vars)
+  unset "${git_env[@]}"
   export GIT_CONFIG_NOSYSTEM=1
   export GIT_CONFIG_GLOBAL="${BATS_TEST_TMPDIR}/gitconfig"
   cat >"$GIT_CONFIG_GLOBAL" <<EOF

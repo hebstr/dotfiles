@@ -67,6 +67,8 @@ _write_upstream() {
 # ─── setup / teardown ───────────────────────────────────────────────────────
 
 setup() {
+  mapfile -t git_env < <(git rev-parse --local-env-vars)
+  unset "${git_env[@]}"
   STUBS="$(mktemp -d)"
   FAKE_HOME="$(mktemp -d)"
   REPO="$(mktemp -d)"

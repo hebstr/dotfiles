@@ -3,6 +3,8 @@
 SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/hooks/commit-stale.sh"
 
 setup() {
+  mapfile -t git_env < <(git rev-parse --local-env-vars)
+  unset "${git_env[@]}"
   WORK=$(realpath "$(mktemp -d)")
   STUB_DIR="$WORK/.stubs"
   RUNTIME="$WORK/runtime"
