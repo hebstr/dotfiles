@@ -15,7 +15,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ >>"$WORK/.git/info/exclude"
-  for cmd in realpath git stat sha256sum readlink; do
+  for cmd in realpath git stat rm sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -45,13 +45,17 @@ stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
 }
 
-seal() {
+seal_only() {
   local value=$1
   shift
   # shellcheck disable=SC2016
   env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
     /bin/bash -c 'printf "%s\0" "${@:3}" | /bin/bash "$1" --seal s1 "$2"' _ "$SCRIPT" "$value" "$@"
-  stamp "$value"
+}
+
+seal() {
+  seal_only "$@"
+  stamp "$1"
 }
 
 commit_file() {
@@ -159,7 +163,7 @@ commit_file() {
 @test "--seal writes the stamp value as the snapshot header, then one digest per path" {
   commit_file proj/a.sh
   seal 123 "$PROJECT/a.sh"
-  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.seen"
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.123.seen"
   [ "${snapshot[0]}" = 123 ]
   [ "${#snapshot[@]}" -eq 2 ]
   [[ ${snapshot[1]} == f:*$'\t'"$PROJECT/a.sh" ]]
@@ -201,6 +205,7 @@ commit_file() {
   seal "$(date +%s%N)" "$PROJECT/a.sh"
   chmod +x "$PROJECT/a.sh"
   run_stale
+  [ "$status" -eq 0 ]
   [ "$output" = "$PROJECT/a.sh" ]
 }
 
@@ -223,7 +228,31 @@ commit_file() {
   sleep 0.05
   printf 'v2\n' >"$PROJECT/a.sh"
   run_stale
+  [ "$status" -eq 0 ]
   [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "keeps comparing content against the stamp's snapshot after a seal whose stamp was never written" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  value=$(date +%s%N)
+  seal "$value" "$PROJECT/a.sh"
+  seal_only "$((value + 1000))" "$PROJECT/a.sh"
+  sleep 0.05
+  printf 'v2\n' >"$PROJECT/a.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "--seal removes the snapshots of values that are neither sealed nor stamped" {
+  commit_file proj/a.sh
+  seal 100 "$PROJECT/a.sh"
+  seal_only 200 "$PROJECT/a.sh"
+  seal_only 300 "$PROJECT/a.sh"
+  [ -e "$RUNTIME/claude-code-writes-s1.100.seen" ]
+  [ ! -e "$RUNTIME/claude-code-writes-s1.200.seen" ]
+  [ -e "$RUNTIME/claude-code-writes-s1.300.seen" ]
 }
 
 @test "--only checks the given paths alone" {
@@ -244,6 +273,98 @@ commit_file() {
   stamp 'not-a-number'
   run_only
   [ "$status" -ne 0 ]
+}
+
+@test "prints a sealed file deleted since, and passes a path sealed absent that is still absent" {
+  commit_file proj/a.sh
+  commit_file proj/b.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  rm "$PROJECT/b.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh" "$PROJECT/b.sh"
+  rm "$PROJECT/a.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "counts an absent path the snapshot does not hold when git status lists it, not when only the journal does" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value"
+  rm "$PROJECT/a.sh"
+  write_at "$((value + 1000))" "$PROJECT/tmp.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "counts a symlink whose target changed since the seal" {
+  ln -s one "$PROJECT/link"
+  seal "$(date +%s%N)" "$PROJECT/link"
+  ln -sfn two "$PROJECT/link"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/link" ]
+}
+
+@test "prints a sealed file it cannot read and exits non-zero" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  chmod 000 "$PROJECT/a.sh"
+  run_stale
+  [ "$status" -ne 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "--only leaves out tracking paths and prints each path once" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  printf 'x\n' >"$PROJECT/.claude/NOTE.md"
+  seal "$(date +%s%N)"
+  run_only "$PROJECT/.claude/NOTE.md" "$PROJECT/a.sh" "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "round-trips a path with spaces and glob characters through the snapshot" {
+  commit_file 'proj/a b[1]*.sh'
+  printf 'v2\n' >"$PROJECT/a b[1]*.sh"
+  seal "$(date +%s%N)" "$PROJECT/a b[1]*.sh"
+  sleep 0.05
+  printf 'v2\n' >"$PROJECT/a b[1]*.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  printf 'v3\n' >"$PROJECT/a b[1]*.sh"
+  run_stale
+  [ "$output" = "$PROJECT/a b[1]*.sh" ]
+}
+
+@test "counts a path holding a tab, which the seal cannot record" {
+  printf 'x\n' >"$PROJECT/t"$'\t'"ab.sh"
+  seal "$(date +%s%N)" "$PROJECT/t"$'\t'"ab.sh"
+  [ "$(wc -l <"$RUNTIME/claude-code-writes-s1.$(<"$RUNTIME/claude-code-writes-s1.stamp").seen")" -eq 1 ]
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/t"$'\t'"ab.sh" ]
+}
+
+@test "--seal exits 2 on a value that is not a number, writing nothing" {
+  run seal_only 'not-a-number'
+  [ "$status" -eq 2 ]
+  shopt -s nullglob
+  snapshots=("$RUNTIME"/*.seen)
+  [ "${#snapshots[@]}" -eq 0 ]
+}
+
+@test "--seal exits non-zero when the snapshot cannot be written, and keeps the previous one" {
+  commit_file proj/a.sh
+  seal 100 "$PROJECT/a.sh"
+  chmod 500 "$RUNTIME"
+  run seal_only 200 "$PROJECT/a.sh"
+  [ "$status" -ne 0 ]
+  [ -e "$RUNTIME/claude-code-writes-s1.100.seen" ]
 }
 
 @test "rejects a session id carrying a path separator" {

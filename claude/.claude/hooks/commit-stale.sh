@@ -17,7 +17,7 @@ root=${2-}
 runtime="${XDG_RUNTIME_DIR:-/tmp}"
 journal="$runtime/claude-code-writes-${session}.log"
 stamp_file="$runtime/claude-code-writes-${session}.stamp"
-snapshot="$runtime/claude-code-writes-${session}.seen"
+snapshot_prefix="$runtime/claude-code-writes-${session}."
 failed=0
 
 digest() {
@@ -40,7 +40,7 @@ digest() {
 }
 
 if [[ $mode == seal ]]; then
-  sealed_value=$root
+  sealed_value=${2-}
   [[ $sealed_value =~ ^[0-9]+$ ]] || exit 2
   (
     umask 077
@@ -52,9 +52,15 @@ if [[ $mode == seal ]]; then
         [[ $d != *[$'\t\n']* ]] || continue
         printf '%s\t%s\n' "$d" "$path"
       done
-    } >"$snapshot"
-  ) 2>/dev/null
-  exit
+    } >"${snapshot_prefix}${sealed_value}.seen"
+  ) 2>/dev/null || exit
+  current=""
+  [[ -r $stamp_file ]] && { read -r current <"$stamp_file" || true; }
+  for old in "$snapshot_prefix"*.seen; do
+    [[ $old == "${snapshot_prefix}${sealed_value}.seen" || $old == "${snapshot_prefix}${current}.seen" ]] && continue
+    rm -f -- "$old"
+  done
+  exit 0
 fi
 
 stamp=0
@@ -70,6 +76,7 @@ fi
 
 sealed=0
 declare -A sealed_digest=()
+snapshot="${snapshot_prefix}${stamp}.seen"
 if ((stamp > 0)) && [[ -r $snapshot ]]; then
   {
     IFS= read -r header || header=""
@@ -136,7 +143,6 @@ if [[ $mode == only ]]; then
     excluded "$path" && continue
     [[ -n ${seen[$path]:-} ]] && continue
     seen[$path]=1
-    in_work_tree_unignored "$path" || continue
     changed "$path" listed || continue
     stale+=("$path")
   done

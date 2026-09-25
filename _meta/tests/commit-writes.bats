@@ -13,12 +13,13 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$WORK/.claude"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ .claude/ >>"$WORK/.git/info/exclude"
-  for cmd in git date sort sha256sum readlink; do
+  for cmd in git date sort rm sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
 
 teardown() {
+  chmod -R u+rw "$WORK" 2>/dev/null
   rm -rf "$WORK"
 }
 
@@ -63,8 +64,9 @@ fail_git_status() {
   write_at 100 "$WORK/.claude/PLAN.md"
   run_writes
   [ "$status" -eq 0 ]
-  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.seen"
-  [ "${snapshot[0]}" = "${lines[1]#STAMP_VALUE=}" ]
+  value=${lines[1]#STAMP_VALUE=}
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.$value.seen"
+  [ "${snapshot[0]}" = "$value" ]
   [ "${#snapshot[@]}" -eq 3 ]
   [[ ${snapshot[1]} == -$'\t'"$WORK/.claude/PLAN.md" ]]
   [[ ${snapshot[2]} == f:*$'\t'"$WORK/a.sh" ]]
@@ -82,9 +84,20 @@ fail_git_status() {
   value=${lines[1]#STAMP_VALUE=}
   [[ $value =~ ^[0-9]{19}$ ]]
   [ "$(<"$RUNTIME/claude-code-writes-s1.stamp")" = "$value" ]
-  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.seen"
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.$value.seen"
   [ "${snapshot[0]}" = "$value" ]
   [[ ${snapshot[1]} == f:*$'\t'"$WORK/new.sh" ]]
+}
+
+@test "--restamp exits 1 and keeps the stamp when the snapshot cannot be written" {
+  printf '100\n' >"$RUNTIME/claude-code-writes-s1.stamp"
+  chmod 500 "$RUNTIME"
+  # shellcheck disable=SC2016
+  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" CLAUDE_CODE_SESSION_ID=s1 \
+    /bin/bash -c 'cd "$1" && /bin/bash "$2" --restamp' _ "$WORK" "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ $output == *"could not record the snapshot"* ]]
+  [ "$(<"$RUNTIME/claude-code-writes-s1.stamp")" = 100 ]
 }
 
 @test "--restamp writes nothing without a session id" {

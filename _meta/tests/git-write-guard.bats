@@ -15,7 +15,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ home/ >>"$WORK/.git/info/exclude"
-  for cmd in cat jq realpath git stat sha256sum readlink; do
+  for cmd in cat jq realpath git stat rm sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
