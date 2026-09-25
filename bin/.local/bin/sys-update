@@ -12,6 +12,7 @@ ALL_MODULES=(
   rustup
   cargo
   claude
+  blesh
   devtools
   uv-python
   uv-tools
@@ -153,6 +154,15 @@ update_claude() {
     return
   fi
   run_or_dry claude update && record claude OK
+}
+
+update_blesh() {
+  local blesh="$HOME/.local/share/blesh/ble.sh"
+  if [[ ! -f "$blesh" ]]; then
+    record blesh "skipped (blesh not installed)"
+    return
+  fi
+  run_or_dry bash "$blesh" --update && record blesh OK
 }
 
 update_devtools() {

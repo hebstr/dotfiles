@@ -58,7 +58,7 @@ setup() {
 _run() {
   # Use $BASH (absolute path) so the script's interpreter never depends on
   # the restricted PATH that env applies.
-  run env PATH="$STUBS" "$BASH" "$SCRIPT" "$@"
+  run env PATH="$STUBS" HOME="${STUBS}/home" "$BASH" "$SCRIPT" "$@"
 }
 
 teardown() {
@@ -84,7 +84,7 @@ teardown() {
 @test "--help lists every available module" {
   _run --help
   [ "$status" -eq 0 ]
-  for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
+  for m in apt snap flatpak npm rustup cargo claude blesh devtools uv-python uv-tools \
     rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice zotero syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
@@ -123,6 +123,7 @@ teardown() {
   echo "$output" | grep -E '^duckdb[[:space:]]+no$'
   echo "$output" | grep -E '^lua-toolchain[[:space:]]+no$'
   echo "$output" | grep -E '^agent-skills[[:space:]]+no$'
+  echo "$output" | grep -E '^blesh[[:space:]]+no$'
 }
 
 # ─── argument parsing errors ────────────────────────────────────────────────
@@ -257,6 +258,24 @@ EOF
   python_pos="${output%%→ uv-python*}"
   tools_pos="${output%%→ uv-tools*}"
   [ "${#python_pos}" -lt "${#tools_pos}" ]
+}
+
+@test "blesh module skips when ble.sh is not installed" {
+  _run blesh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"blesh"*"skipped (blesh not installed)"* ]]
+}
+
+@test "blesh module runs the installed ble.sh with --update" {
+  mkdir -p "${STUBS}/home/.local/share/blesh"
+  cat >"${STUBS}/home/.local/share/blesh/ble.sh" <<EOF
+printf '%s\n' "\$*" >> "${STUBS}/blesh.log"
+EOF
+  _run blesh
+  [ "$status" -eq 0 ]
+  [ "$(cat "${STUBS}/blesh.log")" = "--update" ]
+  summary="${output#*MODULE*STATUS}"
+  [[ "$summary" == *"blesh"*"OK"* ]]
 }
 
 @test "claude-plugins module dispatches to claude-plugins-update" {
@@ -435,7 +454,7 @@ EOF
 @test "no module argument selects all modules" {
   _run --dry-run
   [ "$status" -eq 0 ]
-  for m in apt snap flatpak npm rustup cargo claude devtools uv-python uv-tools \
+  for m in apt snap flatpak npm rustup cargo claude blesh devtools uv-python uv-tools \
     rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice zotero syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
