@@ -277,6 +277,24 @@ EOF
   [[ "$output" == *"[dry-run] snap remove oldsnap --revision=42"* ]]
 }
 
+@test "non-dry-run snap removes only disabled revisions" {
+  cat >"${STUBS}/snap" <<EOF
+#!/usr/bin/env bash
+case "\$1 \$2" in
+    "list --all")
+        printf 'Name     Version  Rev  Tracking       Publisher  Notes\n'
+        printf 'oldsnap  1.0      42   latest/stable  -          disabled\n'
+        printf 'oldsnap  1.1      43   latest/stable  -          -\n'
+        ;;
+    remove*) echo "\$*" >>"${STUBS}/snap.args" ;;
+esac
+EOF
+  chmod +x "${STUBS}/snap"
+  _run snap
+  [ "$status" -eq 0 ]
+  [ "$(<"${STUBS}/snap.args")" = "remove oldsnap --revision=42" ]
+}
+
 @test "--dry-run trash prints gio trash --empty" {
   _run --dry-run trash
   [ "$status" -eq 0 ]
