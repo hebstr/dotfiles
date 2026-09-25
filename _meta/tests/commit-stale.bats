@@ -15,7 +15,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ >>"$WORK/.git/info/exclude"
-  for cmd in realpath git stat; do
+  for cmd in realpath git stat sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -31,12 +31,27 @@ run_stale() {
     /bin/bash "$SCRIPT" "$session" "$root"
 }
 
+run_only() {
+  # shellcheck disable=SC2016
+  run env -u CLAUDE_PROJECT_DIR PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash -c 'printf "%s\0" "${@:3}" | /bin/bash "$1" --only s1 "$2"' _ "$SCRIPT" "$PROJECT" "$@"
+}
+
 write_at() {
   printf '%s\t%s\n' "$1" "$2" >>"$RUNTIME/claude-code-writes-s1.log"
 }
 
 stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
+}
+
+seal() {
+  local value=$1
+  shift
+  # shellcheck disable=SC2016
+  env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash -c 'printf "%s\0" "${@:3}" | /bin/bash "$1" --seal s1 "$2"' _ "$SCRIPT" "$value" "$@"
+  stamp "$value"
 }
 
 commit_file() {
@@ -139,6 +154,96 @@ commit_file() {
   run_stale
   [ "$status" -ne 0 ]
   [ "$output" = "$PROJECT/src/a.sh" ]
+}
+
+@test "--seal writes the stamp value as the snapshot header, then one digest per path" {
+  commit_file proj/a.sh
+  seal 123 "$PROJECT/a.sh"
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.seen"
+  [ "${snapshot[0]}" = 123 ]
+  [ "${#snapshot[@]}" -eq 2 ]
+  [[ ${snapshot[1]} == f:*$'\t'"$PROJECT/a.sh" ]]
+}
+
+@test "passes a rewrite that keeps the sealed content although its ctime moved" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  sleep 0.05
+  printf 'v2\n' >"$PROJECT/a.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "prints a file whose content differs from the sealed snapshot" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  printf 'v3\n' >"$PROJECT/a.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "prints a file the snapshot does not hold, even when its ctime predates the stamp" {
+  printf 'x\n' >"$PROJECT/new.sh"
+  sleep 0.05
+  seal "$(date +%s%N)"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/new.sh" ]
+}
+
+@test "counts a change of the executable bit" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  chmod +x "$PROJECT/a.sh"
+  run_stale
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "passes a journaled write that restored the sealed content" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  value=$(date +%s%N)
+  seal "$value" "$PROJECT/a.sh"
+  write_at "$((value + 1000))" "$PROJECT/a.sh"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "falls back to ctime when the snapshot belongs to another stamp" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal 100 "$PROJECT/a.sh"
+  stamp "$(date +%s%N)"
+  sleep 0.05
+  printf 'v2\n' >"$PROJECT/a.sh"
+  run_stale
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "--only checks the given paths alone" {
+  commit_file proj/a.sh
+  commit_file proj/b.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  printf 'v2\n' >"$PROJECT/b.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh" "$PROJECT/b.sh"
+  printf 'v3\n' >"$PROJECT/a.sh"
+  printf 'v3\n' >"$PROJECT/b.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$PROJECT/a.sh" ]
+}
+
+@test "--only still reports an unreadable stamp" {
+  commit_file proj/a.sh
+  stamp 'not-a-number'
+  run_only
+  [ "$status" -ne 0 ]
 }
 
 @test "rejects a session id carrying a path separator" {

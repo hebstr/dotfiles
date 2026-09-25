@@ -16,7 +16,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ >>"$WORK/.git/info/exclude"
-  for cmd in cat jq realpath git stat rm; do
+  for cmd in cat jq realpath git stat rm sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -90,6 +90,20 @@ commit_file() {
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 2 ]
   [[ $output == *"$PROJECT/a.sh"* ]]
+}
+
+@test "passes when a rewrite after the stamp keeps the sealed content" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  value=$(date +%s%N)
+  # shellcheck disable=SC2016
+  env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash -c 'printf "%s\0" "$3" | /bin/bash "$1" --seal s1 "$2"' _ "${SCRIPT%/*}/commit-stale.sh" "$value" "$PROJECT/a.sh"
+  stamp "$value"
+  sleep 0.05
+  printf 'v2\n' >"$PROJECT/a.sh"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 0 ]
 }
 
 @test "blocks on a file renamed after the stamp" {

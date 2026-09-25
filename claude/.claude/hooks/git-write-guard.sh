@@ -10,6 +10,9 @@ cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 
 [[ $cmd == *git* ]] || exit 0
 
+confirmed='add|commit|rm|mv'
+left='push|reset|checkout|switch|restore|stash|merge|rebase|tag|cherry-pick|revert|clean|pull|am'
+
 deny() {
   printf 'git write guard: %s\n' "$@" >&2
   exit 2
@@ -18,6 +21,10 @@ deny() {
 reroute() {
   deny "this command runs git $1 through $2, which the permission dialog does not see." \
     "Write it as a plain \`git $1 ...\` at the start of a command, from the repository (\`cd <repo> && git $1 ...\`), so that the user confirms it. Do not look for another form."
+}
+
+leave() {
+  deny "$1 is a git write the user runs: leave it to the user, and do not look for another form."
 }
 
 strip_quotes() {
@@ -52,20 +59,11 @@ while read -r key value; do
   alias_of[${key#alias.}]=$value
 done < <(git -C "${cwd:-.}" config --get-regexp '^alias\.' 2>/dev/null)
 
-alias_writes() {
-  local expansion=${alias_of[$1]-}
-  [[ -n $expansion ]] || return 1
-  if [[ $expansion == '!'* ]]; then
-    [[ $expansion =~ (^|[^[:alnum:]_-])(add|commit)([^[:alnum:]_-]|$) ]]
-  else
-    [[ ${expansion%% *} == add || ${expansion%% *} == commit ]]
-  fi
-}
-
 runner='(^|[^[:alnum:]_./-])((bash|sh|zsh|dash|ksh)[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[[:alnum:]]*c|eval|xargs)([[:space:]]|$)'
-mention='(^|[^[:alnum:]_./-])git[^[:alnum:]_-](.*[^[:alnum:]_-])?(add|commit)([^[:alnum:]_-]|$)'
+mention="(^|[^[:alnum:]_./-])git[^[:alnum:]_-]([^;&|"$'\n'"]*[^[:alnum:]_-])?($confirmed|$left|branch)([^[:alnum:]_-]|\$)"
 if [[ $cmd =~ $runner && $cmd =~ $mention ]]; then
-  reroute "add or commit" "a shell string (bash -c, eval, xargs)"
+  deny "this command runs a git write through a shell string (bash -c, eval, xargs), which the permission rules do not see." \
+    "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
 fi
 
 check_commit_options() {
@@ -94,6 +92,90 @@ check_commit_options() {
   done
 }
 
+branch_writes() {
+  local tok listing=0 positional=0 skip=0
+  for tok in "$@"; do
+    if ((skip)); then
+      skip=0
+      [[ $tok == -* ]] || continue
+    fi
+    if [[ $tok =~ ^-[arvilq]+$ ]]; then
+      [[ $tok == *l* ]] && listing=1
+      continue
+    fi
+    case $tok in
+    --list) listing=1 ;;
+    --contains | --no-contains | --merged | --no-merged | --points-at | --sort | --format) skip=1 ;;
+    --all | --remotes | --verbose | --quiet | --show-current | --ignore-case | --omit-empty | --no-color | --no-column | --no-abbrev) ;;
+    --contains=* | --no-contains=* | --merged=* | --no-merged=* | --points-at=* | --sort=* | --format=* | --color | --color=* | --column | --column=* | --abbrev=*) ;;
+    -*) return 0 ;;
+    *) positional=1 ;;
+    esac
+  done
+  ((positional && !listing))
+}
+
+tracked=0
+fallback=0
+specs=()
+
+staging_specs() {
+  local tok letters dashdash=0
+  for tok in "$@"; do
+    if ((dashdash)); then
+      specs+=("$tok")
+      continue
+    fi
+    case $tok in
+    --) dashdash=1 ;;
+    -u | --update) tracked=1 ;;
+    -A | --all | --no-ignore-removal | -p | --patch | -i | --interactive | -e | --edit | --pathspec-from-file*) fallback=1 ;;
+    --*) ;;
+    -?*)
+      letters=${tok#-}
+      [[ $letters == *[Apie]* ]] && fallback=1
+      [[ $letters == *u* ]] && tracked=1
+      ;;
+    *) specs+=("$tok") ;;
+    esac
+  done
+}
+
+commit_specs() {
+  local tok letters k dashdash=0 skip=0
+  for tok in "$@"; do
+    if ((skip)); then
+      skip=0
+      continue
+    fi
+    if ((dashdash)); then
+      specs+=("$tok")
+      continue
+    fi
+    case $tok in
+    --) dashdash=1 ;;
+    -a | --all) tracked=1 ;;
+    -p | --patch | --interactive | --pathspec-from-file*) fallback=1 ;;
+    --message | --file | --reuse-message | --reedit-message | --template | --author | --date | --fixup | --squash | --cleanup | --trailer) skip=1 ;;
+    --*) ;;
+    -?*)
+      letters=${tok#-}
+      for ((k = 0; k < ${#letters}; k++)); do
+        case ${letters:k:1} in
+        a) tracked=1 ;;
+        p) fallback=1 ;;
+        [mFCct])
+          ((k == ${#letters} - 1)) && skip=1
+          break
+          ;;
+        esac
+      done
+      ;;
+    *) specs+=("$tok") ;;
+    esac
+  done
+}
+
 commits=0
 stripped=$(strip_quotes "$cmd")
 segments=${stripped//[;&|()\`]/$'\n'}
@@ -104,6 +186,10 @@ while IFS= read -r segment; do
   while ((i < n)) && [[ ${w[i]} =~ ^[A-Za-z_][A-Za-z0-9_]*= || ${w[i]} =~ ^(\{|!|if|then|else|elif|do|while|until)$ ]]; do
     ((i++))
   done
+  if ((i < n)) && [[ ${w[i]} == cd || ${w[i]} == pushd ]]; then
+    fallback=1
+    continue
+  fi
   wrapper=""
   if ((i < n)) && [[ ${w[i]} =~ ^(env|command|builtin|exec|nohup|timeout|nice|ionice|time|stdbuf|sudo|doas|unbuffer|chronic)$ ]]; then
     wrapper=${w[i]}
@@ -130,17 +216,50 @@ while IFS= read -r segment; do
     esac
   done
   sub=${w[i]-}
-  if [[ $sub != add && $sub != commit ]]; then
-    alias_writes "$sub" || continue
-    reroute "add or commit" "the alias git $sub"
+  args=("${w[@]:i+1}")
+  [[ -n $sub ]] || continue
+  if [[ $sub == *Q* || $sub == *'$'* ]]; then
+    deny "the git subcommand is quoted or held in a variable, which hides it from the permission rules: write it plainly."
   fi
-  [[ -n $wrapper ]] && reroute "$sub" "the wrapper $wrapper"
-  [[ $program != git ]] && reroute "$sub" "git called by path ($program)"
-  ((options)) && reroute "$sub" "git global options before the subcommand"
-  if [[ $sub == commit ]]; then
-    check_commit_options "${w[@]:i+1}"
+
+  via=""
+  [[ -n $wrapper ]] && via="the wrapper $wrapper"
+  [[ $program != git ]] && via="git called by path ($program)"
+  ((options)) && via="git global options before the subcommand"
+
+  if [[ ! $sub =~ ^($confirmed|$left|branch)$ && -n ${alias_of[$sub]+set} ]]; then
+    expansion=${alias_of[$sub]}
+    if [[ $expansion == '!'* ]]; then
+      if [[ $expansion =~ (^|[^[:alnum:]_-])($confirmed|$left|branch)([^[:alnum:]_-]|$) ]]; then
+        deny "the alias git $sub runs a git write through a shell, which the permission dialog does not see." \
+          "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
+      fi
+      continue
+    fi
+    read -ra expanded <<<"$expansion"
+    via="the alias git $sub"
+    sub=${expanded[0]-}
+    args=("${expanded[@]:1}" "${args[@]}")
+  fi
+
+  if [[ $sub =~ ^($left)$ ]]; then
+    leave "git $sub"
+  fi
+  if [[ $sub == branch ]]; then
+    branch_writes "${args[@]}" && leave "git branch with a branch name or a write option (create, rename, copy, delete, upstream)"
+    continue
+  fi
+  [[ $sub =~ ^($confirmed)$ ]] || continue
+  [[ -n $via ]] && reroute "$sub" "$via"
+  case $sub in
+  add | rm) staging_specs "${args[@]}" ;;
+  mv) fallback=1 ;;
+  commit)
+    check_commit_options "${args[@]}"
+    commit_specs "${args[@]}"
     commits=1
-  fi
+    ;;
+  esac
 done <<<"$segments"
 
 ((commits)) || exit 0
@@ -148,8 +267,53 @@ done <<<"$segments"
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] ||
   deny "could not check the tracking verification: the session id is unusable. Leave the commit to the user."
 
+picked=()
+top=""
+((fallback)) || top=$(git -C "${cwd:-.}" rev-parse --show-toplevel 2>/dev/null) || top=""
+if [[ -n $top ]]; then
+  base=$(realpath -m -- "${cwd:-.}" 2>/dev/null) || fallback=1
+  entries=()
+  mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
+  wait "$!" || fallback=1
+  listed=()
+  for entry in "${entries[@]}"; do
+    code=${entry:0:2}
+    path="$top/${entry:3}"
+    listed+=("$path")
+    [[ ${code:0:1} != [\ ?!] ]] && picked+=("$path")
+    ((tracked)) && [[ $code != '??' && $code != '!!' && ${code:1:1} != ' ' ]] && picked+=("$path")
+  done
+  for spec in "${specs[@]}"; do
+    if [[ $spec == *Q* || $spec == *'$'* || $spec == :* || $spec == *[\*\?\[]* ]]; then
+      fallback=1
+      break
+    fi
+    case $spec in
+    /*) abs=$spec ;;
+    [~]) abs=$HOME ;;
+    [~]/*) abs=$HOME/${spec:2} ;;
+    *) abs=$base/$spec ;;
+    esac
+    abs=$(realpath -m -- "$abs" 2>/dev/null) || {
+      fallback=1
+      break
+    }
+    for path in "${listed[@]}"; do
+      [[ $path == "$abs" || $path == "$abs/"* ]] && picked+=("$path")
+    done
+  done
+else
+  fallback=1
+fi
+
+stale_script="${BASH_SOURCE[0]%/*}/commit-stale.sh"
+root=${CLAUDE_PROJECT_DIR:-$cwd}
 stale=()
-mapfile -t stale < <("$BASH" "${BASH_SOURCE[0]%/*}/commit-stale.sh" "$session" "${CLAUDE_PROJECT_DIR:-$cwd}" 2>/dev/null)
+if ((fallback)); then
+  mapfile -t stale < <("$BASH" "$stale_script" "$session" "$root" 2>/dev/null)
+else
+  mapfile -t stale < <({ ((${#picked[@]} == 0)) || printf '%s\0' "${picked[@]}"; } | "$BASH" "$stale_script" --only "$session" "$root" 2>/dev/null)
+fi
 wait "$!" ||
   deny "could not check the tracking verification: a source of commit-stale.sh was unreadable. Invoke the commit skill again; if it persists, leave the commit to the user."
 

@@ -33,7 +33,9 @@
     ],
     "ask": [
       "Bash(git add*)",
-      "Bash(git commit*)"
+      "Bash(git commit*)",
+      "Bash(git rm*)",
+      "Bash(git mv*)"
     ],
     "deny": [
       "Bash(git push*)",
@@ -51,6 +53,22 @@
       "Bash(git restore*)",
       "Bash(git stash*)",
       "Bash(git cherry-pick*)",
+      "Bash(git revert*)",
+      "Bash(git clean*)",
+      "Bash(git pull*)",
+      "Bash(git am*)",
+      "Bash(git branch -m*)",
+      "Bash(git branch -M*)",
+      "Bash(git branch -c*)",
+      "Bash(git branch -C*)",
+      "Bash(git branch -f*)",
+      "Bash(git branch -u*)",
+      "Bash(git branch --move*)",
+      "Bash(git branch --copy*)",
+      "Bash(git branch --force*)",
+      "Bash(git branch --delete*)",
+      "Bash(git branch --set-upstream-to*)",
+      "Bash(git branch --unset-upstream*)",
       "Bash(rm -rf*)",
       "Bash(rm -fr*)",
       "Bash(rm -r -f*)",

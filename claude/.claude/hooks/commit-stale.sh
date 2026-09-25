@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+mode=list
+case ${1-} in
+--only | --seal)
+  mode=${1#--}
+  shift
+  ;;
+esac
+
 session=${1-}
 root=${2-}
 
@@ -9,7 +17,45 @@ root=${2-}
 runtime="${XDG_RUNTIME_DIR:-/tmp}"
 journal="$runtime/claude-code-writes-${session}.log"
 stamp_file="$runtime/claude-code-writes-${session}.stamp"
+snapshot="$runtime/claude-code-writes-${session}.seen"
 failed=0
+
+digest() {
+  local out
+  if [[ -L $1 ]]; then
+    out=$(readlink -- "$1" 2>/dev/null) || return 1
+    printf 'l:%s' "$out"
+  elif [[ -f $1 ]]; then
+    out=$({ sha256sum <"$1"; } 2>/dev/null) || return 1
+    if [[ -x $1 ]]; then
+      printf 'f:%s:x' "${out%% *}"
+    else
+      printf 'f:%s:-' "${out%% *}"
+    fi
+  elif [[ -e $1 ]]; then
+    printf 'o'
+  else
+    printf '%s' -
+  fi
+}
+
+if [[ $mode == seal ]]; then
+  sealed_value=$root
+  [[ $sealed_value =~ ^[0-9]+$ ]] || exit 2
+  (
+    umask 077
+    {
+      printf '%s\n' "$sealed_value"
+      while IFS= read -r -d '' path; do
+        [[ -n $path && $path != *[$'\t\n']* ]] || continue
+        d=$(digest "$path") || continue
+        [[ $d != *[$'\t\n']* ]] || continue
+        printf '%s\t%s\n' "$d" "$path"
+      done
+    } >"$snapshot"
+  ) 2>/dev/null
+  exit
+fi
 
 stamp=0
 if [[ -e $stamp_file ]]; then
@@ -20,6 +66,20 @@ if [[ -e $stamp_file ]]; then
   else
     failed=1
   fi
+fi
+
+sealed=0
+declare -A sealed_digest=()
+if ((stamp > 0)) && [[ -r $snapshot ]]; then
+  {
+    IFS= read -r header || header=""
+    if [[ $header == "$stamp" ]]; then
+      sealed=1
+      while IFS=$'\t' read -r d p; do
+        [[ -n $p ]] && sealed_digest[$p]=$d
+      done
+    fi
+  } <"$snapshot"
 fi
 
 [[ -n $root ]] && root=$(realpath -m -- "$root" 2>/dev/null || printf '%s' "$root")
@@ -42,8 +102,21 @@ excluded() {
   [[ $1 == "$memory/"* ]]
 }
 
-changed_since_stamp() {
-  local ctime
+changed() {
+  local now ctime
+  if ((sealed)); then
+    if ! now=$(digest "$1"); then
+      failed=1
+      return 0
+    fi
+    if [[ -n ${sealed_digest[$1]+set} ]]; then
+      [[ $now != "${sealed_digest[$1]}" ]]
+    else
+      [[ $now != - || $2 == listed ]]
+    fi
+    return
+  fi
+  [[ $2 == journal ]] && return 0
   if [[ -e $1 || -L $1 ]]; then
     ctime=$(stat -c '%.9Z' -- "$1" 2>/dev/null) || return 1
     ctime=${ctime/./}
@@ -56,32 +129,49 @@ changed_since_stamp() {
 
 declare -A seen=()
 stale=()
-if [[ -r $journal ]]; then
-  while IFS=$'\t' read -r ts path; do
-    [[ $ts =~ ^[0-9]+$ && -n $path ]] || continue
-    ((ts > stamp)) || continue
+
+if [[ $mode == only ]]; then
+  while IFS= read -r -d '' path; do
+    [[ -n $path ]] || continue
     excluded "$path" && continue
     [[ -n ${seen[$path]:-} ]] && continue
     seen[$path]=1
     in_work_tree_unignored "$path" || continue
-    stale+=("$path")
-  done <"$journal"
-elif [[ -e $journal ]]; then
-  failed=1
-fi
-
-if [[ -n $top ]]; then
-  entries=()
-  mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
-  wait "$!" || failed=1
-  for entry in "${entries[@]}"; do
-    path="$top/${entry:3}"
-    excluded "$path" && continue
-    [[ -n ${seen[$path]:-} ]] && continue
-    changed_since_stamp "$path" || continue
-    seen[$path]=1
+    changed "$path" listed || continue
     stale+=("$path")
   done
+else
+  if [[ -r $journal ]]; then
+    while IFS=$'\t' read -r ts path; do
+      [[ $ts =~ ^[0-9]+$ && -n $path ]] || continue
+      ((ts > stamp)) || continue
+      excluded "$path" && continue
+      [[ -n ${seen[$path]:-} ]] && continue
+      if ! in_work_tree_unignored "$path"; then
+        seen[$path]=1
+        continue
+      fi
+      changed "$path" journal || continue
+      seen[$path]=1
+      stale+=("$path")
+    done <"$journal"
+  elif [[ -e $journal ]]; then
+    failed=1
+  fi
+
+  if [[ -n $top ]]; then
+    entries=()
+    mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
+    wait "$!" || failed=1
+    for entry in "${entries[@]}"; do
+      path="$top/${entry:3}"
+      excluded "$path" && continue
+      [[ -n ${seen[$path]:-} ]] && continue
+      changed "$path" listed || continue
+      seen[$path]=1
+      stale+=("$path")
+    done
+  fi
 fi
 
 ((${#stale[@]} == 0)) || printf '%s\n' "${stale[@]}"

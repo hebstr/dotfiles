@@ -8,7 +8,7 @@ description: Use before proposing any commit, whether the user asked for one or 
 Conduct the conversation in the user's language, whatever the language of this text.
 
 This skill closes out the work in progress, delivers a commit proposal based on the actual state of the repository, then runs it, each call confirmed by the user in the permission dialog.
-`git add` and `git commit` are the only git write commands it runs (Git section of `~/.claude/CLAUDE.md`).
+`git add`, `git rm`, `git mv` and `git commit` are the only git write commands it runs (Git section of `~/.claude/CLAUDE.md`).
 No `git commit` block is written outside this skill: the `Stop` hook `commit-gate.sh` blocks a response that contains one when code has been written since the verifier last ran.
 
 ## 0. Close out
@@ -24,6 +24,7 @@ In this order, skipping none.
    ```
 
    The script prints `STAMP_FILE` and `STAMP_VALUE`, then the `WRITES` list, which combines the write log with `git status`, because the log sees neither the writes of a session that preceded a `/clear` (the session id changes) nor those made through Bash or by hand.
+   It also records the content of every listed file under that stamp value, which the gate and the `git-write-guard.sh` hook compare against: a file whose content is unchanged since then does not count as stale.
    Shell state does not persist from one Bash call to the next: the commands of the following steps take these two values copied exactly as printed, in place of `<STAMP_FILE>` and `<STAMP_VALUE>`.
    Empty list with exit code 0: no write in the session and a clean tree, go to 0.2.
    Exit code 3, with no `STAMP_` line (`CLAUDE_CODE_SESSION_ID` empty or unusable): say so, and still run the verifier on the listed files, without a stamp; the gate will block again the next time commit blocks are delivered outside the continuation it triggered, inside which the marker it wrote when blocking makes it exit 0, and that is the intended behavior.
@@ -40,7 +41,7 @@ In this order, skipping none.
    ```
 
    Non-zero exit code: a source could not be read and the list is incomplete; leave the stamp as it is, and say so.
-   Empty output, or every printed path is a tracking file targeted by an applied finding (the gate already ignores `.claude/` and memory, but counts `_meta/notes/`, for example): rewrite the stamp (`date +%s%N >'<STAMP_FILE>'`), otherwise the gate would treat the commit blocks delivered right after these corrections as stale.
+   Empty output, or every printed path is a tracking file targeted by an applied finding (the gate already ignores `.claude/` and memory, but counts `_meta/notes/`, for example): rewrite the stamp and the recorded content together (`bash ~/.claude/skills/commit/scripts/writes.sh --restamp`), otherwise the gate would treat the commit blocks delivered right after these corrections as stale. A non-zero exit code means the stamp was not rewritten: say so.
    If at least one path falls outside that case, leave the stamp as it is and name that path to the user: the gate does not block again within the continuation it triggered (the marker it wrote when blocking), and will only block the next time commit blocks are delivered outside it, which is intended.
 
 This pass does not replace the check the session owes at every tracking write; it catches what that check let through.
@@ -104,8 +105,9 @@ Right after the blocks, in the same response, run them, one Bash call per block,
 
 - The first refused call ends the sequence: run nothing after it, and say which blocks remain.
 - A failed call ends it too, a prek hook rewriting a file included: report the output and run nothing more. The rewritten file is newer than the tracking verification, so the next attempt starts from this skill again.
-- A refusal from the `git-write-guard.sh` hook is not a failure to work around: it names the reason (a rerouted form, `--no-verify` or `--amend`, files changed since the verification). Follow what it says, never another form of the same command.
+- A refusal from the `git-write-guard.sh` hook is not a failure to work around: it names the reason (a rerouted form, `--no-verify` or `--amend`, a git write left to the user, files changed since the verification). Follow what it says, never another form of the same command.
 - A block the user must run themselves (a `git add -p`, named in section 2) is left to them: say so, and stop the sequence before it.
+- So is a block holding any command other than `git add`, `git rm`, `git mv` or `git commit`: stop the sequence before it, and say which blocks remain.
 
 ## After
 
