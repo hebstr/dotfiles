@@ -7,8 +7,8 @@ description: Use before proposing any commit, whether the user asked for one or 
 
 Conduct the conversation in the user's language, whatever the language of this text.
 
-This skill closes out the work in progress, then delivers a commit proposal based on the actual state of the repository.
-It runs no git write command: the user commits themselves (Git section of `~/.claude/CLAUDE.md`).
+This skill closes out the work in progress, delivers a commit proposal based on the actual state of the repository, then runs it, each call confirmed by the user in the permission dialog.
+`git add` and `git commit` are the only git write commands it runs (Git section of `~/.claude/CLAUDE.md`).
 No `git commit` block is written outside this skill: the `Stop` hook `commit-gate.sh` blocks a response that contains one when code has been written since the verifier last ran.
 
 ## 0. Close out
@@ -62,7 +62,7 @@ Only the user can invoke these two skills: give the command, do not invoke it.
 
 ### 0.4 Blocks
 
-Sections 1 to 3.
+Sections 1 to 4.
 
 ## 1. Read the actual state
 
@@ -98,6 +98,15 @@ Point out in one line what the diff visibly lacks, for example the CHANGELOG ent
 
 When the commit gate blocked the previous response, start by saying that the blocks already shown are stale and must not be run, then deliver the new ones.
 
+## 4. Execute
+
+Right after the blocks, in the same response, run them, one Bash call per block, in execution order, each holding exactly the text of its block: the permission dialog shows that text, and the user's answer there is the only authorization. A "yes" in conversation is not one, and no call runs a command the blocks do not show.
+
+- The first refused call ends the sequence: run nothing after it, and say which blocks remain.
+- A failed call ends it too, a prek hook rewriting a file included: report the output and run nothing more. The rewritten file is newer than the tracking verification, so the next attempt starts from this skill again.
+- A refusal from the `git-write-guard.sh` hook is not a failure to work around: it names the reason (a rerouted form, `--no-verify` or `--amend`, files changed since the verification). Follow what it says, never another form of the same command.
+- A block the user must run themselves (a `git add -p`, named in section 2) is left to them: say so, and stop the sequence before it.
+
 ## After
 
-When the user says it is done, check with `git log --oneline -<n>` and `git status --short` that the sequence produced what was proposed.
+Once the sequence has run, or when the user says they ran it, check with `git log --oneline -<n>` and `git status --short` that it produced what was proposed.

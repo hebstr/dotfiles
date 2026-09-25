@@ -31,9 +31,11 @@
       "mcp__plugin_ouroboros_ouroboros__ouroboros_session_status",
       "mcp__plugin_ouroboros_ouroboros__ouroboros_evaluate"
     ],
-    "deny": [
+    "ask": [
       "Bash(git add*)",
-      "Bash(git commit*)",
+      "Bash(git commit*)"
+    ],
+    "deny": [
       "Bash(git push*)",
       "Bash(git reset*)",
       "Bash(git checkout*)",
@@ -100,6 +102,15 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/prose-lint-pretool.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/git-write-guard.sh"
           }
         ]
       }

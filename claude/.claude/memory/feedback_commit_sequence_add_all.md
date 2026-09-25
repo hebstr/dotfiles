@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-When proposing commits for the user to run, stage with `git add .` from the repository root when the commit takes the whole working tree as `git status` shows it, and when no command earlier in the same sequence changes what git ignores (a `.gitignore` edit, a `git rm --cached`). In every other case stage explicit paths or `git add -u`. Never `git add -A`.
+When proposing commit blocks, stage with `git add .` from the repository root when the commit takes the whole working tree as `git status` shows it, and when no command earlier in the same sequence changes what git ignores (a `.gitignore` edit, a `git rm --cached`). In every other case stage explicit paths or `git add -u`. Never `git add -A`.
 
 **Why:** two constraints meet here.
 The user always stages from the repository root and asked on 2026-09-21 for `git add .` in place of a full path listing when the whole available diff goes in one commit. At the root it is equivalent to `git add -A` since git 2.0, and it never picks up an ignored file, which also removes the case of a proposal naming a gitignored path.
