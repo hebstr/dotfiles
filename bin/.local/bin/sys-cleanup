@@ -109,7 +109,6 @@ clean_trash() {
 sweep_uv_archive() {
   local archive="$1/archive-v0" entry
   [[ -d "$archive" ]] || return 0
-  # Long-lived uv processes (MCP servers) always hold the cache lock; the age floor guards extracted-not-yet-linked entries.
   while IFS= read -r -d '' entry; do
     [[ -f "${entry}/pyvenv.cfg" ]] && continue
     [[ -n "$(find "$entry" -type f -links +1 -print -quit)" ]] && continue
@@ -139,11 +138,6 @@ clean_rv() {
   }
   local before
   before=$(bytes_of "$target")
-  # rv has no native cache GC. Cached packages are hardlinked into project
-  # libraries, so a file with link count >1 is still live (deleting it frees no
-  # disk and forces a re-download). Only link-count-1 entries (orphaned versions,
-  # git clones, logs) are genuinely reclaimable; removing them never breaks a
-  # project library.
   run_or_dry find "$target" -type f -links 1 -delete
   run_or_dry find "$target" -mindepth 1 -type d -empty -delete
   local after
@@ -269,7 +263,6 @@ clean_chromium_headless() {
   before=$(bytes_of "$common")
   local dir lock pid
   for dir in "$common"/chromium-headless/scoped_dir* "$common"/claude-profile.*; do
-    # A killed run leaves SingletonLock -> "<host>-<pid>" on a dead pid; a live pid or no lock means possibly in use.
     [[ -d "$dir" && -L "${dir}/SingletonLock" ]] || continue
     lock=$(readlink "${dir}/SingletonLock")
     pid="${lock##*-}"
