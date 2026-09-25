@@ -8,10 +8,12 @@ cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // ""' 2>/dev/null) ||
 session=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null) || exit 0
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 
-[[ $cmd == *git* ]] || exit 0
+[[ ${cmd//[\"\'\\]/} == *git* ]] || exit 0
 
 confirmed='add|commit|rm|mv'
 left='push|reset|checkout|switch|restore|stash|merge|rebase|tag|cherry-pick|revert|clean|pull|am'
+gated="$confirmed|stage|$left|branch"
+mark=$'\x1f'
 
 deny() {
   printf 'git write guard: %s\n' "$@" >&2
@@ -42,7 +44,7 @@ strip_quotes() {
     case $c in
     \' | \")
       q=$c
-      out+=Q
+      out+=$mark
       ;;
     \\)
       out+=${s:i:2}
@@ -52,6 +54,7 @@ strip_quotes() {
     esac
   done
   printf '%s' "$out"
+  [[ -z $q ]]
 }
 
 declare -A alias_of=()
@@ -59,10 +62,10 @@ while read -r key value; do
   alias_of[${key#alias.}]=$value
 done < <(git -C "${cwd:-.}" config --get-regexp '^alias\.' 2>/dev/null)
 
-runner='(^|[^[:alnum:]_./-])((bash|sh|zsh|dash|ksh)[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[[:alnum:]]*c|eval|xargs)([[:space:]]|$)'
-mention="(^|[^[:alnum:]_./-])git[^[:alnum:]_-]([^;&|"$'\n'"]*[^[:alnum:]_-])?($confirmed|$left|branch)([^[:alnum:]_-]|\$)"
-if [[ $cmd =~ $runner && $cmd =~ $mention ]]; then
-  deny "this command runs a git write through a shell string (bash -c, eval, xargs), which the permission rules do not see." \
+runner='(^|[^[:alnum:]_./-])((bash|sh|zsh|dash|ksh)[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[[:alnum:]]*c|eval)([[:space:]]|$)'
+mention="(^|[^[:alnum:]_./-])git[^[:alnum:]_-]([^;&|"$'\n'"]*[^[:alnum:]_-])?($gated)([^[:alnum:]_-]|\$)"
+if [[ $cmd =~ $runner && ${cmd#*"${BASH_REMATCH[0]}"} =~ $mention ]]; then
+  deny "this command runs a git write through a shell string (bash -c, eval), which the permission rules do not see." \
     "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
 fi
 
@@ -93,11 +96,12 @@ check_commit_options() {
 }
 
 branch_writes() {
-  local tok listing=0 positional=0 skip=0
+  local tok value listing=0 positional=0 skip=0
   for tok in "$@"; do
     if ((skip)); then
+      value=$((skip == 2))
       skip=0
-      [[ $tok == -* ]] || continue
+      ((value)) || [[ $tok != -* ]] && continue
     fi
     if [[ $tok =~ ^-[arvilq]+$ ]]; then
       [[ $tok == *l* ]] && listing=1
@@ -105,7 +109,8 @@ branch_writes() {
     fi
     case $tok in
     --list) listing=1 ;;
-    --contains | --no-contains | --merged | --no-merged | --points-at | --sort | --format) skip=1 ;;
+    --contains | --no-contains | --merged | --no-merged) skip=1 ;;
+    --points-at | --sort | --format) skip=2 ;;
     --all | --remotes | --verbose | --quiet | --show-current | --ignore-case | --omit-empty | --no-color | --no-column | --no-abbrev) ;;
     --contains=* | --no-contains=* | --merged=* | --no-merged=* | --points-at=* | --sort=* | --format=* | --color | --color=* | --column | --column=* | --abbrev=*) ;;
     -*) return 0 ;;
@@ -177,7 +182,11 @@ commit_specs() {
 }
 
 commits=0
-stripped=$(strip_quotes "$cmd")
+dir=${cwd:-.}
+commit_dir=$dir
+stripped=$(strip_quotes "$cmd") ||
+  deny "this command leaves a quote open to the guard's parser (an apostrophe in a comment or a heredoc), which hides everything after it." \
+    "Drop the apostrophe, or run the git part as a command of its own."
 segments=${stripped//[;&|()\`]/$'\n'}
 while IFS= read -r segment; do
   read -ra w <<<"$segment"
@@ -188,21 +197,40 @@ while IFS= read -r segment; do
   done
   if ((i < n)) && [[ ${w[i]} == cd || ${w[i]} == pushd ]]; then
     fallback=1
+    target=${w[i + 1]-}
+    case $target in
+    '' | [~]) dir=$HOME ;;
+    *"$mark"* | *'$'* | -*) dir="" ;;
+    [~]/*) dir=$HOME/${target:2} ;;
+    [~]*) dir="" ;;
+    /*) dir=$target ;;
+    *) [[ -n $dir ]] && dir=$dir/$target ;;
+    esac
     continue
   fi
+  j=$i
+  while ((j < n)); do
+    bare=${w[j]//[\\$mark]/}
+    [[ $bare == git || $bare == */git ]] && break
+    ((j++))
+  done
+  ((j < n)) || continue
   wrapper=""
-  if ((i < n)) && [[ ${w[i]} =~ ^(env|command|builtin|exec|nohup|timeout|nice|ionice|time|stdbuf|sudo|doas|unbuffer|chronic)$ ]]; then
-    wrapper=${w[i]}
-    while ((i < n)) && [[ ${w[i]} != git && ${w[i]} != */git ]]; do
-      ((i++))
-    done
-  fi
-  ((i < n)) || continue
-  program=${w[i]}
-  [[ $program == git || $program == */git ]] || continue
+  ((j > i)) && wrapper=${w[i]}
+  i=$j
+  program=$bare
+  escaped=0
+  [[ $program != "${w[i]}" ]] && escaped=1
   ((i++))
   options=0
+  redirected=0
   while ((i < n)); do
+    if [[ ${w[i]} =~ ^[0-9]*[\<\>] ]]; then
+      redirected=1
+      [[ ${w[i]} =~ ^[0-9]*[\<\>]+$ ]] && ((i++))
+      ((i++))
+      continue
+    fi
     case ${w[i]} in
     -C | -c | --git-dir | --work-tree | --namespace | --exec-path | --super-prefix | --config-env | --attr-source)
       options=1
@@ -218,30 +246,40 @@ while IFS= read -r segment; do
   sub=${w[i]-}
   args=("${w[@]:i+1}")
   [[ -n $sub ]] || continue
-  if [[ $sub == *Q* || $sub == *'$'* ]]; then
+  if [[ $sub == *"$mark"* || $sub == *'$'* ]]; then
     deny "the git subcommand is quoted or held in a variable, which hides it from the permission rules: write it plainly."
   fi
+  [[ $sub == *\\* ]] && escaped=1
+  sub=${sub//\\/}
 
   via=""
   [[ -n $wrapper ]] && via="the wrapper $wrapper"
   [[ $program != git ]] && via="git called by path ($program)"
+  ((escaped)) && via="an escaped or quoted git or subcommand"
+  ((redirected)) && via="a redirection before the subcommand"
   ((options)) && via="git global options before the subcommand"
 
-  if [[ ! $sub =~ ^($confirmed|$left|branch)$ && -n ${alias_of[$sub]+set} ]]; then
-    expansion=${alias_of[$sub]}
+  depth=0
+  while [[ ! $sub =~ ^($gated)$ && -n ${alias_of[${sub,,}]+set} ]]; do
+    ((depth++ < 10)) ||
+      deny "the alias git $sub expands through too many aliases to be read: write the git command plainly."
+    expansion=${alias_of[${sub,,}]}
     if [[ $expansion == '!'* ]]; then
-      if [[ $expansion =~ (^|[^[:alnum:]_-])($confirmed|$left|branch)([^[:alnum:]_-]|$) ]]; then
+      if [[ $expansion =~ (^|[^[:alnum:]_-])($gated)([^[:alnum:]_-]|$) ]]; then
         deny "the alias git $sub runs a git write through a shell, which the permission dialog does not see." \
           "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
       fi
-      continue
+      continue 2
     fi
     read -ra expanded <<<"$expansion"
     via="the alias git $sub"
     sub=${expanded[0]-}
     args=("${expanded[@]:1}" "${args[@]}")
-  fi
+  done
 
+  if [[ $sub == stage ]]; then
+    deny "git stage is git add under another name, which the permission rules do not see: write it as git add."
+  fi
   if [[ $sub =~ ^($left)$ ]]; then
     leave "git $sub"
   fi
@@ -255,6 +293,10 @@ while IFS= read -r segment; do
   add | rm) staging_specs "${args[@]}" ;;
   mv) fallback=1 ;;
   commit)
+    [[ -n $dir ]] ||
+      deny "this command changes directory before the commit to a place the guard cannot resolve (a quoted path, a variable, an option, cd -)." \
+        "Write the cd target as a plain path, so that the tracking check reads the repository the commit takes place in."
+    commit_dir=$dir
     check_commit_options "${args[@]}"
     commit_specs "${args[@]}"
     commits=1
@@ -284,7 +326,7 @@ if [[ -n $top ]]; then
     ((tracked)) && [[ $code != '??' && $code != '!!' && ${code:1:1} != ' ' ]] && picked+=("$path")
   done
   for spec in "${specs[@]}"; do
-    if [[ $spec == *Q* || $spec == *'$'* || $spec == :* || $spec == *[\*\?\[]* ]]; then
+    if [[ $spec == *"$mark"* || $spec == *'$'* || $spec == :* || $spec == *[\*\?\[]* ]]; then
       fallback=1
       break
     fi
@@ -307,7 +349,7 @@ else
 fi
 
 stale_script="${BASH_SOURCE[0]%/*}/commit-stale.sh"
-root=${CLAUDE_PROJECT_DIR:-$cwd}
+root=$(git -C "$commit_dir" rev-parse --show-toplevel 2>/dev/null) || root=$commit_dir
 stale=()
 if ((fallback)); then
   mapfile -t stale < <("$BASH" "$stale_script" "$session" "$root" 2>/dev/null)

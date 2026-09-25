@@ -138,6 +138,27 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
+@test "denies a git write run through any program placed before git" {
+  for c in 'setsid git push' 'flock /tmp/l git push' 'find . -name x -exec git rm {} \;' 'fdfind -e orig -x git rm' '>/dev/null git push' '2>/dev/null git add a.sh'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+  done
+}
+
+@test "denies a git write whose program name or subcommand is escaped or redirected" {
+  for c in '\git push' 'g""it push' 'git pu\sh' 'git a\dd a.sh' 'git 2>/dev/null push' 'git 2> /dev/null add a.sh'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+  done
+}
+
+@test "passes read commands that name git after another program or carry a redirection" {
+  for c in 'command -v git' 'fdfind -e md -x wc -l' 'find . -name .git -prune' 'git 2>/dev/null status' 'rg -c git src/'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "denies an alias that expands to commit" {
   git -C "$WORK" config alias.ci commit
   run_guard 'git ci -m "fix: x"'
@@ -224,7 +245,7 @@ commit_file() {
   stamp "not-a-number"
   run_guard 'git commit -m "fix: x"'
   [ "$status" -eq 2 ]
-  [[ $output == *"could not"* ]]
+  [[ $output == *"commit-stale.sh was unreadable"* ]]
 }
 
 @test "denies a commit when the session id is unusable" {
@@ -233,6 +254,7 @@ commit_file() {
   run env -u CLAUDE_PROJECT_DIR PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
     /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$payload" "$SCRIPT"
   [ "$status" -eq 2 ]
+  [[ $output == *"session id is unusable"* ]]
 }
 
 @test "passes a commit whose staged file kept its content through a prek restore" {
@@ -314,11 +336,63 @@ commit_file() {
   [[ $output == *"$WORK/other.md"* ]]
 }
 
+@test "checks the repository a cd leads to, not the directory of the session" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  OTHER=$(realpath "$(mktemp -d)")
+  git init -q "$OTHER"
+  printf 'x\n' >"$OTHER/new.md"
+  run_guard "cd $OTHER && git add -A && git commit -m x"
+  rm -rf "$OTHER"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$OTHER/new.md"* ]]
+}
+
+@test "counts a .claude directory below the repository root as code after a cd into a subdirectory" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  mkdir -p "$WORK/claude/.claude/hooks"
+  printf 'x\n' >"$WORK/claude/.claude/hooks/h.sh"
+  run_guard "cd $WORK/claude && git add -A && git commit -m x"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/claude/.claude/hooks/h.sh"* ]]
+}
+
+@test "reads a capital Q in a cd target as a letter, not as a quote" {
+  mkdir -p "$WORK/Qsub"
+  run_guard "cd $WORK/Qsub && git commit -m x"
+  [ "$status" -eq 0 ]
+}
+
+@test "denies a commit after a cd whose target the guard cannot resolve" {
+  # shellcheck disable=SC2016
+  run_guard 'cd "$repo" && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"plain path"* ]]
+  run_guard 'cd - && git commit -m x'
+  [ "$status" -eq 2 ]
+  run_guard 'cd ~root/x && git commit -m x'
+  [ "$status" -eq 2 ]
+}
+
 @test "passes the canonical git rm and git mv" {
   run_guard 'git rm --cached a.sh'
   [ "$status" -eq 0 ]
   run_guard 'git mv a.sh b.sh'
   [ "$status" -eq 0 ]
+}
+
+@test "denies git stage, the synonym of git add, in every form" {
+  git -C "$WORK" config alias.st stage
+  run_guard 'git stage a.sh'
+  [ "$status" -eq 2 ]
+  [[ $output == *"write it as git add"* ]]
+  run_guard 'git st a.sh'
+  [ "$status" -eq 2 ]
+  run_guard "bash -c 'git stage a.sh'"
+  [ "$status" -eq 2 ]
 }
 
 @test "denies git rm behind -C and git mv behind a wrapper" {
@@ -354,12 +428,37 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
+@test "resolves aliases whatever their case and through chains" {
+  git -C "$WORK" config alias.sw switch
+  git -C "$WORK" config alias.a2 sw
+  git -C "$WORK" config alias.l1 l2
+  git -C "$WORK" config alias.l2 l1
+  run_guard 'git SW main'
+  [ "$status" -eq 2 ]
+  [[ $output == *"leave it to the user"* ]]
+  run_guard 'git a2 main'
+  [ "$status" -eq 2 ]
+  [[ $output == *"leave it to the user"* ]]
+  run_guard 'git l1'
+  [ "$status" -eq 2 ]
+  [[ $output == *"too many aliases"* ]]
+}
+
 @test "denies a quoted or variable subcommand" {
   run_guard "git 'push'"
   [ "$status" -eq 2 ]
   # shellcheck disable=SC2016
   run_guard 'git $verb origin'
   [ "$status" -eq 2 ]
+}
+
+@test "denies a command whose quotes stay open after an apostrophe in a comment or a heredoc" {
+  run_guard $'git status # don\'t\ngit -C . push'
+  [ "$status" -eq 2 ]
+  [[ $output == *"quote open"* ]]
+  run_guard $'cat > f <<\'EOF\'\ndon\'t\nEOF\ngit add a.sh && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"quote open"* ]]
 }
 
 @test "denies creating, renaming or deleting a branch" {
@@ -370,10 +469,25 @@ commit_file() {
 }
 
 @test "passes the branch listing forms" {
-  for args in '' '-a' '-vv' '-av' '--show-current' '--list "feat*"' '-l feat' '--contains HEAD' '--merged main -a' '--sort=-committerdate'; do
+  for args in '' '-a' '-vv' '-av' '--show-current' '--list "feat*"' '-l feat' '--contains HEAD' '--merged main -a' '--sort=-committerdate' '--sort -committerdate' '--points-at HEAD -a'; do
     run_guard "git branch $args"
     [ "$status" -eq 0 ]
   done
+}
+
+@test "passes read pipelines into xargs that name a gated verb outside a git call" {
+  for c in "rg -l 'git commit' claude/ | xargs wc -l" 'git branch -r | xargs -n1 basename' 'git log --grep=revert --format=%H | xargs -n1 git show --stat' "rg -n 'git push' src/ | bash -c 'cat'"; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
+@test "denies a git write that xargs runs" {
+  run_guard 'git ls-files | xargs git rm'
+  [ "$status" -eq 2 ]
+  [[ $output == *"wrapper xargs"* ]]
+  run_guard 'xargs -I{} git push {}'
+  [ "$status" -eq 2 ]
 }
 
 @test "passes a read command that pipes into xargs rm" {
