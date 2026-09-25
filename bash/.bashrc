@@ -6,6 +6,13 @@ case $- in
 *) return ;;
 esac
 
+### LINE EDITOR -------------------------------------------------------------
+
+if [ -f ~/.local/share/blesh/ble.sh ]; then
+  # shellcheck source=/dev/null
+  source -- ~/.local/share/blesh/ble.sh --attach=none
+fi
+
 ### HISTORY -----------------------------------------------------------------
 
 HISTCONTROL=ignoreboth:erasedups
@@ -98,6 +105,8 @@ fi
 
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
+export BAT_THEME=ansi
+
 ### ALIASES -----------------------------------------------------------------
 
 alias firmup='fwupdmgr refresh && fwupdmgr update'
@@ -108,6 +117,7 @@ alias grep='grep --color=auto'
 alias qp='rm -rf .quarto; quarto preview'
 alias yolo='git add . && git commit -m "."'
 alias fd=fdfind
+alias bat=batcat
 alias firefox='firefox --profile /home/julien/.mozilla/firefox/z24d9fn6.default-release'
 
 st-tp2() {
@@ -139,3 +149,5 @@ fi
 
 # shellcheck source=/dev/null
 [ -f ~/.secrets ] && source ~/.secrets
+
+[[ ! ${BLE_VERSION-} ]] || ble-attach

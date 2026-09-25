@@ -76,7 +76,7 @@ No practitioner guide covers the GNOME and Positron pairing; copying the GNOME p
 
 ## Design: how the decision lands in this repository
 
-Decided by `/design` on 2026-09-25, approved by the user the same day; not implemented yet.
+Decided by `/design` on 2026-09-25, approved by the user the same day, implemented the same day; the installs are traced in `_meta/notes/terminal-highlighting-setup.md`.
 The `bash` stow package is also stowed on `ju-TP2` (WSL), per the `stow` command of `_meta/notes/wsl-init-tuto.md`, so every addition to `bash/.bashrc` must be inert where neither ble.sh nor bat is installed.
 
 ### ble.sh updates through an inline `blesh` module of `sys-update`
@@ -135,6 +135,7 @@ The installs are traced in `_meta/notes/terminal-highlighting-setup.md` per `rul
 
 ### Open points
 
-- The weakest assumption, untested: ble.sh coexists with Positron's shell integration and emulates the three `bind 'set …'` lines of `### READLINE` without breaking the venv prompt. Only a real terminal in each program settles it.
+- The weakest assumption: ble.sh coexists with Positron's shell integration and emulates the three `bind 'set …'` lines of `### READLINE` without breaking the venv prompt. Probed on 2026-09-25 with ble.sh `0.4.0-nightly+d81fd54` in a pseudo-terminal (`script -qfec`), once as `bash -i` and once as Positron launches it (`VSCODE_INJECTION=1 bash --init-file` on `/usr/share/positron/…/shellIntegration-bash.sh`): ble.sh attaches in both with no error; the `(…)` venv prefix appears when `VIRTUAL_ENV` is set and leaves when it is unset; under the Positron path every command emits the `633;A`/`B`/`C`/`D` markers and its `633;E` command line, the first recorded command being ble.sh's own `ble/base/attach-from-PROMPT_COMMAND`. `bind -v` reports the three settings, and ble.sh's completion reads `completion-ignore-case` and `mark-symlinked-directories` (`lib/core-complete.sh`) but never `show-all-if-ambiguous`, so its own menu completion replaces that setting. A pseudo-terminal is not a real terminal: the trial in GNOME Terminal and in Positron still settles it.
+- Left open on 2026-09-25, when the session paused: bat 0.24.0-1build1 is installed and traced; the manual trial has only confirmed command-line highlighting in one terminal, from a screenshot that does not name it; the venv prefix, `completion-ignore-case`, `mark-symlinked-directories`, Positron's command decorations and bat's colors in both terminals remain to check.
 - Whether GNOME Terminal and Positron render the same colors, per "Matching colors across the two terminals" above.
 - Mapping `.qmd` to bat's Markdown syntax, untested.
