@@ -236,7 +236,7 @@ EOF
 
 # autoremove drops old kernels under /usr and /boot, outside the apt archives;
 # /usr, /var and /boot usually share one partition, which must count once.
-@test "apt FREED measures the filesystems apt writes to, each partition once" {
+@test "apt FREED sums the filesystems apt writes to, each partition once" {
   _stub_command dpkg 'exit 0'
   _stub_command apt-get 'exit 0'
   cat >"${STUBS}/df" <<EOF
@@ -244,15 +244,17 @@ EOF
 printf '%s\n' "\$*" >>"${STUBS}/df.args"
 n=\$(cat "${STUBS}/df.count" 2>/dev/null || echo 0)
 echo \$((n + 1)) >"${STUBS}/df.count"
-used=\$((10737418240 - n * 314572800))
+root=\$((10737418240 - n * 314572800))
+boot=\$((536870912 - n * 104857600))
 printf 'Filesystem Used\n'
-printf '/dev/sda1 %s\n' "\$used" "\$used" "\$used"
+printf '/dev/sda1 %s\n' "\$root" "\$root"
+printf '/dev/sda2 %s\n' "\$boot"
 EOF
   chmod +x "${STUBS}/df"
   _run apt
   [ "$status" -eq 0 ]
-  echo "$output" | grep -E '^apt +300 MiB +OK \(0 rc purged\)$'
-  [[ "$(<"${STUBS}/df.args")" == *" /usr /var /boot"* ]]
+  echo "$output" | grep -E '^apt +400 MiB +OK \(0 rc purged\)$'
+  [[ "$(<"${STUBS}/df.args")" == *"-B1 --output=source,used /usr /var /boot"* ]]
 }
 
 @test "--dry-run journal prints the journalctl vacuum command" {
@@ -606,6 +608,16 @@ _make_prek_archive_entry() {
   [[ "$output" != *"skipped"* ]]
 }
 
+@test "claude-versions orders versions numerically, not lexically" {
+  mkdir -p "${FAKE_HOME}/.local/share/claude/versions"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.99"
+  touch "${FAKE_HOME}/.local/share/claude/versions/2.1.100"
+  _run --dry-run claude-versions
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.1.99"* ]]
+  [[ "$output" != *"[dry-run] rm -rf ${FAKE_HOME}/.local/share/claude/versions/2.1.100"* ]]
+}
+
 @test "claude-versions reports OK with nothing to remove when a single version file is present" {
   mkdir -p "${FAKE_HOME}/.local/share/claude/versions"
   touch "${FAKE_HOME}/.local/share/claude/versions/2.1.235"
@@ -727,6 +739,15 @@ _make_profile() {
   [[ "$output" != *"rm -rf ${dir}"* ]]
 }
 
+@test "chromium-headless keeps a profile whose lock names no numeric pid" {
+  local dir
+  dir="$(_chromium_common)/chromium-headless/scoped_dirHostOnly"
+  _make_profile "$dir" "hostonly"
+  _run chromium-headless
+  [ "$status" -eq 0 ]
+  [ -d "$dir" ]
+}
+
 @test "chromium-headless keeps a profile that has no SingletonLock" {
   local dir
   dir="$(_chromium_common)/claude-profile.NoLock1"
@@ -823,6 +844,15 @@ _pycache_prefix() {
   [ -d "${prefix}${FAKE_HOME}/Télé chargements/x" ]
 }
 
+@test "positron-pycache removes the mirror of a gone source whose path has spaces and accents" {
+  local prefix
+  prefix="$(_pycache_prefix)"
+  mkdir -p "${prefix}${FAKE_HOME}/Vidéos perdues/x"
+  _run positron-pycache
+  [ "$status" -eq 0 ]
+  [ ! -e "${prefix}${FAKE_HOME}/Vidéos perdues" ]
+}
+
 # ─── workspace-storage ──────────────────────────────────────────────────────
 # Each workspaceStorage entry names its folder in workspace.json as a
 # percent-encoded file:// URI. An entry is reclaimable when that folder is
@@ -870,6 +900,15 @@ _make_workspace_entry() {
   local entry
   mkdir -p "${FAKE_HOME}/Téléchargements/m2 dm1"
   entry="$(_make_workspace_entry Positron ddd444 "file://${FAKE_HOME}/T%C3%A9l%C3%A9chargements/m2%20dm1")"
+  _run workspace-storage
+  [ "$status" -eq 0 ]
+  [ -d "$entry" ]
+}
+
+@test "workspace-storage keeps an entry whose URI carries a JSON escape it cannot decode" {
+  local entry
+  mkdir -p "${FAKE_HOME}/live-project"
+  entry="$(_make_workspace_entry Positron ggg777 "file://${FAKE_HOME}\\/live-project")"
   _run workspace-storage
   [ "$status" -eq 0 ]
   [ -d "$entry" ]
@@ -923,6 +962,7 @@ EOF
   _rscript_stub_current_db "$(_metadata_dir)/pkgs-3a56b2c8ed.rds"
   _run --dry-run r-cache
   [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] Rscript -e pak::cache_clean()"* ]]
   [[ "$output" == *"[dry-run] rm -f $(_metadata_dir)/pkgs-02e08e016f.rds"* ]]
   [[ "$output" == *"[dry-run] rm -f $(_metadata_dir)/pkgs-ebe31bacf2.rds"* ]]
   [[ "$output" != *"pkgs-3a56b2c8ed.rds"* ]]
@@ -979,6 +1019,23 @@ EOF
   [ -f "$(_metadata_dir)/pkgs-ebe31bacf2.rds" ]
 }
 
+@test "--dry-run r-cache prints rm for the sass cache and keeps it" {
+  mkdir -p "${FAKE_HOME}/.cache/R/sass"
+  echo css >"${FAKE_HOME}/.cache/R/sass/x"
+  _run --dry-run r-cache
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] rm -rf ${FAKE_HOME}/.cache/R/sass"* ]]
+  [ -f "${FAKE_HOME}/.cache/R/sass/x" ]
+}
+
+@test "non-dry-run r-cache removes the sass cache" {
+  mkdir -p "${FAKE_HOME}/.cache/R/sass"
+  echo css >"${FAKE_HOME}/.cache/R/sass/x"
+  _run r-cache
+  [ "$status" -eq 0 ]
+  [ ! -e "${FAKE_HOME}/.cache/R/sass" ]
+}
+
 # ─── modules with no skip path always record OK ─────────────────────────────
 
 @test "trash module records OK (no command-availability guard in dry-run)" {
@@ -1026,12 +1083,12 @@ EOF
 
 # ─── multiple modules ───────────────────────────────────────────────────────
 
-@test "multiple modules are processed in order" {
-  _run --dry-run trash r-cache
+@test "multiple modules are processed in argument order" {
+  _run --dry-run r-cache trash
   [ "$status" -eq 0 ]
   trash_pos="${output%%→ trash*}"
   rcache_pos="${output%%→ r-cache*}"
-  [ "${#trash_pos}" -lt "${#rcache_pos}" ]
+  [ "${#rcache_pos}" -lt "${#trash_pos}" ]
 }
 
 @test "no module argument selects all modules" {
@@ -1093,7 +1150,7 @@ esac
 EOF
   chmod +x "${STUBS}/sudo"
   _stub_command journalctl
-  _run r-cache journal
+  _run r-cache journal jedi
   [ "$status" -eq 0 ]
   grep -q '^-v$' "${STUBS}/sudo.log"
 }
@@ -1197,7 +1254,7 @@ EOF
 # references surface without anyone remembering to run the detector.
 
 @test "summary ends with an orphan hint when sys-orphans counts findings" {
-  _stub_command sys-orphans 'echo 3'
+  _stub_command sys-orphans "[ \"\$1\" = --count ] && echo 3"
   _run --dry-run trash
   [ "$status" -eq 0 ]
   [[ "$output" == *"TOTAL"*"3 orphans found, run sys-orphans for details"* ]]
