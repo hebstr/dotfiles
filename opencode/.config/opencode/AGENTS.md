@@ -34,7 +34,7 @@ Read a file from it when a rule below points to it, and not before.
 
 ## Hard limits
 
-- Never run a git command that writes, except `git add` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick.
+- Never run a git command that writes, except `git add`, `git rm`, `git mv` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick, revert, clean, pull, am.
   The user runs those.
 - When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
   Never `git add -A`.

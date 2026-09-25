@@ -9,7 +9,7 @@ What the setup is made of, all tracked:
 
 - `bin/.local/bin/llama-session`: brings up one inference session, starting `llama-server` on `ju-TP2` if none runs, forwarding its port to `127.0.0.1:8080`, tearing both down on exit. Defaults to `unsloth/Qwen3.5-9B-GGUF`, file `Qwen3.5-9B-UD-Q5_K_XL.gguf`, context 98304, and downloads the model with `hf` when absent.
 - `bin/.local/bin/llama-update`: installs the llama.cpp CUDA build on `ju-TP2`.
-- `opencode/.config/opencode/opencode.json`: the `ju-tp2` provider and the 9B with its `limit`, `instructions` loading each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` (found by walking up to the git root), `skills.paths` pointing at the link farm, and `permission` (`bash` on ask outside a read-and-gate allowlist, the git write verbs denied except `add` and `commit`, which ask, `external_directory` open on `~/.claude`, `skill` denying the MCP-bound and claude.ai skills and gating the user-invoked ones).
+- `opencode/.config/opencode/opencode.json`: the `ju-tp2` provider and the 9B with its `limit`, `instructions` loading each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` (found by walking up to the git root), `skills.paths` pointing at the link farm, and `permission` (`bash` on ask outside a read-and-gate allowlist, the git write verbs denied except `add`, `commit`, `rm` and `mv`, which ask, `external_directory` open on `~/.claude`, `skill` denying the MCP-bound and claude.ai skills and gating the user-invoked ones).
 - `opencode/.config/opencode/AGENTS.md`: the behavioral rules of `CLAUDE.md` that any agent can apply, including reading a project's `.claude/PLAN.md` at session start, and pointers into `~/.claude/rules/`. Its presence stops opencode from loading `~/.claude/CLAUDE.md` whole.
 - `opencode/.config/opencode/plugins/claude-hooks.ts`: refuses any `edit` or `write` resolving under `~/.claude` or `~/dotfiles/claude/.claude`, runs the Claude Code hooks `prose-lint-pretool.sh` and `format-on-edit.sh` around the others (refusing an `edit` of an existing `.md`, `.qmd` or `.Rmd` whose `oldString` is not verbatim, which the pre-hook could not replay), and strips the global profile from the system prompt when opencode runs outside a git repository, where the `instructions` walk climbs to `~/.claude`, or inside `~/dotfiles/claude`, where it finds the profile's stow source.
 - `bin/.local/bin/opencode-skills-sync`: links every skill of the enabled Claude Code plugins into `~/.local/share/opencode-claude-skills/`; `claude-plugins-update` reruns it, so `sys-update claude-plugins` keeps it current for the updates it makes itself.
@@ -106,7 +106,7 @@ cli design ooo
 ```
 
 ```output
-["*","ask","*git commit*","ask"]
+["*","ask","*git mv*","ask"]
 ```
 
 ```bash
