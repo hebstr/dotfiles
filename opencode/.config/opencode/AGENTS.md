@@ -34,11 +34,14 @@ Read a file from it when a rule below points to it, and not before.
 
 ## Hard limits
 
-- Never run a git command that writes: commit, add, push, reset, checkout of files, branch, tag, merge, rebase.
-  The user runs git.
+- Never run a git command that writes, except `git add` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick.
+  The user runs those.
 - When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
   Never `git add -A`.
   When every task of the session is done, give that block unasked, instead of asking whether to.
+- Right after showing that block, run it exactly as shown, in one shell call, starting with `git` (never `git -C`, `bash -c` or any other form).
+  The permission prompt is where the user confirms it, and their answer there is the only authorization; a "yes" in the conversation is not one.
+  If they refuse, or the call fails (a prek hook rewriting a file included), stop and report; never retry it another way.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
   Reading them is fine.
 - Never print a secret.

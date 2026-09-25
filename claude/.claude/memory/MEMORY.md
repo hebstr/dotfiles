@@ -5,7 +5,7 @@
 - [user_quarto_typst_only.md](user_quarto_typst_only.md): Quarto PDF via Typst only; user does not use LaTeX (do not suggest the `format: pdf` LaTeX path)
 
 ## Project
-- [project_opencode_agents_md_mirror.md](project_opencode_agents_md_mirror.md): opencode's global `AGENTS.md` is a hand-picked digest of CLAUDE.md's behavioral rules; after changing such a rule in CLAUDE.md, or the commit skill's format, update or propose it there in the same response
+- [project_opencode_agents_md_mirror.md](project_opencode_agents_md_mirror.md): opencode's global `AGENTS.md` is a hand-picked digest of CLAUDE.md's behavioral rules; after changing such a rule in CLAUDE.md, or the commit skill's format or execution step, update or propose it there in the same response
 - [project_ju_tp2_receiveonly.md](project_ju_tp2_receiveonly.md): On ju-TP2 (WSL) never write to `~/dotfiles` or `~/.claude`: Syncthing receive-only there, ju-TP is the single writer
 - [project_ubuntu_26_04_migration.md](project_ubuntu_26_04_migration.md): Ubuntu 26.04 migration deferred to December 2026 at the earliest; trigger is `Supported: 1` in Canonical's meta-release; research in `_meta/notes/ubuntu-26-04-migration-reco.md`, do not redo it
 - [project_zotero_agent_access.md](project_zotero_agent_access.md): Agent read access to Zotero 10: a `zotero` skill with curl on the local API and rg on `.zotero-ft-cache`, no MCP server (Zoteus rejected); decision in `_meta/notes/zotero-agent-access-reco.md`

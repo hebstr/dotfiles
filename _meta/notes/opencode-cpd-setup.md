@@ -345,7 +345,7 @@ Résultats attendus :
 
 - Cinq chemins sous `/home/edjulien/dotfiles/`, puis `/home/edjulien/.local/bin/prose-lint`.
 - `{"model":"cpd/qwen3.8-27b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"providers":["cpd","ju-tp2"]}` : le modèle de `/etc/opencode` l'emporte sur celui du `opencode.json` suivi, et le provider `ju-tp2` reste déclaré sans rien joindre.
-- `["*","ask","*>*","ask"]` : le shell demande confirmation hors de la liste de lecture et du gate.
+- `["*","ask","*git commit*","ask"]` : le shell demande confirmation hors de la liste de lecture et du gate, et la dernière règle garde `git commit` sur confirmation (depuis le 2026-09-25, `.claude/DESIGN-OPENCODE-HARNESS.md`, « Git writes: `add` and `commit` ask, the other verbs are denied, 2026-09-25 »).
 - `design zotero` : les skills de `~/.claude/skills` sont trouvées. La sortie de `debug skill` passe par un fichier, car elle est tronquée dans un pipe.
 - Le chemin de `@opencode-ai/plugin` : opencode a installé au premier lancement la dépendance du plugin de hooks, depuis le registre npm. Si ce répertoire manque, le plugin n'est pas chargé : le relever.
 

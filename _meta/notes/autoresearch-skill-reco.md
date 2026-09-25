@@ -34,6 +34,8 @@ Chaque commande bouclante impose en préconditions explicites « git repo exists
 
 Le `settings.json` de la machine refuse `Bash(git add*)`, `Bash(git commit*)`, `Bash(git reset*)`, `Bash(git checkout*)`, `Bash(git stash*)` et `Bash(git restore*)`, et le CLAUDE.md global pose que l'utilisateur gère seul toutes les opérations git. Les règles `deny` sont dures : la boucle s'arrête à la première itération, phase commit.
 
+Depuis le 2026-09-25, `Bash(git add*)` et `Bash(git commit*)` passent de `deny` à `ask` : ces deux commandes ne tournent que par la skill `commit`, avec une confirmation de l'utilisateur à chaque appel (`.claude/PLAN-SESSION-DISCIPLINE.md`, « Any agent runs `git add` and `git commit` at closure, each call confirmed in its native permission dialog »). Une boucle qui committe sans surveillance reste donc arrêtée à chaque itération, et le verdict tient.
+
 Sans commit, le rollback disparaît aussi, et `git log` cesse d'être une mémoire. Il ne reste que « fais une modification, mesure, garde ou défais à la main », soit le squelette privé de son moteur.
 
 Lever la garde aurait une conséquence directe et durable : des dizaines de commits `experiment: ...` dans l'historique de `R-hebstr` ou `R-edstr`, historique tenu à la main.
