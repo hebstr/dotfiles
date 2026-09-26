@@ -14,15 +14,16 @@ default='b1dcc9dd-5262-4d8d-a863-c897e6d979b9'
 list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9']
 
 [legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
-background-color='#282828'
+background-color='#212121'
 cell-height-scale=1.2
 cursor-shape='ibeam'
 custom-command=''
 default-size-columns=120
 default-size-rows=30
 font='Fira Code 9'
-foreground-color='#FFF'
+foreground-color='#CDD3DE'
 login-shell=true
+palette=['#424242', '#FF5370', '#C3E88D', '#FFCB6B', '#78CCF0', '#C792EA', '#80CBC4', '#CDD3DE', '#888888', '#FF7869', '#C5FF93', '#FFEB95', '#90E1FF', '#D08AFF', '#A2FFF6', '#FFFFFF']
 use-custom-command=false
 use-system-font=false
 use-theme-colors=false

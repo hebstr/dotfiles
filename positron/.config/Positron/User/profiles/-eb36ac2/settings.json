@@ -41,6 +41,28 @@
   "terminal.integrated.stickyScroll.enabled": false,
   "terminal.integrated.environmentChangesRelaunch": true,
   "terminal.integrated.gpuAcceleration": "off",
+  "terminal.integrated.minimumContrastRatio": 1,
+
+  "workbench.colorCustomizations": {
+    "terminal.background": "#212121",
+    "terminal.foreground": "#CDD3DE",
+    "terminal.ansiBlack": "#424242",
+    "terminal.ansiRed": "#FF5370",
+    "terminal.ansiGreen": "#C3E88D",
+    "terminal.ansiYellow": "#FFCB6B",
+    "terminal.ansiBlue": "#78CCF0",
+    "terminal.ansiMagenta": "#C792EA",
+    "terminal.ansiCyan": "#80CBC4",
+    "terminal.ansiWhite": "#CDD3DE",
+    "terminal.ansiBrightBlack": "#888888",
+    "terminal.ansiBrightRed": "#FF7869",
+    "terminal.ansiBrightGreen": "#C5FF93",
+    "terminal.ansiBrightYellow": "#FFEB95",
+    "terminal.ansiBrightBlue": "#90E1FF",
+    "terminal.ansiBrightMagenta": "#D08AFF",
+    "terminal.ansiBrightCyan": "#A2FFF6",
+    "terminal.ansiBrightWhite": "#FFFFFF",
+  },
 
   // GESTION DES FICHIERS --------------------------------------------------------
 
@@ -53,6 +75,7 @@
     "**/SKILL.md": "markdown",
     ".stignore": "ignore",
     "**/dotfiles/bin/.local/bin/*": "shellscript",
+    "**/.*rc": "shellscript",
     "*.bats": "shellscript",
   },
 

@@ -1,0 +1,56 @@
+# shellcheck shell=bash
+### FILENAMES ---------------------------------------------------------------
+
+__blerc_ls_colors() {
+  bleopt filename_ls_colors="$LS_COLORS"
+}
+blehook ATTACH!=__blerc_ls_colors
+
+### SYNTAX ------------------------------------------------------------------
+
+ble-face -s syntax_default none
+ble-face -s syntax_command fg=#90e1ff
+ble-face -s syntax_function_name fg=#90e1ff,bold
+ble-face -s syntax_quoted fg=#c5ff93
+ble-face -s syntax_quotation fg=#c5ff93,bold
+ble-face -s syntax_document fg=#c5ff93
+ble-face -s syntax_document_begin fg=#c5ff93,bold
+ble-face -s syntax_comment fg=#888888
+ble-face -s syntax_varname fg=#ffffff
+ble-face -s syntax_param_expansion fg=#ffffff
+ble-face -s syntax_delimiter fg=#a2fff6
+ble-face -s syntax_brace fg=#a2fff6
+ble-face -s syntax_tilde fg=#a2fff6
+ble-face -s syntax_expr fg=#ff7869
+ble-face -s syntax_escape fg=#F77669
+ble-face -s syntax_glob fg=#80CBC4
+ble-face -s syntax_error fg=#ff5370,bold
+
+### COMMANDS ----------------------------------------------------------------
+
+ble-face -s command_builtin fg=#90e1ff
+ble-face -s command_builtin_dot fg=#90e1ff,bold
+ble-face -s command_alias fg=#90e1ff
+ble-face -s command_function fg=#90e1ff
+ble-face -s command_file fg=#90e1ff
+ble-face -s command_directory fg=#78ccf0,underline
+ble-face -s command_keyword fg=#d08aff
+ble-face -s command_jobs fg=#ff5370,bold
+
+### ARGUMENTS AND VARIABLES -------------------------------------------------
+
+ble-face -s argument_option fg=#ffbc6a
+ble-face -s varname_array fg=#ffffff
+ble-face -s varname_expr fg=#ffffff
+ble-face -s varname_export fg=#ffffff,bold
+ble-face -s varname_hash fg=#ffffff
+ble-face -s varname_new fg=#ffffff
+ble-face -s varname_number fg=#ffffff
+ble-face -s varname_readonly fg=#ffffff
+ble-face -s varname_transform fg=#ffffff
+ble-face -s varname_empty fg=#888888
+ble-face -s varname_unset fg=#888888
+
+### COMPLETION --------------------------------------------------------------
+
+ble-face -s auto_complete fg=#888888

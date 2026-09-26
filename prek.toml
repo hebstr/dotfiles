@@ -4,7 +4,7 @@ hooks = [
   { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
   { id = "bats-tests", name = "check bats tests", entry = "bash -c 'j=(); command -v parallel >/dev/null && j=(--jobs \"$(nproc)\"); exec bats \"${j[@]}\" _meta/tests/'", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/|claude/\.claude/skills/[^/]+/scripts/|git/\.config/git/|opencode/\.config/opencode/plugins/)' },
   { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^agents/|\.bats$' },
-  { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["text"], files = '^bash/\.(profile|bash_logout)$' },
+  { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["text"], files = '^bash/\.(profile|bash_logout|blerc)$' },
   { id = "prose-lint", name = "prose lint (.md/.qmd)", entry = "bin/.local/bin/prose-lint", language = "system", files = '\.(md|qmd)$', exclude = '^(_meta/profiles|agents)/' },
   { id = "panache-format", name = "panache format (.md/.qmd)", entry = "panache format", language = "system", files = '\.(md|qmd)$', exclude = '^(agents/|_meta/profiles/|_meta/notes/|claude/\.claude/(CLAUDE\.md|rules/|memory/|skills/))' },
   { id = "perl-syntax", name = "perl syntax check", entry = "bash -c 'rc=0; for f; do perl -c \"$f\" || rc=1; done; exit $rc' perl-syntax", language = "system", types = ["perl"] },
@@ -40,7 +40,7 @@ repo = "https://github.com/shellcheck-py/shellcheck-py"
 rev = "v0.11.0.1-1"
 hooks = [
   { id = "shellcheck", exclude = '^agents/' },
-  { id = "shellcheck", types = ["text"], files = '^bash/\.(profile|bash_logout)$' },
+  { id = "shellcheck", types = ["text"], files = '^bash/\.(profile|bash_logout|blerc)$' },
 ]
 
 [[repos]]
@@ -48,5 +48,5 @@ repo = "https://github.com/scop/pre-commit-shfmt"
 rev = "v3.13.1-1"
 hooks = [
   { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^agents/' },
-  { id = "shfmt", args = ["-w", "-i", "2"], types = ["text"], files = '^bash/\.(profile|bash_logout)$' },
+  { id = "shfmt", args = ["-w", "-i", "2"], types = ["text"], files = '^bash/\.(profile|bash_logout|blerc)$' },
 ]

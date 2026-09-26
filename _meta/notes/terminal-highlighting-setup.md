@@ -39,3 +39,35 @@ Install: bat:amd64 (0.24.0-1build1)
 ~~~
 
 The executable is `batcat` on Ubuntu, reached as `bat` through the alias in `bash/.bashrc`.
+
+Link the ble.sh init file `bash/.blerc`, which carries the faces of the color scheme aligned on Positron (design in the reco note, section "Color scheme aligned on the Positron token colors"). Stowing the `bash` package is idempotent, so the step replays.
+
+```bash
+cd ~/dotfiles && stow --no-folding bash && readlink -e ~/.blerc
+```
+
+```output
+/home/julien/dotfiles/bash/.blerc
+```
+
+Apply the saved GNOME Terminal profile, which now carries the palette, background and foreground of that scheme. The restore writes a timestamped backup under `/tmp`, so it sits in a tilde fence; run on 2026-09-26:
+
+~~~bash
+gnome-config restore terminal
+~~~
+
+~~~text
+backed up terminal to /tmp/gnome-config-backup-terminal-20260926-105726.dconf
+restored terminal
+Some changes need a new terminal tab or a shell restart to show.
+~~~
+
+The replayable check is that the live profile matches the saved one.
+
+```bash
+gnome-config diff terminal && echo "no drift"
+```
+
+```output
+no drift
+```
