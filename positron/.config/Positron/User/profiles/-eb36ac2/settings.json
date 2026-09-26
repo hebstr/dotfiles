@@ -43,7 +43,6 @@
   "terminal.integrated.gpuAcceleration": "off",
 
   "workbench.colorCustomizations": {
-    "terminal.background": "#212121",
     "terminal.foreground": "#CDD3DE",
     "terminal.ansiBlack": "#424242",
     "terminal.ansiRed": "#FF5370",
@@ -70,11 +69,9 @@
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
   "files.associations": {
-    "renv.lock": "json",
-    "**/SKILL.md": "markdown",
-    ".stignore": "ignore",
+    ".*ignore": "ignore",
     "**/dotfiles/bin/.local/bin/*": "shellscript",
-    "**/.*rc": "shellscript",
+    "**/.blerc": "shellscript",
     "*.bats": "shellscript",
   },
 

@@ -78,11 +78,11 @@ fi
 # --- Colors ---
 RESET="\033[0m"
 DIM="\033[2m"
-GREEN="\033[32m"
-YELLOW="\033[33m"
-RED="\033[31m"
-BLUE="\033[94m"
-MAGENTA="\033[95m"
+GREEN="\033[38;2;13;188;121m"
+YELLOW="\033[38;2;229;229;16m"
+RED="\033[38;2;205;49;49m"
+BLUE="\033[38;2;59;142;234m"
+MAGENTA="\033[38;2;214;112;214m"
 
 # Format seconds remaining as "4h23m" or "1d21h"
 format_reset() {
