@@ -31,12 +31,6 @@
       "mcp__plugin_ouroboros_ouroboros__ouroboros_session_status",
       "mcp__plugin_ouroboros_ouroboros__ouroboros_evaluate"
     ],
-    "ask": [
-      "Bash(git add*)",
-      "Bash(git commit*)",
-      "Bash(git rm*)",
-      "Bash(git mv*)"
-    ],
     "deny": [
       "Bash(git push*)",
       "Bash(git reset*)",
@@ -79,9 +73,14 @@
       "Edit(//**/TODO.md)",
       "Edit(//**/CALENDRIER.md)"
     ],
+    "ask": [
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git rm*)",
+      "Bash(git mv*)"
+    ],
     "defaultMode": "default"
   },
-  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -288,7 +287,7 @@
       "effortLevel": "high"
     },
     "claude-opus-5-5": {
-      "effortLevel": "high"
+      "effortLevel": "xhigh"
     }
   },
   "tui": "fullscreen",
