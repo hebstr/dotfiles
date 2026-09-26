@@ -83,7 +83,7 @@ The callout title is bold except its inline code, which `code { font-weight: 400
 
 ## filetree.yml
 
-Sidecar at the project root, top-level `filetree` key, then `paths` mapping relpath to a three-to-six-word annotation, plus `root`, `depth`, `exclude`, `highlight`, `hidden`, `mode`.
+Sidecar at the project root; its top-level keys are named profiles (from commit `e153ca8` of 2026-09-26: `default` for the bare `{{< filetree >}}`, `{{< filetree name >}}` for any other; under an extension copy that carries it, a legacy `filetree:` key renders nothing and warns, naming the profiles found, while copies installed before it still read `filetree:`). Each profile holds a `paths` mapping relpath to a three-to-six-word annotation, plus `root`, `depth`, `exclude`, `highlight`, `hidden`, `mode`.
 Exclude the render artefacts (`%.html$`, `_files$`), the data, the vendored trees and the user's personal files.
 The filter warns on any `paths` key matching nothing rendered: that is the only automatic freshness guard of the whole device, and it covers the tree alone.
 
