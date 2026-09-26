@@ -140,3 +140,32 @@ The installs are traced in `_meta/notes/terminal-highlighting-setup.md` per `rul
 - Left open on 2026-09-25, when the session paused: bat 0.24.0-1build1 is installed and traced; the manual trial has only confirmed command-line highlighting in one terminal, from a screenshot that does not name it; the venv prefix, `completion-ignore-case`, `mark-symlinked-directories`, Positron's command decorations and bat's colors in both terminals remain to check. Since the walkthrough of 2026-09-26, the GNOME Terminal trial also checks how ble.sh handles the OSC 0 and OSC 7 output of `__vte_prompt_command`, which now survives in `PROMPT_COMMAND`.
 - Whether GNOME Terminal and Positron render the same colors, per "Matching colors across the two terminals" above.
 - Mapping `.qmd` to bat's Markdown syntax, untested.
+- Coloring the `sys-update` summary, proposed on 2026-09-26 and awaiting the user's go, per "Proposed: `sys-update` colors its own summary" below.
+
+## Command output coloring
+
+Raised on 2026-09-26, once the command line was highlighted: the output of commands stays uncolored, `sys-update` among them.
+
+### Output color belongs to the program that writes it
+
+ble.sh colors only the line being typed, because it knows bash's grammar. What a command prints reaches the terminal as bytes with no grammar, so neither bash, ble.sh nor the terminal can decide what to color in it: the program that writes the output emits the escape sequences itself, usually only when its stdout is a terminal (`--color=auto`).
+An R or Python console follows the same split: the console highlights the code typed, and a result comes out colored only when its print method emits colors (a tibble through pillar and cli), never because the console colors output.
+
+Probed on 2026-09-26 with ble.sh `0.4.0-nightly+d81fd54` in a pseudo-terminal (`script -qfec 'bash -i'`, `TERM=xterm-256color`), the aliases of `bash/.bashrc` work under ble.sh: `ls` emits the `LS_COLORS` sequences, `grep` highlights its match, `bat` colors under `ansi`, `cat` prints plain text by design ("bat is used through an alias and the `ansi` theme").
+The same probe shows a bat 0.24.0 quirk: `bat -p --paging=never` brings back the header and line numbers that `-p` removes, while `-p` alone, `--style=plain --paging=never` and `-P -p` stay plain.
+
+### Generic colorizers are per-command patterns, not a default
+
+- `grc` (apt, 1.13.1, not installed) wraps a known command (`grc df`, `grc ping`) and colors its output from regular expressions written for that command; it covers only the commands it ships a configuration for.
+- `ccze` (apt, 0.2.1, not installed) applies the same idea to log formats.
+- Regex highlighting rules in the terminal emulator itself are absent from GNOME Terminal (stated from memory, not checked).
+
+None gives syntax coloring of arbitrary output, and none knows `sys-update` without rules written for it.
+
+### Proposed: `sys-update` colors its own summary
+
+Not implemented as of 2026-09-26.
+`sys-update` emits no color today: the `→ <module>` header and the table printed by `print_summary` from the lines `record` builds are plain `printf`.
+The proposal mirrors `todo-sync`, whose colors are gated on `[ -t 1 ]` and an empty `NO_COLOR`: the module header in bold, and the STATUS column green for `OK`, red for a failure, grey for `skipped (…)`.
+Redirected output stays byte-identical, so `_meta/tests/sys-update.bats`, which runs without a terminal, sees no change.
+`grc` stays out unless the raw output of `df`, `ps`, `ping` or `mount` becomes a frequent read, which is not the `sys-update` case.
