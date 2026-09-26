@@ -73,6 +73,7 @@
     "**/dotfiles/bin/.local/bin/*": "shellscript",
     "**/.blerc": "shellscript",
     "*.bats": "shellscript",
+    "renv.lock": "json"
   },
 
   // EXCLUSIONS DE FICHIERS ------------------------------------------------------
