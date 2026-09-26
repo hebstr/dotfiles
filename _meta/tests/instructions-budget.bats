@@ -22,7 +22,7 @@ teardown() {
 @test "passes when CLAUDE.md alone fits the budget" {
   run "$SCRIPT" --budget 1024 --root "$WORK"
   [ "$status" -eq 0 ]
-  [[ $output == *'memory index: 15 bytes, not counted'* ]]
+  [[ $output == *'memory index: 15 bytes, 1 lines, not counted'* ]]
 }
 
 @test "fails above the budget and names the totals" {
@@ -69,14 +69,33 @@ teardown() {
 }
 
 @test "does not count the memory index" {
-  head -c 50000 /dev/zero | tr '\0' 'd' >>"$BASE/memory/MEMORY.md"
+  head -c 20000 /dev/zero | tr '\0' 'd' >>"$BASE/memory/MEMORY.md"
   run "$SCRIPT" --budget 1024 --root "$WORK"
   [ "$status" -eq 0 ]
+}
+
+@test "fails when the memory index exceeds the harness byte limit" {
+  head -c 30000 /dev/zero | tr '\0' 'd' >>"$BASE/memory/MEMORY.md"
+  run "$SCRIPT" --budget 1024 --root "$WORK"
+  [ "$status" -eq 1 ]
+  [[ $output == *'memory index over the harness limit of 25000 bytes or 200 lines'* ]]
+}
+
+@test "fails above the index line limit and passes at it" {
+  printf -- '- a.md: x\n- b.md: y\n' >>"$BASE/memory/MEMORY.md"
+  run "$SCRIPT" --budget 1024 --index-lines 3 --root "$WORK"
+  [ "$status" -eq 0 ]
+  printf -- '- c.md: z\n' >>"$BASE/memory/MEMORY.md"
+  run "$SCRIPT" --budget 1024 --index-lines 3 --root "$WORK"
+  [ "$status" -eq 1 ]
+  [[ $output == *'memory index: '*' bytes, 4 lines'* ]]
 }
 
 @test "rejects a missing or malformed budget" {
   run "$SCRIPT" --root "$WORK"
   [ "$status" -eq 2 ]
   run "$SCRIPT" --budget ten --root "$WORK"
+  [ "$status" -eq 2 ]
+  run "$SCRIPT" --budget 1024 --index-bytes many --root "$WORK"
   [ "$status" -eq 2 ]
 }

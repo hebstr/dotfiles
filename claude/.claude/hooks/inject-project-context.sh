@@ -61,12 +61,7 @@ if [ "${source:-startup}" != compact ]; then
   fi
 fi
 
-if [ -f "$HOME/.claude/memory/MEMORY.md" ]; then
-  echo "=== Global memory index (~/.claude/memory/) — read a file's body on demand when its description is relevant ==="
-  cat "$HOME/.claude/memory/MEMORY.md"
-fi
-
-if [ -f .claude/memory/MEMORY.md ]; then
+if [ -f .claude/memory/MEMORY.md ] && [ "$(readlink -f .claude/memory/MEMORY.md)" != "$(readlink -f "$HOME/.claude/memory/MEMORY.md")" ]; then
   echo "=== Project memory index (.claude/memory/) — read a file's body on demand when relevant ==="
   cat .claude/memory/MEMORY.md
 fi

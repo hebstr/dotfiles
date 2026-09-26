@@ -291,6 +291,7 @@
     }
   },
   "tui": "fullscreen",
-  "autoDreamEnabled": true,
+  "autoDreamEnabled": false,
+  "autoMemoryDirectory": "~/.claude/memory",
   "showThinkingSummaries": true
 }

@@ -9,7 +9,7 @@ setup() {
   export WORK RUNTIME PROJECT
 
   mkdir -p "$RUNTIME" "$PROJECT" "$WORK/.claude/memory"
-  printf '# Memory Index\n- [a.md](a.md): entry\n' >"$WORK/.claude/memory/MEMORY.md"
+  printf '# Memory Index\n- a.md: global entry\n' >"$WORK/.claude/memory/MEMORY.md"
 }
 
 teardown() {
@@ -79,16 +79,43 @@ run_hook() {
   [[ $output == *'root copy masks the other'* ]]
 }
 
-@test "prints the pointer before the memory index" {
-  mkdir -p "$PROJECT/.claude"
+@test "prints the pointer before the project memory index" {
+  mkdir -p "$PROJECT/.claude/memory"
   : >"$PROJECT/.claude/PLAN.md"
+  printf -- '- b.md: project entry\n' >"$PROJECT/.claude/memory/MEMORY.md"
   run_hook '{"session_id": "s1", "source": "startup"}'
-  [[ $output == *'This project has'*'Global memory index'* ]]
+  [[ $output == *'This project has'*'Project memory index'* ]]
 }
 
-@test "still prints the memory index whatever the payload" {
+@test "never prints the global memory index" {
+  run_hook '{"session_id": "s1", "source": "startup"}'
+  [ "$status" -eq 0 ]
+  [[ $output != *'global entry'* ]]
+  [[ $output != *'memory index'* ]]
+}
+
+@test "prints a project memory index whatever the payload" {
+  mkdir -p "$PROJECT/.claude/memory"
+  printf -- '- b.md: project entry\n' >"$PROJECT/.claude/memory/MEMORY.md"
   run_hook 'not json'
   [ "$status" -eq 0 ]
-  [[ $output == *'Global memory index'* ]]
-  [[ $output == *'[a.md](a.md)'* ]]
+  [[ $output == *'Project memory index'*'- b.md: project entry'* ]]
+}
+
+@test "skips a project index that resolves to the global store" {
+  mkdir -p "$PROJECT/.claude"
+  ln -s "$WORK/.claude/memory" "$PROJECT/.claude/memory"
+  run_hook '{"session_id": "s1", "source": "startup"}'
+  [[ $output != *'memory index'* ]]
+  [[ $output != *'global entry'* ]]
+}
+
+@test "skips the store itself when the global path links to the project" {
+  rm -r "$WORK/.claude/memory"
+  mkdir -p "$PROJECT/.claude/memory"
+  printf -- '- a.md: global entry\n' >"$PROJECT/.claude/memory/MEMORY.md"
+  ln -s "$PROJECT/.claude/memory" "$WORK/.claude/memory"
+  run_hook '{"session_id": "s1", "source": "startup"}'
+  [[ $output != *'memory index'* ]]
+  [[ $output != *'global entry'* ]]
 }

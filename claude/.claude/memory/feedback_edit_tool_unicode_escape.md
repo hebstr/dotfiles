@@ -1,6 +1,6 @@
 ---
 name: Tool parameters decode four-hex-digit \uXXXX escapes into literal characters
-description: A `\u` escape with four hex digits written in any tool parameter (Edit, Write, Bash) lands as the decoded character; in R write the braced form `\u{a0}` instead and check bytes with `rg -c $'\xc2\xa0'`
+description: A `\u` escape with four hex digits written in any tool parameter (Edit, Write, Bash) lands as the decoded character; in R write the braced form `\u{a0}` instead, in Python `\N{NO-BREAK SPACE}`, and check bytes with `rg -c $'\xc2\xa0'`
 metadata:
   type: feedback
 ---
@@ -11,4 +11,4 @@ Measured on the same test: the braced form `\u{a0}`, the `\x` escapes and a doub
 
 **Why:** the decoded character looks identical in an editor and in `git diff`, and it silently reintroduced the very defect the walkthrough had just fixed (an invisible non-breaking space in source). `air` and `jarl` pass either way and the R string value is the same, so only a byte check catches it.
 
-**How to apply:** in R source, write a non-ASCII escape in braced form (`\u{a0}`) through Edit/Write; no shell substitution is needed, so the Edit/Write rule in CLAUDE.md holds unchanged. After the edit, confirm no raw character landed with `rg -c $'\xc2\xa0' <file>` (zero hits expected). Only R has been verified: Python has no `\u{...}` syntax (`\N{NO-BREAK SPACE}` is its named alternative, untested through the tools), so test the spelling in the scratchpad before relying on it in another language.
+**How to apply:** in R source, write a non-ASCII escape in braced form (`\u{a0}`) through Edit/Write; no shell substitution is needed, so the Edit/Write rule in CLAUDE.md holds unchanged. After the edit, confirm no raw character landed with `rg -c $'\xc2\xa0' <file>` (zero hits expected). Python has no `\u{...}` syntax; its named form `\N{NO-BREAK SPACE}` landed verbatim through Edit on 2026-09-27, in `_meta/instructions-ab/grade.py`, where the four-hex-digit form had just landed as the raw character (and again the same day in a markdown note quoting it: the decoding does not care about the file type). Test the spelling in the scratchpad before relying on it in another language.

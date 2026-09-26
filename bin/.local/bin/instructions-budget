@@ -3,12 +3,14 @@ set -euo pipefail
 export LC_ALL=C.UTF-8
 
 usage() {
-  printf 'usage: %s --budget BYTES [--cap CHARS] [--root DIR]\n' "${0##*/}" >&2
+  printf 'usage: %s --budget BYTES [--cap CHARS] [--index-bytes BYTES] [--index-lines LINES] [--root DIR]\n' "${0##*/}" >&2
   exit 2
 }
 
 budget=""
 cap=9000
+index_max_bytes=25000
+index_max_lines=200
 root=.
 while (($# > 0)); do
   case $1 in
@@ -20,6 +22,14 @@ while (($# > 0)); do
     cap=${2:-}
     shift 2 || usage
     ;;
+  --index-bytes)
+    index_max_bytes=${2:-}
+    shift 2 || usage
+    ;;
+  --index-lines)
+    index_max_lines=${2:-}
+    shift 2 || usage
+    ;;
   --root)
     root=${2:-}
     shift 2 || usage
@@ -27,7 +37,9 @@ while (($# > 0)); do
   *) usage ;;
   esac
 done
-[[ $budget =~ ^[0-9]+$ && $cap =~ ^[0-9]+$ ]] || usage
+for n in "$budget" "$cap" "$index_max_bytes" "$index_max_lines"; do
+  [[ $n =~ ^[0-9]+$ ]] || usage
+done
 
 base=$root/claude/.claude
 claude_md=$base/CLAUDE.md
@@ -80,7 +92,14 @@ if [[ -f $hook ]]; then
 fi
 
 if [[ -f $index ]]; then
-  printf 'memory index: %s bytes, not counted in the budget\n' "$(wc -c <"$index")"
+  index_bytes=$(wc -c <"$index")
+  index_lines=$(wc -l <"$index")
+  printf 'memory index: %s bytes, %s lines, not counted in the budget\n' "$index_bytes" "$index_lines"
+  if ((index_bytes > index_max_bytes || index_lines > index_max_lines)); then
+    printf 'memory index over the harness limit of %s bytes or %s lines: the harness cuts the index there when it loads it. Prune it (merge or drop entries, shorten descriptions) before committing.\n' \
+      "$index_max_bytes" "$index_max_lines"
+    status=1
+  fi
 fi
 
 exit "$status"
