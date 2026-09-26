@@ -1,5 +1,5 @@
 # shellcheck shell=sh disable=SC1091
-### PATH -------------------------------------------------------------------
+### PATH --------------------------------------------------------------------
 if [ -d "$HOME/bin" ]; then
   case ":$PATH:" in
   *":$HOME/bin:"*) ;;
@@ -22,7 +22,7 @@ if [ -d "$HOME/.local/bin" ]; then
 fi
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
-### INTERACTIVE BASH -------------------------------------------------------
+### INTERACTIVE BASH --------------------------------------------------------
 if [ "$BASH_VERSION" != "" ]; then
   if [ -f "$HOME/.bashrc" ]; then
     . "$HOME/.bashrc"
