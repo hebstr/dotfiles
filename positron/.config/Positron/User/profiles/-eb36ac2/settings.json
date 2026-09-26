@@ -41,7 +41,6 @@
   "terminal.integrated.stickyScroll.enabled": false,
   "terminal.integrated.environmentChangesRelaunch": true,
   "terminal.integrated.gpuAcceleration": "off",
-  "terminal.integrated.minimumContrastRatio": 1,
 
   "workbench.colorCustomizations": {
     "terminal.background": "#212121",

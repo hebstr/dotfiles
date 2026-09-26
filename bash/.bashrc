@@ -101,6 +101,7 @@ if [ -x /usr/bin/dircolors ]; then
   else
     eval "$(dircolors -b)"
   fi
+  LS_COLORS+=":su=30;41:ow=30;42:st=30;44"
 fi
 
 ### PAGER -------------------------------------------------------------------
