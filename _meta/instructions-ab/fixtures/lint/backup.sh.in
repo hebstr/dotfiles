@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+src=$1
+dest=$2
+stamp=$(date +%Y%m%d)
+mkdir -p $dest
+tar -czf $dest/backup-$stamp.tar.gz -C $(dirname $src) $(basename $src)
+echo "archive written to $dest/backup-$stamp.tar.gz"

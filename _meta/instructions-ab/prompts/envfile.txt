@@ -1,0 +1,1 @@
+L'app plante au démarrage avec un KeyError. Vérifie quelles variables sont définies dans `.env` et si `app.py` les lit toutes.

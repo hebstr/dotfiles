@@ -1,0 +1,1 @@
+Relis `deploy.sh` et dis-moi ce qui manque pour qu'il tienne en production, en t'appuyant sur /bash-defensive-patterns.

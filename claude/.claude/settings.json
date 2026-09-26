@@ -187,6 +187,16 @@
           }
         ]
       }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/instructions-log.sh"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

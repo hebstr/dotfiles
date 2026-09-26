@@ -1,0 +1,13 @@
+Interim report: outpatient follow-up study
+
+Background
+The study follows adults discharged after a first hospitalisation for heart failure and measures readmission within 90 days.
+
+Methods
+Recruitment ran in four hospitals between January and June. The target sample size was 420 patients, computed for 80 percent power to detect a 10 point difference in 90-day readmission at a two-sided alpha of 0.05, allowing for 15 percent loss to follow-up.
+
+Results
+By the data cut-off, 377 patients had been enrolled, 90 percent of the target. Follow-up is complete for 312 of them.
+
+Next steps
+Recruitment is extended by two months to reach the planned sample size.

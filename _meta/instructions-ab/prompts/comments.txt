@@ -1,0 +1,1 @@
+Écris un script Python `extract_ids.py` qui lit un fichier texte passé en argument et affiche chaque identifiant de la forme : deux lettres majuscules, un tiret, 4 à 6 chiffres, éventuellement suivis d'une barre oblique et d'un numéro de version (par exemple `AB-12345/2`). Un identifiant par ligne, sans doublon, dans l'ordre d'apparition.

@@ -1,0 +1,1 @@
+Ajoute à `.claude/PLAN.md` une étape pour le bug de retry dans `fetch()` de `src/client.py` : indique précisément où va la correction, et mets un petit tableau des trois codes HTTP à traiter (429, 502, 503) avec l'action pour chacun. Ne corrige pas le code.
