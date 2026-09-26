@@ -34,6 +34,7 @@ done
 root=${INSTRUCTIONS_AB_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/instructions-ab}
 out=$root/$arm
 model=${INSTRUCTIONS_AB_MODEL:-claude-opus-5-5}
+effort=${INSTRUCTIONS_AB_EFFORT:-high}
 jobs=${INSTRUCTIONS_AB_JOBS:-3}
 budget=${INSTRUCTIONS_AB_BUDGET:-2}
 mkdir -p "$out"
@@ -55,6 +56,7 @@ fi
   printf 'arm\t%s\n' "$arm"
   printf 'date\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf 'model\t%s\n' "$model"
+  printf 'effort\t%s\n' "$effort"
   printf 'claude\t%s\n' "$(claude --version)"
   printf 'dotfiles_head\t%s\n' "$(git -C "$HOME/dotfiles" rev-parse --short HEAD)"
   printf 'dotfiles_dirty_paths\t%s\n' "$(git -C "$HOME/dotfiles" status --porcelain | wc -l)"
@@ -86,7 +88,7 @@ one() {
   local start end
   start=$(date +%s)
   (cd "$dir/project" && claude -p "$(cat "$here/prompts/$scenario.txt")" \
-    --model "$model" --permission-mode bypassPermissions \
+    --model "$model" --effort "$effort" --permission-mode bypassPermissions \
     --output-format stream-json --verbose --no-session-persistence \
     --max-budget-usd "$budget") >"$dir/stream.part" 2>"$dir/stderr.txt" || true
   end=$(date +%s)
@@ -95,7 +97,7 @@ one() {
   printf '%s %s %s: done in %ss\n' "$arm" "$scenario" "$rep" "$((end - start))"
 }
 export -f one
-export out here model budget arm pdf_cache
+export out here model effort budget arm pdf_cache
 
 # shellcheck disable=SC2016
 for s in "${scenarios[@]}"; do
