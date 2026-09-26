@@ -40,7 +40,7 @@ The vendored relative-path setup is the one that works for the author, CI, and a
 
 ## Mandatory pipeline after every create/edit of a `.lua`
 
-Run the gate when the edit meets the non-trivial threshold in `CLAUDE.md` (new file, new function, logic change beyond ~10 lines or adding a branch); skip for one-line typo fixes.
+Run the gate when the edit meets the non-trivial threshold in `rules/code.md` (new file, new function, logic change beyond ~10 lines or adding a branch); skip for one-line typo fixes.
 
 ```sh
 stylua <file>.lua                                        # format in place

@@ -1,4 +1,8 @@
-# Environment reference
+# Environment reference (archived 2026-09-26)
+
+Verbatim copy of `claude/.claude/rules/environment.md` as it stood when it was split and deleted on 2026-09-26 (`.claude/DESIGN-INSTRUCTION-ROUTING.md`, "Where each block goes").
+Superseded: this text is a record, not a rule, and its versions and counts are those of their dates.
+What stayed live moved to `rules/install.md` (`sys-update`, one tool one binary, stow), `rules/chromium.md` (headless browser), and the runtime pitfalls of `rules/shell.md`, `rules/python.md`, `rules/quarto.md` and `rules/r.md`; a version or the presence of a tool is read from the machine (`command -v`, `--version`).
 
 On-demand reference for the machine's installed toolchain. Load when a runtime version or tool-availability check is decision-relevant.
 

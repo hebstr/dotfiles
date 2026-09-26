@@ -1,6 +1,11 @@
+---
+paths:
+  - "**/*.pdf"
+---
+
 # PDF reading
 
-On-demand reference for reading PDFs. Load before the first PDF read of a session, and whenever the choice of extraction path is decision-relevant.
+On-demand reference for reading PDFs.
 
 ## Toolchain
 
@@ -34,7 +39,7 @@ The Rust binaries stay current through `sys-update cargo` (`cargo install-update
 
    Neither half suffices alone. A deck exported through Chrome reports `Skia/PDF` and one printed from PowerPoint reports `Microsoft: Print To PDF`, so the producer test alone misses both; portrait PowerPoint decks exist, so the orientation test alone misses those. On the 154-file `~/Documents` corpus the union flags 55 documents: mostly decks, the rest landscape figures, posters and forms. Bias toward flagging: a wrongly flagged document only loses reading-order reflow, while a missed deck gets its data scrambled into a table that looks authoritative.
 5. Pages whose `ocr_reasons_by_page` entry reads `scanned`, or any need to see a figure: native `Read` restricted to that page range. The two other reasons, `suspected_garbled_text` and `vector_text`, leave a text layer in place, so extract the page with `pdftotext` first and render only when what comes back is unusable or visibly incomplete.
-6. Any value, label or header taken from a table: read it with `pdftotext -layout -f N -l N` on the table's own pages, never from a `pdf2md` pipe table. Render those pages when the table carries exponents or special glyphs (`≤`, `±`), a header spanning several levels, or sits on a rotated page: `pdftoppm -r 110 -png -f N -l N`, 220 dpi for a dense grid, then the native `Read` tool on the PNG; the image wins over `-layout`. Locate the pages by the caption, with `$file` holding the path and `$n` the table number (`3`, `IV`); the command prints candidate pages, the caption's page among them, and a caption set below a multi-page table names only its last page, so walk back from it on the rendered pages. Neither `pages_with_tables` nor the `<!-- Page N -->` markers of `pdf2md --pages` locate a table, and a pipe table in `pdf2md` output is no evidence that the page holds one.
+6. Any value, label or header taken from a table: read it with `pdftotext -layout -f N -l N` on the table's own pages, never from a `pdf2md` pipe table. Render those pages when the table carries exponents or special glyphs (`≤`, `±`), a header spanning several levels, or sits on a rotated page: `pdftoppm -r 110 -png -f N -l N`, 220 dpi for a dense grid, then the native `Read` tool on the PNG, kept in `<project>/.claude/screenshots/` (`rules/chromium.md`); the image wins over `-layout`. Locate the pages by the caption, with `$file` holding the path and `$n` the table number (`3`, `IV`); the command prints candidate pages, the caption's page among them, and a caption set below a multi-page table names only its last page, so walk back from it on the rendered pages. Neither `pages_with_tables` nor the `<!-- Page N -->` markers of `pdf2md --pages` locate a table, and a pipe table in `pdf2md` output is no evidence that the page holds one.
 
    ```
    pdftotext "$file" - | awk -v RS='\f' -v n="$n" '$0 ~ "(^|\n)[ \t]*(Table|TABLE|Tableau|TABLEAU)[ .]+" n "([^0-9IVX]|$)" {printf "%d ", NR}'

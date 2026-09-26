@@ -58,6 +58,8 @@ If a memory file was written: does the index `~/.claude/memory/MEMORY.md` have a
 
 Where the session inserted text into a tracking file, reread the passages around the insertion: a relative reference ("that day", "the same day", "above", "below", "the previous section", "both") may now point to what was inserted rather than to what it named before.
 
+When `WRITES` holds `claude/.claude/CLAUDE.md`, the file grew against `HEAD` (`git diff --numstat HEAD -- claude/.claude/CLAUDE.md`), and `WRITES` also holds a path under `claude/.claude/hooks/`, `claude/.claude/skills/` or `claude/.claude/rules/`, or the `hooks` key of `claude/.claude/settings.json` changed (`git diff HEAD -- claude/.claude/settings.json`), each passage added to `CLAUDE.md` that describes, names or restates one of those mechanisms is a finding: quote the passage, name the mechanism, and propose moving the text into that mechanism's own message (the hook's reason or injected text, the skill, the rules file). A mechanism carries its own instruction; the root does not describe it.
+
 ### 4. Drift between a note and the code
 
 When a design note describes how a file written in the session works, compare the description with the file as it is now: function name, option, path, behavior.

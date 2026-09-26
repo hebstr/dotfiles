@@ -8,7 +8,7 @@ description: Use before proposing any commit, whether the user asked for one or 
 Conduct the conversation in the user's language, whatever the language of this text.
 
 This skill closes out the work in progress, delivers a commit proposal based on the actual state of the repository, then runs it, each call confirmed by the user in the permission dialog.
-`git add`, `git rm`, `git mv` and `git commit` are the only git write commands it runs (Git section of `~/.claude/CLAUDE.md`).
+`git add`, `git rm`, `git mv` and `git commit` are the only git write commands it runs (the `ask` rules of `settings.json` and the `git-write-guard.sh` hook enforce it).
 No `git commit` block is written outside this skill: the `Stop` hook `commit-gate.sh` blocks a response that contains one when code has been written since the verifier last ran.
 
 ## 0. Close out
@@ -83,7 +83,7 @@ One commit per independent topic. Whatever cannot stand on its own goes in the s
 
 Two topics that share a file cannot be split by path: propose a single commit, or name the file that needs `git add -p`.
 Name each untracked file, with your advice on whether to include it; if you advise leaving even one out, do not use `git add .` for the commit that would sweep it in.
-A file whose name falls within the scope of "Secret files handling" in `CLAUDE.md` stays out of every staging command you propose: report it. The list is kept up to date there; copying it here would make the two diverge at the next edit of either.
+A file whose name falls within the scope of `~/.claude/rules/secrets.md` (section "Scope") stays out of every staging command you propose: report it. The list is kept up to date there; copying it here would make the two diverge at the next edit of either.
 Report content that is already staged, since it will be included in the first commit.
 
 ## 3. Deliver

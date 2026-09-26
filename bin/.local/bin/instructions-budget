@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export LC_ALL=C.UTF-8
+
+usage() {
+  printf 'usage: %s --budget BYTES [--cap CHARS] [--root DIR]\n' "${0##*/}" >&2
+  exit 2
+}
+
+budget=""
+cap=9000
+root=.
+while (($# > 0)); do
+  case $1 in
+  --budget)
+    budget=${2:-}
+    shift 2 || usage
+    ;;
+  --cap)
+    cap=${2:-}
+    shift 2 || usage
+    ;;
+  --root)
+    root=${2:-}
+    shift 2 || usage
+    ;;
+  *) usage ;;
+  esac
+done
+[[ $budget =~ ^[0-9]+$ && $cap =~ ^[0-9]+$ ]] || usage
+
+base=$root/claude/.claude
+claude_md=$base/CLAUDE.md
+hook=$base/hooks/inject-rules.sh
+index=$base/memory/MEMORY.md
+[[ -f $claude_md ]] || {
+  printf 'instructions-budget: %s not found\n' "$claude_md" >&2
+  exit 2
+}
+
+has_paths() {
+  awk 'NR == 1 { if ($0 != "---") exit; next } /^---$/ { closed = 1; exit } /^paths:/ { found = 1 } END { exit (closed && found) ? 0 : 1 }' "$1"
+}
+
+claude_bytes=$(wc -c <"$claude_md")
+total=$claude_bytes
+unscoped=()
+for f in "$base"/rules/*.md; do
+  [[ -f $f ]] || continue
+  has_paths "$f" && continue
+  bytes=$(wc -c <"$f")
+  total=$((total + bytes))
+  unscoped+=("${f##*/} $bytes")
+done
+
+status=0
+if ((total > budget)); then
+  if ((${#unscoped[@]} > 0)); then
+    detail=$(printf '%s, ' "${unscoped[@]}")
+    detail=${detail%, }
+  else
+    detail=none
+  fi
+  printf 'always-loaded instructions: %s bytes, budget %s (CLAUDE.md %s, unscoped rules: %s). Route the addition by the test in .claude/DESIGN-INSTRUCTION-ROUTING.md, or name what it displaces; raising the budget is a recorded decision, not a fix.\n' \
+    "$total" "$budget" "$claude_bytes" "$detail"
+  status=1
+fi
+
+if [[ -f $hook ]]; then
+  mapfile -t injected < <(rg -o --no-filename 'want [a-z][a-z -]*' "$hook" | sed 's/^want //' | tr ' ' '\n' | rg -v '^$' | sort -u)
+  for name in "${injected[@]}"; do
+    f=$base/rules/$name.md
+    [[ -f $f ]] || continue
+    chars=$(wc -m <"$f")
+    if ((chars > cap)); then
+      printf 'injected rules file %s: %s characters, cap %s. Hook output above 10,000 characters reaches the model as a 2 KB preview: move detail to a note.\n' "rules/$name.md" "$chars" "$cap"
+      status=1
+    fi
+  done
+fi
+
+if [[ -f $index ]]; then
+  printf 'memory index: %s bytes, not counted in the budget\n' "$(wc -c <"$index")"
+fi
+
+exit "$status"

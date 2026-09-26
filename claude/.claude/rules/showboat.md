@@ -1,6 +1,11 @@
+---
+paths:
+  - "**/.claude/rules/showboat.md"
+---
+
 # showboat trace documents
 
-On-demand reference for using showboat to record reproducible traces. Load when bootstrapping tools, installing packages, or making persistent env/system changes (see trigger in CLAUDE.md).
+On-demand reference for using showboat to record reproducible traces, injected by `inject-rules.sh` with `install.md` on an install, `stow` or `systemctl` command. It applies to installing packages (`apt`, `uv tool install`, `pip install` outside a project venv), bootstrapping tools (`stow`, `claude plugin install`, MCP registration), persistent environment changes (shell rc edits, systemd units) and system upgrades; not to source-code edits, tests, ad-hoc analysis or narrative documentation.
 
 ## Qualities of a good trace
 

@@ -70,7 +70,7 @@ Write the note in English.
 
 The note holds the decision first, then the reason, the rejected approaches each with what disqualified it, and the open points marked as open, none decided by default.
 Section headings make a claim rather than label a topic.
-Cite code and prose by name, never by line number, per the "Cite by name" rule of the global `CLAUDE.md`.
+Cite code and prose by name, never by line number, per the "Cite by name" rule of `rules/claude-files.md`.
 Use absolute dates.
 
 ## Stop

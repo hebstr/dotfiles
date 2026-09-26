@@ -7,7 +7,7 @@ metadata:
 
 The user has four separate update routines, three for tools and one for the interpreter the uv tools run on. Match the routine to how the thing is installed; never add a tool to the wrong one.
 
-The per-routine inventories, the `GGSQL_SKIP_GENERATE=1` the `cargo` module needs (run `cargo install-update -a` by hand the same way, never bare), and why `uv-python` is a module apart from `uv-tools` are in `~/dotfiles/claude/.claude/rules/environment.md` § "Keeping the toolchain current". What that section does not say:
+The per-routine inventories, the `GGSQL_SKIP_GENERATE=1` the `cargo` module needs (run `cargo install-update -a` by hand the same way, never bare), and why `uv-python` is a module apart from `uv-tools` are in `~/dotfiles/claude/.claude/rules/install.md` § "One entry point: `sys-update`" and § "Covered is not current", the fuller record in `~/dotfiles/_meta/notes/environment-archive.md` § "Keeping the toolchain current". What that section does not say:
 
 - **`devtools-update`** handles cargo-dist binaries only, via each repo's `<tool>-installer.sh` on GitHub `releases/latest`, installed system-wide to `/usr/local/bin`. Eligibility is mechanical: the repo must publish `<tool>-installer.sh`, and adding a tool that has none produces a 404 URL.
 - **`cargo install-update`** updates every crate registered in `~/.cargo/.crates.toml`, which is what `cargo install` writes; a binary dropped into `~/.cargo/bin` by any other means carries no entry and is invisible to it (none left since `arf` was removed on 2026-09-25).
@@ -15,7 +15,7 @@ The per-routine inventories, the `GGSQL_SKIP_GENERATE=1` the `cargo` module need
 
 Decision rule when a new tool appears, in order. Is it `uv tool install`-ed (present in `uv tool list`, binary in `~/.local/bin`)? → `uv tool upgrade --all`, add nothing. Otherwise, for a Rust tool: does its repo ship `<tool>-installer.sh`? Yes and you want it system-wide → `devtools-update`. No, or it is `cargo install`-ed into `~/.cargo/bin` → it is already covered by `cargo install-update`, add nothing.
 
-An editor extension bundling its own copy of one of these binaries: see `rules/environment.md` § "One tool, one binary".
+An editor extension bundling its own copy of one of these binaries: see `rules/install.md` § "One tool, one binary".
 
 Worked examples (2026-06-09):
 - **typstyle**: cargo-installed, no cargo-dist installer → belongs to `cargo install-update`, NOT devtools-update. (I initially proposed adding it to devtools-update; that was wrong.)

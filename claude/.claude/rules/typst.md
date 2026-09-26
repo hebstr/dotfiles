@@ -25,9 +25,9 @@ The gate below therefore has no report-only lint step, unlike `rules/r.md` / `ru
 
 ## Mandatory pipeline after every create/edit of a `.typ`
 
-Run the gate when the edit meets the non-trivial threshold in `CLAUDE.md` (new file, new top-level `#let` function, logic change beyond ~10 lines or adding a branch); skip for one-line typo fixes.
+Run the gate when the edit meets the non-trivial threshold in `rules/code.md` (new file, new top-level `#let` function, logic change beyond ~10 lines or adding a branch); skip for one-line typo fixes.
 
-Fixer-first ordering, matching the shared principle in `CLAUDE.md`:
+Fixer-first ordering, matching the shared principle in `rules/code.md`:
 
 ```sh
 typstyle -l 100 -i <file>.typ        # format in place

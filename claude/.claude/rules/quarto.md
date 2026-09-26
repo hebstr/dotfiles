@@ -33,9 +33,11 @@ An em dash and an en dash in prose are rewritten to `---` and `--`. Pandoc's `sm
 
 Everything else probed survives untouched: YAML front matter, `{=typst}` raw blocks, `{{< >}}` shortcodes, callouts, definition lists, line blocks, footnotes, inline math, links, and images with attributes. Inline `$$...$$` is promoted to a three-line block, which is cosmetic.
 
-Fenced content is otherwise inert, including a fence nested inside a list item, so a table or an equation written inside ``` survives any reformat. That is the convention for Claude-facing markdown under `.claude/`, stated as a rule in `CLAUDE.md`, where nothing renders the file and the semantic loss costs nothing. Never apply it to a rendered document, where it would forfeit the real table.
+Fenced content is otherwise inert, including a fence nested inside a list item, so a table or an equation written inside ``` survives any reformat. That is the convention for Claude-facing markdown under `.claude/`, stated as a rule in `rules/claude-files.md`, where nothing renders the file and the semantic loss costs nothing. Never apply it to a rendered document, where it would forfeit the real table.
 
 The convention and the hook's `.claude/` skip are not redundant, they cover different callers. The skip stops panache on Claude's own edits; the editor's format-on-save reaches the same file through the LSP, which no skip and no global exclude can gate, and there the fence is what survives. Neither covers the other's gap either: a tab inside a fence is still rewritten, and prose cannot be fenced at all, so an em dash in a `.claude/` note is protected by the skip alone.
+
+Quarto runs its own bundled pandoc, on a version of its own, never `/usr/bin/pandoc`: for anything that runs inside a Quarto render, query `quarto pandoc --version`.
 
 ## Mandatory pipeline after every create/edit
 

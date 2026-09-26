@@ -27,6 +27,12 @@ This code exists for a data science/biostatistics purpose. When editing it for i
 - LLM inference parameters (temperature, top_p, seed): do not change without documented justification (breaks reproducibility of existing results)
 - Calculated approximations (e.g. age from date diff / 365.25): flag but do not auto-correct, often intentional for consistency with institutional conventions
 
+## Interpreters on this machine
+
+- Two uv-managed interpreters: 3.14 is uv's default and runs every uv tool, while most project venvs are pinned to 3.13 by their `.python-version`. Read the project's own pin rather than assuming either, and expect a new project to land on 3.14. Standalone PEP 723 scripts declare `requires-python = ">=3.14"`.
+- `python3.13` and `python3.14` sit in `~/.local/bin`, and there is no bare `python` on the PATH: address an interpreter by its versioned name or through `uv run`.
+- The system `python3` is Ubuntu's 3.12 and carries no usable Jupyter stack (`~/dotfiles/_meta/notes/jupyter-vestiges-cleanup.md`).
+
 ## CLI tools
 
 | Tool | Role |

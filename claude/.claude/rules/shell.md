@@ -25,6 +25,9 @@ Orthogonal roles:
 - **shellharden** automatically fixes quoting (based on shellcheck rules)
 - **shfmt** formats (cosmetic only, no semantic correction)
 
+On this machine `/bin/sh` is dash, POSIX only: a `#!/bin/sh` script gets no bash idiom.
+Ubuntu 24.04 freezes the apt `shellcheck` and `shfmt` behind the versions the prek hooks pin, so the commit gate runs newer tools than the terminal: read a hook failure on a file the local CLI passes as that gap before suspecting the file.
+
 ## Mandatory pipeline after every create/edit
 
 After writing or editing any shell script, run the full pipeline in one shot before marking the task done. Order matters: shellharden fixes quoting, shfmt formats, shellcheck validates.

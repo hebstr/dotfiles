@@ -102,7 +102,7 @@ Wiring in the Positron profile `settings.json`:
 | `sqlfluff.dialect` | unset | A global dialect would mask the exit 2 that separates an unconfigured project from one violating its own rules |
 ```
 
-The extension bundles no SQLFluff of its own, so it sits outside the "one tool, one binary" table in `rules/environment.md`; the `executablePath` pin buys determinism, not conflict resolution.
+The extension bundles no SQLFluff of its own, so it sits outside the "one tool, one binary" table in `rules/install.md`; the `executablePath` pin buys determinism, not conflict resolution.
 
 Editing a `.sql` in a project with no config therefore raises a visible config error in the editor, where the `format-on-edit` hook stays silent instead. Both behaviours point at the same fix: add the project config.
 

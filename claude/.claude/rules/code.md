@@ -19,8 +19,29 @@ paths:
 
 # Writing code
 
-On-demand reference, loaded when a code file is touched: what to check before writing a helper, and when tests come first.
-Moved out of `CLAUDE.md` on 2026-09-22, where it loaded in every session whether code was written or not.
+On-demand reference, loaded when Claude reads a code file (a `Write` of a new file loads nothing, which is why `CLAUDE.md` keeps the bare "no comments" and "run the gate" rules): comments, the scope of a change, the lint gate, what to check before writing a helper, and when tests come first.
+
+## Comments and code text
+
+- No comments in code, with no exception for a regex, a workaround or an invariant. What stays is only what is not a comment to a reader: section headers, API documentation (roxygen, docstrings), and lines a tool reads (shebang, `# shellcheck`, `# noqa`, `#|` chunk options, a PEP 723 block).
+- A WHY a reader would need goes into the tracking note that covers the code (the project's `.claude/` design note, its `_meta/notes/` entry, `PLAN.md`), written in the timeless present; when no note covers it, say so and propose one rather than falling back on a comment.
+- Before reporting a code edit done, grep the lines just written for the language's comment marker and move every hit outside that list to the note.
+- Code text (names, roxygen and docstrings, section headers) is in English.
+- No cosmetic whitespace padding for alignment, such as aligning inline comments with extra spaces, unless asked.
+
+## Scope of a change
+
+Only modify code directly related to the task. Directly related includes the cascading edits correctness requires (call sites of a renamed function, imports of a moved module, types after a signature change) and the consistency updates a structural change requires (counts, doc tables, configs, tests). It excludes surrounding cleanup, style fixes and unrelated refactors found in passing: flag those separately when they matter.
+
+## The lint, format and test gate
+
+- After writing or modifying code, run the project's gate before reporting the task done, never waiting to be asked. Each language's sequence is in its `rules/*.md` and is authoritative. The shared order: auto-fixers, then the formatter, then the validating linter, then the type checker where there is one, tests last.
+- It runs on any non-trivial edit: a new file, a new public or exported function, a new or substantively changed script under `bin/`, a logic change of more than about 10 lines or one that adds or removes a conditional branch. It is skipped for one-line typo fixes, pure renames of private or local symbols, comment-only edits and prose typo fixes.
+- A hard failure is a non-zero exit with no file mutation, or the validating linter still reporting after the fixers ran; a fixer that mutates a file and exits non-zero is expected churn. On a hard failure, fix and re-run from the top at most once, then surface the residual violations.
+- A missing tool (`command -v` fails) is skipped and named, the rest running in sequence. When the missing tool is the final validating linter (shell's `shellcheck`, Python's confirming `ruff check`), the gate cannot pass: report the task as unvalidated, not done. A tool that runs but validates nothing counts as missing: a bare `pyrefly check` on a file no pyrefly config governs reports `0 errors` under the fallback `basic` preset, and `rules/python.md` carries the invocation that avoids it.
+- The auto-fixers and formatters rewrite tracked files in place: that mutation is part of the gate, not a git operation. Opt-in logic-rewriting fixers outside the default gate (`cargo clippy --fix`) are excluded. If a rewrite produces an unwanted diff, surface it and let the user revert it.
+- If the user pushes back ("skip the gate", "I'll lint myself"), comply and say that the discipline is bypassed at their request.
+- Markdown and Quarto prose has no gate of this kind: the `prose-lint-pretool.sh` hook checks the dash rules on `.md` and `.qmd` edits, and `/workflow:write` is the deeper polish.
 
 ## Before writing a helper
 

@@ -1,6 +1,35 @@
+---
+paths:
+  - "**/.env"
+  - "**/.env.*"
+  - "**/.envrc"
+  - "**/.secrets"
+  - "**/.pgpass"
+  - "**/.netrc"
+  - "**/credentials*"
+  - "**/*.pem"
+  - "**/*.key"
+  - "**/*.pfx"
+  - "**/id_rsa*"
+  - "**/id_ed25519*"
+  - "**/*secret*"
+  - "**/*secret*/**"
+  - "**/*password*"
+  - "**/*passwd*"
+  - "**/*apikey*"
+  - "**/*api_key*"
+---
+
 # Secret files handling
 
-On-demand reference for handling files containing credentials. Load when a file path matches the scope patterns declared in CLAUDE.md or the user flags a file as containing a secret. CLAUDE.md's dotfiles allowlist and the `*.example`/`*.template`/`*.sample` exemptions decide whether a matching file is in scope at all; the rules below apply only once a file is confirmed to hold, or plausibly holds, a credential.
+Injected by `inject-rules.sh`, which asks the user to confirm every access to a path matching the patterns below.
+
+## Scope
+
+- **Patterns.** `~/.secrets`, `.env*`, `credentials*`, `.pgpass`, `.netrc`, `*.pem`, `*.key`, `*.pfx`, `id_rsa*`, `id_ed25519*`; any file whose basename or a path segment contains `secret`, `password`, `passwd`, `apikey` or `api_key`; any file that is not source code whose basename contains `token` (in source code `token` names a unit of text far more often than a credential); any file the user flags as holding a secret.
+- **Out of scope on its own**: a `*.example`, `*.template` or `*.sample` variant, wherever it sits, unless context shows a real credential.
+- **Dotfiles allowlist.** A file under `~/dotfiles/**` matching a pattern is out of scope when its path, name or surrounding context establishes it holds no credential; never read the file to decide. Key and certificate material (`id_ed25519*`, `id_rsa*`, `*.pem`, `*.key`, `*.pfx`) is never exempted, even there.
+- When path and context cannot settle it, treat the file as a secret and ask before reading. The rules below apply once a file holds, or plausibly holds, a credential.
 
 ## Why
 

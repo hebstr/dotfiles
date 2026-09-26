@@ -69,7 +69,7 @@ Read a file from it when a rule below points to it, and not before.
 
 - To fix a bug in a project that already has tests, first write a test that reproduces it, then fix it.
 
-- Before installing a package or changing the system (apt, uv tool, stow, shell rc, systemd), read `~/.claude/rules/showboat.md`.
+- Before installing a package or changing the system (apt, uv tool, stow, shell rc, systemd), read `~/.claude/rules/showboat.md` and `~/.claude/rules/install.md`.
 
 ## Code
 
@@ -98,6 +98,7 @@ Read a file from it when a rule below points to it, and not before.
 | .sql | ~/.claude/rules/sql.md |
 | reading a PDF | ~/.claude/rules/pdf.md |
 | checking a .docx | ~/.claude/rules/docx.md |
+| a .claude/ note, CLAUDE.md, AGENTS.md | ~/.claude/rules/claude-files.md |
 ```
 
 Each language rule file gives the lint, format and test commands for that language.
@@ -111,11 +112,12 @@ After editing a `.md` or `.qmd` meant for readers, run `prose-lint <file>`.
 - `~/dotfiles` holds stow packages.
   Many files under `$HOME` are symlinks into it: run `readlink -e <path>` and edit the resolved file, never the symlink.
 - Create links with `stow`, never `ln -s`.
-  See `~/.claude/CLAUDE.md`, section "Dotfiles & symlinks".
+  See `~/.claude/rules/install.md`, section "Dotfiles and stow".
 
 ## Where to look for more
 
-- Installed tools and versions: `~/.claude/rules/environment.md`.
+- Installed tools and versions: ask the machine, `command -v <tool>` and `<tool> --version`.
+- Installing or updating a tool: `~/.claude/rules/install.md` (`sys-update`, stow).
 - Past decisions and user preferences: the index `~/.claude/memory/MEMORY.md`, then the one memory file whose description matches.
 - Anything not covered here: `~/.claude/CLAUDE.md`.
   It is written for Claude Code, so ignore what names tools you do not have (Skill, Agent, AskUserQuestion, hooks, plugins).

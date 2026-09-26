@@ -102,7 +102,7 @@ Les snaps ne cassent pas la mise à niveau, même si leur fonctionnement sous 26
 - Bascule `noble` vers `resolute` dans `~/dotfiles`. Les occurrences se retrouvent par `rg -n --hidden 'noble' ~/dotfiles` (le `--hidden` est indispensable, sans quoi `claude/.claude/` est ignoré), et valaient au 2026-09-09 : `_meta/profiles/Rprofile.site` (URL PPM) et `claude/.claude/rules/environment.md` (même URL, dans la section Package management).
 - Juste après la mise à niveau, avant tout pipeline : `sudo apt install coreutils-from-gnu`.
 - Recréer les venvs Python adossés au `python3` système (3.12 vers 3.14). Les projets `uv` avec leur propre 3.13 ne sont pas concernés.
-- Mettre à jour `rules/environment.md` pour les versions réelles constatées après coup (GCC, glibc, Python système, noyau).
+- Mettre à jour les pièges qui nomment la distribution ou le Python système : la section « Interpreters on this machine » de `rules/python.md` (Python système 3.12), la phrase sur `shellcheck` et `shfmt` gelés par apt dans `rules/shell.md`, l'URL `noble` de `rules/r.md`. Aucun inventaire de versions n'est plus tenu depuis la suppression de `rules/environment.md` le 2026-09-26.
 
 Option de dé-risquage : `do-release-upgrade -d` dans une VM ou un conteneur clonant les dépôts tiers, pour obtenir la liste réelle des paquets retirés sans toucher au poste.
 
