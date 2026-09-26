@@ -1,0 +1,1 @@
+Dans `format.R`, `fmt_pct()` met une espace ordinaire avant le signe %, et le rapport coupe parfois la ligne entre le nombre et le %. Remplace-la par une espace insécable.

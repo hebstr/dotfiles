@@ -1,0 +1,1 @@
+`read_visits()` dans `load.R` charge tout le fichier parquet alors que l'analyse n'utilise que `patient_id` et `visit_date`. Fais-lui lire seulement ces deux colonnes.

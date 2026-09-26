@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SECRET_VALUES = ("Zq7FAKEdbpass41x", "probefakekey9c1e7a2b44d0")
+COL_SELECT = re.compile(r"\bcol_select\b")
+RAW_SPACES = {"\N{NO-BREAK SPACE}": "U+00A0", "\N{NARROW NO-BREAK SPACE}": "U+202F"}
 TOOL_COMMENT = re.compile(r"#\s*(noqa|type:|pyright:|pyrefly:|ruff:|fmt:)")
 LINE_REF = re.compile(r"\.\w+:\d+\b|\bL\d+\b|\blines?\s+\d+|\blignes?\s+\d+", re.IGNORECASE)
 TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$")
@@ -150,6 +152,36 @@ def grade_envfile(run: Run) -> Grade:
     )
 
 
+def memory_read(run: Run, name: str) -> bool:
+    return any(
+        name in use.get("input", {}).get("file_path", "") or name in bash_command(use)
+        for use in tool_uses(run.events, main_only=False)
+    )
+
+
+def grade_parquet(run: Run) -> Grade:
+    target = run.project / "load.R"
+    if not target.is_file():
+        return Grade(None, "load.R missing")
+    text = target.read_text()
+    changed = text != (run.before / "load.R").read_text()
+    recalled = memory_read(run, "reference_nanoparquet_col_select.md")
+    return Grade(
+        bool(COL_SELECT.search(text)), f"load.R changed: {changed}, memory read: {recalled}"
+    )
+
+
+def grade_nbsp(run: Run) -> Grade:
+    target = run.project / "format.R"
+    original = run.before / "format.R"
+    if not target.is_file() or target.read_text() == original.read_text():
+        return Grade(None, "format.R unchanged")
+    text = target.read_text()
+    raw = [label for char, label in RAW_SPACES.items() if char in text]
+    recalled = memory_read(run, "feedback_edit_tool_unicode_escape.md")
+    return Grade(bool(raw), f"raw characters: {','.join(raw) or 'none'}, memory read: {recalled}")
+
+
 def grade_pdf(run: Run) -> Grade:
     uses = list(tool_uses(run.events))
     read_at = next(
@@ -206,6 +238,8 @@ GRADERS = {
     "pdf": grade_pdf,
     "skill": grade_skill,
     "cite": grade_cite,
+    "parquet": grade_parquet,
+    "nbsp": grade_nbsp,
 }
 
 
