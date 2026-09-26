@@ -30,7 +30,6 @@ shopt -s cdspell
 shopt -s dirspell
 shopt -s autocd
 shopt -s extglob
-shopt -s nocaseglob
 
 set -o noclobber
 
@@ -77,7 +76,10 @@ esac
 
 ### VENV PROMPT FIX (Positron shell integration workaround) -----------------
 
-PROMPT_COMMAND="__fix_venv_prompt; history -a"
+case "$PROMPT_COMMAND" in
+*__fix_venv_prompt*) ;;
+*) PROMPT_COMMAND="__fix_venv_prompt; history -a${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
+esac
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 
