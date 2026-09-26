@@ -33,6 +33,7 @@ In this order, skipping none.
    A fresh context is the whole point of this step: give it no summary of the session and no opinion on what is up to date.
 3. Apply its findings with Edit, one at a time, after checking each one: a finding the check disproves is dropped, and named as dropped.
    A finding that calls for a change to code rather than to tracking is not yours to apply: report it to the user.
+   Then relay every entry the report leaves under `Out of scope` to the user, one line each, with what is done about it: settled and applied now, recorded as open in the tracking file it concerns, left to the user and why, or nothing and why. No entry is dropped unsaid.
 4. Check that the stamp was written (`cat '<STAMP_FILE>'` equals `<STAMP_VALUE>`). If it was not, write it yourself with the same value, and say so.
    If step 3 applied at least one finding, list the paths the gate would now count, computed by the very script the gate calls, against the stamp just checked:
 
@@ -49,6 +50,7 @@ This pass does not replace the check the session owes at every tracking write; i
 ### 0.2 Continue or close
 
 A recommendation on what to do next, in one sentence with its reason in one line, or an explicit statement that nothing remains to pursue and the session can be closed.
+That statement is allowed only when every `Out of scope` entry relayed in 0.1.3 received an answer; an entry left without one is something that remains to pursue.
 When a tracking file (a PLAN, a workstream note) names the next step, base the recommendation on it.
 
 ### 0.3 Review

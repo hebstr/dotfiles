@@ -54,7 +54,9 @@ For each tracking file in `WRITES` (under `REPO/.claude/`, memory, a `PLAN.md`, 
 - states ("uncommitted", "not yet tracked", "N commits"): `git status --short`, `git rev-list --count`;
 - step status: does the artifact the step claims exist, and does it do what is claimed (does a cited test pass, does a cited file exist)?
 
-If a memory file was written: does the index `~/.claude/memory/MEMORY.md` have a line for every `.md` in the directory, and no line pointing to a missing file?
+If a memory file was written: does the index `~/.claude/memory/MEMORY.md` have a line for every `.md` in the directory, and no line pointing to a missing file? Does the index line of each memory file written in the session still describe that file's current content, including what the session added to it?
+
+Where the session inserted text into a tracking file, reread the passages around the insertion: a relative reference ("that day", "the same day", "above", "below", "the previous section", "both") may now point to what was inserted rather than to what it named before.
 
 ### 4. Drift between a note and the code
 
@@ -98,16 +100,18 @@ Evidence that only shows activity on the object is not enough. A commit that tou
 For a review, the evidence is an `audit:walkthrough` or `audit:blindspot` invocation of the same type whose target points to the same file (same basename, whatever the form of the path or glob).
 
 An item that evidence shows as carried out is a finding. Cite the evidence (the commit's hash and subject, the invocation line with its date, or the command that establishes the artifact) and propose marking the item as done, with the date, in the passage itself.
-Do not make it a finding when the item is already marked done with a date, when it explicitly asks for a new pass after a change later than the evidence found, or when the evidence covers only part of what the item lists (then name what remains, under `Out of scope`).
+Do not make it a finding when the item is already marked done with a date, when it explicitly asks for a new pass after a change later than the evidence found, or when the evidence covers only part of what the item lists (then name what remains, under `Findings` when the passage sits in a file of `WRITES`, under `Out of scope` otherwise).
 Absence of evidence proves nothing: transcripts are kept for only `cleanupPeriodDays` days, and an action may have left neither a commit nor an artifact. So never flag an item for lack of evidence.
 
 ## What you report
 
 A report in English, in this order:
 
-1. `Findings`: one entry per problem, with the tracking file concerned, the false claim or the missing record, the evidence (command and output), and the proposed fix in one sentence. Most serious first: a false claim before a missing record, a missing record before a vague statement.
+1. `Findings`: one entry per problem, with the tracking file concerned, the false claim or the missing record, the evidence (command and output), and the proposed fix in one sentence. Most serious first: a false claim before a missing record, a missing record before a vague or narrower statement.
 2. `Greps`: all six, each with its result or "not applicable".
-3. `Out of scope`: what you saw but could not settle, one line each.
+3. `Out of scope`: only what lies outside `WRITES`, or what you genuinely could not settle, one line each.
+
+A defect you settle in a file of `WRITES`, or one that a write of the session introduced, is a `Findings` entry, however minor: a statement that is "not false, just narrower" than the file it describes, a stale index line, a reference re-anchored by an insertion. Never file it under `Out of scope` because it looks small.
 
 If there are no findings, write `No findings.` at the top and still give the `Greps` section.
 
