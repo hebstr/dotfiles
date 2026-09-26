@@ -1,6 +1,6 @@
 ---
 name: Review calibration for .claude/rules/ files
-description: "Auditing path-scoped rule files in .claude/rules/: fifteen false-positive shapes (idioms moved back to CLAUDE.md, local boilerplate deduplicated, rules called ambiguous that the file operationalizes, house conventions as per-file defects, paths: widened to a mechanically gated format, unused binaries or unprescribed flags to document, micro-optimizing corpus-validated snippets), and re-running any transcript a finding cites"
+description: "Auditing path-scoped rule files in .claude/rules/: fourteen active false-positive shapes (idioms moved back to CLAUDE.md, local boilerplate deduplicated, rules called ambiguous that the file operationalizes, house conventions as per-file defects, paths: widened to a mechanically gated format, unused binaries or unprescribed flags to document, micro-optimizing corpus-validated snippets), and re-running any transcript a finding cites"
 metadata:
   type: feedback
 ---
@@ -11,7 +11,7 @@ When reviewing or auditing `.claude/rules/*.md` files (path-scoped rule files lo
 
 2. **Deduplicating boilerplate phrasing across rule files.** Patterns like "Mandatory pipeline after every create/edit" appear in multiple files with slight phrasing variation. This is intentional locality: each rule file is self-contained by design. A reader (Claude) sees one file at a time, not three. Normalization buys nothing.
 
-3. **Per-file version-trace headers.** Lines like `# Verified against ruff X.Y / jarl X.Y, 2026-05` rot fast and lie within a quarter. The global CLAUDE.md rule "verify against current docs before writing" already covers this concern as behavior, not annotation.
+3. **Per-file version-trace headers.** Lines like `# Verified against ruff X.Y / jarl X.Y, 2026-05` rot fast and lie within a quarter. The global CLAUDE.md rule on deprecated forms ("When unsure, verify against current docs") already covers this concern as behavior, not annotation.
 
 4. **Mixing review-calibration content into writing-rule files.** Review tolerance and severity calibration belong in `feedback_*.md` memories (e.g., `feedback_review_severity_shell_installers.md`). The `rules/*.md` files describe how to write/edit code, not how to review it. The two scopes are orthogonal; mixing them dilutes both.
 
@@ -43,4 +43,4 @@ When reviewing or auditing `.claude/rules/*.md` files (path-scoped rule files lo
 
 **Re-run any command transcript a finding cites as proof, before accepting it.** A quoted shell output asserts a fact about the live system, cheap to check and sometimes false. In the 2026-08-20 `rules/pdf.md` audit a finding reported `detect-pdf <bad-path> --analyze --json  ->  exit=0` under "Verified"; the binary exits 1 on every error path, and exit 0 appears only when piped into `jq`, the ordinary pipeline rule. A quoted transcript reads as settled, which is why unchecked evidence survives review. This fires on the presence of a transcript, whatever produced it, more narrowly than CLAUDE.md's general "subagent outputs are unverified claims".
 
-**How to apply:** in any future audit of `.claude/rules/`, skip these fifteen active categories of suggestion immediately (pattern 6 is retired). They are recurring false positives, not actionable findings. Real findings still apply: factual errors in commands/flags, content stale relative to checked-in configs, scope mismatches (e.g., IDE setup polluting per-edit rules).
+**How to apply:** in any future audit of `.claude/rules/`, skip these fourteen active categories of suggestion immediately (pattern 6 is retired, pattern 14 moot since 2026-09-26). They are recurring false positives, not actionable findings. Real findings still apply: factual errors in commands/flags, content stale relative to checked-in configs, scope mismatches (e.g., IDE setup polluting per-edit rules).

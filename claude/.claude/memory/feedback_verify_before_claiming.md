@@ -19,7 +19,7 @@ Recurring incidents (pattern: stating as fact what should have been verified fir
    - Claimed GitHub had a UI option in repository Settings to manually override the detected license. False: GitHub has no such field. One WebFetch to the official docs would have caught this.
    - Claimed `licensee` prioritized `LICENSE` over `LICENSE.md` and stopped at the first non-matching file, without verifying how `licensee` actually works. This was plausible-sounding reasoning from analogy, not from the source code or docs.
 
-The user's CLAUDE.md says explicitly: *"Never state a verifiable fact without checking it first"* and *"If uncertain or unverifiable, say so explicitly; never fabricate or present assumptions as facts."* Violating this is unacceptable, not a minor slip.
+The user's CLAUDE.md says explicitly: *"Never state a verifiable fact without checking it first"* and *"when verification is impossible, say so. Never present an assumption as a fact."* Violating this is unacceptable, not a minor slip.
 
 ## How to apply: hard rules
 

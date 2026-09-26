@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-A French text moved to English (skills, rules, `.claude/` notes, per the "All content meant for Claude or agents in English" rule of `CLAUDE.md`) is rewritten as idiomatic English in the imperative register of `rules/*.md`, keeping the meaning of each rule and word, never rendered word for word.
+A French text moved to English (skills, rules, `.claude/` notes, per the English rule of `rules/claude-files.md`, "Language") is rewritten as idiomatic English in the imperative register of `rules/*.md`, keeping the meaning of each rule and word, never rendered word for word.
 
 **Why:** the first translation of the `design` skill (commit `435a54c`, 2026-09-24) calqued the French sentence by sentence ("in words other than its own", "is not chosen alone", "hypothesis" for "hypothèse", "choose between two treatments"); the user called it catastrophic. Literal renderings also shifted four rules: a faux ami or a calqued construction changes what the model will do, so literalness is a fidelity defect, not a style one. A review that took "ignore pure style" to cover calques missed all of them.
 
