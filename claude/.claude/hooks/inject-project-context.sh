@@ -4,7 +4,7 @@ if command -v jq >/dev/null 2>&1; then
   payload=$(cat)
   IFS=$'\t' read -r source session < <(printf '%s' "$payload" | jq -r '[.source // "-", .session_id // "-"] | @tsv' 2>/dev/null)
   if [[ $source == compact && $session =~ ^[A-Za-z0-9_-]+$ ]]; then
-    rm -f "${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}"
+    rm -f "${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}" "${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}"-*
   fi
 fi
 

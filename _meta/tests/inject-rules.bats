@@ -93,6 +93,65 @@ field() {
   [[ $(field permissionDecisionReason) == *.env* ]]
 }
 
+@test "asks on a secret file named through a glob or a brace expansion" {
+  for c in 'cat .env*' 'ls -la .env*' 'cp .env{,.bak}' 'cat *.pem'; do
+    rm -f "$RUNTIME"/claude-code-rules-*
+    run_hook "$(bash_call "$c")"
+    [ "$(field permissionDecision)" = ask ] || {
+      echo "missed: $c"
+      return 1
+    }
+  done
+}
+
+@test "asks on a secret file named inside a command or process substitution" {
+  # shellcheck disable=SC2016
+  for c in 'x=$(cat .env)' 'diff <(sort .env) b' 'cat .env>out'; do
+    rm -f "$RUNTIME"/claude-code-rules-*
+    run_hook "$(bash_call "$c")"
+    [ "$(field permissionDecision)" = ask ] || {
+      echo "missed: $c"
+      return 1
+    }
+  done
+}
+
+@test "does not take a bare word or a variable naming a secret for a path" {
+  # shellcheck disable=SC2016
+  for c in 'echo $OPENROUTER_API_KEY' 'rg -n "secret|apikey" src/' 'git commit -m "fix token refresh"' 'rg max_tokens -n'; do
+    run_hook "$(bash_call "$c")"
+    [ -z "$output" ] || {
+      echo "matched: $c"
+      return 1
+    }
+  done
+}
+
+@test "does not take a jq filter for a key file" {
+  for c in "jq -r '.[] | select(.key == 1)' f.json" "jq '.[].key' f.json" "jq '.[0].key' f.json"; do
+    run_hook "$(bash_call "$c")"
+    [ -z "$output" ] || {
+      echo "matched: $c"
+      return 1
+    }
+  done
+  run_hook "$(bash_call 'openssl x509 -in server.pem -noout')"
+  [ "$(field permissionDecision)" = ask ]
+}
+
+@test "still asks on a path-like or existing word naming a secret" {
+  mkdir -p "$WORK/project"
+  : >"$WORK/project/secrets"
+  for c in 'cd proj && cat my-secret.yml' 'cat conf/password' 'cat secrets'; do
+    rm -f "$RUNTIME"/claude-code-rules-*
+    run_hook "$(jq -nc --arg d "$WORK/project" --arg c "$c" '{session_id: "s1", cwd: $d, tool_name: "Bash", tool_input: {command: $c}}')"
+    [ "$(field permissionDecision)" = ask ] || {
+      echo "missed: $c"
+      return 1
+    }
+  done
+}
+
 @test "matches each secret pattern" {
   for p in .env.local .envrc .secrets .pgpass .netrc credentials.toml server.pem tls.key cert.pfx id_rsa.pub id_ed25519 conf/my-secret.yml db_password.txt api_key.json gh-token.txt; do
     rm -f "$RUNTIME"/claude-code-rules-*
@@ -168,6 +227,13 @@ field() {
   done
 }
 
+@test "takes a command on a later line of a multi-line command" {
+  run_hook "$(bash_call $'cd ~/dotfiles\nstow claude')"
+  [[ $(field additionalContext) == *BODY-install* ]]
+  run_hook "$(bash_call $'P=$(mktemp -d)\nchromium --headless=new --screenshot a.html')"
+  [[ $(field additionalContext) == *BODY-chromium* ]]
+}
+
 @test "does not take a word containing stow or apt for the command" {
   run_hook "$(bash_call 'stow-rprofile && echo apt')"
   [ -z "$output" ]
@@ -199,15 +265,53 @@ field() {
   [ "$(field permissionDecision)" = ask ]
 }
 
+@test "resolves a relative word against the directory of a preceding cd" {
+  run_hook "$(jq -nc --arg d "$WORK/dotfiles" '{session_id: "s1", cwd: $d, tool_name: "Bash", tool_input: {command: "cd claude/.claude && wc -m rules/secrets.md"}}')"
+  [ -z "$output" ]
+  mkdir -p "$WORK/project/proj"
+  : >"$WORK/project/proj/mysecret"
+  run_hook "$(jq -nc --arg d "$WORK/project" '{session_id: "s1", cwd: $d, tool_name: "Bash", tool_input: {command: "cd proj && cat mysecret"}}')"
+  [ "$(field permissionDecision)" = ask ]
+}
+
+@test "never exempts an exact secret name, nor a path leaving a rules directory" {
+  run_hook "$(jq -nc --arg d "$WORK/project" '{session_id: "s1", cwd: $d, tool_name: "Bash", tool_input: {command: "(cd x/.claude/rules && ls) && cat .env"}}')"
+  [ "$(field permissionDecision)" = ask ]
+  rm -f "$RUNTIME"/claude-code-rules-*
+  run_hook "$(read_call Read "$WORK/x/.claude/rules/.env")"
+  [ "$(field permissionDecision)" = ask ]
+  rm -f "$RUNTIME"/claude-code-rules-*
+  run_hook "$(read_call Read "$WORK/x/.claude/rules/../../my-secret.yml")"
+  [ "$(field permissionDecision)" = ask ]
+}
+
 @test "defers a block that would push the context past the cap" {
   awk 'BEGIN { for (i = 0; i < 9400; i++) printf "x"; print "" }' >"$RULES/secrets.md"
   run_hook "$(read_call Read "$WORK/secret-report.pdf")"
   [ "$(field permissionDecision)" = deny ]
   [[ $(field additionalContext) == *'rules/secrets.md'*xxxx* ]]
   [[ $(field additionalContext) != *BODY-pdf* ]]
+  [[ $(field additionalContext) == *"read $RULES/pdf.md before acting on this call"* ]]
   run_hook "$(read_call Read "$WORK/secret-report.pdf")"
   [ "$(field permissionDecision)" = deny ]
   [[ $(field additionalContext) == *BODY-pdf* ]]
+}
+
+@test "gives a deny only the reasons of the deny" {
+  run_hook "$(read_call Read "$WORK/password-policy.pdf")"
+  [ "$(field permissionDecision)" = deny ]
+  [[ $(field permissionDecisionReason) == *detect-pdf* ]]
+  [[ $(field permissionDecisionReason) != *'user confirms'* ]]
+}
+
+@test "keeps the context and its pointers under the cap" {
+  for name in pdf docx; do
+    awk -v n="$name" 'BEGIN { for (i = 0; i < 8600; i++) printf "y"; print n }' >"$RULES/$name.md"
+  done
+  run_hook "$(bash_call 'pandoc report.docx -o report.pdf')"
+  context=$(field additionalContext)
+  [[ $context == *"read $RULES/docx.md before acting on this call"* ]]
+  ((${#context} <= 9500))
 }
 
 @test "skips a rules file that does not exist" {
@@ -222,6 +326,17 @@ field() {
   [[ $(field additionalContext) == *BODY-pdf* ]]
 }
 
+@test "keeps a subagent's marker apart from its parent's" {
+  run_hook "$(bash_call 'pdfinfo a.pdf')"
+  run_hook "$(jq -nc '{session_id: "s1", agent_id: "a1", tool_name: "Read", tool_input: {file_path: "/x/a.pdf"}}')"
+  [ "$(field permissionDecision)" = deny ]
+  [[ $(field additionalContext) == *BODY-pdf* ]]
+  run_hook "$(jq -nc '{session_id: "s1", agent_id: "a1", tool_name: "Read", tool_input: {file_path: "/x/b.pdf"}}')"
+  [ -z "$output" ]
+  run_hook "$(read_call Read "$WORK/c.pdf")"
+  [ -z "$output" ]
+}
+
 @test "logs each injection with its decision" {
   run_hook "$(read_call Read "$WORK/a.pdf")"
   run awk -F'\t' '{print $2 "|" $3 "|" $4}' "$STATE/claude-code/instructions.log"
@@ -233,6 +348,9 @@ field() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
   run_hook "$(jq -nc '{session_id: "a/b", tool_name: "Read", tool_input: {file_path: "/x.pdf"}}')"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  run_hook "$(jq -nc '{session_id: "s1", agent_id: "../x", tool_name: "Read", tool_input: {file_path: "/x.pdf"}}')"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }

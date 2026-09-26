@@ -4,14 +4,15 @@ set -uo pipefail
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload=$(cat)
-fields=$(printf '%s' "$payload" | jq -r '[.session_id // "", .tool_name // "", .tool_input.file_path // "", .cwd // "", .tool_input.command // ""] | map(gsub("\u001f"; " ")) | join("\u001f")' 2>/dev/null) || exit 0
-IFS=$'\x1f' read -r -d '' session tool file cwd cmd <<<"$fields"
+fields=$(printf '%s' "$payload" | jq -r '[.session_id // "", .agent_id // "", .tool_name // "", .tool_input.file_path // "", .cwd // "", .tool_input.command // ""] | map(gsub("\u001f"; " ")) | join("\u001f")' 2>/dev/null) || exit 0
+IFS=$'\x1f' read -r -d '' session agent tool file cwd cmd <<<"$fields"
 cmd=${cmd%$'\n'}
 
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] || exit 0
+[[ -z $agent || $agent =~ ^[A-Za-z0-9_-]+$ ]] || exit 0
 
 rules_dir=${CLAUDE_RULES_DIR:-$HOME/.claude/rules}
-marker="${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}"
+marker="${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}${agent:+-$agent}"
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-code"
 cap=9500
 
@@ -36,29 +37,34 @@ decide() {
   case $decision:$new in
   deny:*) return ;;
   ask:ask | :ask) decision=ask ;;
-  *:deny) decision=deny ;;
+  *:deny)
+    decision=deny
+    reason=""
+    ;;
   esac
   reason=${reason:+$reason }$2
 }
 
 is_secret_path() {
-  local p=$1 base lower seg abs
+  local p=$1 dir=${2:-${cwd:-.}} base lower seg abs
   base=${p##*/}
   [[ -n $base ]] || return 1
   case $base in
   *.example | *.template | *.sample) return 1 ;;
   esac
+  case $base in
+  .env | .env.* | .envrc | .secrets | .pgpass | .netrc | credentials* | [[:alnum:]_*?]*.pem | [[:alnum:]_*?]*.key | [[:alnum:]_*?]*.pfx | id_rsa* | id_ed25519*) return 0 ;;
+  esac
   # shellcheck disable=SC2016
   case $p in
   /* | '~'/* | '$HOME'/* | '${HOME}'/*) abs=$p ;;
-  *) abs=${cwd:-.}/$p ;;
+  *) abs=$dir/$p ;;
   esac
   case $abs in
+  */../*) ;;
   "$rules_dir"/* | *.claude/rules/*) return 1 ;;
   esac
-  case $base in
-  .env | .env.* | .envrc | .secrets | .pgpass | .netrc | credentials* | *.pem | *.key | *.pfx | id_rsa* | id_ed25519*) return 0 ;;
-  esac
+  [[ $p == */* || $base == *.* || -e $abs ]] || return 1
   lower=${p,,}
   IFS=/ read -r -a segs <<<"$lower"
   for seg in "${segs[@]}"; do
@@ -83,11 +89,25 @@ Read | Edit | Write | MultiEdit | NotebookEdit)
   ;;
 Bash)
   flat=${cmd//[\"\'\`]/ }
-  flat=${flat//[;&|<>()=]/ }
+  flat=${flat//[;&|<>\(\)=\{\},]/ }
   read -r -d '' -a words <<<"$flat"
+  wdir=${cwd:-.}
+  prev=""
   for word in "${words[@]}"; do
+    if [[ $prev == cd ]]; then
+      # shellcheck disable=SC2016
+      case $word in
+      /*) wdir=$word ;;
+      '~') wdir=$HOME ;;
+      '~'/* | '$HOME'/* | '${HOME}'/*) wdir=$HOME/${word#*/} ;;
+      -*) ;;
+      *) wdir=$wdir/$word ;;
+      esac
+    fi
+    prev=$word
     [[ $word != -* ]] || continue
-    if is_secret_path "$word"; then
+    while [[ $word == ?*[*?] ]]; do word=${word%?}; done
+    if is_secret_path "$word" "$wdir"; then
       secret_hit=$word
       break
     fi
@@ -128,7 +148,7 @@ Agent | Task)
   want agents
   ;;
 Bash)
-  seg_start='(^|[;&|(]|&&|\|\||\$\()[[:space:]]*(sudo[[:space:]]+|timeout[[:space:]]+[^[:space:]]+[[:space:]]+)*'
+  seg_start='(^|[;&|('$'\n'']|&&|\|\||\$\()[[:space:]]*(sudo[[:space:]]+|timeout[[:space:]]+[^[:space:]]+[[:space:]]+)*'
   [[ $cmd =~ (^|[^[:alnum:]_-])(detect-pdf|pdf2md|pdftotext|pdfinfo|pdftoppm)([^[:alnum:]_-]|$) || ${cmd,,} =~ \.pdf([^[:alnum:]]|$) ]] && want pdf
   [[ $cmd =~ ${seg_start}(libreoffice|soffice)([[:space:]]|$) || ${cmd,,} =~ \.docx([^[:alnum:]]|$) ]] && want docx
   if [[ $cmd =~ ${seg_start}(apt|apt-get)[[:space:]] || $cmd =~ ${seg_start}uv[[:space:]]+tool[[:space:]]+install || $cmd =~ ${seg_start}(pip|pip3)[[:space:]]+install || $cmd =~ ${seg_start}stow([[:space:]]|$) || $cmd =~ ${seg_start}claude[[:space:]]+plugin[[:space:]]+install || $cmd =~ ${seg_start}systemctl[[:space:]] ]]; then
@@ -142,19 +162,28 @@ esac
 
 declare -A seen=()
 delivered=()
+names=()
 for name in "${wanted[@]}"; do
   [[ -z ${seen[$name]:-} ]] || continue
   seen[$name]=1
+  [[ -r $rules_dir/$name.md ]] && names+=("$name")
+done
+pointers=""
+for i in "${!names[@]}"; do
+  name=${names[i]}
   src=$rules_dir/$name.md
-  [[ -r $src ]] || continue
   body=$(awk 'NR == 1 && /^---$/ {fm = 1; next} fm && /^---$/ {fm = 0; next} !fm' "$src")
   block="=== rules/$name.md, injected by inject-rules.sh ==="$'\n'"$body"
-  if [[ -n $context ]] && ((${#context} + ${#block} + 2 > cap)); then
+  pointer="=== rules/$name.md not injected (size cap): read $src before acting on this call ==="
+  left=$((${#names[@]} - i - 1))
+  if [[ -n $context ]] && ((${#context} + ${#pointers} + ${#block} + 2 + left * (${#pointer} + 16) > cap)); then
+    pointers+=$'\n\n'$pointer
     continue
   fi
   context=${context:+$context$'\n\n'}$block
   delivered+=("$name")
 done
+context+=$pointers
 
 [[ -n $context || -n $decision ]] || exit 0
 

@@ -25,11 +25,15 @@ run_hook() {
 
 @test "clears the session's injection marker on compact" {
   printf 'pdf\n' >"$RUNTIME/claude-code-rules-s1"
+  printf 'pdf\n' >"$RUNTIME/claude-code-rules-s1-a1"
   printf 'pdf\n' >"$RUNTIME/claude-code-rules-s2"
+  printf 'pdf\n' >"$RUNTIME/claude-code-rules-s2-a1"
   run_hook '{"session_id": "s1", "source": "compact"}'
   [ "$status" -eq 0 ]
   [ ! -e "$RUNTIME/claude-code-rules-s1" ]
+  [ ! -e "$RUNTIME/claude-code-rules-s1-a1" ]
   [ -e "$RUNTIME/claude-code-rules-s2" ]
+  [ -e "$RUNTIME/claude-code-rules-s2-a1" ]
 }
 
 @test "keeps the marker on startup and resume" {
