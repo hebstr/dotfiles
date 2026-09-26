@@ -141,6 +141,7 @@ The installs are traced in `_meta/notes/terminal-highlighting-setup.md` per `rul
 - Whether GNOME Terminal and Positron render the same colors, per "Matching colors across the two terminals" above; since 2026-09-26 both carry the palette of "Color scheme aligned on the Positron token colors" below, and the visual check in the two terminals remains.
 - Mapping `.qmd` to bat's Markdown syntax, untested.
 - The Windows Terminal profile of `ju-TP2`, `_meta/profiles/wsl-terminal-ubuntu.json`, keeps its `#282828` background and `#ffffff` foreground: the scope decision of 2026-09-26 names GNOME Terminal and Positron only, and whether WSL follows is not decided.
+- Two choices recorded on 2026-09-26, for the user to make once the visual trial is done: narrowing the `"**/.*rc"` association to `**/.blerc`, and scoping `workbench.colorCustomizations` under `"[Material Night Eighties]"` so that `Material Night Purple` keeps its own terminal colors; both are recommended, and argued in "Color scheme aligned on the Positron token colors" below.
 - Coloring the `sys-update` summary, proposed on 2026-09-26 and awaiting the user's go, per "Proposed: `sys-update` colors its own summary" below.
 
 ## Command output coloring
