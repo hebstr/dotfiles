@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+verdict=0
+[[ ${1-} == --verdict ]] && verdict=1
+
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload=$(cat)
@@ -16,6 +19,7 @@ gated="$confirmed|stage|$left|branch"
 mark=$'\x1f'
 
 deny() {
+  ((verdict)) && exit 1
   printf 'git write guard: %s\n' "$@" >&2
   exit 2
 }
@@ -124,11 +128,34 @@ tracked=0
 fallback=0
 specs=()
 
+take() {
+  local abs
+  if [[ -z $dir || $1 == *"$mark"* || $1 == *'$'* || $1 == *\\* || $1 == :* || $1 == *[\*\?\[]* ]]; then
+    fallback=1
+    return
+  fi
+  case $1 in
+  /*) abs=$1 ;;
+  [~]) abs=$HOME ;;
+  [~]/*) abs=$HOME/${1:2} ;;
+  [~]*)
+    fallback=1
+    return
+    ;;
+  *) abs=$dir/$1 ;;
+  esac
+  abs=$(realpath -m -- "$abs" 2>/dev/null) || {
+    fallback=1
+    return
+  }
+  specs+=("$abs")
+}
+
 staging_specs() {
   local tok letters dashdash=0
   for tok in "$@"; do
     if ((dashdash)); then
-      specs+=("$tok")
+      take "$tok"
       continue
     fi
     case $tok in
@@ -141,8 +168,28 @@ staging_specs() {
       [[ $letters == *[Apie]* ]] && fallback=1
       [[ $letters == *u* ]] && tracked=1
       ;;
-    *) specs+=("$tok") ;;
+    *) take "$tok" ;;
     esac
+  done
+}
+
+move_specs() {
+  local tok dashdash=0 paths=()
+  for tok in "$@"; do
+    if ((!dashdash)); then
+      case $tok in
+      --)
+        dashdash=1
+        continue
+        ;;
+      -?*) continue ;;
+      esac
+    fi
+    paths+=("$tok")
+  done
+  ((${#paths[@]} > 1)) || return 0
+  for tok in "${paths[@]:0:${#paths[@]}-1}"; do
+    take "$tok"
   done
 }
 
@@ -154,7 +201,7 @@ commit_specs() {
       continue
     fi
     if ((dashdash)); then
-      specs+=("$tok")
+      take "$tok"
       continue
     fi
     case $tok in
@@ -176,7 +223,7 @@ commit_specs() {
         esac
       done
       ;;
-    *) specs+=("$tok") ;;
+    *) take "$tok" ;;
     esac
   done
 }
@@ -195,12 +242,15 @@ while IFS= read -r segment; do
   while ((i < n)) && [[ ${w[i]} =~ ^[A-Za-z_][A-Za-z0-9_]*= || ${w[i]} =~ ^(\{|!|if|then|else|elif|do|while|until)$ ]]; do
     ((i++))
   done
-  if ((i < n)) && [[ ${w[i]} == cd || ${w[i]} == pushd ]]; then
-    fallback=1
+  if ((i < n)) && [[ ${w[i]} == cd || ${w[i]} == pushd || ${w[i]} == popd ]]; then
     target=${w[i + 1]-}
+    if [[ ${w[i]} == popd || ${w[i]} == pushd && -z $target ]]; then
+      dir=""
+      continue
+    fi
     case $target in
     '' | [~]) dir=$HOME ;;
-    *"$mark"* | *'$'* | -*) dir="" ;;
+    *"$mark"* | *'$'* | *\\* | -*) dir="" ;;
     [~]/*) dir=$HOME/${target:2} ;;
     [~]*) dir="" ;;
     /*) dir=$target ;;
@@ -291,10 +341,10 @@ while IFS= read -r segment; do
   [[ -n $via ]] && reroute "$sub" "$via"
   case $sub in
   add | rm) staging_specs "${args[@]}" ;;
-  mv) fallback=1 ;;
+  mv) move_specs "${args[@]}" ;;
   commit)
     [[ -n $dir ]] ||
-      deny "this command changes directory before the commit to a place the guard cannot resolve (a quoted path, a variable, an option, cd -)." \
+      deny "this command changes directory before the commit to a place the guard cannot resolve (a quoted or escaped path, a variable, an option, cd -, popd)." \
         "Write the cd target as a plain path, so that the tracking check reads the repository the commit takes place in."
     commit_dir=$dir
     check_commit_options "${args[@]}"
@@ -309,66 +359,73 @@ done <<<"$segments"
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] ||
   deny "could not check the tracking verification: the session id is unusable. Leave the commit to the user."
 
+top=$(git -C "$commit_dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
+entries=()
+mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
+wait "$!" ||
+  deny "could not check the tracking verification: git status failed in $top. Invoke the commit skill again; if it persists, leave the commit to the user."
+
 picked=()
-top=""
-((fallback)) || top=$(git -C "${cwd:-.}" rev-parse --show-toplevel 2>/dev/null) || top=""
-if [[ -n $top ]]; then
-  base=$(realpath -m -- "${cwd:-.}" 2>/dev/null) || fallback=1
-  entries=()
-  mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
-  wait "$!" || fallback=1
-  listed=()
-  for entry in "${entries[@]}"; do
-    code=${entry:0:2}
-    path="$top/${entry:3}"
-    listed+=("$path")
-    [[ ${code:0:1} != [\ ?!] ]] && picked+=("$path")
-    ((tracked)) && [[ $code != '??' && $code != '!!' && ${code:1:1} != ' ' ]] && picked+=("$path")
-  done
+for entry in "${entries[@]}"; do
+  code=${entry:0:2}
+  path="$top/${entry:3}"
+  if ((fallback)) || [[ ${code:0:1} != [\ ?!] ]]; then
+    picked+=("$path")
+    continue
+  fi
+  if ((tracked)) && [[ $code != '??' && $code != '!!' && ${code:1:1} != ' ' ]]; then
+    picked+=("$path")
+    continue
+  fi
   for spec in "${specs[@]}"; do
-    if [[ $spec == *"$mark"* || $spec == *'$'* || $spec == :* || $spec == *[\*\?\[]* ]]; then
-      fallback=1
+    if [[ $path == "$spec" || $path == "$spec/"* ]]; then
+      picked+=("$path")
       break
     fi
-    case $spec in
-    /*) abs=$spec ;;
-    [~]) abs=$HOME ;;
-    [~]/*) abs=$HOME/${spec:2} ;;
-    *) abs=$base/$spec ;;
-    esac
-    abs=$(realpath -m -- "$abs" 2>/dev/null) || {
-      fallback=1
-      break
-    }
-    for path in "${listed[@]}"; do
-      [[ $path == "$abs" || $path == "$abs/"* ]] && picked+=("$path")
-    done
   done
-else
-  fallback=1
-fi
+done
 
 stale_script="${BASH_SOURCE[0]%/*}/commit-stale.sh"
-root=$(git -C "$commit_dir" rev-parse --show-toplevel 2>/dev/null) || root=$commit_dir
 stale=()
-if ((fallback)); then
-  mapfile -t stale < <("$BASH" "$stale_script" "$session" "$root" 2>/dev/null)
-else
-  mapfile -t stale < <({ ((${#picked[@]} == 0)) || printf '%s\0' "${picked[@]}"; } | "$BASH" "$stale_script" --only "$session" "$root" 2>/dev/null)
-fi
+mapfile -t stale < <({ ((${#picked[@]} == 0)) || printf '%s\0' "${picked[@]}"; } | "$BASH" "$stale_script" --only "$session" "$top" 2>/dev/null)
 wait "$!" ||
   deny "could not check the tracking verification: a source of commit-stale.sh was unreadable. Invoke the commit skill again; if it persists, leave the commit to the user."
 
-if ((${#stale[@]} > 0)); then
-  {
-    printf 'git write guard: %d file(s) outside the tracking files changed after the last tracking verification:\n' "${#stale[@]}"
-    for p in "${stale[@]:0:10}"; do
-      printf '  %s\n' "$p"
-    done
-    ((${#stale[@]} > 10)) && printf '  ... and %d more\n' "$((${#stale[@]} - 10))"
-    printf 'Invoke the commit skill now: it runs the tracking verifier and renders the blocks again. Do not retry this commit.\n'
-  } >&2
-  exit 2
+if ((verdict)); then
+  ((${#stale[@]} == 0)) || printf '%s\n' "${stale[@]}"
+  exit 0
 fi
 
-exit 0
+((${#stale[@]} > 0)) || exit 0
+
+changed=()
+unsealed=()
+for line in "${stale[@]}"; do
+  if [[ ${line%%$'\t'*} == unsealed ]]; then
+    unsealed+=("${line#*$'\t'}")
+  else
+    changed+=("${line#*$'\t'}")
+  fi
+done
+
+list() {
+  local p
+  for p in "${@:1:10}"; do
+    printf '  %s\n' "$p"
+  done
+  (($# <= 10)) || printf '  ... and %d more\n' "$(($# - 10))"
+}
+
+{
+  if ((${#changed[@]} > 0)); then
+    printf 'git write guard: %d file(s) this commit takes changed after the last tracking verification:\n' "${#changed[@]}"
+    list "${changed[@]}"
+    printf 'Invoke the commit skill now: it runs the tracking verifier and renders the blocks again. Do not retry this commit.\n'
+  fi
+  if ((${#unsealed[@]} > 0)); then
+    printf 'git write guard: %d file(s) this commit takes were never sealed by the last tracking verification, so another session may be writing them:\n' "${#unsealed[@]}"
+    list "${unsealed[@]}"
+    printf "Leave them out of the staging command, now and after any new verifier pass, whose seal would take them in and let a later commit carry that session's work; if one is already staged, leave the commit to the user. Only if this session wrote them through Edit or Write after its last verification, invoke the commit skill instead.\n"
+  fi
+} >&2
+exit 2

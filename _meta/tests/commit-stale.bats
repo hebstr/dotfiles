@@ -265,7 +265,22 @@ commit_file() {
   printf 'v3\n' >"$PROJECT/b.sh"
   run_only "$PROJECT/a.sh"
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
+}
+
+@test "--only labels a path the snapshot does not hold unsealed, and every path changed without a snapshot" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  printf 'v3\n' >"$PROJECT/a.sh"
+  printf 'x\n' >"$PROJECT/new.md"
+  run_only "$PROJECT/a.sh" "$PROJECT/new.md"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf 'changed\t%s\nunsealed\t%s' "$PROJECT/a.sh" "$PROJECT/new.md")" ]
+  stamp 1
+  run_only "$PROJECT/a.sh" "$PROJECT/new.md"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf 'changed\t%s\nchanged\t%s' "$PROJECT/a.sh" "$PROJECT/new.md")" ]
 }
 
 @test "--only still reports an unreadable stamp" {
@@ -324,7 +339,7 @@ commit_file() {
   seal "$(date +%s%N)"
   run_only "$PROJECT/.claude/NOTE.md" "$PROJECT/a.sh" "$PROJECT/a.sh"
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "round-trips a path with spaces and glob characters through the snapshot" {

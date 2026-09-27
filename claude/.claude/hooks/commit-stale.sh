@@ -111,6 +111,7 @@ excluded() {
 
 changed() {
   local now ctime
+  class=changed
   if ((sealed)); then
     if ! now=$(digest "$1"); then
       failed=1
@@ -119,6 +120,7 @@ changed() {
     if [[ -n ${sealed_digest[$1]+set} ]]; then
       [[ $now != "${sealed_digest[$1]}" ]]
     else
+      class=unsealed
       [[ $now != - || $2 == listed ]]
     fi
     return
@@ -144,7 +146,7 @@ if [[ $mode == only ]]; then
     [[ -n ${seen[$path]:-} ]] && continue
     seen[$path]=1
     changed "$path" listed || continue
-    stale+=("$path")
+    stale+=("$class"$'\t'"$path")
   done
 else
   if [[ -r $journal ]]; then

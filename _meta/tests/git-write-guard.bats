@@ -24,13 +24,26 @@ teardown() {
   rm -rf "$WORK"
 }
 
-run_guard() {
-  local command=$1 payload
-  payload=$(jq -nc --arg c "$command" --arg d "$WORK" \
+guard() {
+  local command=$1 dir=$2 payload
+  shift 2
+  payload=$(jq -nc --arg c "$command" --arg d "$dir" \
     '{session_id: "s1", cwd: $d, tool_name: "Bash", tool_input: {command: $c}}')
   # shellcheck disable=SC2016
   run env -u CLAUDE_PROJECT_DIR PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
-    /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$payload" "$SCRIPT"
+    /bin/bash -c 'printf "%s" "$1" | /bin/bash "${@:2}"' _ "$payload" "$SCRIPT" "$@"
+}
+
+run_guard() {
+  guard "$1" "${2:-$WORK}"
+}
+
+run_verdict() {
+  guard "$1" "${2:-$WORK}" --verdict
+}
+
+write_at() {
+  printf '%s\t%s\n' "$1" "$2" >>"$RUNTIME/claude-code-writes-s1.log"
 }
 
 stamp() {
@@ -375,6 +388,133 @@ commit_file() {
   [ "$status" -eq 2 ]
   run_guard 'cd ~root/x && git commit -m x'
   [ "$status" -eq 2 ]
+  run_guard 'cd my\ dir && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"plain path"* ]]
+}
+
+@test "passes a memory commit into another repository while a file there changes that the commit does not take" {
+  commit_file claude/.claude/hooks/inject-rules.sh
+  mkdir -p "$WORK/claude/.claude/memory"
+  rm -rf "$FAKE_HOME/.claude/memory"
+  ln -s "$WORK/claude/.claude/memory" "$FAKE_HOME/.claude/memory"
+  ln -s "$WORK" "$FAKE_HOME/dotfiles"
+  OTHER=$(realpath "$(mktemp -d)")
+  git init -q "$OTHER"
+  printf 'x\n' >"$OTHER/filetree.lua"
+  printf 'x\n' >"$WORK/claude/.claude/memory/feedback_x.md"
+  seal "$(date +%s%N)" "$OTHER/filetree.lua" "$WORK/claude/.claude/memory/feedback_x.md"
+  printf 'v2\n' >"$WORK/claude/.claude/hooks/inject-rules.sh"
+  mkdir -p "$WORK/_meta/tests"
+  printf 'x\n' >"$WORK/_meta/tests/inject-rules.bats"
+  run_guard 'cd ~/dotfiles && git add claude/.claude/memory/feedback_x.md && git commit -m "docs(claude): x"' "$OTHER"
+  rm -rf "$OTHER"
+  [ "$status" -eq 0 ]
+}
+
+@test "resolves a pathspec from the directory a cd leads to" {
+  commit_file sub/a.sh
+  printf 'v2\n' >"$WORK/sub/a.sh"
+  seal "$(date +%s%N)" "$WORK/sub/a.sh"
+  printf 'x\n' >"$WORK/other.md"
+  run_guard "cd $WORK/sub && git add a.sh && git commit -m x"
+  [ "$status" -eq 0 ]
+  printf 'v3\n' >"$WORK/sub/a.sh"
+  run_guard "cd $WORK/sub && git add a.sh && git commit -m x"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/sub/a.sh"* ]]
+  [[ $output != *other.md* ]]
+}
+
+@test "reads git mv through its source paths" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'x\n' >"$WORK/other.md"
+  run_guard 'git mv a.sh b.sh && git commit -m x'
+  [ "$status" -eq 0 ]
+  printf 'v3\n' >"$WORK/a.sh"
+  run_guard 'git mv -f -- a.sh b.sh && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/a.sh"* ]]
+  [[ $output != *other.md* ]]
+}
+
+@test "leaves out of a fallback the session's writes in another repository" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  value=$(date +%s%N)
+  seal "$value" "$WORK/a.sh"
+  OTHER=$(realpath "$(mktemp -d)")
+  git init -q "$OTHER"
+  printf 'x\n' >"$OTHER/code.sh"
+  write_at "$((value + 1000))" "$OTHER/code.sh"
+  run_guard 'git add -A && git commit -m x'
+  rm -rf "$OTHER"
+  [ "$status" -eq 0 ]
+}
+
+@test "denies a commit after popd, whose directory the guard does not track" {
+  mkdir -p "$WORK/sub"
+  run_guard "pushd $WORK/sub && popd && git commit -m x"
+  [ "$status" -eq 2 ]
+  [[ $output == *"plain path"* ]]
+}
+
+@test "names a path the verification never sealed as possibly another session's, to leave out" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'x\n' >"$WORK/other.md"
+  run_guard 'git add . && git commit -m "fix: x"'
+  [ "$status" -eq 2 ]
+  [[ $output == *"never sealed"*"$WORK/other.md"* ]]
+  [[ $output == *"another session"* ]]
+  [[ $output == *"out of the staging command"* ]]
+  [[ $output != *"$WORK/a.sh"* ]]
+  [[ $output != *"runs the tracking verifier"* ]]
+}
+
+@test "separates the files changed since the verification from the files it never sealed" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'v3\n' >"$WORK/a.sh"
+  printf 'x\n' >"$WORK/other.md"
+  run_guard 'git add . && git commit -m "fix: x"'
+  [ "$status" -eq 2 ]
+  [[ $output == *"changed after the last tracking verification"*"$WORK/a.sh"*"runs the tracking verifier"* ]]
+  [[ $output == *"never sealed"*"another session"*"$WORK/other.md"*"out of the staging command"* ]]
+}
+
+@test "--verdict prints the class and path of each stale file the commit takes, and exits 0" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'v3\n' >"$WORK/a.sh"
+  printf 'x\n' >"$WORK/other.md"
+  run_verdict 'git add . && git commit -m "fix: x"'
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(printf 'changed\t%s\nunsealed\t%s' "$WORK/a.sh" "$WORK/other.md")" ]
+}
+
+@test "--verdict prints nothing and exits 0 when the commit takes nothing stale" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'x\n' >"$WORK/other.md"
+  run_verdict 'git add a.sh && git commit -m x'
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "--verdict stays silent and exits 1 on every other refusal" {
+  # shellcheck disable=SC2016
+  for c in 'git -C . commit -m x' 'git commit --amend --no-edit' 'git add . && git push' 'cd "$x" && git commit -m x' $'git status # don\'t\ngit commit -m x' "bash -c 'git commit -m x'"; do
+    run_verdict "$c"
+    [ "$status" -eq 1 ]
+    [ -z "$output" ]
+  done
 }
 
 @test "passes the canonical git rm and git mv" {
