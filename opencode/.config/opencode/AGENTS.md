@@ -36,6 +36,7 @@ Read a file from it when a rule below points to it, and not before.
 
 - Never run a git command that writes, except `git add`, `git rm`, `git mv` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick, revert, clean, pull, am, update-ref, fast-import, replay, filter-branch, bisect, send-pack.
   The user runs those.
+  Nor `git config core.hooksPath`, which disarms the prek hooks for every later commit, nor the forms that overwrite working tree files: `git apply -R`, `git checkout-index -f`, `git read-tree -u`.
 - When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
   Never `git add -A`.
   When every task of the session is done, give that block unasked, instead of asking whether to.

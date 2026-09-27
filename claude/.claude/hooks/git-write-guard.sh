@@ -14,13 +14,18 @@ cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 confirmed='add|commit|rm|mv'
 left='push|reset|checkout|switch|restore|stash|merge|rebase|tag|cherry-pick|revert|clean|pull|am|update-ref|fast-import|replay|filter-branch|bisect|send-pack'
 gated="$confirmed|stage|$left|branch"
-mixed='symbolic-ref|worktree|fetch'
+mixed='symbolic-ref|worktree|fetch|config|apply|checkout-index|read-tree'
 gated_word="(^|[^[:alnum:]_-])($gated)([^[:alnum:]_-]|\$)"
 hide=$'\x1e'
 jq_file="${BASH_SOURCE[0]%/*}/git-write-guard.jq"
 plainly="Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
 
-[[ ${cmd//[\"\'\\]/} == *git* || $cmd == *\$\'* || ($cmd == *[\$\`]* && $cmd =~ $gated_word) ]] || exit 0
+unjudged() {
+  ((verdict)) && exit 1
+  exit 0
+}
+
+[[ ${cmd//[\"\'\\]/} == *git* || $cmd == *\$\'* || ($cmd == *[\$\`]* && $cmd =~ $gated_word) ]] || unjudged
 
 deny() {
   ((verdict)) && exit 1
@@ -60,6 +65,12 @@ fi
 
 read_call() {
   local k na
+  hdoc=$pend_hdoc
+  hdocf=$pend_hdocf
+  hdocset=$pend_set
+  pend_hdoc=""
+  pend_hdocf=""
+  pend_set=0
   na=${tok[t]}
   names=("${tok[@]:t+1:na}")
   t=$((t + 1 + na))
@@ -97,10 +108,25 @@ after_git_options() {
   ge=$m
 }
 
+read_stdin() {
+  ((hdocset)) ||
+    deny "this command runs a shell that reads its script on stdin, which the guard cannot read and the permission rules do not see." "$plainly"
+  [[ $hdocf != *d* ]] ||
+    deny "this command runs a shell whose script comes from an expansion the guard cannot read." "$plainly"
+  src=$hdoc
+  [[ $hdocf == *o* ]] && opaque=1
+  return 0
+}
+
 shell_source() {
   local k=$1 m c=0
   src=""
   opaque=0
+  if [[ ${wf[k]} != *[do]* && (${wv[k]} == source || ${wv[k]} == .) ]]; then
+    [[ ${wv[k + 1]-} == /dev/stdin ]] || return 1
+    read_stdin
+    return 0
+  fi
   if [[ ${wv[k]} == eval && ${wf[k]} != *[do]* ]]; then
     ((k + 1 < nw)) || return 1
     for ((m = k + 1; m < nw; m++)); do
@@ -117,15 +143,21 @@ shell_source() {
       break
       ;;
     -o | -O | +o | +O | --rcfile | --init-file) m=$((m + 1)) ;;
+    --version | --help) return 1 ;;
     --* | +*) ;;
     -*) [[ ${wv[m]} == *c* ]] && c=1 ;;
     *) break ;;
     esac
   done
-  ((c && m < nw)) || return 1
-  src=${wv[m]}
-  [[ ${wf[m]} == *o* ]] && opaque=1
-  return 0
+  if ((c)); then
+    ((m < nw)) || return 1
+    src=${wv[m]}
+    [[ ${wf[m]} == *o* ]] && opaque=1
+    return 0
+  fi
+  ((m < nw)) && return 1
+  ((k == 0 || hdocset)) || return 1
+  read_stdin
 }
 
 deny_escapes() {
@@ -138,12 +170,13 @@ deny_split() {
 }
 
 string_verb() {
-  [[ $2 == *[do]* || $1 == *[\$$hide]* || $1 =~ ^($gated|$mixed)$ || -z ${known[$1]+set} ]] || return 0
-  deny "this command runs git ${1//$hide/} through a shell string (bash -c, eval), which the permission rules do not see: only a git read git lists by name runs there." "$plainly"
+  [[ $2 == *[do]* || $1 == *[\$$hide]* || $1 =~ ^($gated|$mixed)$ || -z $1 || -z ${known[$1]+set} ]] || return 0
+  deny "this command runs git ${1//$hide/} through a shell string (bash -c, eval), which the permission rules do not see: only a subcommand git lists by name, outside the gated verbs, runs there." "$plainly"
 }
 
 check_string() {
   local depth=$2 t=0 ev k nw=0 src opaque ge
+  local hdoc="" hdocf="" hdocset=0 pend_hdoc="" pend_hdocf="" pend_set=0
   local -a tok=() names=() wf=() wv=()
   ((depth <= 3)) ||
     deny "this command nests shell strings deeper than the guard reads." "$plainly"
@@ -158,6 +191,13 @@ check_string() {
     case $ev in
     K)
       t=$((t + 1))
+      continue
+      ;;
+    H)
+      pend_hdocf=${tok[t]}
+      pend_hdoc=${tok[t + 1]}
+      pend_set=1
+      t=$((t + 2))
       continue
       ;;
     C) read_call ;;
@@ -230,9 +270,9 @@ symref_writes() {
       continue
     fi
     case $tok in
-    -d | --delete) return 0 ;;
     -m) skip=1 ;;
-    -*) ;;
+    --*) long_prefix "$tok" --delete && return 0 ;;
+    -?*) [[ ${tok#-} == *d* ]] && return 0 ;;
     *) positional=$((positional + 1)) ;;
     esac
   done
@@ -286,6 +326,55 @@ local_commit() {
     esac
   done
   git -C "$base" rev-parse --verify --quiet --end-of-options "$1^{commit}" >/dev/null 2>&1
+}
+
+hooks_path_write() {
+  local tok reading=0 keyed=0
+  for tok in "$@"; do
+    case $tok in
+    --get | --get-all | --get-regexp | --get-urlmatch | --list | --unset | --unset-all | --show-origin | --show-scope) reading=1 ;;
+    --*) ;;
+    -*) ;;
+    *)
+      ((keyed)) && ((!reading)) && return 0
+      [[ ${tok,,} == core.hookspath ]] && keyed=1
+      ;;
+    esac
+  done
+  return 1
+}
+
+apply_writes() {
+  local tok
+  for tok in "$@"; do
+    case $tok in
+    --*) long_prefix "$tok" --reverse && return 0 ;;
+    -?*) [[ ${tok#-} == *R* ]] && return 0 ;;
+    esac
+  done
+  return 1
+}
+
+checkout_index_writes() {
+  local tok
+  for tok in "$@"; do
+    case $tok in
+    --*) long_prefix "$tok" --force && return 0 ;;
+    -?*) [[ ${tok#-} == *f* ]] && return 0 ;;
+    esac
+  done
+  return 1
+}
+
+read_tree_writes() {
+  local tok
+  for tok in "$@"; do
+    case $tok in
+    --*) ;;
+    -?*) [[ ${tok#-} == *u* ]] && return 0 ;;
+    esac
+  done
+  return 1
 }
 
 fetch_writes() {
@@ -370,6 +459,11 @@ long_prefix() {
   return 1
 }
 
+forced_add() {
+  deny "git add -f stages a file the ignore rules exclude, which git status leaves out, so the tracking check cannot see whether the verification ever read it." \
+    "Stage it without -f, or leave the commit to the user."
+}
+
 staging_specs() {
   local a tok letters dashdash=0
   for ((a = 0; a < ${#args[@]}; a++)); do
@@ -383,6 +477,7 @@ staging_specs() {
     -u) tracked=1 ;;
     -A | -p | -i | -e) fallback=1 ;;
     --*)
+      [[ $sub == add ]] && long_prefix "$tok" --force && forced_add
       if long_prefix "$tok" --all --no-ignore-removal --patch --interactive --edit --pathspec-from-file; then
         fallback=1
       elif long_prefix "$tok" --update --renormalize; then
@@ -391,6 +486,7 @@ staging_specs() {
       ;;
     -?*)
       letters=${tok#-}
+      [[ $sub == add && $letters == *f* ]] && forced_add
       [[ $letters == *[Apie]* ]] && fallback=1
       [[ $letters == *u* ]] && tracked=1
       ;;
@@ -469,13 +565,19 @@ commit_dir=$dir
 stack=()
 src=""
 opaque=0
+hdoc=""
+hdocf=""
+hdocset=0
+pend_hdoc=""
+pend_hdocf=""
+pend_set=0
 tok=()
 names=()
 wf=()
 wv=()
 nw=0
 if ! parse "$cmd"; then
-  [[ ${cmd//[\"\'\\]/} == *git* ]] || exit 0
+  [[ ${cmd//[\"\'\\]/} == *git* ]] || unjudged
   deny "shfmt cannot parse this command, or reads a comment ending in a backslash as joined to the next line where bash does not, so the guard cannot see its git calls." \
     "Fix its syntax or drop that backslash, or run the git part as a command of its own."
 fi
@@ -502,6 +604,13 @@ while ((t < ${#tok[@]})); do
   K)
     [[ -n $other ]] || other=${tok[t]}
     t=$((t + 1))
+    continue
+    ;;
+  H)
+    pend_hdocf=${tok[t]}
+    pend_hdoc=${tok[t + 1]}
+    pend_set=1
+    t=$((t + 2))
     continue
     ;;
   esac
@@ -642,6 +751,18 @@ while ((t < ${#tok[@]})); do
   if [[ $sub == fetch ]] && fetch_writes "${args[@]}"; then
     leave "git fetch into a local ref (a refspec with a colon, -u, --refmap)"
   fi
+  if [[ $sub == config ]] && hooks_path_write "${args[@]}"; then
+    leave "git config core.hooksPath, which disarms the prek hooks for every later commit"
+  fi
+  if [[ $sub == apply ]] && apply_writes "${args[@]}"; then
+    leave "git apply -R, which overwrites working tree files"
+  fi
+  if [[ $sub == checkout-index ]] && checkout_index_writes "${args[@]}"; then
+    leave "git checkout-index -f, which overwrites working tree files"
+  fi
+  if [[ $sub == read-tree ]] && read_tree_writes "${args[@]}"; then
+    leave "git read-tree -u, which overwrites working tree files"
+  fi
   if [[ ! $sub =~ ^($confirmed)$ ]]; then
     [[ -n $other ]] || other="git $sub"
     continue
@@ -657,6 +778,9 @@ while ((t < ${#tok[@]})); do
     [[ -n $dir ]] ||
       deny "this command changes directory before the commit to a place the guard cannot resolve (a quoted or escaped path, a variable, an option, cd -, popd)." \
         "Write the cd target as a plain path, so that the tracking check reads the repository the commit takes place in."
+    ((commits)) && [[ $dir != "$commit_dir" ]] &&
+      deny "this command holds a commit in $commit_dir and another in $dir: the tracking check reads one repository, so the first commit's files would go unchecked." \
+        "Run one commit per command, as the commit skill's blocks already do."
     commit_dir=$dir
     check_commit_options "${args[@]}"
     commit_specs
@@ -665,7 +789,7 @@ while ((t < ${#tok[@]})); do
   esac
 done
 
-((commits)) || exit 0
+((commits)) || unjudged
 
 [[ -z $other ]] ||
   deny "this command runs $other alongside git commit: a write it makes lands after the tracking check, so the commit could take content the verification never saw." \
@@ -674,7 +798,7 @@ done
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] ||
   deny "could not check the tracking verification: the session id is unusable. Leave the commit to the user."
 
-top=$(git -C "$commit_dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
+top=$(git -C "$commit_dir" rev-parse --show-toplevel 2>/dev/null) || unjudged
 entries=()
 mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
 wait "$!" ||

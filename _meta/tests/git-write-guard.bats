@@ -224,6 +224,29 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
+@test "reads the script a shell takes on stdin, and denies one it cannot read" {
+  local c
+  # shellcheck disable=SC2016
+  for c in "bash <<< 'git push'" "bash -s <<< 'git push'" "source /dev/stdin <<< 'git push'" ". /dev/stdin <<< 'git push'" "timeout 5 bash <<< 'git push'" $'bash <<EOF\ngit push\nEOF' $'bash <<\'EOF\'\ngit push\nEOF' "echo 'git push' | bash" "printf '%s' 'git push origin main' | sh" 'git status && bash <<< "$script"'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+  done
+  for c in "bash <<< 'git status'" "printf '%s' \"\$payload\" | bash hook.sh" 'git diff | rg bash' 'git status && bash --version' $'cat <<EOF\ngit push in prose\nEOF'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
+@test "reads the body a time or coproc keyword wraps" {
+  local c
+  for c in 'time (git push)' 'time { git push; }' 'time if true; then git push; fi' 'coproc (git push)' 'coproc C { git push; }' 'time (cd /tmp && git push origin main)'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+  done
+  run_guard 'time (ls -la)'
+  [ "$status" -eq 0 ]
+}
+
 @test "denies a git write run through any program placed before git" {
   for c in 'setsid git push' 'flock /tmp/l git push' 'find . -name x -exec git rm {} \;' 'fdfind -e orig -x git rm' '>/dev/null git push' '2>/dev/null git add a.sh'; do
     run_guard "$c"
@@ -672,6 +695,33 @@ commit_file() {
   [[ $output == *"plain path"* ]]
 }
 
+@test "denies a command holding commits in two directories, whose tracking check reads one repository" {
+  commit_file a.sh
+  OTHER=$(realpath "$(mktemp -d)")
+  git init -q "$OTHER"
+  printf 'v1\n' >"$OTHER/b.sh"
+  git -C "$OTHER" add -- b.sh
+  git -C "$OTHER" -c user.name=t -c user.email=t@t commit -qm init
+  seal "$(date +%s%N)" "$WORK/a.sh" "$OTHER/b.sh"
+  printf 'v2\n' >"$WORK/a.sh"
+  run_guard "cd $WORK && git add a.sh && git commit -m x && cd $OTHER && git add b.sh && git commit -m y"
+  rm -rf "$OTHER"
+  [ "$status" -eq 2 ]
+  [[ $output == *"one commit per command"* ]]
+}
+
+@test "passes two commits in the same directory, whose paths are all checked" {
+  commit_file a.sh
+  commit_file b.sh
+  seal "$(date +%s%N)" "$WORK/a.sh" "$WORK/b.sh"
+  run_guard 'git add a.sh && git commit -m x && git add b.sh && git commit -m y'
+  [ "$status" -eq 0 ]
+  printf 'v2\n' >"$WORK/a.sh"
+  run_guard 'git add a.sh && git commit -m x && git add b.sh && git commit -m y'
+  [ "$status" -eq 2 ]
+  [[ $output == *"a.sh"* ]]
+}
+
 @test "passes a memory commit into another repository while a file there changes that the commit does not take" {
   commit_file claude/.claude/hooks/inject-rules.sh
   mkdir -p "$WORK/claude/.claude/memory"
@@ -807,6 +857,20 @@ commit_file() {
   [ -z "$output" ]
 }
 
+@test "--verdict stays silent and exits 1 when it judged no commit, so the gate falls back" {
+  commit_file a.sh
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  local c
+  for c in 'git status' 'git add a.sh' 'rg -n commit src/'; do
+    run_verdict "$c"
+    [ "$status" -eq 1 ]
+    [ -z "$output" ]
+  done
+  run_verdict 'git commit -m x' /tmp
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+}
+
 @test "--verdict stays silent and exits 1 on every other refusal" {
   # shellcheck disable=SC2016
   for c in 'git -C . commit -m x' 'git commit --amend --no-edit' 'git add . && git push' 'cd "$x" && git commit -m x' $'git status # don\'t\ngit commit -m x' "bash -c 'git commit -m x'"; do
@@ -911,6 +975,9 @@ commit_file() {
   # shellcheck disable=SC2016
   run_guard 'git $verb origin'
   [ "$status" -eq 2 ]
+  run_guard "bash -c 'git \"\"'"
+  [ "$status" -eq 2 ]
+  [[ $output != *"bad array subscript"* ]]
 }
 
 @test "reads an apostrophe in a comment or a heredoc body as text, and a quoted heredoc body as no command" {
@@ -1003,10 +1070,47 @@ commit_file() {
   [[ $output == *"leave it to the user"* ]]
 }
 
+@test "denies a forced add, whose ignored file git status leaves out of the tracking check" {
+  printf 'secret.txt\n' >"$WORK/.gitignore"
+  git -C "$WORK" add -- .gitignore
+  git -C "$WORK" -c user.name=t -c user.email=t@t commit -qm init
+  printf 'v1\n' >"$WORK/secret.txt"
+  seal "$(date +%s%N)" "$WORK/secret.txt"
+  printf 'v2\n' >"$WORK/secret.txt"
+  local c
+  for c in 'git add -f secret.txt && git commit -m x' 'git add --force secret.txt && git commit -m x' 'git add -vf secret.txt && git commit -m x' 'git add --for secret.txt && git commit -m x'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"without -f"* ]]
+  done
+  run_guard 'git rm -f a.sh && git commit -m x'
+  [ "$status" -ne 2 ] || [[ $output != *"without -f"* ]]
+}
+
+@test "denies git commands that disarm the hooks or overwrite the working tree" {
+  local c
+  for c in 'git config core.hooksPath /dev/null' 'git config --global core.hooksPath /dev/null' 'git config --add core.HooksPath /dev/null' 'git apply -R p.diff' 'git apply --reverse p.diff' 'git checkout-index -f -a' 'git checkout-index --force -a' 'git read-tree --reset -u HEAD~1' 'git read-tree -um HEAD'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"leave it to the user"* ]]
+  done
+  run_guard "bash -c 'git config core.hooksPath /dev/null'"
+  [ "$status" -eq 2 ]
+  [[ $output == *"shell string"* ]]
+}
+
+@test "passes the read and non-destructive forms of config, apply, read-tree and checkout-index" {
+  local c
+  for c in 'git config --get filter.t.clean' 'git config core.hooksPath' 'git config --get core.hooksPath' 'git config --unset core.hooksPath' 'git config user.name a' 'git config --list' 'git apply p.diff' 'git read-tree HEAD' 'git checkout-index -a'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "denies plumbing that moves a branch or HEAD" {
   local c
   # shellcheck disable=SC2016
-  for c in 'git update-index --add f && git update-ref HEAD $(git commit-tree $(git write-tree) -p HEAD -m x)' 'git update-ref refs/heads/main abc123' 'git update-ref -d refs/heads/old' "printf 'commit refs/heads/main\n' | git fast-import" 'git symbolic-ref HEAD refs/heads/other' 'git symbolic-ref -m why HEAD refs/heads/other' 'git symbolic-ref --delete refs/heads/alias' 'git worktree add ../x' 'git worktree add --lock --reason why ../x' 'git worktree add -b topic ../x HEAD' 'git worktree add -B topic ../x' 'git worktree add --orphan topic ../x' 'git worktree add --track -b t ../x origin/t' 'git fetch . HEAD:refs/heads/topic' 'git fetch -u origin main:main' 'git fetch -qu origin' "git fetch --refmap='+refs/heads/*:refs/heads/*' origin main"; do
+  for c in 'git update-index --add f && git update-ref HEAD $(git commit-tree $(git write-tree) -p HEAD -m x)' 'git update-ref refs/heads/main abc123' 'git update-ref -d refs/heads/old' "printf 'commit refs/heads/main\n' | git fast-import" 'git symbolic-ref HEAD refs/heads/other' 'git symbolic-ref -m why HEAD refs/heads/other' 'git symbolic-ref --delete refs/heads/alias' 'git symbolic-ref --del refs/heads/alias' 'git symbolic-ref --dele refs/heads/alias' 'git symbolic-ref -qd refs/heads/alias' 'git worktree add ../x' 'git worktree add --lock --reason why ../x' 'git worktree add -b topic ../x HEAD' 'git worktree add -B topic ../x' 'git worktree add --orphan topic ../x' 'git worktree add --track -b t ../x origin/t' 'git fetch . HEAD:refs/heads/topic' 'git fetch -u origin main:main' 'git fetch -qu origin' "git fetch --refmap='+refs/heads/*:refs/heads/*' origin main"; do
     run_guard "$c"
     [ "$status" -eq 2 ]
     [[ $output == *"leave it to the user"* ]]

@@ -257,6 +257,14 @@ staged_change() {
   [[ $output == *"$PROJECT/a.sh"* ]]
 }
 
+@test "falls back to the whole status check when the guard judges no commit in the blocks" {
+  write_at 200 "$PROJECT/a.sh"
+  message=$(block_message 'cd /tmp && git commit -m "feat(x): y"')
+  run_gate "$(payload "$message")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$PROJECT/a.sh"* ]]
+}
+
 @test "ignores modified files under .claude and the memory directory" {
   printf 'x\n' >"$PROJECT/.claude/PLAN.md"
   printf 'x\n' >"$FAKE_HOME/.claude/memory/feedback_x.md"

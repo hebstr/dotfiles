@@ -62,31 +62,39 @@ def stmt($pre):
             else ((.Value // {Parts: []}) | word) as $i | {v: ((.Name.Value // "") + "=" + $i.v), f: $i.f} end
           | .f, .v]);
   def branches: (.Cond[]? | stmt([])), (.Then[]? | stmt([])), (.Else | if . then branches else empty end);
+  def structural:
+    if .Type == "BinaryCmd" then
+      if .Op == 12 or .Op == 13 then ["S"], (.X | stmt([])), ["E"], ["S"], (.Y | stmt([])), ["E"]
+      else (.X | stmt([])), (.Y | stmt([])) end
+    elif .Type == "Subshell" then ["S"], (.Stmts[]? | stmt([])), ["E"]
+    elif .Type == "Block" then .Stmts[]? | stmt([])
+    elif .Type == "IfClause" then ["K", "if"], branches
+    elif .Type == "WhileClause" then ["K", "while"], (.Cond[]? | stmt([])), (.Do[]? | stmt([]))
+    elif .Type == "ForClause" then ["K", "for"], (.Loop | nested), (.Do[]? | stmt([]))
+    elif .Type == "CaseClause" then ["K", "case"], (.Word | nested), (.Items[]? | (.Patterns | nested), (.Stmts[]? | stmt([])))
+    elif .Type == "FuncDecl" then ["K", "a function"], ["S"], (.Body | stmt([])), ["E"]
+    elif .Type == "TimeClause" then (if .Stmt then (.Stmt | stmt(["time"])) else ["K", "time"] end)
+    elif .Type == "CoprocClause" then ["S"], (.Stmt | stmt(["coproc"])), ["E"]
+    elif .Type == "DeclClause" then decl
+    elif .Type == "TestClause" then ["K", "[["], nested
+    elif .Type == "ArithmCmd" then ["K", "(("], nested
+    elif .Type == "LetClause" then ["K", "let"], nested
+    else ["K", .Type], nested end;
   (.Redirs // []) as $r
   | (if any($r[]; .Op | IN(54, 55, 57, 59, 60, 64, 65)) then ["R"] else empty end),
     ($r[] | (.Word, .Hdoc) | nested),
+    ($r[]
+      | select(.Op | IN(61, 62, 63))
+      | if .Hdoc then
+          (if all(.Hdoc.Parts[]?; .Type == "Lit")
+           then ["H", "", (.Hdoc.Parts | map(.Value) | add // "")]
+           else ["H", "d", ""] end)
+        else (.Word | word) as $h | ["H", $h.f, $h.v] end),
     (if .Background then ["S"] else empty end),
     (.Cmd
       | if . == null then empty
         elif .Type == "CallExpr" then call($pre; $r)
-        elif ($pre | length) > 0 then ["K", $pre[0]], nested
-        elif .Type == "BinaryCmd" then
-          if .Op == 12 or .Op == 13 then ["S"], (.X | stmt([])), ["E"], ["S"], (.Y | stmt([])), ["E"]
-          else (.X | stmt([])), (.Y | stmt([])) end
-        elif .Type == "Subshell" then ["S"], (.Stmts[]? | stmt([])), ["E"]
-        elif .Type == "Block" then .Stmts[]? | stmt([])
-        elif .Type == "IfClause" then ["K", "if"], branches
-        elif .Type == "WhileClause" then ["K", "while"], (.Cond[]? | stmt([])), (.Do[]? | stmt([]))
-        elif .Type == "ForClause" then ["K", "for"], (.Loop | nested), (.Do[]? | stmt([]))
-        elif .Type == "CaseClause" then ["K", "case"], (.Word | nested), (.Items[]? | (.Patterns | nested), (.Stmts[]? | stmt([])))
-        elif .Type == "FuncDecl" then ["K", "a function"], ["S"], (.Body | stmt([])), ["E"]
-        elif .Type == "TimeClause" then (if .Stmt then (.Stmt | stmt(["time"])) else ["K", "time"] end)
-        elif .Type == "CoprocClause" then ["S"], (.Stmt | stmt(["coproc"])), ["E"]
-        elif .Type == "DeclClause" then decl
-        elif .Type == "TestClause" then ["K", "[["], nested
-        elif .Type == "ArithmCmd" then ["K", "(("], nested
-        elif .Type == "LetClause" then ["K", "let"], nested
-        else ["K", .Type], nested end),
+        else (if ($pre | length) > 0 then ["K", $pre[0]] else empty end), structural end),
     (if .Background then ["E"] else empty end);
 
 (if any(.. | objects | select(has("Hash")) | .Text; test("\\\\\n$")) then ["X"] else [] end)
