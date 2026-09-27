@@ -1,6 +1,6 @@
 ---
 name: quarto-hebstr-doc has no public API constraint, no contributor policy
-description: quarto-hebstr-doc is still in development with one developer; no public-API or versioning-policy argument, no CONTRIBUTING.md (removed 2026-09-26), consumer breakage is not a design constraint
+description: quarto-hebstr-doc is still in development with one developer; no public-API or versioning-policy argument, no CONTRIBUTING.md (removed 2026-09-26), consumer breakage is not a design constraint, publishing its shortcodes is not a goal
 metadata:
   type: feedback
 ---
@@ -9,4 +9,4 @@ When designing or releasing a change to the quarto-hebstr-doc extension, do not 
 
 **Why:** the user migrates their own consumers; compatibility shims, "keep the old key" variants and policy wording cost more than that migration, and raising them repeatedly irritates the user.
 
-**How to apply:** when a breaking change is the cleaner design, propose it directly and name the consumer files to migrate once; add no alias or legacy key unless asked; do not propose recreating `CONTRIBUTING.md` or rewording a versioning policy unless the user brings it up; do not offer to edit the consumer projects from this repository. This project is an exception to the `rules/css.md` line asking the repo's contributing docs to state `npm ci`: that line does not justify recreating `CONTRIBUTING.md` here. Related: [[feedback_review_severity_hebstr_doc]].
+**How to apply:** when a breaking change is the cleaner design, propose it directly and name the consumer files to migrate once; add no alias or legacy key unless asked; do not propose recreating `CONTRIBUTING.md` or rewording a versioning policy unless the user brings it up; do not offer to edit the consumer projects from this repository. Publishing its shortcodes as standalone extensions is not a goal either (user's decision on 2026-09-27, closing the extraction item; reasons and reopening trigger in the project's `.claude/RECO-SHORTCODES-EXTRACTION.md`): do not re-propose extracting `filetree` or `script` unless the user brings up a publication goal or a concrete consumer that does not install hebstr-doc (one of their own projects counts). This project is an exception to the `rules/css.md` line asking the repo's contributing docs to state `npm ci`: that line does not justify recreating `CONTRIBUTING.md` here. Related: [[feedback_review_severity_hebstr_doc]].
