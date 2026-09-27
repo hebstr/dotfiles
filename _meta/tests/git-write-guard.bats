@@ -392,8 +392,7 @@ commit_file() {
   printf 'v2\n' >"$WORK/a.sh"
   run_guard 'git add a.sh && git commit -m "fix: x"'
   [ "$status" -eq 2 ]
-  [[ $output == *"$WORK/a.sh"* ]]
-  [[ $output == *"commit skill"* ]]
+  [[ $output == *"changed after the last tracking verification"*"$WORK/a.sh"* ]]
 }
 
 @test "passes an add alone when a tracked file changed after the stamp" {
@@ -429,6 +428,20 @@ commit_file() {
     /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$payload" "$SCRIPT"
   [ "$status" -eq 2 ]
   [[ $output == *"session id is unusable"* ]]
+}
+
+@test "denies a commit when git status fails" {
+  commit_file a.sh
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  local real
+  real=$(command -v git)
+  rm "$STUB_DIR/git"
+  # shellcheck disable=SC2016
+  printf '#!/bin/bash\nfor a; do [[ $a == status ]] && exit 128; done\nexec %q "$@"\n' "$real" >"$STUB_DIR/git"
+  chmod +x "$STUB_DIR/git"
+  run_guard 'git add a.sh && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"git status failed"* ]]
 }
 
 @test "passes a commit whose staged file kept its content through a prek restore" {
@@ -509,13 +522,13 @@ commit_file() {
   printf 'v3\n' >"$WORK/b.sh"
   printf 'x\n' >"$WORK/other.md"
   local c
-  for c in 'git add --upd && git commit -m x' 'git add --renormalize && git commit -m x' 'git add --renorm && git commit -m x'; do
+  for c in 'git add -u && git commit -m x' 'git add -vu && git commit -m x' 'git add --upd && git commit -m x' 'git add --renormalize && git commit -m x' 'git add --renorm && git commit -m x'; do
     run_guard "$c"
     [ "$status" -eq 2 ]
     [[ $output == *"$WORK/b.sh"* ]]
     [[ $output != *other.md* ]]
   done
-  for c in 'git add --al && git commit -m x' 'git add --no-ignore-r && git commit -m x' 'git add --patc && git commit -m x' 'git add --ed && git commit -m x' 'git add --pathspec-fr=list && git commit -m x' 'git commit --interac -m x' 'git commit --patc -m x'; do
+  for c in 'git add -vA && git commit -m x' 'git commit -p -m x' 'git commit -vp -m x' 'git add --al && git commit -m x' 'git add --no-ignore-r && git commit -m x' 'git add --patc && git commit -m x' 'git add --ed && git commit -m x' 'git add --pathspec-fr=list && git commit -m x' 'git commit --interac -m x' 'git commit --patc -m x'; do
     run_guard "$c"
     [ "$status" -eq 2 ]
     [[ $output == *"$WORK/other.md"* ]]
@@ -579,9 +592,13 @@ commit_file() {
   printf 'v2\n' >"$WORK/a.sh"
   seal "$(date +%s%N)" "$WORK/a.sh"
   printf 'x\n' >"$WORK/other.md"
-  run_guard 'git add "a.sh" && git commit -m "fix: x"'
-  [ "$status" -eq 2 ]
-  [[ $output == *"$WORK/other.md"* ]]
+  local c
+  # shellcheck disable=SC2016
+  for c in 'git add "a.sh" && git commit -m "fix: x"' 'git add *.sh && git commit -m x' 'git add :/ && git commit -m x' 'git add $f && git commit -m x' 'git add a\.sh && git commit -m x'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"$WORK/other.md"* ]]
+  done
 }
 
 @test "checks the repository a cd leads to, not the directory of the session" {
@@ -892,7 +909,7 @@ commit_file() {
 @test "denies plumbing that moves a branch or HEAD" {
   local c
   # shellcheck disable=SC2016
-  for c in 'git update-index --add f && git update-ref HEAD $(git commit-tree $(git write-tree) -p HEAD -m x)' 'git update-ref refs/heads/main abc123' 'git update-ref -d refs/heads/old' "printf 'commit refs/heads/main\n' | git fast-import" 'git symbolic-ref HEAD refs/heads/other' 'git symbolic-ref -m why HEAD refs/heads/other' 'git symbolic-ref --delete refs/heads/alias' 'git worktree add ../x' 'git worktree add -b topic ../x HEAD' 'git worktree add -B topic ../x' 'git worktree add --orphan topic ../x' 'git worktree add --track -b t ../x origin/t' 'git fetch . HEAD:refs/heads/topic' 'git fetch -u origin main:main' 'git fetch -qu origin' "git fetch --refmap='+refs/heads/*:refs/heads/*' origin main"; do
+  for c in 'git update-index --add f && git update-ref HEAD $(git commit-tree $(git write-tree) -p HEAD -m x)' 'git update-ref refs/heads/main abc123' 'git update-ref -d refs/heads/old' "printf 'commit refs/heads/main\n' | git fast-import" 'git symbolic-ref HEAD refs/heads/other' 'git symbolic-ref -m why HEAD refs/heads/other' 'git symbolic-ref --delete refs/heads/alias' 'git worktree add ../x' 'git worktree add --lock --reason why ../x' 'git worktree add -b topic ../x HEAD' 'git worktree add -B topic ../x' 'git worktree add --orphan topic ../x' 'git worktree add --track -b t ../x origin/t' 'git fetch . HEAD:refs/heads/topic' 'git fetch -u origin main:main' 'git fetch -qu origin' "git fetch --refmap='+refs/heads/*:refs/heads/*' origin main"; do
     run_guard "$c"
     [ "$status" -eq 2 ]
     [[ $output == *"leave it to the user"* ]]
