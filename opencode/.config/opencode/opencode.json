@@ -77,6 +77,8 @@
       "git clean*": "deny",
       "git pull*": "deny",
       "git am*": "deny",
+      "git update-ref*": "deny",
+      "git fast-import*": "deny",
       "git branch -m*": "deny",
       "git branch -M*": "deny",
       "git branch -c*": "deny",

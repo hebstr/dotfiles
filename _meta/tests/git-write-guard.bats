@@ -82,6 +82,23 @@ commit_file() {
   [ "$status" -eq 0 ]
 }
 
+@test "denies an assignment other than SKIP before add, commit, rm or mv" {
+  local c
+  for c in 'GIT_DIR=/tmp/x/.git git commit -m x' 'GIT_INDEX_FILE=/tmp/idx git commit -m x' 'GIT_WORK_TREE=/tmp/x git add .' 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/dev/null git commit -m x' "GIT_CONFIG_PARAMETERS=\"'core.hooksPath=/dev/null'\" git commit -m x" 'HOME=/tmp/x git commit -m x' 'SKIP=metadata-only GIT_DIR=/tmp/x git commit -m x' 'LC_ALL=C git rm --cached a.sh' 'X=1 git mv a.sh b.sh'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"SKIP= being the only assignment kept"* ]]
+  done
+}
+
+@test "passes SKIP before a commit and any assignment before a git read" {
+  local c
+  for c in 'SKIP="metadata-only,shellcheck" git commit -m x' 'GIT_DIR=/tmp/x/.git git log -1' 'LC_ALL=C git status'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "passes a commit reached through cd" {
   run_guard 'cd ~/dotfiles && git commit -m "fix(bin): x"'
   [ "$status" -eq 0 ]
@@ -140,6 +157,59 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
+@test "denies a git write through any spelling of a shell string" {
+  local c cases=(
+    "/bin/bash -c 'git push origin main'"
+    "/usr/bin/sh -c 'git push'"
+    "bash --norc -c 'git push'"
+    "bash -O extglob -c 'git push'"
+    $'bash -c \'g""it push\''
+    $'bash -c \'git pu""sh\''
+    'bash -c "git pu\sh"'
+    $'bash \\\n  -c \'git push\''
+    $'bash -c "\\$\'git\' push"'
+    "bash -c 'x=\$(git push)'"
+    $'bash -c $\'\\x67it push\''
+  )
+  for c in "${cases[@]}"; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"shell string"* ]]
+  done
+}
+
+@test "denies an alias, a variable or git options hiding a write inside a shell string" {
+  git -C "$WORK" config alias.p push
+  # shellcheck disable=SC2016
+  local c cases=(
+    "bash -c 'git p origin main'"
+    'v=push; bash -c "git $v origin main"'
+    "bash -c 'git -c alias.q=push q'"
+    "bash -c 'cd x && git -C . commit -m y'"
+    "bash -c 'git \"\$0\" origin main' push"
+  )
+  for c in "${cases[@]}"; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"shell string"* ]]
+  done
+}
+
+@test "passes git reads inside a shell string" {
+  local c cases=(
+    "bash -c 'git status'"
+    "bash -c 'top=\$(git rev-parse --show-toplevel); echo \$top'"
+    "sh -c 'git -C ~/dotfiles log --oneline -3'"
+    "timeout 30 bash -c 'git diff --stat'"
+    "bash -c 'echo hi' && git status"
+    "bash -c 's=\"git push\"; printf %s \"\$s\"'"
+  )
+  for c in "${cases[@]}"; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "denies a commit behind a wrapper" {
   run_guard 'env GIT_EDITOR=true git commit -m x'
   [ "$status" -eq 2 ]
@@ -158,15 +228,51 @@ commit_file() {
   done
 }
 
+@test "reads a git whose name is quoted" {
+  local c
+  for c in '"git" push origin main' "'git' push origin main" '"g"it push' $'$\'git\' push' '$"git" push' "timeout 30 'git' push"; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"leave it to the user"* ]]
+  done
+  for c in '"git" commit --no-verify -m x' "'git' add -A"; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"escaped or quoted"* ]]
+  done
+  run_guard 'git ls-files | xargs "git" rm'
+  [ "$status" -eq 2 ]
+  [[ $output == *"escaped or quoted"* ]]
+}
+
+@test "denies a gated verb after a program name held in a variable, a substitution or escapes" {
+  local c
+  # shellcheck disable=SC2016
+  for c in 'g=git; $g push origin main' '"$g" push origin main' '${g} commit -m x' '$(echo git) push origin main' '`echo git` push origin main' '$g -C . push' $'$\'\\x67it\' push' $'$\'\\x67\\x69\\x74\' $\'\\x70\\x75\\x73\\x68\'' $'g=$\'\\x67it\'; $g push' $'$(printf \'\\x67it\') push'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"cannot read"* ]]
+  done
+}
+
+@test "passes a program held in a variable or a substitution when no gated verb follows" {
+  local c
+  # shellcheck disable=SC2016
+  for c in '"$EDITOR" notes.md' '$(command -v python3) -c "print(1)"' '"$SCRIPT" --dry-run' '"git" status' "'git' log -1" '"$PY" "$SCRIPT"' "echo '\$HOME' && git status" 'cleanup() { rm -f "$f"; }; trap cleanup EXIT; git status' 'x=`rm -v "$f"`; git status' $'# don\'t\nrm -f "$x"' "bash -c 'while IFS=\$'\"'\"'\\t'\"'\"' read -r a; do echo \"\$a\"; done' && git status"; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "denies a git write whose program name or subcommand is escaped or redirected" {
-  for c in '\git push' 'g""it push' 'git pu\sh' 'git a\dd a.sh' 'git 2>/dev/null push' 'git 2> /dev/null add a.sh'; do
+  for c in '\git push' 'g""it push' 'git pu\sh' 'git a\dd a.sh' 'git 2>/dev/null push' 'git 2> /dev/null add a.sh' 'git 2>&1 push origin main' 'git >&2 push' 'git &>/dev/null push' 'git 2>&1 add a.sh' 'git <&0 push'; do
     run_guard "$c"
     [ "$status" -eq 2 ]
   done
 }
 
 @test "passes read commands that name git after another program or carry a redirection" {
-  for c in 'command -v git' 'fdfind -e md -x wc -l' 'find . -name .git -prune' 'git 2>/dev/null status' 'rg -c git src/'; do
+  for c in 'command -v git' 'fdfind -e md -x wc -l' 'find . -name .git -prune' 'git 2>/dev/null status' 'rg -c git'; do
     run_guard "$c"
     [ "$status" -eq 0 ]
   done
@@ -176,7 +282,7 @@ commit_file() {
   git -C "$WORK" config alias.ci commit
   run_guard 'git ci -m "fix: x"'
   [ "$status" -eq 2 ]
-  [[ $output == *"alias git ci"* ]]
+  [[ $output == *"git ci is not a command git lists"* ]]
 }
 
 @test "denies a shell alias that runs add" {
@@ -185,10 +291,65 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
-@test "passes an alias that expands to a read command" {
+@test "denies an alias even when it expands to a read command" {
   git -C "$WORK" config alias.st 'status -sb'
   run_guard 'git st'
+  [ "$status" -eq 2 ]
+  [[ $output == *"not a command git lists"* ]]
+}
+
+@test "denies an alias saved with the subsection syntax" {
+  git -C "$WORK" config alias.p.command push
+  run_guard 'git p origin main'
+  [ "$status" -eq 2 ]
+  [[ $output == *"not a command git lists"* ]]
+}
+
+@test "denies an alias the command defines or redefines itself" {
+  git -C "$WORK" config alias.st 'status -sb'
+  # shellcheck disable=SC2016
+  for c in 'git -c alias.p=push p origin main' 'git -c Alias.C=commit c -m x' "git -c 'alias.p=push' p" "git -c 'alias.src/.command=!git push' src/" 'git --config-env=alias.p=V p' 'git --config-env alias.p=V p' 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p' "GIT_CONFIG_PARAMETERS=\"'alias.p=push'\" git p" 'git config alias.p push && git p origin main' 'HOME=/tmp/x git p' 'cd /tmp && git p' 'git -c alias.st=push st origin main'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"not a command git lists"* ]]
+  done
+}
+
+@test "denies an alias over a deprecated command, which git lets it override" {
+  run_guard "git -c alias.whatchanged='!git push' whatchanged"
+  [ "$status" -eq 2 ]
+  git -C "$WORK" config alias.pack-redundant '!git push'
+  run_guard 'git pack-redundant'
+  [ "$status" -eq 2 ]
+}
+
+@test "passes read commands carrying configuration options" {
+  for c in 'git -c core.pager=less log' 'git -c color.ui=always status' 'git --config-env=color.ui=C diff' 'git help push'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
+@test "denies an unquoted git that another program reads, when a non-command follows it" {
+  run_guard 'rg -c git src/'
+  [ "$status" -eq 2 ]
+  [[ $output == *"quote it"* ]]
+  run_guard "rg -c 'git' src/"
   [ "$status" -eq 0 ]
+}
+
+@test "denies every git subcommand when git cannot list its commands" {
+  local real
+  real=$(command -v git)
+  rm "$STUB_DIR/git"
+  # shellcheck disable=SC2016
+  for body in '[[ $1 == --list-cmds=* ]] && exit 1' '[[ $1 == --list-cmds=* ]] && exit 0' '[[ $1 == --list-cmds=deprecated ]] && exit 1'; do
+    printf '#!/bin/bash\n%s\nexec %q "$@"\n' "$body" "$real" >"$STUB_DIR/git"
+    chmod +x "$STUB_DIR/git"
+    run_guard 'git status'
+    [ "$status" -eq 2 ]
+    [[ $output == *"could not read the list of git commands"* ]]
+  done
 }
 
 @test "denies --no-verify" {
@@ -339,6 +500,80 @@ commit_file() {
   [[ $output != *other.md* ]]
 }
 
+@test "reads an abbreviated long option that widens what add or commit takes" {
+  commit_file a.sh
+  commit_file b.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  printf 'v2\n' >"$WORK/b.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh" "$WORK/b.sh"
+  printf 'v3\n' >"$WORK/b.sh"
+  printf 'x\n' >"$WORK/other.md"
+  local c
+  for c in 'git add --upd && git commit -m x' 'git add --renormalize && git commit -m x' 'git add --renorm && git commit -m x'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"$WORK/b.sh"* ]]
+    [[ $output != *other.md* ]]
+  done
+  for c in 'git add --al && git commit -m x' 'git add --no-ignore-r && git commit -m x' 'git add --patc && git commit -m x' 'git add --ed && git commit -m x' 'git add --pathspec-fr=list && git commit -m x' 'git commit --interac -m x' 'git commit --patc -m x'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"$WORK/other.md"* ]]
+  done
+}
+
+@test "checks a tracked symlink the commit takes, not its target" {
+  printf 'a\n' >"$WORK/a.sh"
+  printf 'b\n' >"$WORK/b.sh"
+  ln -s a.sh "$WORK/link"
+  git -C "$WORK" add a.sh b.sh link
+  git -C "$WORK" -c user.name=t -c user.email=t@t commit -qm init
+  seal "$(date +%s%N)" "$WORK/link"
+  ln -sfn b.sh "$WORK/link"
+  run_guard 'git add link && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/link"* ]]
+  run_guard 'git add ./link/ && git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/link"* ]]
+}
+
+@test "checks the files under a symlinked directory named as a pathspec" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'v3\n' >"$WORK/a.sh"
+  ln -s "$WORK" "$FAKE_HOME/proj"
+  local c
+  for c in "git add $FAKE_HOME/proj && git commit -m x" "git add $FAKE_HOME/proj/ && git commit -m x"; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"$WORK/a.sh"* ]]
+  done
+}
+
+@test "denies a command that writes before the commit it holds" {
+  commit_file a.sh
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  local c
+  for c in 'printf x > a.sh && git add a.sh && git commit -m x' 'git add a.sh && sed -i s/v1/v2/ a.sh && git commit -m x' 'git add a.sh && git commit -m x > log' 'git status && git add a.sh && git commit -m x' 'cp b.sh a.sh; git commit -am x' 'printf x > a.sh; git commit -m -h -a'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"only cd and git add, rm, mv or commit"* ]]
+  done
+}
+
+@test "passes a commit block of cd and git add, rm, mv and commit, or a commit into a repository the command creates" {
+  commit_file a.sh
+  commit_file c.sh
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  local c
+  for c in "cd $WORK && git add a.sh && git commit -m x" 'SKIP=metadata-only git commit -m x' 'git rm --cached c.sh && git commit -m x' 'git mv c.sh d.sh && git commit -m x' "cd $WORK/new && git init -q && printf x > f && git add f && git commit -m x" 'git add -h | head -3; git commit -h | head -3' 'git add -h 2>&1 | head -3; git commit -h 2>&1 | head -3'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "checks the whole tree when a pathspec cannot be resolved" {
   commit_file a.sh
   printf 'v2\n' >"$WORK/a.sh"
@@ -461,6 +696,26 @@ commit_file() {
   [[ $output == *"plain path"* ]]
 }
 
+@test "denies a commit after a directory change the guard cannot follow" {
+  local c
+  for c in 'builtin cd /tmp && git commit -m x' 'command cd /tmp && git commit -m x' 'builtin pushd /tmp && git commit -m x' '\cd /tmp && git commit -m x' "'cd' /tmp && git commit -m x" 'pushd +1 && git commit -m x' 'CDPATH=/tmp; cd sub && git commit -m x' 'export CDPATH=/tmp; cd sub && git commit -m x' 'HOME=/tmp; cd && git commit -m x' 'HOME=/tmp cd && git commit -m x' 'HOME=/tmp; git add ~/a.sh && git commit -m x'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"plain path"* ]]
+  done
+}
+
+@test "does not read a lookup or a word HOME as a directory change" {
+  local c
+  # shellcheck disable=SC2016
+  for c in 'command -v git && git commit -m x' 'printf %s "$HOME" && git commit -m x'; do
+    run_guard "$c"
+    [[ $output != *"plain path"* ]]
+  done
+  run_guard "cd $WORK && git commit -m x"
+  [ "$status" -eq 0 ]
+}
+
 @test "names a path the verification never sealed as possibly another session's, to leave out" {
   commit_file a.sh
   printf 'v2\n' >"$WORK/a.sh"
@@ -568,20 +823,16 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
-@test "resolves aliases whatever their case and through chains" {
+@test "denies an alias whatever its case and through chains" {
   git -C "$WORK" config alias.sw switch
   git -C "$WORK" config alias.a2 sw
   git -C "$WORK" config alias.l1 l2
   git -C "$WORK" config alias.l2 l1
-  run_guard 'git SW main'
-  [ "$status" -eq 2 ]
-  [[ $output == *"leave it to the user"* ]]
-  run_guard 'git a2 main'
-  [ "$status" -eq 2 ]
-  [[ $output == *"leave it to the user"* ]]
-  run_guard 'git l1'
-  [ "$status" -eq 2 ]
-  [[ $output == *"too many aliases"* ]]
+  for c in 'git SW main' 'git a2 main' 'git l1'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"not a command git lists"* ]]
+  done
 }
 
 @test "denies a quoted or variable subcommand" {
@@ -599,6 +850,64 @@ commit_file() {
   run_guard $'cat > f <<\'EOF\'\ndon\'t\nEOF\ngit add a.sh && git commit -m x'
   [ "$status" -eq 2 ]
   [[ $output == *"quote open"* ]]
+}
+
+@test "reads a git call across a line continuation" {
+  run_guard $'git \\\n  push origin main'
+  [ "$status" -eq 2 ]
+  [[ $output == *"leave it to the user"* ]]
+  run_guard $'git -c \\\n  alias.p=push p origin main'
+  [ "$status" -eq 2 ]
+  [[ $output == *"not a command git lists"* ]]
+  run_guard $'env \\\n  git commit -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"wrapper env"* ]]
+  run_guard $'git commit \\\n  --amend --no-edit'
+  [ "$status" -eq 2 ]
+  [[ $output == *"--amend"* ]]
+  run_guard $'git commit \\\n  -n -m x'
+  [ "$status" -eq 2 ]
+  [[ $output == *"--no-verify"* ]]
+  run_guard $'git commit -m fix#1 \\\n  --amend'
+  [ "$status" -eq 2 ]
+  [[ $output == *"--amend"* ]]
+}
+
+@test "passes a git command split over lines by a continuation" {
+  run_guard $'git \\\n  commit -m "fix: x"'
+  [ "$status" -eq 0 ]
+  run_guard $'git log \\\n  --oneline -5'
+  [ "$status" -eq 0 ]
+}
+
+@test "does not join the line after a comment or an escaped backslash" {
+  run_guard $'git status # see \\\ngit push'
+  [ "$status" -eq 2 ]
+  [[ $output == *"leave it to the user"* ]]
+  run_guard $'echo a\\\\\ngit push'
+  [ "$status" -eq 2 ]
+  [[ $output == *"leave it to the user"* ]]
+}
+
+@test "denies plumbing that moves a branch or HEAD" {
+  local c
+  # shellcheck disable=SC2016
+  for c in 'git update-index --add f && git update-ref HEAD $(git commit-tree $(git write-tree) -p HEAD -m x)' 'git update-ref refs/heads/main abc123' 'git update-ref -d refs/heads/old' "printf 'commit refs/heads/main\n' | git fast-import" 'git symbolic-ref HEAD refs/heads/other' 'git symbolic-ref -m why HEAD refs/heads/other' 'git symbolic-ref --delete refs/heads/alias' 'git worktree add ../x' 'git worktree add -b topic ../x HEAD' 'git worktree add -B topic ../x' 'git worktree add --orphan topic ../x' 'git worktree add --track -b t ../x origin/t' 'git fetch . HEAD:refs/heads/topic' 'git fetch -u origin main:main' 'git fetch -qu origin' "git fetch --refmap='+refs/heads/*:refs/heads/*' origin main"; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"leave it to the user"* ]]
+  done
+  run_guard "bash -c 'git worktree add ../x'"
+  [ "$status" -eq 2 ]
+  [[ $output == *"shell string"* ]]
+}
+
+@test "passes plumbing that reads, or touches only the index and objects" {
+  local c
+  for c in 'git symbolic-ref HEAD' 'git symbolic-ref --short -q HEAD' 'git symbolic-ref --short HEAD 2>/dev/null' 'git symbolic-ref HEAD 2> /dev/null' 'git branch -a --contains HEAD 2>&1' 'git worktree list' 'git worktree add -q --detach ../x v1.1.5' 'git -C . worktree add -q --detach ../x 1.1.5 2>&1' 'git worktree add ../x v1.1.5' 'git worktree prune' 'git update-index --refresh' 'git write-tree' 'git rev-parse HEAD' 'git fetch -q origin' 'git fetch --tags -q origin' 'git fetch --dry-run' 'git fetch git@github.com:user/repo.git main'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
 }
 
 @test "denies creating, renaming or deleting a branch" {
