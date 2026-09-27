@@ -175,6 +175,46 @@ staged_change() {
   [[ $output == *"stale"* ]]
 }
 
+@test "blocks a block whose commit line opens on cd, when the commit takes a file changed after the verification" {
+  git init -q "$OUTSIDE"
+  printf 'v1\n' >"$OUTSIDE/a.sh"
+  seal "$(date +%s%N)" "$OUTSIDE/a.sh"
+  printf 'v2\n' >"$OUTSIDE/a.sh"
+  run_gate "$(payload "$(block_message "cd $OUTSIDE && git add a.sh && git commit -m \"fix: y\"")")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$OUTSIDE/a.sh"* ]]
+}
+
+@test "blocks a commit line that opens on cd or pushd, in each form" {
+  staged_change
+  for line in "cd $PROJECT && git commit -m x" "pushd $PROJECT && git commit -m x" "cd $PROJECT; git commit -m x" "cd \"$PROJECT\" && git commit -m x" "cd '$PROJECT' && git commit -m x" "cd $WORK && cd proj && git add a.sh && git commit -m x"; do
+    run_gate "$(payload "$(block_message "$line")")"
+    [ "$status" -eq 2 ]
+    [[ $output == *"$PROJECT/a.sh"* ]]
+  done
+}
+
+@test "passes a one-line memory commit into another repository while foreign files change in both repositories" {
+  commit_file claude/.claude/hooks/inject-rules.sh
+  mkdir -p "$WORK/claude/.claude/memory"
+  rm -rf "$FAKE_HOME/.claude/memory"
+  ln -s "$WORK/claude/.claude/memory" "$FAKE_HOME/.claude/memory"
+  printf '%s\n' home/ >>"$WORK/.git/info/exclude"
+  git init -q "$OUTSIDE"
+  printf 'x\n' >"$OUTSIDE/filetree.lua"
+  printf 'x\n' >"$WORK/claude/.claude/memory/feedback_x.md"
+  seal "$(date +%s%N)" "$OUTSIDE/filetree.lua" "$WORK/claude/.claude/memory/feedback_x.md"
+  printf 'v2\n' >"$WORK/claude/.claude/hooks/inject-rules.sh"
+  printf 'x\n' >"$OUTSIDE/other-session.lua"
+  run_gate "$(payload "$(block_message "cd $WORK && git add claude/.claude/memory/feedback_x.md && git commit -m \"docs(claude): x\"")" false "$OUTSIDE")"
+  [ "$status" -eq 0 ]
+  printf 'v3\n' >"$WORK/claude/.claude/memory/feedback_x.md"
+  printf 'x\n' >"$WORK/a.sh"
+  run_gate "$(payload "$(block_message "cd $WORK && git add claude/.claude/memory/feedback_x.md a.sh && git commit -m \"docs(claude): x\"")" false "$OUTSIDE")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/a.sh"* ]]
+}
+
 @test "carries a cd from one commit block to the next, as the shell does across Bash calls" {
   git init -q "$OUTSIDE"
   printf 'v1\n' >"$OUTSIDE/a.sh"
@@ -422,6 +462,11 @@ staged_change() {
   write_at 200 "$PROJECT/a.sh"
   # shellcheck disable=SC2016
   run_gate "$(payload 'Une ligne `git add … && git commit -m` passait inaperçue.')"
+  [ "$status" -eq 0 ]
+  # shellcheck disable=SC2016
+  run_gate "$(payload 'Lance ensuite `cd ~/dotfiles && git commit -m x` toi-même.')"
+  [ "$status" -eq 0 ]
+  run_gate "$(payload "$(printf '%s\n' 'Le motif lit :' 'cd, puis git commit')")"
   [ "$status" -eq 0 ]
 }
 

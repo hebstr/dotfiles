@@ -20,7 +20,7 @@ elif [[ -e $blocked ]]; then
   exit 0
 fi
 
-pattern='(^|\n)[ \t]*(([A-Za-z_][A-Za-z0-9_]*=("[^"\n]*"|[^ \t\n"])*[ \t]+)*git [^\n]*[;&|][ \t]*)?([A-Za-z_][A-Za-z0-9_]*=("[^"\n]*"|[^ \t\n"])*[ \t]+)*git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\b'
+pattern='(^|\n)[ \t]*((cd|pushd)([ \t]+("[^"\n]*"|'\''[^'\''\n]*'\''|[^ \t\n;&|"'\''])+)?[ \t]*(&&|;)[ \t]*)*(([A-Za-z_][A-Za-z0-9_]*=("[^"\n]*"|[^ \t\n"])*[ \t]+)*git [^\n]*[;&|][ \t]*)?([A-Za-z_][A-Za-z0-9_]*=("[^"\n]*"|[^ \t\n"])*[ \t]+)*git([ \t]+-[Cc][ \t]+[^ \t\n]+)*[ \t]+commit\b'
 printf '%s' "$payload" | jq -e --arg re "$pattern" '(.last_assistant_message // "") | test($re)' >/dev/null 2>&1 || exit 0
 
 open='^ {0,3}(`{3,}|~{3,})'
