@@ -12,13 +12,13 @@ session=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null) || exi
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 
 confirmed='add|commit|rm|mv'
-left='push|reset|checkout|switch|restore|stash|merge|rebase|tag|cherry-pick|revert|clean|pull|am|update-ref|fast-import'
+left='push|reset|checkout|switch|restore|stash|merge|rebase|tag|cherry-pick|revert|clean|pull|am|update-ref|fast-import|replay|filter-branch|bisect|send-pack'
 gated="$confirmed|stage|$left|branch"
 mixed='symbolic-ref|worktree|fetch'
 gated_word="(^|[^[:alnum:]_-])($gated)([^[:alnum:]_-]|\$)"
-ansi_escape='[$]'\''[^'\'']*[\\][^tnr'\''"\\]'
-mark=$'\x1f'
 hide=$'\x1e'
+jq_file="${BASH_SOURCE[0]%/*}/git-write-guard.jq"
+plainly="Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
 
 [[ ${cmd//[\"\'\\]/} == *git* || $cmd == *\$\'* || ($cmd == *[\$\`]* && $cmd =~ $gated_word) ]] || exit 0
 
@@ -37,88 +37,14 @@ leave() {
   deny "$1 is a git write the user runs: leave it to the user, and do not look for another form."
 }
 
-keep() {
-  if [[ $1 == [[:space:]\;\&\|\(\)\`] ]]; then
-    plain+=$mark
-  else
-    plain+=$1
-  fi
-}
+command -v shfmt >/dev/null 2>&1 ||
+  deny "shfmt is missing, so the guard cannot read this command: install it (sudo apt install shfmt), and leave the git command to the user until then."
+[[ -r $jq_file ]] ||
+  deny "could not read git-write-guard.jq beside the guard, so it cannot read this command: leave the git command to the user."
 
-strip_quotes() {
-  local s=$1 q="" c i comment=0 ansi=0
-  stripped=""
-  plain=""
-  for ((i = 0; i < ${#s}; i++)); do
-    c=${s:i:1}
-    if [[ -n $q ]]; then
-      if [[ $c == "$q" ]]; then
-        q=""
-      elif ((ansi)) && [[ $c == "\\" ]]; then
-        plain+=$hide
-        ((i++))
-      elif [[ $q == '"' && $c == "\\" ]]; then
-        ((i++))
-        keep "${s:i:1}"
-      elif [[ $q == "'" && $c == '$' ]]; then
-        plain+=$mark
-      elif [[ $q == '"' && $c == '`' ]]; then
-        plain+='$'
-      else
-        keep "$c"
-      fi
-      continue
-    fi
-    case $c in
-    \' | \")
-      q=$c
-      ansi=0
-      stripped+=$mark
-      plain+=$mark
-      ;;
-    '$')
-      if [[ ${s:i+1:1} == [\'\"] ]]; then
-        ((i++))
-        q=${s:i:1}
-        ansi=0
-        [[ $q == "'" ]] && ansi=1
-        stripped+=$mark
-        plain+=$mark
-      else
-        stripped+=$c
-        plain+=$c
-      fi
-      ;;
-    \\)
-      if [[ ${s:i+1:1} == $'\n' ]]; then
-        if ((comment)); then
-          stripped+=${s:i:2}
-          plain+=${s:i:2}
-        fi
-        comment=0
-      else
-        stripped+=${s:i:2}
-        plain+=${s:i:2}
-      fi
-      ((i++))
-      ;;
-    '#')
-      ((i == 0)) || [[ ${s:i-1:1} == [[:space:]\;\&\|\(\)] ]] && comment=1
-      stripped+=$c
-      plain+=$c
-      ;;
-    $'\n')
-      comment=0
-      stripped+=$c
-      plain+=$c
-      ;;
-    *)
-      stripped+=$c
-      plain+=$c
-      ;;
-    esac
-  done
-  [[ -z $q ]]
+parse() {
+  mapfile -d '' -t tok < <(printf '%s' "$1" | shfmt -ln bash --to-json 2>/dev/null | jq -j -f "$jq_file" 2>/dev/null)
+  wait "$!" && [[ ${tok[0]-} != X ]]
 }
 
 declare -A known=()
@@ -132,47 +58,144 @@ if listed=$(git --list-cmds=builtins,main,others 2>/dev/null) &&
   done <<<"$deprecated"
 fi
 
+read_call() {
+  local k na
+  na=${tok[t]}
+  names=("${tok[@]:t+1:na}")
+  t=$((t + 1 + na))
+  nw=${tok[t]}
+  t=$((t + 1))
+  wf=()
+  wv=()
+  for ((k = 0; k < nw; k++)); do
+    wf+=("${tok[t]}")
+    wv+=("${tok[t + 1]}")
+    t=$((t + 2))
+  done
+}
+
 after_git_options() {
-  local -n words=$1
   local m
-  for ((m = $2; m < ${#words[@]}; m++)); do
-    case ${words[m]} in
-    -C | -c | --git-dir | --work-tree | --namespace | --exec-path | --super-prefix | --config-env | --attr-source) ((m++)) ;;
+  gitc=()
+  gitloc=0
+  for ((m = $1; m < nw; m++)); do
+    case ${wv[m]} in
+    -C)
+      gitc+=("${wf[m + 1]-}"$'\t'"${wv[m + 1]-}")
+      ((m++))
+      ;;
+    --git-dir | --work-tree)
+      gitloc=1
+      ((m++))
+      ;;
+    -c | --namespace | --exec-path | --super-prefix | --config-env | --attr-source) ((m++)) ;;
+    --git-dir=* | --work-tree=*) gitloc=1 ;;
     -*) ;;
     *) break ;;
     esac
   done
-  printf '%s' "${words[m]-}"
+  ge=$m
 }
 
-runner='(^|[^[:alnum:]_./-])(([^[:space:];&|]*/)?(bash|sh|zsh|dash|ksh)[[:blank:]]+([^[:space:];&|]+[[:blank:]]+)*-[[:alnum:]]*c|eval)([[:space:]]|$)'
-joined=${cmd//$'\\\n'/}
-if [[ $joined =~ $runner ]]; then
-  inner=${joined#*"${BASH_REMATCH[3]}${BASH_REMATCH[4]:-eval}"}
-  [[ $inner =~ $ansi_escape ]] &&
-    deny "this command runs a shell string written with \$'...' escapes, which the guard cannot read and the permission rules do not see." \
-      "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
-  inner=${inner//\$\'/\'}
-  inner=${inner//\$\"/\"}
-  inner=${inner//[\"\'\\]/}
-  while IFS= read -r segment; do
-    read -ra w <<<"$segment"
-    for ((k = 0; k < ${#w[@]}; k++)); do
-      [[ ${w[k]} == git || ${w[k]} == */git ]] || continue
-      sub=$(after_git_options w $((k + 1)))
-      [[ -n $sub ]] || continue
-      if [[ $sub == *'$'* || $sub =~ ^($gated|$mixed)$ || -z ${known[$sub]+set} ]]; then
-        deny "this command runs git $sub through a shell string (bash -c, eval), which the permission rules do not see: only a git read git lists by name runs there." \
-          "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
+shell_source() {
+  local k=$1 m c=0
+  src=""
+  opaque=0
+  if [[ ${wv[k]} == eval && ${wf[k]} != *[do]* ]]; then
+    ((k + 1 < nw)) || return 1
+    for ((m = k + 1; m < nw; m++)); do
+      src+="${wv[m]} "
+      [[ ${wf[m]} == *o* ]] && opaque=1
+    done
+    return 0
+  fi
+  [[ ${wf[k]} != *[do]* && ${wv[k]##*/} =~ ^(bash|sh|zsh|dash|ksh)$ ]] || return 1
+  for ((m = k + 1; m < nw; m++)); do
+    case ${wv[m]} in
+    --)
+      m=$((m + 1))
+      break
+      ;;
+    -o | -O | +o | +O | --rcfile | --init-file) m=$((m + 1)) ;;
+    --* | +*) ;;
+    -*) [[ ${wv[m]} == *c* ]] && c=1 ;;
+    *) break ;;
+    esac
+  done
+  ((c && m < nw)) || return 1
+  src=${wv[m]}
+  [[ ${wf[m]} == *o* ]] && opaque=1
+  return 0
+}
+
+deny_escapes() {
+  deny "this command runs a shell string written with \$'...' escapes, which the guard cannot read and the permission rules do not see." "$plainly"
+}
+
+deny_split() {
+  deny "this command names git and runs a program word built by an unquoted expansion or a brace expansion (\$x, \$(...), {a,b}), which word splitting can turn into a git call the guard cannot see." \
+    "Quote the expansion (\"\$x\") or write the program plainly. $plainly"
+}
+
+string_verb() {
+  [[ $2 == *[do]* || $1 == *[\$$hide]* || $1 =~ ^($gated|$mixed)$ || -z ${known[$1]+set} ]] || return 0
+  deny "this command runs git ${1//$hide/} through a shell string (bash -c, eval), which the permission rules do not see: only a git read git lists by name runs there." "$plainly"
+}
+
+check_string() {
+  local depth=$2 t=0 ev k nw=0 src opaque ge
+  local -a tok=() names=() wf=() wv=()
+  ((depth <= 3)) ||
+    deny "this command nests shell strings deeper than the guard reads." "$plainly"
+  if ! parse "$1"; then
+    [[ ${1//[\"\'\\]/} == *git* ]] &&
+      deny "this command runs a shell string that shfmt cannot parse, which hides its git calls from the guard." "$plainly"
+    return 0
+  fi
+  while ((t < ${#tok[@]})); do
+    ev=${tok[t]}
+    t=$((t + 1))
+    case $ev in
+    K)
+      t=$((t + 1))
+      continue
+      ;;
+    C) read_call ;;
+    *) continue ;;
+    esac
+    ((nw > 0)) || continue
+    for ((k = 0; k < nw; k++)); do
+      if shell_source "$k"; then
+        ((opaque)) && deny_escapes
+        check_string "$src" $((depth + 1))
       fi
     done
-  done <<<"${inner//[;&|()\`]/$'\n'}"
-fi
+    if [[ ${wf[0]} == *[do]* || ${wv[0]} == *[\$$hide]* ]]; then
+      after_git_options 1
+      if [[ ${wv[ge]-} =~ ^($gated|$mixed)$ || ${wv[ge]-} == *"$hide"* ]]; then
+        string_verb "${wv[ge]}" "${wf[ge]}"
+      fi
+    fi
+    [[ ${wf[0]} == *[ub]* || (${wv[0]} == *'$'* && ${wf[0]} != *q*) ]] && deny_split
+    for ((k = 0; k < nw; k++)); do
+      [[ ${wf[k]} != *d* && (${wv[k]} == git || ${wv[k]} == */git) ]] || continue
+      after_git_options $((k + 1))
+      ((ge < nw)) || continue
+      string_verb "${wv[ge]}" "${wf[ge]}"
+    done
+  done
+}
 
 check_commit_options() {
-  local tok name letters k
+  local tok name letters k skip=0
   for tok in "$@"; do
+    if ((skip)); then
+      skip=0
+      continue
+    fi
     case $tok in
+    --) break ;;
+    --message | --file | --reuse-message | --reedit-message | --template | --author | --date | --fixup | --squash | --cleanup | --trailer) skip=1 ;;
     --*)
       name=${tok%%=*}
       if ((${#name} >= 6)) && [[ --no-verify == "$name"* ]]; then
@@ -187,7 +210,11 @@ check_commit_options() {
       for ((k = 0; k < ${#letters}; k++)); do
         case ${letters:k:1} in
         n) deny "-n is --no-verify, which skips the prek hooks: run the commit without it, or leave it to the user." ;;
-        [mFCctuS]) break ;;
+        [mFCct])
+          ((k == ${#letters} - 1)) && skip=1
+          break
+          ;;
+        [uS]) break ;;
         esac
       done
       ;;
@@ -213,10 +240,11 @@ symref_writes() {
 }
 
 worktree_writes() {
-  local tok detach=0 positional=0 skip=0
-  [[ ${1-} == add ]] || return 1
-  shift
-  for tok in "$@"; do
+  local a tok detach=0 positional=0 skip=0 ish=-1
+  wt_ish=-1
+  [[ ${args[0]-} == add ]] || return 1
+  for ((a = 1; a < ${#args[@]}; a++)); do
+    tok=${args[a]}
     if ((skip)); then
       skip=0
       continue
@@ -231,10 +259,33 @@ worktree_writes() {
       [[ $tok == *[bB]* ]] && return 0
       [[ $tok == *d* ]] && detach=1
       ;;
-    *) positional=$((positional + 1)) ;;
+    *)
+      positional=$((positional + 1))
+      ((positional == 2)) && ish=$a
+      ;;
     esac
   done
-  ((!detach && positional < 2))
+  ((detach)) && return 1
+  ((positional >= 2)) || return 0
+  wt_ish=$ish
+  return 1
+}
+
+local_commit() {
+  local base=$dir entry value
+  [[ -n $base && $2 != *[qedo]* ]] && ((!gitloc)) || return 1
+  for entry in "${gitc[@]}"; do
+    [[ ${entry%%$'\t'*} != *[qedo]* ]] || return 1
+    value=${entry#*$'\t'}
+    case $value in
+    /*) base=$value ;;
+    [~]) base=$HOME ;;
+    [~]/*) base=$HOME/${value:2} ;;
+    [~]*) return 1 ;;
+    *) base=$base/$value ;;
+    esac
+  done
+  git -C "$base" rev-parse --verify --quiet --end-of-options "$1^{commit}" >/dev/null 2>&1
 }
 
 fetch_writes() {
@@ -283,7 +334,7 @@ specs=()
 
 take() {
   local abs parent
-  if [[ -z $dir || $1 == *"$mark"* || $1 == *'$'* || $1 == *\\* || $1 == :* || $1 == *[\*\?\[]* ]]; then
+  if [[ -z $dir || $2 == *[qedogb]* || $1 == :* || $1 == *[\*\?\[]* ]]; then
     fallback=1
     return
   fi
@@ -320,10 +371,11 @@ long_prefix() {
 }
 
 staging_specs() {
-  local tok letters dashdash=0
-  for tok in "$@"; do
+  local a tok letters dashdash=0
+  for ((a = 0; a < ${#args[@]}; a++)); do
+    tok=${args[a]}
     if ((dashdash)); then
-      take "$tok"
+      take "$tok" "${aflags[a]}"
       continue
     fi
     case $tok in
@@ -342,16 +394,16 @@ staging_specs() {
       [[ $letters == *[Apie]* ]] && fallback=1
       [[ $letters == *u* ]] && tracked=1
       ;;
-    *) take "$tok" ;;
+    *) take "$tok" "${aflags[a]}" ;;
     esac
   done
 }
 
 move_specs() {
-  local tok dashdash=0 paths=()
-  for tok in "$@"; do
+  local a dashdash=0 paths=()
+  for ((a = 0; a < ${#args[@]}; a++)); do
     if ((!dashdash)); then
-      case $tok in
+      case ${args[a]} in
       --)
         dashdash=1
         continue
@@ -359,23 +411,24 @@ move_specs() {
       -?*) continue ;;
       esac
     fi
-    paths+=("$tok")
+    paths+=("$a")
   done
   ((${#paths[@]} > 1)) || return 0
-  for tok in "${paths[@]:0:${#paths[@]}-1}"; do
-    take "$tok"
+  for a in "${paths[@]:0:${#paths[@]}-1}"; do
+    take "${args[a]}" "${aflags[a]}"
   done
 }
 
 commit_specs() {
-  local tok letters k dashdash=0 skip=0
-  for tok in "$@"; do
+  local a tok letters k dashdash=0 skip=0
+  for ((a = 0; a < ${#args[@]}; a++)); do
+    tok=${args[a]}
     if ((skip)); then
       skip=0
       continue
     fi
     if ((dashdash)); then
-      take "$tok"
+      take "$tok" "${aflags[a]}"
       continue
     fi
     case $tok in
@@ -403,7 +456,7 @@ commit_specs() {
         esac
       done
       ;;
-    *) take "$tok" ;;
+    *) take "$tok" "${aflags[a]}" ;;
     esac
   done
 }
@@ -413,167 +466,145 @@ moved=0
 other=""
 dir=${cwd:-.}
 commit_dir=$dir
-if ! strip_quotes "$cmd"; then
+stack=()
+src=""
+opaque=0
+tok=()
+names=()
+wf=()
+wv=()
+nw=0
+if ! parse "$cmd"; then
   [[ ${cmd//[\"\'\\]/} == *git* ]] || exit 0
-  deny "this command leaves a quote open to the guard's parser (an apostrophe in a comment or a heredoc), which hides everything after it." \
-    "Drop the apostrophe, or run the git part as a command of its own."
+  deny "shfmt cannot parse this command, or reads a comment ending in a backslash as joined to the next line where bash does not, so the guard cannot see its git calls." \
+    "Fix its syntax or drop that backslash, or run the git part as a command of its own."
 fi
-stripped=${stripped//">&"/">"}
-stripped=${stripped//"<&"/"<"}
-stripped=${stripped//"&>"/">"}
-plain=${plain//">&"/">"}
-plain=${plain//"<&"/"<"}
-plain=${plain//"&>"/">"}
-segments=${stripped//[;&|()\`]/$'\n'}
-seps=""
-opened=""
-ticks=0
-for ((p = 0; p < ${#stripped}; p++)); do
-  c=${stripped:p:1}
-  case $c in
-  '(')
-    if ((p > 0)) && [[ ${stripped:p-1:1} == '$' ]]; then
-      opened+='s'
-    else
-      opened+='p'
-    fi
-    seps+=$c
+t=0
+while ((t < ${#tok[@]})); do
+  ev=${tok[t]}
+  t=$((t + 1))
+  case $ev in
+  S)
+    stack+=("$dir")
+    continue
     ;;
-  ')')
-    if [[ ${opened: -1} == s ]]; then
-      seps+=S
-    else
-      seps+=$c
+  E)
+    if ((${#stack[@]} > 0)); then
+      dir=${stack[-1]}
+      unset 'stack[-1]'
     fi
-    opened=${opened%?}
+    continue
     ;;
-  '`')
-    ticks=$((ticks + 1))
-    if ((ticks % 2 == 0)); then
-      seps+=B
-    else
-      seps+=$c
-    fi
+  R)
+    [[ -n $other ]] || other="a redirection"
+    continue
     ;;
-  ';' | '&' | '|' | $'\n') seps+=$c ;;
+  K)
+    [[ -n $other ]] || other=${tok[t]}
+    t=$((t + 1))
+    continue
+    ;;
   esac
-done
-mapfile -t plains <<<"${plain//[;&|()\`]/$'\n'}"
-idx=-1
-while IFS= read -r segment; do
-  idx=$((idx + 1))
-  read -ra w <<<"$segment"
-  read -ra pw <<<"${plains[idx]-}"
-  n=${#w[@]}
-  i=0
+  read_call
   assigned=""
-  while ((i < n)) && [[ ${w[i]} =~ ^[A-Za-z_][A-Za-z0-9_]*= || ${w[i]} =~ ^(\{|!|if|then|else|elif|do|while|until)$ ]]; do
-    [[ ${w[i]} == *=* && ${w[i]%%=*} != SKIP ]] && assigned=${w[i]%%=*}
-    ((i++))
+  for name in "${names[@]}"; do
+    [[ $name == SKIP ]] || assigned=$name
+    [[ $name == CDPATH || $name == HOME ]] && moved=1
   done
-  for word in "${w[@]}"; do
+  for word in "${wv[@]}"; do
     [[ $word =~ ^(CDPATH|HOME)= ]] && moved=1
-    [[ -z $other && $word == *'>'* ]] && other="a redirection"
   done
-  if ((i < n)) && [[ ${w[i]} == cd || ${w[i]} == pushd || ${w[i]} == popd ]]; then
-    target=${w[i + 1]-}
-    if [[ ${w[i]} == popd || ${w[i]} == pushd && -z $target ]]; then
+  if ((nw == 0)); then
+    ((${#names[@]} == 0)) || [[ -n $other ]] || other="the assignment ${names[-1]}="
+    ((moved)) && dir=""
+    continue
+  fi
+  for ((k = 0; k < nw; k++)); do
+    if shell_source "$k"; then
+      ((opaque)) && deny_escapes
+      check_string "$src" 1
+    fi
+  done
+
+  prog=${wv[0]}
+  pf=${wf[0]}
+  if [[ -z $pf && $prog =~ ^(cd|pushd|popd)$ ]]; then
+    if [[ $prog == popd || ($prog == pushd && nw -lt 2) ]]; then
       dir=""
       continue
     fi
-    case $target in
-    '' | [~]) dir=$HOME ;;
-    *"$mark"* | *'$'* | *\\* | -* | +*) dir="" ;;
-    [~]/*) dir=$HOME/${target:2} ;;
-    [~]*) dir="" ;;
-    /*) dir=$target ;;
-    *) [[ -n $dir ]] && dir=$dir/$target ;;
-    esac
+    target=${wv[1]-}
+    if ((nw < 2)); then
+      dir=$HOME
+    elif [[ ${wf[1]} == *[qedogb]* ]]; then
+      dir=""
+    else
+      case $target in
+      [~]) dir=$HOME ;;
+      -* | +*) dir="" ;;
+      [~]/*) dir=$HOME/${target:2} ;;
+      [~]*) dir="" ;;
+      /*) dir=$target ;;
+      *) [[ -n $dir ]] && dir=$dir/$target ;;
+      esac
+    fi
     ((moved)) && dir=""
     continue
   fi
   ((moved)) && dir=""
-  ((i < n)) && [[ -z ${pw[i]//[\\$mark]/} ]] && dir=""
-  for ((k = i; k < n; k++)); do
-    [[ ${pw[k]//[\\$mark]/} =~ ^(cd|pushd|popd)$ ]] && dir=""
+  [[ -z $prog ]] && dir=""
+  for word in "${wv[@]}"; do
+    [[ $word =~ ^(cd|pushd|popd)$ ]] && dir=""
   done
-  from=-1
-  if ((idx > 0)) && [[ ${seps:idx-1:1} == [SB] ]]; then
-    from=$i
-  elif ((i < n)) && [[ ${pw[i]-} == *[\$$hide]* ]]; then
-    from=$((i + 1))
-  fi
-  if ((from >= 0)); then
-    verb=$(after_git_options pw "$from")
-    if [[ ${verb//[\\$mark]/} =~ ^($gated|$mixed)$ || $verb == *"$hide"* ]]; then
-      deny "this command runs ${verb//[$mark$hide]/} through a program name the guard cannot read (a variable, a substitution or \$'...' escapes), which the permission rules do not see." \
-        "Write git add, commit, rm or mv as a plain command so that the user confirms it; leave every other git write to the user. Do not look for another form."
+
+  if [[ $pf == *[do]* ]]; then
+    after_git_options 1
+    verb=${wv[ge]-}
+    if [[ $verb =~ ^($gated|$mixed)$ || $verb == *"$hide"* ]]; then
+      deny "this command runs ${verb//$hide/} through a program name the guard cannot read (a variable, a substitution or \$'...' escapes), which the permission rules do not see." "$plainly"
     fi
   fi
-  j=$i
-  while ((j < n)); do
-    bare=${pw[j]-}
-    bare=${bare//[\\$mark]/}
-    if [[ $bare == git || $bare == */git ]]; then
-      [[ ${w[j]} != *"$mark"* ]] || ((j == i)) && break
-      next=$(after_git_options pw $((j + 1)))
-      [[ ${next//[\\$mark]/} =~ ^($gated)$ ]] && break
+  [[ $pf == *[ub]* ]] && deny_split
+
+  j=0
+  while ((j < nw)); do
+    if [[ ${wf[j]} != *[do]* && (${wv[j]} == git || ${wv[j]} == */git) ]]; then
+      [[ ${wf[j]} != *q* ]] || ((j == 0)) && break
+      after_git_options $((j + 1))
+      [[ ${wv[ge]-} =~ ^($gated)$ ]] && break
     fi
     ((j++))
   done
-  if ((j == n)); then
-    [[ -z $other && i -lt n ]] && other=${pw[i]//[$mark$hide]/}
+  if ((j == nw)); then
+    name=$prog
+    [[ -z $name || $name == *"$hide"* ]] && name="a program whose name the guard cannot read"
+    [[ -n $other ]] || other=$name
     continue
   fi
   wrapper=""
-  ((j > i)) && wrapper=${w[i]}
-  i=$j
-  program=$bare
+  ((j > 0)) && wrapper=$prog
+  program=${wv[j]}
   escaped=0
-  [[ $program != "${w[i]}" ]] && escaped=1
-  ((i++))
+  [[ ${wf[j]} == *[qe]* ]] && escaped=1
+  after_git_options $((j + 1))
   options=0
+  ((ge > j + 1)) && options=1
   redirected=0
-  while ((i < n)); do
-    if [[ ${w[i]} =~ ^[0-9]*[\<\>] ]]; then
-      redirected=1
-      [[ ${w[i]} =~ ^[0-9]*[\<\>]+$ ]] && ((i++))
-      ((i++))
-      continue
-    fi
-    case ${w[i]} in
-    -C | -c | --git-dir | --work-tree | --namespace | --exec-path | --super-prefix | --config-env | --attr-source)
-      options=1
-      ((i += 2))
-      ;;
-    -*)
-      options=1
-      ((i++))
-      ;;
-    *) break ;;
-    esac
+  for ((k = j; k <= ge && k < nw; k++)); do
+    [[ ${wf[k]} == *r* ]] && redirected=1
   done
-  sub=${w[i]-}
-  args=()
-  skip=0
-  for tok in "${w[@]:i+1}"; do
-    if ((skip)); then
-      skip=0
-    elif [[ $tok =~ ^[0-9]*[\<\>]+$ ]]; then
-      skip=1
-    elif [[ ! $tok =~ ^[0-9]*[\<\>] ]]; then
-      args+=("$tok")
-    fi
-  done
-  if [[ -z $sub ]]; then
+  sub=${wv[ge]-}
+  sf=${wf[ge]-}
+  args=("${wv[@]:ge+1}")
+  aflags=("${wf[@]:ge+1}")
+  if ((ge >= nw)); then
     [[ -n $other ]] || other=git
     continue
   fi
-  if [[ $sub == *"$mark"* || $sub == *'$'* ]]; then
+  if [[ $sf == *[qdo]* ]]; then
     deny "the git subcommand is quoted or held in a variable, which hides it from the permission rules: write it plainly."
   fi
-  [[ $sub == *\\* ]] && escaped=1
-  sub=${sub//\\/}
+  [[ $sf == *e* ]] && escaped=1
 
   via=""
   [[ -n $wrapper ]] && via="the wrapper $wrapper"
@@ -602,8 +633,11 @@ while IFS= read -r segment; do
   if [[ $sub == symbolic-ref ]] && symref_writes "${args[@]}"; then
     leave "git symbolic-ref with a ref to point at, or -d"
   fi
-  if [[ $sub == worktree ]] && worktree_writes "${args[@]}"; then
-    leave "git worktree add creating or resetting a branch (-b, -B, --orphan, --track, or no commit-ish without --detach)"
+  if [[ $sub == worktree ]]; then
+    worktree_writes && leave "git worktree add creating or resetting a branch (-b, -B, --orphan, --track, or no commit-ish without --detach)"
+    if ((wt_ish >= 0)) && ! local_commit "${args[wt_ish]}" "${aflags[wt_ish]}"; then
+      leave "git worktree add with a commit-ish that is not a commit of the local repository (git then creates a branch tracking a remote one)"
+    fi
   fi
   if [[ $sub == fetch ]] && fetch_writes "${args[@]}"; then
     leave "git fetch into a local ref (a refspec with a colon, -u, --refmap)"
@@ -616,8 +650,8 @@ while IFS= read -r segment; do
   [[ -n $assigned ]] &&
     deny "$assigned before git $sub can change the repository, the index or the configuration git uses, which the guard's checks do not follow: write it as a plain \`git $sub ...\`, SKIP= being the only assignment kept."
   case $sub in
-  add | rm) staging_specs "${args[@]}" ;;
-  mv) move_specs "${args[@]}" ;;
+  add | rm) staging_specs ;;
+  mv) move_specs ;;
   commit)
     ((${#args[@]} == 1)) && [[ ${args[0]} == -h || ${args[0]} == --help ]] && continue
     [[ -n $dir ]] ||
@@ -625,21 +659,22 @@ while IFS= read -r segment; do
         "Write the cd target as a plain path, so that the tracking check reads the repository the commit takes place in."
     commit_dir=$dir
     check_commit_options "${args[@]}"
-    commit_specs "${args[@]}"
+    commit_specs
     commits=1
     ;;
   esac
-done <<<"$segments"
+done
 
 ((commits)) || exit 0
+
+[[ -z $other ]] ||
+  deny "this command runs $other alongside git commit: a write it makes lands after the tracking check, so the commit could take content the verification never saw." \
+    "A command holding git commit runs only cd or pushd and git add, rm, mv or commit, a SKIP= prefix being the only assignment: run the rest as a command of its own."
 
 [[ $session =~ ^[A-Za-z0-9_-]+$ ]] ||
   deny "could not check the tracking verification: the session id is unusable. Leave the commit to the user."
 
 top=$(git -C "$commit_dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
-[[ -z $other ]] ||
-  deny "this command runs $other alongside git commit: a write it makes lands after the tracking check, so the commit could take content the verification never saw." \
-    "A command holding git commit runs only cd and git add, rm, mv or commit: run the rest as a command of its own."
 entries=()
 mapfile -d '' -t entries < <(git --no-optional-locks -C "$top" status --porcelain=v1 -z --no-renames --untracked-files=all 2>/dev/null)
 wait "$!" ||

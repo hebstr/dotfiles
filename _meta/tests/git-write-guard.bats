@@ -15,7 +15,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ home/ >>"$WORK/.git/info/exclude"
-  for cmd in cat jq realpath git stat rm sha256sum readlink; do
+  for cmd in cat jq realpath git stat rm sha256sum readlink shfmt; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -187,6 +187,8 @@ commit_file() {
     "bash -c 'git -c alias.q=push q'"
     "bash -c 'cd x && git -C . commit -m y'"
     "bash -c 'git \"\$0\" origin main' push"
+    "bash -c 'g=git; \$g push'"
+    "bash -c \"bash -c 'git push'\""
   )
   for c in "${cases[@]}"; do
     run_guard "$c"
@@ -203,6 +205,7 @@ commit_file() {
     "timeout 30 bash -c 'git diff --stat'"
     "bash -c 'echo hi' && git status"
     "bash -c 's=\"git push\"; printf %s \"\$s\"'"
+    "bash -c 'rg -n \"git push\" src/'"
   )
   for c in "${cases[@]}"; do
     run_guard "$c"
@@ -252,6 +255,21 @@ commit_file() {
     run_guard "$c"
     [ "$status" -eq 2 ]
     [[ $output == *"cannot read"* ]]
+  done
+}
+
+@test "denies a program word built by an unquoted or brace expansion in a command naming git" {
+  local c
+  # shellcheck disable=SC2016
+  for c in "IFS=,; x='git,push'; \$x" '{git,} push origin main' "\$(printf 'git\\npush')" 'IFS=/; x=git; $x/push' 'for src in "git status" "git push"; do $src; done' "bash -c 'IFS=,; x=git,push; \$x'" 'x="git push"; bash -c "$x"' 'x="git push"; eval "$x"'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"word splitting"* ]]
+  done
+  # shellcheck disable=SC2016
+  for c in 'x=git; "$x" status' '"$EDITOR" notes.md && git status' 'rg -c "\$x" src/ && git log -1'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
   done
 }
 
@@ -569,19 +587,28 @@ commit_file() {
   commit_file a.sh
   seal "$(date +%s%N)" "$WORK/a.sh"
   local c
-  for c in 'printf x > a.sh && git add a.sh && git commit -m x' 'git add a.sh && sed -i s/v1/v2/ a.sh && git commit -m x' 'git add a.sh && git commit -m x > log' 'git status && git add a.sh && git commit -m x' 'cp b.sh a.sh; git commit -am x' 'printf x > a.sh; git commit -m -h -a'; do
+  # shellcheck disable=SC2016
+  for c in 'printf x > a.sh && git add a.sh && git commit -m x' 'git add a.sh && sed -i s/v1/v2/ a.sh && git commit -m x' 'git add a.sh && git commit -m x > log' 'git status && git add a.sh && git commit -m x' 'cp b.sh a.sh; git commit -am x' 'printf x > a.sh; git commit -m -h -a' 'X=1; git commit -m x' 'PATH=/tmp/p:$PATH; git commit -m x' 'X=1 && git add a.sh && git commit -m x' 'git commit -m "$(printf x > a.sh)"' "cd $WORK/new && git init -q && printf x > f && git add f && git commit -m x"; do
     run_guard "$c"
     [ "$status" -eq 2 ]
-    [[ $output == *"only cd and git add, rm, mv or commit"* ]]
+    [[ $output == *"only cd or pushd and git add, rm, mv or commit"* ]]
   done
 }
 
-@test "passes a commit block of cd and git add, rm, mv and commit, or a commit into a repository the command creates" {
+@test "denies a commit block holding another command even outside any repository" {
+  OTHER=$(realpath "$(mktemp -d)")
+  run_guard "\$'\\x63\\x64' $WORK; git add -A && git commit -m x" "$OTHER"
+  rm -rf "$OTHER"
+  [ "$status" -eq 2 ]
+  [[ $output == *"only cd or pushd and git add, rm, mv or commit"* ]]
+}
+
+@test "passes a commit block of cd, pushd and git add, rm, mv and commit" {
   commit_file a.sh
   commit_file c.sh
   seal "$(date +%s%N)" "$WORK/a.sh"
   local c
-  for c in "cd $WORK && git add a.sh && git commit -m x" 'SKIP=metadata-only git commit -m x' 'git rm --cached c.sh && git commit -m x' 'git mv c.sh d.sh && git commit -m x' "cd $WORK/new && git init -q && printf x > f && git add f && git commit -m x" 'git add -h | head -3; git commit -h | head -3' 'git add -h 2>&1 | head -3; git commit -h 2>&1 | head -3'; do
+  for c in "cd $WORK && git add a.sh && git commit -m x" "pushd $WORK && git add a.sh && git commit -m x" 'SKIP=metadata-only git commit -m x' 'git rm --cached c.sh && git commit -m x' 'git mv c.sh d.sh && git commit -m x' 'git add -h | head -3; git commit -h | head -3' 'git add -h 2>&1 | head -3; git commit -h 2>&1 | head -3'; do
     run_guard "$c"
     [ "$status" -eq 0 ]
   done
@@ -823,6 +850,32 @@ commit_file() {
   done
 }
 
+@test "denies plumbing and history tools that move a ref or HEAD, in every form" {
+  local c
+  for c in 'git replay --onto main topic~2..topic' 'git replay --contained --onto main base..topic' 'git filter-branch -f --msg-filter cat HEAD' 'git bisect start' 'git bisect start HEAD HEAD~5' 'git bisect good' 'git bisect reset' 'git bisect log' 'git send-pack origin refs/heads/main'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"leave it to the user"* ]]
+  done
+}
+
+@test "denies a worktree add whose commit-ish is no local commit, where git would track a remote branch" {
+  commit_file a.sh
+  git -C "$WORK" update-ref refs/remotes/origin/topic HEAD
+  git -C "$WORK" branch local-only
+  local c
+  # shellcheck disable=SC2016
+  for c in 'git worktree add ../x topic' 'git worktree add -q ../x topic' 'git worktree add ../x "$b"' 'git -C "my dir" worktree add ../x local-only' 'git --git-dir=.git worktree add ../x local-only'; do
+    run_guard "$c"
+    [ "$status" -eq 2 ]
+    [[ $output == *"leave it to the user"* ]]
+  done
+  for c in 'git worktree add ../x local-only' 'git worktree add ../x origin/topic' 'git worktree add --detach ../x topic' 'git -C . worktree add ../x HEAD~0'; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "denies a verb left to the user behind -C or inside bash -c" {
   run_guard 'git -C ~/dotfiles push'
   [ "$status" -eq 2 ]
@@ -860,13 +913,57 @@ commit_file() {
   [ "$status" -eq 2 ]
 }
 
-@test "denies a command whose quotes stay open after an apostrophe in a comment or a heredoc" {
+@test "reads an apostrophe in a comment or a heredoc body as text, and a quoted heredoc body as no command" {
   run_guard $'git status # don\'t\ngit -C . push'
   [ "$status" -eq 2 ]
-  [[ $output == *"quote open"* ]]
-  run_guard $'cat > f <<\'EOF\'\ndon\'t\nEOF\ngit add a.sh && git commit -m x'
+  [[ $output == *"leave it to the user"* ]]
+  run_guard $'git commit -F - <<\'EOF\'\nfix: x\n\ngit push stays with the user, don\'t\nEOF'
+  [ "$status" -eq 0 ]
+  run_guard $'cat <<\'EOF\'\n$(git push)\nEOF'
+  [ "$status" -eq 0 ]
+}
+
+@test "reads the substitutions of an unquoted heredoc body as commands" {
+  run_guard $'cat <<EOF\n$(git push origin main)\nEOF'
   [ "$status" -eq 2 ]
-  [[ $output == *"quote open"* ]]
+  [[ $output == *"leave it to the user"* ]]
+  run_guard $'cat <<EOF\n`git tag v1`\nEOF'
+  [ "$status" -eq 2 ]
+  [[ $output == *"leave it to the user"* ]]
+}
+
+@test "denies a command naming git that shfmt cannot parse, and passes one that does not name git" {
+  run_guard $'git status; echo "unclosed'
+  [ "$status" -eq 2 ]
+  [[ $output == *"shfmt cannot parse"* ]]
+  run_guard $'echo $\'x\' "unclosed'
+  [ "$status" -eq 0 ]
+}
+
+@test "denies every git command when shfmt is missing" {
+  rm "$STUB_DIR/shfmt"
+  run_guard 'git status'
+  [ "$status" -eq 2 ]
+  [[ $output == *"shfmt is missing"* ]]
+  run_guard 'rg -n foo src/'
+  [ "$status" -eq 0 ]
+}
+
+@test "scopes a cd inside a subshell to that subshell" {
+  commit_file a.sh
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  OTHER=$(realpath "$(mktemp -d)")
+  git init -q "$OTHER"
+  printf 'x\n' >"$OTHER/new.md"
+  local c
+  for c in "(cd $OTHER); git add -A && git commit -m x" "{ (cd $OTHER); } && git add -A && git commit -m x"; do
+    run_guard "$c"
+    [ "$status" -eq 0 ]
+  done
+  run_guard "cd $OTHER && git add -A && git commit -m x"
+  rm -rf "$OTHER"
+  [ "$status" -eq 2 ]
+  [[ $output == *"$OTHER/new.md"* ]]
 }
 
 @test "reads a git call across a line continuation" {
@@ -900,7 +997,7 @@ commit_file() {
 @test "does not join the line after a comment or an escaped backslash" {
   run_guard $'git status # see \\\ngit push'
   [ "$status" -eq 2 ]
-  [[ $output == *"leave it to the user"* ]]
+  [[ $output == *"comment ending in a backslash"* ]]
   run_guard $'echo a\\\\\ngit push'
   [ "$status" -eq 2 ]
   [[ $output == *"leave it to the user"* ]]
@@ -920,6 +1017,8 @@ commit_file() {
 }
 
 @test "passes plumbing that reads, or touches only the index and objects" {
+  commit_file a.sh
+  git -C "$WORK" tag v1.1.5
   local c
   for c in 'git symbolic-ref HEAD' 'git symbolic-ref --short -q HEAD' 'git symbolic-ref --short HEAD 2>/dev/null' 'git symbolic-ref HEAD 2> /dev/null' 'git branch -a --contains HEAD 2>&1' 'git worktree list' 'git worktree add -q --detach ../x v1.1.5' 'git -C . worktree add -q --detach ../x 1.1.5 2>&1' 'git worktree add ../x v1.1.5' 'git worktree prune' 'git update-index --refresh' 'git write-tree' 'git rev-parse HEAD' 'git fetch -q origin' 'git fetch --tags -q origin' 'git fetch --dry-run' 'git fetch git@github.com:user/repo.git main'; do
     run_guard "$c"

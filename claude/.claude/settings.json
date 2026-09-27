@@ -53,6 +53,10 @@
       "Bash(git am*)",
       "Bash(git update-ref*)",
       "Bash(git fast-import*)",
+      "Bash(git replay*)",
+      "Bash(git filter-branch*)",
+      "Bash(git bisect*)",
+      "Bash(git send-pack*)",
       "Bash(git branch -m*)",
       "Bash(git branch -M*)",
       "Bash(git branch -c*)",
@@ -293,7 +297,7 @@
     }
   },
   "tui": "fullscreen",
-  "autoDreamEnabled": false,
   "autoMemoryDirectory": "~/.claude/memory",
+  "autoDreamEnabled": false,
   "showThinkingSummaries": true
 }
