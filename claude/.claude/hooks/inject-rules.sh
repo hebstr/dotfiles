@@ -136,9 +136,13 @@ Edit | Write | MultiEdit)
   case $file in
   "$HOME"/.claude/projects/*/memory/*)
     want memory
-    decide deny "Memory is written to ~/.claude/memory/ (its index is ~/.claude/memory/MEMORY.md), never under ~/.claude/projects/*/memory/: write it there instead."
+    decide deny "Memory is written under $HOME/dotfiles/claude/.claude/memory/ (its index is MEMORY.md there), never under ~/.claude/projects/*/memory/: write it there instead."
     ;;
-  "$HOME"/.claude/memory/* | "$HOME"/dotfiles/claude/.claude/memory/*) want memory ;;
+  "$HOME"/.claude/memory/*)
+    want memory
+    decide deny "Memory is written at its resolved path, never through the ~/.claude/memory link, where the harness rewrites the frontmatter and asks to compact the index: write $HOME/dotfiles/claude/.claude/memory/${file#"$HOME"/.claude/memory/} instead, reading it at that path first when it exists."
+    ;;
+  "$HOME"/dotfiles/claude/.claude/memory/*) want memory ;;
   esac
   case $file in
   */.claude/*.md | */CLAUDE.md | */AGENTS.md) want claude-files ;;

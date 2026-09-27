@@ -5,11 +5,11 @@ paths:
 
 # Writing memory
 
-Injected by `inject-rules.sh` on the session's first write to the memory store, and on any write under `~/.claude/projects/*/memory/`, which it refuses.
+Injected by `inject-rules.sh` once per session, on the first write to the memory store, under `~/.claude/projects/*/memory/` or through the `~/.claude/memory` link; it refuses every write to the last two.
 
 ## One store
 
-- Every memory file, auto-memory included, is written to `~/.claude/memory/`, a stow-managed link to `~/dotfiles/claude/.claude/memory/`. Its index is `~/.claude/memory/MEMORY.md`: update it whenever a file is added, renamed or removed. The harness loads that index at launch, `autoMemoryDirectory` in `settings.json` naming the store, and cuts it past 200 lines or 25,000 bytes; the `instructions-budget` prek check fails a commit that crosses either.
+- Every memory file, auto-memory included, lives in `~/.claude/memory/`, a stow-managed link to `~/dotfiles/claude/.claude/memory/`, and is written at that resolved path. Its index is `MEMORY.md` in the same directory: update it whenever a file is added, renamed or removed. The harness loads that index at launch, `autoMemoryDirectory` in `settings.json` naming the store, and cuts it past 200 lines or 25,000 bytes; the `instructions-budget` prek check fails a commit that crosses either.
 - Each index line is `- <file>.md: <description>`, one line, under the section of the file's category. The harness's memory prompt prescribes `- [Title](file.md) — hook`: this rule governs, the link repeating the filename for about 4 KB across the index.
 - Never write under the harness path `~/.claude/projects/<cwd>/memory/`: what is there is legacy, never cited as current, and a `MEMORY.md` found there beyond the redirect stub is surfaced to the user.
 - A new file's name follows the store's `<category>_<slug>.md` convention (`feedback_`, `reference_`, `project_`, `user_`) and must not collide with one the index lists: `Write` replaces an existing file with no warning and no merge, so a collision destroys the memory it lands on.

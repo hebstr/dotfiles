@@ -180,12 +180,33 @@ field() {
 @test "denies a memory write under the harness path and injects memory.md" {
   run_hook "$(read_call Write "$WORK/.claude/projects/-x/memory/feedback_a.md")"
   [ "$(field permissionDecision)" = deny ]
-  [[ $(field permissionDecisionReason) == *'~/.claude/memory/'* ]]
+  [[ $(field permissionDecisionReason) == *"$WORK/dotfiles/claude/.claude/memory/"* ]]
   [[ $(field additionalContext) == *BODY-memory* ]]
 }
 
-@test "injects memory.md without a decision on a write to the canonical store" {
+@test "denies a memory write through the link and names the resolved file" {
+  for t in Write Edit MultiEdit; do
+    run_hook "$(read_call "$t" "$WORK/.claude/memory/feedback_x.md")"
+    [ "$(field permissionDecision)" = deny ] || {
+      echo "not denied: $t"
+      return 1
+    }
+    [[ $(field permissionDecisionReason) == *"write $WORK/dotfiles/claude/.claude/memory/feedback_x.md instead"* ]]
+  done
+  rm -f "$RUNTIME"/claude-code-rules-*
   run_hook "$(read_call Edit "$WORK/.claude/memory/MEMORY.md")"
+  [[ $(field permissionDecisionReason) == *"$WORK/dotfiles/claude/.claude/memory/MEMORY.md"* ]]
+  [[ $(field additionalContext) == *BODY-memory* ]]
+}
+
+@test "lets a Read through the memory link pass without a decision" {
+  run_hook "$(read_call Read "$WORK/.claude/memory/MEMORY.md")"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "injects memory.md without a decision on a write to the canonical store" {
+  run_hook "$(read_call Edit "$WORK/dotfiles/claude/.claude/memory/MEMORY.md")"
   [ -z "$(field permissionDecision)" ]
   [[ $(field additionalContext) == *BODY-memory* ]]
 }
@@ -205,7 +226,7 @@ field() {
 }
 
 @test "injects memory.md and claude-files.md together on a memory write" {
-  run_hook "$(read_call Write "$WORK/.claude/memory/feedback_x.md")"
+  run_hook "$(read_call Write "$WORK/dotfiles/claude/.claude/memory/feedback_x.md")"
   [[ $(field additionalContext) == *BODY-memory*BODY-claude-files* ]]
 }
 
