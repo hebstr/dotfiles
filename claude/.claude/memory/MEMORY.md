@@ -32,6 +32,7 @@
 - reference_streamlit_dataframe_styler.md: st.dataframe keeps only `color`, `background-color`, `font-weight` from a Styler; canvas grid, no CSS reaches rows, selection column fixed
 - reference_r_check_separable_model_tests.md: gtsummary/broom model tests can pass devtools::test() yet fail R CMD check on a separable model; de-separate test data, run check()
 - reference_claude_code_best_practices.md: Claude Code facts: past sessions via jsonl transcripts (7-day retention), 2026-03-26 MCP verdicts, `Edit|Write` hooks miss Bash writes
+- reference_opus_cyber_classifier_review.md: Opus 5.5/Fable `cyber` safety classifier cuts adversarial security-control review during thinking; run the reviewer subagent on Sonnet, reframing does not help
 - reference_todo_sync.md: `todo-sync` prints aggregated TODO.md items, columns on a TTY, a markdown table when piped
 - reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores .Rbuildignore: root `*.md` become pages (`NA` title without H1), vignettes articles; only location excludes
 - reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` works in `extra.css` not `.scss`, fonts via `template.bslib`
