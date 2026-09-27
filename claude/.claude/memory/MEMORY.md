@@ -59,6 +59,7 @@
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` dropped the format's `title-delim` though `quarto inspect` showed it merged; nest it under the format
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al." (empty `abbreviations:` file disables it); `-t markdown` breaks a Strong-ending LineBreak
 - reference_quarto_r_env_var.md: `QUARTO_R` (set by Positron's terminal) beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"; override per command
+- reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a comment ending in a backslash (bash does not); raw `Lit` escapes, operator codes
 - reference_bash_tool_pitfalls.md: Bash tool traps: `find` is bfs, `pkill -f` matches the tool's command, `rg -h` is help, no TTY for sudo or `!`
 
 ## Feedback
