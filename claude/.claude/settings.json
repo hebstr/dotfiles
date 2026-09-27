@@ -299,5 +299,6 @@
   "tui": "fullscreen",
   "autoMemoryDirectory": "~/.claude/memory",
   "autoDreamEnabled": false,
-  "showThinkingSummaries": true
+  "showThinkingSummaries": true,
+  "switchModelsOnFlag": true
 }
