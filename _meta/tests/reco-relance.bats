@@ -38,48 +38,22 @@ assert_silent() {
   [ -z "$output" ]
 }
 
-@test "injects the reminder on a follow-up asking what is really recommended" {
-  run_hook "$(payload 'Que recommandes-tu vraiment ?')"
+@test "injects when the prompt holds a question mark" {
+  run_hook "$(payload 'On part sur polars ou sur duckdb ?')"
   assert_injects
 }
 
-@test "injects on the question form with an apostrophe" {
-  run_hook "$(payload "Qu'est-ce que tu recommandes, au final ?")"
+@test "injects when the question mark is typed next to pasted content" {
+  local prompt
+  prompt=$(printf '%s\n' '<pasted_content id="ab12">' 'log' '</pasted_content id="ab12">' 'On garde cette voie ?')
+  run_hook "$(payload "$prompt")"
   assert_injects
 }
 
-@test "injects on a typographic apostrophe" {
-  run_hook "$(payload "T’es sûr de ton choix ?")"
-  assert_injects
-}
-
-@test "injects on 'tu es sûr' in capitals" {
-  run_hook "$(payload 'TU ES SÛR ?')"
-  assert_injects
-}
-
-@test "injects on 'tu es sur' without the accent" {
-  run_hook "$(payload 'tu es sur de ca')"
-  assert_injects
-}
-
-@test "injects on a bare 'vraiment ?'" {
-  run_hook "$(payload 'Vraiment ?')"
-  assert_injects
-}
-
-@test "injects on 'ta reco'" {
-  run_hook "$(payload "C'est quoi ta reco finale")"
-  assert_injects
-}
-
-@test "injects on 'tu ferais quoi'" {
-  run_hook "$(payload 'Et toi, tu ferais quoi à ma place ?')"
-  assert_injects
-}
-
-@test "injects on an English follow-up" {
-  run_hook "$(payload 'Are you sure? What would you really recommend?')"
+@test "injects when the question mark is typed next to a stripped wrapper" {
+  local prompt
+  prompt=$(printf '%s\n' '<task-notification>Agent terminé.</task-notification>' 'Et la suite ?')
+  run_hook "$(payload "$prompt")"
   assert_injects
 }
 
@@ -93,18 +67,60 @@ assert_silent() {
   assert_silent
 }
 
-@test "ignores a follow-up phrase that sits inside pasted content" {
+@test "stays silent when the only question mark sits inside pasted content" {
   local prompt
   prompt=$(printf '%s\n' 'Voici le transcript :' '<pasted_content id="ab12">' 'Que recommandes-tu vraiment ?' '</pasted_content id="ab12">' 'Résume-le.')
   run_hook "$(payload "$prompt")"
   assert_silent
 }
 
-@test "still injects when the typed part is a follow-up next to pasted content" {
+@test "stays silent when the only question mark sits inside an agent-message wrapper" {
   local prompt
-  prompt=$(printf '%s\n' '<pasted_content id="ab12">' 'log' '</pasted_content id="ab12">' 'Tu es sûr ?')
+  prompt=$(printf '%s\n' '<agent-message from="verifier">Que recommandes-tu ?</agent-message>' 'Applique le rapport.')
   run_hook "$(payload "$prompt")"
-  assert_injects
+  assert_silent
+}
+
+@test "stays silent when the only question mark sits inside a cross-session-message wrapper" {
+  local prompt
+  prompt=$(printf '%s\n' '<cross-session-message>On part sur quoi ?</cross-session-message>' 'Note-le dans le plan.')
+  run_hook "$(payload "$prompt")"
+  assert_silent
+}
+
+@test "stays silent when the only question mark sits inside a task-notification wrapper" {
+  local prompt
+  prompt=$(printf '%s\n' '<task-notification>Agent fini : reste-t-il quelque chose ?</task-notification>' 'Poursuis.')
+  run_hook "$(payload "$prompt")"
+  assert_silent
+}
+
+@test "drops the whole prompt on a Stop hook feedback marker" {
+  local prompt
+  prompt=$(printf '%s\n' 'Stop hook feedback:' '- [ending-gate.sh] La réponse finit-elle sur une recommandation ?')
+  run_hook "$(payload "$prompt")"
+  assert_silent
+}
+
+@test "drops the whole prompt on a command-message wrapper whose question mark sits in the args" {
+  local prompt
+  prompt=$(printf '%s\n' '<command-message>workflow:reco is running…</command-message>' '<command-args>que recommandes tu pour la suite ?</command-args>')
+  run_hook "$(payload "$prompt")"
+  assert_silent
+}
+
+@test "drops the whole prompt on a bash-input marker" {
+  local prompt
+  prompt=$(printf '%s\n' '<bash-input>git log --oneline -5</bash-input>' '<bash-stdout>b500b7b docs(claude): ok ?</bash-stdout>')
+  run_hook "$(payload "$prompt")"
+  assert_silent
+}
+
+@test "drops the whole prompt on a local-command opener" {
+  local prompt
+  prompt=$(printf '%s\n' '<local-command-stdout>Tout est à jour ?</local-command-stdout>')
+  run_hook "$(payload "$prompt")"
+  assert_silent
 }
 
 @test "stays silent when the prompt field is missing" {
@@ -124,7 +140,7 @@ assert_silent() {
 
 @test "exits 0 silently when jq is missing" {
   local p
-  p=$(payload 'Tu es sûr ?')
+  p=$(payload 'On garde cette voie ?')
   rm -f "$STUB_DIR/jq"
   run_hook "$p"
   assert_silent
