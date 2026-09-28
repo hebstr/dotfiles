@@ -8,6 +8,11 @@
 **/*-cache.json
 **/*-receipt.json
 
+_meta/session-discipline/*.pkl
+_meta/session-discipline/*.txt
+_meta/session-discipline/*.json
+_meta/session-discipline/*.tsv
+
 **/.venv/
 **/__pycache__/
 **/.pytest_cache/
