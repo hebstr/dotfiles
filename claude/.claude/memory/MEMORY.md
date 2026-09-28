@@ -8,7 +8,7 @@
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` digests CLAUDE.md's behavioral rules and the commit skill's format; after changing one, update or propose it there in the same response
 - project_ju_tp2_receiveonly.md: On ju-TP2 (WSL) never write to `~/dotfiles` or `~/.claude`: Syncthing receive-only there, ju-TP is the single writer
 - project_ubuntu_26_04_migration.md: Ubuntu 26.04 migration deferred to Dec 2026+ (trigger `Supported: 1`); research in `_meta/notes/ubuntu-26-04-migration-reco.md`, don't redo
-- project_zotero_agent_access.md: Zotero agent access via a `zotero` skill (local API, rg on `.zotero-ft-cache`), no MCP; decision in `_meta/notes/zotero-agent-access-reco.md`
+- project_zotero_agent_access.md: Zotero agent access via a `zotero` skill (local API, rg on `.zotero-ft-cache`), no MCP, and the 2026-09-28 refusal of a local-API write key; decision in `_meta/notes/zotero-agent-access-reco.md`
 - project_quarto_custom_crossref_float.md: Using quarto-hebstr-doc's `anx` crossref type (annex tables and figures): chunk labels, caption keys, the `crossref:` redeclaration trap
 - project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file: a `.qmd` using a custom format must stay there
 - project_qmd_format_hook.md: .qmd/.md formatting with panache and its prek gate: config and exclude gotchas, the CLI/LSP format-on-save split, constructs panache damages
@@ -83,7 +83,7 @@
 - feedback_review_severity_shell_installers.md: Review severity for personal shell installers (quarto-update, positron-update…), hook scripts and the `commit` skill's scripts
 - feedback_review_severity_hebstr_doc.md: Calibrate reviews of the quarto-hebstr-doc extension (filetree.lua): idiom, perf and duplication findings already dismissed
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc: sole dev, own consumers: no compat shim, no public-API argument, never re-propose CONTRIBUTING.md; publishing shortcodes is not a goal, sharing them with hebstr-book is
-- feedback_review_severity_bats_tests.md: Calibrate review severity for bats `.bats` tests of personal shell tooling
+- feedback_review_severity_bats_tests.md: Calibrate review severity for bats `.bats` tests of personal shell tooling, and measure a proposed remedy before applying it
 - feedback_review_severity_bash_dotfiles.md: `bash/` reviews: SC1090 directives, one-machine firefox alias, `PROMPT_COMMAND` guard, no `nocaseglob`, doubled prek hooks are deliberate
 - feedback_review_severity_claude_rules.md: Calibrate reviews of `.claude/rules/` files: recurring false positives to skip
 - feedback_review_severity_profiles_scaffolds.md: `_meta/profiles/` template audits: 3 false positives (repo-specific excludes, fewer languages than a sibling, formatter-owned values)
