@@ -1,6 +1,6 @@
 ---
 name: Claude Code session forensics, MCP verdicts and the Bash write blind spot
-description: "Local Claude Code facts not in upstream docs: probing past sessions through the jsonl transcripts (7-day retention here), the 2026-03-26 MCP server verdicts, and PostToolUse on Edit|Write missing files written via Bash"
+description: "Local Claude Code facts not in upstream docs: probing past sessions through the jsonl transcripts (7-day retention here), the 2026-03-26 MCP server verdicts, PostToolUse on Edit|Write missing files written via Bash, and auto mode instructing shell writes against the Edit-or-Write rule"
 metadata:
   type: reference
 ---
@@ -10,6 +10,7 @@ metadata:
 ## Hooks
 
 - **Catch all file writes**: `PostToolUse` on `Edit|Write` misses files written via `Bash`; match `Bash` too, or use a `Stop` hook on `git status --porcelain`
+- **Auto mode instructs the opposite**: entering auto mode injects a harness message telling Claude to change files with `sed`, heredocs or short scripts instead of `Edit`/`Write`, which contradicts the `CLAUDE.md` bullet that covers auto mode explicitly. Blocking shell writes deterministically is not the cheap fix: the mandated lint gate writes from the shell too (`shfmt -w`, `ruff format`, `shellharden --replace`), so any rule has to separate shell constructs (`sed -i`, redirection, heredoc, `tee`) from a formatter's own flag. Decided 2026-09-28 in dotfiles, `.claude/DESIGN-INSTRUCTION-ROUTING.md`: no mechanism, the rule stays prose, and the lever is that `defaultMode` is `default`, so not entering auto mode removes the instruction at its source
 
 ## Session transcript forensics
 
