@@ -43,6 +43,39 @@ Le verrou réel est celui de Zotero, qui refuse toute écriture par l'API locale
 La règle `permissions.deny` sur le JSON-RPC est un garde-fou d'appoint, contournable par une commande reformulée.
 `opencode.json` porte son équivalent depuis le 2026-09-23, `"curl *better-bibtex/json-rpc*": "deny"`, placé juste avant `"*>*": "ask"`, suivi depuis le 2026-09-25 des seules règles git (`DESIGN-OPENCODE-HARNESS.md`, « Git writes: `add`, `commit`, `rm` and `mv` ask, the other verbs are denied, 2026-09-25 »). Opencode retient la dernière règle qui correspond (page « Permissions » de opencode) : un appel au JSON-RPC portant une redirection demande donc confirmation au lieu d'être refusé. `opencode debug config` la restitue ; aucun refus n'a été observé en session opencode, faute de modèle servi pendant l'essai, puis, le 2026-09-23 sous Qwen3.5-9B, faute de tentative (section « Le test 5 sous opencode ne charge pas le skill (2026-09-23) »).
 
+#### Ce que le JSON-RPC expose, relevé dans la source le 2026-09-28
+
+Better BibTeX 9.0.64. Ce relevé précise la formule « des méthodes à effet de bord » de « Voies d'accès comparées », qui nommait les bons écrivains sans les compter. **Quatorze méthodes, dont trois écrivent.**
+
+```
+| Méthode                | Effet                                                                |
+|------------------------|----------------------------------------------------------------------|
+| `api.ready`            | lecture                                                              |
+| `item.search`          | lecture, double `items/top?q=` de l'API locale                       |
+| `item.citationkey`     | lecture, double `data.citationKey`                                   |
+| `item.collections`     | lecture                                                              |
+| `item.attachments`     | lecture                                                              |
+| `item.notes`           | lecture                                                              |
+| `item.bibliography`    | lecture, double ce que pandoc rend depuis le fichier                 |
+| `item.export`          | lecture, **sans équivalent par l'API locale** : rend la sortie d'un traducteur nommé, donc l'artefact Better CSL JSON |
+| `item.pandoc_filter`   | lecture, **sans équivalent** de même, son paramètre `asCSL` rendant de la sortie CSL de Better BibTeX |
+| `user.groups`          | lecture                                                              |
+| `autoexport.add`       | **écriture** : paramètres `collection`, `translator`, `path`, `displayOptions`, `replace`, donc écriture vers un chemin arbitraire, et persistante, le travail enregistré réécrivant ce chemin à chaque modification de la bibliothèque |
+| `item.regenerate_key`  | **écriture, la plus dommageable ici** : appelle `KeyManager.fill(..., { replace: true })`, donc écrase des clés de citation épinglées. C'est exactement ce que l'étape 2 du chantier bibliographique d'eds-prise interdit, seize clés reportées à la main et « ne toucher ni à la formule Better BibTeX ni au `Refresh` » |
+| `collection.scanAUX`   | **écriture** : crée une collection depuis un fichier `.aux`           |
+| `viewer.viewPDF`       | effet d'interface : ouvre un PDF dans la visionneuse Zotero           |
+```
+
+Le point d'entrée accepte GET et POST en `application/json`, avec `permitBookmarklet = false` pour seule garde d'origine et aucun jeton. L'adresse d'écoute n'a pas été vérifiée, ni `ss` ni `/proc/net/tcp` ne montrant le port 23119 depuis le bac à sable d'où `curl` l'atteint : `ss -ltnp | rg 23119` hors sandbox la donnerait.
+
+Les deux règles `deny`, sous Claude Code et sous opencode, visent le point d'entrée et non une liste de méthodes : elles couvrent donc `item.regenerate_key` sans modification.
+
+**L'asymétrie qui justifie de garder la règle** : l'écriture par l'API locale est verrouillée par Zotero, qui renvoie `428` sans clé accordée, alors que les trois méthodes d'écriture du JSON-RPC ne sont gardées par rien. Le skill faisant lire aux agents le texte intégral de documents tiers, donc un vecteur d'injection, lever la règle donnerait à ce vecteur des primitives d'écriture qu'il n'a aujourd'hui par aucune voie.
+
+**L'API locale ne sait pas produire un format de Better BibTeX, mesuré le 2026-09-28.** `format` n'accepte ni l'identifiant du traducteur ni son nom : `format=f4b52ab0-f878-4556-85a0-c7aeedd09dfc`, `format=Better CSL JSON` et `format=better-csl-json` rendent tous `400 Invalid 'format' value`, quand `format=bibtex` et `format=csljson` rendent `200`. Le message d'erreur n'énumère pas les valeurs admises, et `include=csljson,bibtex` n'ouvre aucune autre porte.
+
+**L'enveloppe n'est pourtant pas à construire, et la règle `deny` reste.** Le raisonnement ci-dessus cherchait un moyen d'obtenir l'artefact de production depuis un agent, en oubliant que cet artefact est un fichier : dès qu'un export `Keep updated` est armé, il écrit le fichier dans le dépôt, où un agent le lit par `cat` sans aucune permission particulière. Le besoin ne vit donc que dans la fenêtre qui précède l'armement de l'export automatique, et se referme avec lui. Un script d'enveloppe à maintenir pour une fenêtre à usage unique ne se justifie pas ; si le besoin revenait, la forme resterait celle-ci, une enveloppe n'acceptant que les dix méthodes de lecture et autorisée par son nom, la règle `deny` sur `curl` brut restant en place, un glob d'URL ne pouvant pas trier par méthode puisque le nom de la méthode voyage dans le corps de la requête.
+
 ### Voies écartées
 
 - **Zoteus en MCP, lecture seule** (le choix provisoire). `ZOTEUS_READ_ONLY=true` ne retire que des outils MCP et n'ajoute donc rien au verrou de Zotero. Le serveur est une dépendance tierce jeune (44 étoiles), dont le mode lecture seule n'est vérifié que pour `zotero_delete_items`. Sa déclaration vivrait dans `~/.claude.json`, qui n'est pas versionné. Et opencode ne le chargerait pas, `DESIGN-OPENCODE-HARNESS.md` gardant les serveurs MCP hors d'opencode depuis le 2026-09-21. Le repli par 54yyyu/zotero-mcp tombe pour les mêmes raisons.
