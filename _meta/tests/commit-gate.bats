@@ -241,6 +241,18 @@ staged_change() {
   [[ $output != *"$PROJECT/a.sh"* ]]
 }
 
+@test "names a changed path and a never sealed path in the same run" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  printf 'v3\n' >"$PROJECT/a.sh"
+  printf 'x\n' >"$PROJECT/other.md"
+  run_gate "$(payload "$(commit_message)")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"are stale. 1 file(s) they take changed"*"$PROJECT/a.sh"* ]]
+  [[ $output == *"1 file(s) the commit blocks just shown take were never sealed"*"$PROJECT/other.md"* ]]
+}
+
 @test "leaves the repository's .claude directory and the memory directory out of the paths the blocks take" {
   mkdir -p "$WORK/.claude"
   printf 'x\n' >"$WORK/.claude/PLAN.md"
@@ -283,6 +295,17 @@ staged_change() {
   run_gate "$(payload "$message")"
   [ "$status" -eq 2 ]
   [[ $output == *"could not check the tracking verification"* ]]
+}
+
+@test "names a stale path in the same run as an unreadable source" {
+  : >"$RUNTIME/claude-code-writes-s1.log"
+  chmod 000 "$RUNTIME/claude-code-writes-s1.log"
+  printf 'x\n' >"$PROJECT/new.md"
+  message=$(block_message 'cd /tmp && git commit -m "feat(x): y"')
+  run_gate "$(payload "$message")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"could not check the tracking verification"* ]]
+  [[ $output == *"1 file(s) outside the tracking files were changed"*"$PROJECT/new.md"* ]]
 }
 
 @test "ignores modified files under .claude and the memory directory" {
