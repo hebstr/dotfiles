@@ -66,7 +66,7 @@ Better BibTeX 9.0.64. Ce relevé précise la formule « des méthodes à effet d
 | `viewer.viewPDF`       | effet d'interface : ouvre un PDF dans la visionneuse Zotero           |
 ```
 
-Le point d'entrée accepte GET et POST en `application/json`, avec `permitBookmarklet = false` pour seule garde d'origine et aucun jeton. L'adresse d'écoute n'a pas été vérifiée, ni `ss` ni `/proc/net/tcp` ne montrant le port 23119 depuis le bac à sable d'où `curl` l'atteint : `ss -ltnp | rg 23119` hors sandbox la donnerait.
+Le point d'entrée accepte GET et POST en `application/json`, avec `permitBookmarklet = false` pour seule garde d'origine et aucun jeton. **L'adresse d'écoute est mesurée le 2026-09-28 hors bac à sable**, `ss -ltnp | rg 23119` donnant `LISTEN 127.0.0.1:23119` tenu par `zotero-bin` : la boucle locale seulement, donc le point d'entrée sans authentification n'est atteignable que par un processus de la machine. C'est la moitié qui manquait à l'argument « gardé par rien », et elle le borne : le risque est local, pas réseau.
 
 Les deux règles `deny`, sous Claude Code et sous opencode, visent le point d'entrée et non une liste de méthodes : elles couvrent donc `item.regenerate_key` sans modification.
 
@@ -151,8 +151,16 @@ Mesures du 2026-09-23, Zotero arrêté, bases ouvertes en `mode=ro&immutable=1`.
 - 295 PDF, 383 fichiers `.zotero-ft-cache` (PDF et instantanés HTML), 383 lignes dans `fulltextItems` dont 2 indexées partiellement (limite de 100 pages).
 - 16 collections, 3 notes, 0 annotation dans `itemAnnotations`.
 - `zotero.sqlite` est en WAL : octets 18-19 de l'en-tête à 2. `fulltext.sqlite` est en journal classique (octets à 1). Un `pragma journal_mode` sous `immutable=1` renvoie `delete` quel que soit le mode réel : lire l'en-tête.
-- L'API locale est désactivée : aucune pref `httpServer.localAPI` dans `prefs.js`, donc la valeur par défaut `false`.
+- L'API locale est désactivée : aucune pref `httpServer.localAPI` dans `prefs.js`, donc la valeur par défaut `false`. **Relevé avant la bascule du `user.js` du même jour** : depuis, `zotero/.zotero/zotero/pucr7b5d.default/user.js` la pose à `true` et `prefs.js` la porte. Le défaut `false` est confirmé le 2026-09-28 dans `defaults/preferences/zotero.js` de `/usr/lib/zotero/app/omni.ja`.
 - Better BibTeX installé, clé de citation `auth.lower + year`.
+
+Mesures du 2026-09-28, API locale répondant, sur la question du risque réel d'une écriture.
+
+- 315 items de premier niveau (`Total-Results` sur `items/top`), 16 collections, 290 Mo dans `~/Zotero/storage`. **Les 315 portent une clé de citation**, balayage des quatre pages, donc l'épinglage couvre le fond entier et non sa quasi-totalité.
+- **Aucun retour arrière vérifié.** `sync.server.username` est renseigné et `sync.autoSync` vaut `true` par défaut, mesuré dans `defaults/preferences/zotero.js` de `/usr/lib/zotero/app/omni.ja` en 10.0.3, donc une suppression se propage au serveur plutôt que de rester locale. Les deux `zotero.sqlite.bak` locaux ne font pas un instantané fiable, celui du 2026-09-28 pesant 24 Mo contre 42 Mo pour la base vivante. `~/Zotero` n'est pas couvert par Syncthing.
+- Ce qui justifie de refuser la clé n'est donc pas la gravité mais **l'absence de cadrage** : le besoin ne porterait que sur seize notices de `phd`, quand une clé paraît ouvrir la bibliothèque entière. **Que la clé ne se restreigne pas à une collection n'est pas vérifié** et entre au registre « Non vérifié » ci-dessous : l'établir demanderait la documentation de l'API locale en écriture, non consultée.
+- **Les deux verrous ne se confondent pas**, et cette note les avait rapprochés à tort en séance : une clé d'API locale ne déverrouille ni `item.regenerate_key` ni `autoexport.add`, qui vivent dans le JSON-RPC, lequel n'a aucune authentification et n'est gardé que par la règle `deny`.
+- **Une sauvegarde vérifiée de la bibliothèque est recommandée et reportée par l'utilisateur le 2026-09-28**, indépendamment de la question de l'API : l'exposition tient à l'absence d'instantané fiable et non à un accès d'agent, donc une fausse manœuvre dans le volet d'item de Zotero suffit à la réaliser. Elle passe par l'interface de Zotero et reste une action de l'utilisateur. Portée au registre, ligne du 2026-09-28 de `.claude/DEFERRED.md`, qui est ce qui se relit périodiquement.
 
 ## Ce que Zotero 10 a changé
 
@@ -218,6 +226,8 @@ Index vectoriel : les outils mûrs le rendent optionnel et livrent BM25 ou mots-
 - Le comportement de `ZOTEUS_READ_ONLY=true` sur les outils autres que `zotero_delete_items`.
 - Si le verrou exclusif de Zotero s'étend à `fulltext.sqlite` attaché : `main.locking_mode` ne vise que la base principale.
 - Le comportement d'un `ATTACH ... (TYPE sqlite, READ_ONLY)` DuckDB sur la base vivante, déduit de la doc DuckDB et non testé.
+- Si une clé d'écriture de l'API locale se restreint à une collection ou ouvre la bibliothèque entière (2026-09-28). C'est l'argument sur lequel repose le refus d'accorder la clé, donc le seul point dont l'infirmation le rouvrirait ; l'établir demande la documentation de l'API locale en écriture, non consultée, et non un essai, qui serait une écriture.
+- Si un `DELETE` de l'API locale met à la corbeille ou purge (2026-09-28), et si la clé accordée est révocable et limitée à une application. Non testable sans envoyer une écriture.
 
 ## Sources
 
