@@ -9,7 +9,7 @@ Conduct the conversation in the user's language, whatever the language of this t
 
 This skill closes out the work in progress, delivers a commit proposal based on the actual state of the repository, then runs it, each call confirmed by the user in the permission dialog.
 `git add`, `git rm`, `git mv` and `git commit` are the only git write commands it runs (the `ask` rules of `settings.json` and the `git-write-guard.sh` hook enforce it).
-No `git commit` block is written outside this skill: the `Stop` hook `commit-gate.sh` blocks a response that contains one when a file its blocks take changed since the verifier last ran, or was never sealed by it (any stale file when no fenced block holds the commit).
+No `git commit` block is written outside this skill: the `Stop` hook `commit-gate.sh` blocks a response that contains one when a file its blocks take changed since the verifier last ran, or was never sealed by it (any stale file when no fenced block holds the commit), or when a source of that check was unreadable and the check could not run at all.
 
 ## 0. Close out
 
@@ -41,6 +41,7 @@ In this order, skipping none.
    root=$(git rev-parse --show-toplevel) && bash ~/.claude/hooks/commit-stale.sh "$CLAUDE_CODE_SESSION_ID" "$root"
    ```
 
+   Each printed line is `<class><TAB><path>`, the class being `changed` or `unsealed`: the path is the second field, and an `unsealed` path is one the last verification never recorded, so it is another session's file unless this session wrote it after that verification.
    Non-zero exit code: a source could not be read and the list is incomplete; leave the stamp as it is, and say so.
    Empty output, or every printed path is a file an applied finding targets, whatever its kind (`rules/`, `_meta/notes/`, `README.md`; the gate already ignores `.claude/` and memory): rewrite the stamp and the recorded content together (`bash ~/.claude/skills/commit/scripts/writes.sh --restamp`), otherwise the gate would treat the commit blocks delivered right after these corrections as stale. A non-zero exit code means the stamp was not rewritten: say so.
    If at least one path falls outside that case, leave the stamp as it is and name that path to the user: the gate does not block again within the continuation it triggered (the marker it wrote when blocking), and will only block commit blocks that take that path (any commit line, when no fenced block holds it), delivered outside it, which is intended.
@@ -107,7 +108,7 @@ Right after the blocks, in the same response, run them, one Bash call per block,
 
 - The first refused call ends the sequence: run nothing after it, and say which blocks remain.
 - A failed call ends it too, a prek hook rewriting a file included: report the output and run nothing more. The rewritten file is newer than the tracking verification, so the next attempt starts from this skill again.
-- A refusal from the `git-write-guard.sh` hook is not a failure to work around: it names the reason (a rerouted form, `--no-verify` or `--amend`, a git write left to the user, files changed since the verification, files the verification never sealed, which may be another session's). Follow what it says, never another form of the same command.
+- A refusal from the `git-write-guard.sh` hook is not a failure to work around: it names the reason (a rerouted form, `--no-verify` or `--amend`, a git write left to the user, files changed since the verification, files the verification never sealed, which may be another session's, a source of the verification left unreadable). Follow what it says, never another form of the same command.
 - A block the user must run themselves (a `git add -p`, named in section 2) is left to them: say so, and stop the sequence before it.
 - So is a block holding any command other than `git add`, `git rm`, `git mv` or `git commit`: stop the sequence before it, and say which blocks remain.
 

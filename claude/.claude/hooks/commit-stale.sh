@@ -161,7 +161,7 @@ else
       fi
       changed "$path" journal || continue
       seen[$path]=1
-      stale+=("$path")
+      stale+=("$class"$'\t'"$path")
     done <"$journal"
   elif [[ -e $journal ]]; then
     failed=1
@@ -177,7 +177,7 @@ else
       [[ -n ${seen[$path]:-} ]] && continue
       changed "$path" listed || continue
       seen[$path]=1
-      stale+=("$path")
+      stale+=("$class"$'\t'"$path")
     done
   fi
 fi

@@ -265,6 +265,26 @@ staged_change() {
   [[ $output == *"$PROJECT/a.sh"* ]]
 }
 
+@test "the whole status check names a never sealed path as unsealed" {
+  commit_file proj/a.sh
+  seal "$(date +%s%N)" "$PROJECT/a.sh"
+  printf 'x\n' >"$PROJECT/foreign.md"
+  message=$(block_message 'cd /tmp && git commit -m "feat(x): y"')
+  run_gate "$(payload "$message")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"outside the tracking files were never sealed"* ]]
+  [[ $output == *"$PROJECT/foreign.md"* ]]
+}
+
+@test "blocks when the whole status check cannot read one of its sources" {
+  : >"$RUNTIME/claude-code-writes-s1.log"
+  chmod 000 "$RUNTIME/claude-code-writes-s1.log"
+  message=$(block_message 'cd /tmp && git commit -m "feat(x): y"')
+  run_gate "$(payload "$message")"
+  [ "$status" -eq 2 ]
+  [[ $output == *"could not check the tracking verification"* ]]
+}
+
 @test "ignores modified files under .claude and the memory directory" {
   printf 'x\n' >"$PROJECT/.claude/PLAN.md"
   printf 'x\n' >"$FAKE_HOME/.claude/memory/feedback_x.md"

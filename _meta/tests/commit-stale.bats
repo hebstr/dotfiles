@@ -105,7 +105,7 @@ commit_file() {
   write_at 200 "$PROJECT/src/a.sh"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/src/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/src/a.sh" ]
 }
 
 @test "leaves out the project's .claude directory and the memory directory" {
@@ -124,7 +124,7 @@ commit_file() {
   stamp 'not-a-number'
   run_stale
   [ "$status" -ne 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "treats an unreadable stamp as absent and exits non-zero" {
@@ -134,7 +134,7 @@ commit_file() {
   chmod 000 "$RUNTIME/claude-code-writes-s1.stamp"
   run_stale
   [ "$status" -ne 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "exits non-zero on an unreadable journal" {
@@ -157,7 +157,7 @@ commit_file() {
   chmod +x "$STUB_DIR/git"
   run_stale
   [ "$status" -ne 0 ]
-  [ "$output" = "$PROJECT/src/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/src/a.sh" ]
 }
 
 @test "--seal writes the stamp value as the snapshot header, then one digest per path" {
@@ -187,7 +187,7 @@ commit_file() {
   printf 'v3\n' >"$PROJECT/a.sh"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "prints a file the snapshot does not hold, even when its ctime predates the stamp" {
@@ -196,7 +196,7 @@ commit_file() {
   seal "$(date +%s%N)"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/new.sh" ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/new.sh" ]
 }
 
 @test "counts a change of the executable bit" {
@@ -206,7 +206,7 @@ commit_file() {
   chmod +x "$PROJECT/a.sh"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "passes a journaled write that restored the sealed content" {
@@ -229,7 +229,7 @@ commit_file() {
   printf 'v2\n' >"$PROJECT/a.sh"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "keeps comparing content against the stamp's snapshot after a seal whose stamp was never written" {
@@ -299,7 +299,7 @@ commit_file() {
   rm "$PROJECT/a.sh"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "counts an absent path the snapshot does not hold when git status lists it, not when only the journal does" {
@@ -310,7 +310,7 @@ commit_file() {
   write_at "$((value + 1000))" "$PROJECT/tmp.sh"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "counts a symlink whose target changed since the seal" {
@@ -319,7 +319,7 @@ commit_file() {
   ln -sfn two "$PROJECT/link"
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/link" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/link" ]
 }
 
 @test "prints a sealed file it cannot read and exits non-zero" {
@@ -329,7 +329,7 @@ commit_file() {
   chmod 000 "$PROJECT/a.sh"
   run_stale
   [ "$status" -ne 0 ]
-  [ "$output" = "$PROJECT/a.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "--only leaves out tracking paths and prints each path once" {
@@ -353,7 +353,7 @@ commit_file() {
   [ -z "$output" ]
   printf 'v3\n' >"$PROJECT/a b[1]*.sh"
   run_stale
-  [ "$output" = "$PROJECT/a b[1]*.sh" ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a b[1]*.sh" ]
 }
 
 @test "counts a path holding a tab, which the seal cannot record" {
@@ -362,7 +362,7 @@ commit_file() {
   [ "$(wc -l <"$RUNTIME/claude-code-writes-s1.$(<"$RUNTIME/claude-code-writes-s1.stamp").seen")" -eq 1 ]
   run_stale
   [ "$status" -eq 0 ]
-  [ "$output" = "$PROJECT/t"$'\t'"ab.sh" ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/t"$'\t'"ab.sh" ]
 }
 
 @test "--seal exits 2 on a value that is not a number, writing nothing" {

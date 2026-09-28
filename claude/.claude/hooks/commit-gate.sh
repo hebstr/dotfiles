@@ -48,6 +48,7 @@ command=""
 
 stale=()
 judged=0
+unchecked=0
 if [[ -n $command ]]; then
   mapfile -t stale < <(jq -nc --arg s "$session" --arg c "$cwd" --arg x "$command" '{session_id: $s, cwd: $c, tool_input: {command: $x}}' |
     "$BASH" "${BASH_SOURCE[0]%/*}/git-write-guard.sh" --verdict 2>/dev/null)
@@ -56,25 +57,22 @@ fi
 if ((!judged)); then
   stale=()
   mapfile -t stale < <("$BASH" "${BASH_SOURCE[0]%/*}/commit-stale.sh" "$session" "${CLAUDE_PROJECT_DIR:-$cwd}" 2>/dev/null)
+  wait "$!" || unchecked=1
 fi
 
-((${#stale[@]} > 0)) || exit 0
+((${#stale[@]} > 0 || unchecked)) || exit 0
 
 : >"$blocked" 2>/dev/null
 
 changed=()
 unsealed=()
-if ((judged)); then
-  for line in "${stale[@]}"; do
-    if [[ ${line%%$'\t'*} == unsealed ]]; then
-      unsealed+=("${line#*$'\t'}")
-    else
-      changed+=("${line#*$'\t'}")
-    fi
-  done
-else
-  changed=("${stale[@]}")
-fi
+for line in "${stale[@]}"; do
+  if [[ ${line%%$'\t'*} == unsealed ]]; then
+    unsealed+=("${line#*$'\t'}")
+  else
+    changed+=("${line#*$'\t'}")
+  fi
+done
 
 list() {
   local p
@@ -85,6 +83,10 @@ list() {
 }
 
 {
+  if ((unchecked)); then
+    printf 'Commit gate: could not check the tracking verification for the commit blocks just shown: a source of commit-stale.sh was unreadable. '
+    printf 'Invoke the /commit skill now; if it persists, tell the user that the blocks already displayed must not be run and leave the commit to them.\n'
+  fi
   if ((${#changed[@]} > 0)); then
     printf 'Commit gate: the commit blocks just shown are stale. '
     if ((judged)); then
@@ -97,7 +99,12 @@ list() {
     printf 'Tell the user that the blocks already displayed are stale and must not be run.\n'
   fi
   if ((${#unsealed[@]} > 0)); then
-    printf 'Commit gate: %d file(s) the commit blocks just shown take were never sealed by the last tracking verification, so another session may be writing them:\n' "${#unsealed[@]}"
+    printf 'Commit gate: '
+    if ((judged)); then
+      printf '%d file(s) the commit blocks just shown take were never sealed by the last tracking verification, so another session may be writing them:\n' "${#unsealed[@]}"
+    else
+      printf '%d file(s) outside the tracking files were never sealed by the last tracking verification, so another session may be writing them:\n' "${#unsealed[@]}"
+    fi
     list "${unsealed[@]}"
     printf "Tell the user that the blocks already displayed must not be run, then render them again with these paths left out of the staging commands, now and after any new verifier pass, whose seal would take them in and let a later commit carry that session's work. "
     printf 'Only if this session wrote them through Edit or Write after its last verification, invoke the /commit skill instead.\n'
