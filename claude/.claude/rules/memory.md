@@ -13,6 +13,7 @@ Injected by `inject-rules.sh` once per session, on the first write to the memory
 - Each index line is `- <file>.md: <description>`, one line, under the section of the file's category. The harness's memory prompt prescribes `- [Title](file.md) — hook`: this rule governs, the link repeating the filename for about 4 KB across the index.
 - Never write under the harness path `~/.claude/projects/<cwd>/memory/`: what is there is legacy, never cited as current, and a `MEMORY.md` found there beyond the redirect stub is surfaced to the user.
 - A new file's name follows the store's `<category>_<slug>.md` convention (`feedback_`, `reference_`, `project_`, `user_`) and must not collide with one the index lists: `Write` replaces an existing file with no warning and no merge, so a collision destroys the memory it lands on.
+- The slug must also avoid the secret globs of the dotfiles `.gitignore`, `**/*token*` and `**/*secret*`: the store is ignored by pattern rather than by location, so a memory named after CSS design tokens or a secret-handling rule is silently never versioned, existing on one machine while `MEMORY.md` indexes it. `git check-ignore -v <path>` settles it; rename the memory rather than weaken the pattern (done 2026-09-28 for `reference_gt_reactable_css_theming.md`, ex-`_tokens`).
 - Memory is written in English, French only when the user explicitly asks for it.
 - `[[links]]` resolve to the target's filename without `.md`; the `name:` frontmatter is a human-readable title, not necessarily a slug, so link by filename.
 

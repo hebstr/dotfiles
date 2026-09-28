@@ -46,7 +46,7 @@
 - reference_positron_extension_registries.md: Positron: the profile's extensions.json beats the global one; never delete a folder only the global one calls orphan
 - reference_hebstr_easy_out_subdir.md: hebstr sha 97e8829 moved `easy_out()` to one kebab-case subfolder per output, removed `easy_out_map()`; silent break, clear old outputs
 - reference_hebstr_gt_table_width.md: hebstr `tbl_format`/`theme_gt` width is hard px the gt container can only scroll: why `pct()` and `NULL` are refused, measuring natural width
-- reference_gt_reactable_css_tokens.md: Theming gt vs reactable with CSS tokens: gt rejects `var()`/`currentColor` (only `!important` reaches it), reactable passes strings through
+- reference_gt_reactable_css_theming.md: Theming gt vs reactable with CSS tokens: gt rejects `var()`/`currentColor` (only `!important` reaches it), reactable passes strings through
 - reference_hebstr_outdec_locale_flag.md: hebstr's options(OutDec) locale flag breaks third-party numeric round-trips (tidycmprsk::cuminc): force OutDec="." around the fit, don't refactor hebstr
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text` (re-arm in a separate `+ theme()`); 3-color palette needs a darker anchor for 5 categories
 - reference_quarto_lua_shortcodes.md: Quarto Lua shortcode traps (kwargs, YAML metadata, named pipes), `is_format` guards, embedded-shortcode loading, Pandoc fs API
