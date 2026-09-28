@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+bats_require_minimum_version 1.5.0
+
 SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/hooks/reco-relance.sh"
 
 setup() {
@@ -20,7 +22,7 @@ teardown() {
 run_hook() {
   local payload=$1
   # shellcheck disable=SC2016
-  run env PATH="$STUB_DIR" /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$payload" "$SCRIPT"
+  run --separate-stderr env PATH="$STUB_DIR" /bin/bash -c 'printf "%s" "$1" | /bin/bash "$2"' _ "$payload" "$SCRIPT"
 }
 
 payload() {
@@ -31,11 +33,13 @@ assert_injects() {
   [ "$status" -eq 0 ]
   [ "$(jq -r '.hookSpecificOutput.hookEventName' <<<"$output")" = UserPromptSubmit ]
   [[ $(jq -r '.hookSpecificOutput.additionalContext' <<<"$output") == *"new fact"* ]]
+  [ -z "$stderr" ]
 }
 
 assert_silent() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+  [ -z "$stderr" ]
 }
 
 @test "injects when the prompt holds a question mark" {
@@ -50,9 +54,23 @@ assert_silent() {
   assert_injects
 }
 
+@test "injects when the question mark is typed between two pasted blocks" {
+  local prompt
+  prompt=$(printf '%s\n' '<pasted_content id="ab12">' 'log A' '</pasted_content id="ab12">' 'On part sur cette voie ?' '<pasted_content id="cd34">' 'log B' '</pasted_content id="cd34">')
+  run_hook "$(payload "$prompt")"
+  assert_injects
+}
+
 @test "injects when the question mark is typed next to a stripped wrapper" {
   local prompt
   prompt=$(printf '%s\n' '<task-notification>Agent terminé.</task-notification>' 'Et la suite ?')
+  run_hook "$(payload "$prompt")"
+  assert_injects
+}
+
+@test "injects when the question mark is typed between two agent-message wrappers" {
+  local prompt
+  prompt=$(printf '%s\n' '<agent-message from="verifier">Rapport prêt, dois-je poursuivre ?</agent-message>' 'On garde cette voie ?' '<agent-message from="reviewer">Revue finie, autre chose ?</agent-message>')
   run_hook "$(payload "$prompt")"
   assert_injects
 }
@@ -70,6 +88,13 @@ assert_silent() {
 @test "stays silent when the only question mark sits inside pasted content" {
   local prompt
   prompt=$(printf '%s\n' 'Voici le transcript :' '<pasted_content id="ab12">' 'Que recommandes-tu vraiment ?' '</pasted_content id="ab12">' 'Résume-le.')
+  run_hook "$(payload "$prompt")"
+  assert_silent
+}
+
+@test "stays silent when the only question marks sit inside two pasted blocks" {
+  local prompt
+  prompt=$(printf '%s\n' 'Voici les deux transcripts :' '<pasted_content id="ab12">' 'Que recommandes-tu ?' '</pasted_content id="ab12">' 'et' '<pasted_content id="cd34">' 'On part sur quoi ?' '</pasted_content id="cd34">' 'Résume-les.')
   run_hook "$(payload "$prompt")"
   assert_silent
 }
