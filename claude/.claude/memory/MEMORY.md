@@ -55,7 +55,7 @@
 - reference_quarto_extension_format_knitr.md: Extension knitr options per format, svglite/systemfonts registration traps, what an extension can ship but not run
 - reference_quarto_custom_format_render_target.md: One `.qmd`, HTML and Word deliverables: `knitr::pandoc_to()` tells `hebstr-doc-docx` from `-html`; `--to` renders an undeclared format
 - reference_citeproc_bib_vs_csl.md: citeproc title casing differs between `.bib` and CSL-JSON/YAML: protecting French titles, conversion and CSL-YAML traps
-- reference_better_bibtex_export_control.md: what a Better BibTeX export can be made to emit: the prefs each translator honours, flat `skipFields`, the postscript signature, no formatting pref, and the local API refusing translator names
+- reference_better_bibtex_export_control.md: what a Better BibTeX export can be made to emit: how `skipFields` really matches (per-type, CSL names, lowercase-only), per-directory override files, the cache dropping itself, the postscript signature, no formatting pref, and the local API refusing translator names
 - reference_quarto_extension_install_resolution.md: `quarto add owner/repo` (even `@latest`) installs main, never the last release; only `@<tag>` pins
 - reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` gets no `_quarto.yml` metadata nor `output-dir`; pre-render and `_metadata.yml` still apply
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` dropped the format's `title-delim` though `quarto inspect` showed it merged; nest it under the format
