@@ -13,7 +13,7 @@ A French text moved to English (skills, rules, `.claude/` notes, per the English
 - Translate each sentence from what the French rule asks for, then check the English against the source line by line so that no rule is lost, weakened or strengthened.
 - Watch faux amis that change a rule's scope: "hypothèse" is usually an assumption, "constater" is establish or observe (not record), "seul" in "ne se choisit pas seul" is unilaterally, "arbitrage" is weighing options (not any decision).
 - In a fidelity review, report calqued phrasing as a finding alongside meaning shifts; "ignore pure style" covers word order and synonyms, not unidiomatic English.
-- The remaining translations (`relire`, then `zotero`) are listed in `~/dotfiles/.claude/DESIGN-CADRER.md`, which now records this standard. `commit` and its verifier were translated and fidelity-reviewed on 2026-09-24 (`cfb3a40`); `depouiller` was translated and renamed `review-comments` on 2026-09-29, its fidelity review still owed.
+- The remaining translations (`relire`, then `zotero`) are listed in `~/dotfiles/.claude/DESIGN-CADRER.md`, which now records this standard. `commit` and its verifier were translated and fidelity-reviewed on 2026-09-24 (`cfb3a40`); `depouiller` was translated and renamed `review-comments` on 2026-09-29 (`6e7eeaa`, French source at `17acef0`), its fidelity review still owed.
 - A renamed skill takes its script names with it: the code text of a skill's scripts and tests is in English too (`rules/code.md`), while what the script writes into a French deliverable stays French.
 
 Related: [[feedback_french_prose]].
