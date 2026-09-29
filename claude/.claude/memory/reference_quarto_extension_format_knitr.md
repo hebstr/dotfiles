@@ -8,7 +8,7 @@ metadata:
 `knitr: opts_chunk:` placed under one format in an extension's `contributes.formats.<format>:` block reaches knitr, it is not restricted to `common:`.
 Verified 2026-08-01 with a throwaway extension (`dev = svglite` read back from `knitr::opts_chunk$get()` in the rendered output) and again through `quarto-hebstr-doc` 1.3.0.
 
-This is what makes a device choice scopeable. Putting `dev:` under `common:` would push it onto typst and docx too, where hebstr-doc sets `default-image-extension: png` and where docx cannot embed SVG without `rsvg-convert`.
+This is what makes a device choice scopeable. Putting `dev:` under `common:` would push it onto docx too, which hebstr-doc's own `common:` block already reaches with `default-image-extension: png`, and where docx cannot embed SVG without `rsvg-convert`. Typst was the second such format until hebstr-doc dropped it on 2026-09-29.
 
 ## svglite vs the built-in cairo device
 
@@ -66,7 +66,7 @@ Verified end to end: the generated SVG carries `font-family: "Luciole"`.
 
 `quarto-hebstr-doc` ships `fonts/` as `.woff`/`.woff2` only, for `fonts.css` `@font-face`. Neither Typst nor systemfonts can browse that directory: `typst fonts --ignore-system-fonts --font-path <fonts/>` lists only Typst's four built-ins, and `systemfonts::add_fonts()` on it adds 0 rows to `system_fonts()`. Only `register_font()` / `user_fonts`, handed an explicit *file* path, decode a woff2 (`font_info()` then reports family Luciole with real metrics).
 
-Consequence for the extension: its typst block's `font-paths: fonts` is inert, and PDF output silently relies on a system-installed Luciole.
+Consequence for the extension, now a record: its typst block's `font-paths: fonts` was inert, PDF output silently relying on a system-installed Luciole. hebstr-doc dropped the Typst format on 2026-09-29, so the block and that key are gone; the measurement above stands for any other extension shipping web fonts.
 
 ## Dependency consequence
 
