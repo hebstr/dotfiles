@@ -26,7 +26,8 @@
 - project_transcription_local_cpu.md: Meeting transcription decided 2026-09-29 on ju-TP's CPU (faster-whisper via uv), not ju-TP2's GPU; Handy kept, OpenWhispr rejected
 
 ## Reference
-- reference_zotero_user_js_pref_precedence.md: dotfiles' `user.js` re-forces Zotero/BBT prefs at every startup, so a pane change silently reverts; plus the citekey facts (`auth` vs `.lower`, diacritics folded, institutional creators, no regeneration, `a`/`b`/`c` clashes)
+- reference_zotero_user_js_pref_precedence.md: dotfiles' `user.js` re-forces Zotero/BBT prefs at every startup, so a pane change silently reverts; plus the citekey facts (`auth` vs `.lower`, diacritics folded, institutional creators, no regeneration except `resetKeyOnChange`, `a`/`b`/`c` clashes)
+- reference_zotero_metadata_acquisition.md: Zotero 10 made PMID/PMCID native fields (Extra greps lie), only the PubMed translator yields an NLM abbreviation, and Zotero's auto-abbreviation never leaves the word processor
 - reference_syncthing_ghost_records.md: Syncthing stuck at "Syncing 99 %" on ignored paths: find the holder with `syncthing debug database-file`; `ju-DG`/`ju-GO` `.stignore` by hand
 - reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on lazy duckdb inlines a huge SQL `IN` and hangs; keep both sides lazy, `semi_join`, `collect()` last
 - reference_dbplyr_null_semantics.md: dbplyr follows SQL NULLs (`sum()` skips them, `col == v` never TRUE on NULL), so conditional counts undercount; `coalesce()`, check output

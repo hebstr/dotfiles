@@ -1,0 +1,27 @@
+---
+name: Which Zotero acquisition route fills which field, and why the abbreviation is usually wrong
+description: Zotero 10 made PMID/PMCID native fields, only the PubMed translator yields an NLM journal abbreviation, and Zotero's automatic abbreviation never leaves the word processor
+metadata:
+  type: reference
+---
+
+Measured 2026-09-29 on the installed Zotero 10.0.3 (`/usr/lib/zotero/app/omni.ja`), Better BibTeX 9.0.64, the translators in `~/Zotero/translators/`, and the local read-only API.
+
+**PMID and PMCID are native fields now, not Extra lines.** The installed item schema is version 40, and `journalArticle` carries `PMID`, `PMCID` and `citationKey` as real fields, alongside `publisher`, `place`, `section`, `partNumber`, `partTitle`. The schema's own `csl.fields.text` maps `"PMID": ["PMID"]`. `Zotero.Schema.migrateExtraFields()`, called at startup from `zotero.js`, moves recognised `Key: value` lines out of Extra into those fields. So **grepping Extra for `PMID:` finds nothing and proves nothing**: read the field. On this library, 16/16 PubMed-sourced articles and 22/100 sampled articles carry one. Zotero's own support page still lists PMID/PMCID under "Citeable Fields not Included in Zotero"; it is stale, do not cite it. BBT 9.0.64 knows the schema (`"PMID": ["PMID"]` in its build), so Better CSL JSON emits the CSL variable, and `skipFields` cannot reach it (uppercase).
+
+**Only the PubMed route yields a correct NLM journal abbreviation.** `PubMed XML.js` takes `ISOAbbreviation`, falling back to `//MedlineTA`. Everything else is publisher-declared text: `Crossref REST.js` takes `short-container-title` (dropping it only when equal to the full title), `Crossref Unixref XML.js` takes `abbrev_title` with no such guard, `ScienceDirect.js` sets nothing itself and routes through the site's RIS export whose `J2`/`JA`/`JO` tags all land in the same field, and `Embedded Metadata.js` maps `citation_journal_abbrev` unchecked. That last pair is how a record ends up with the *full title* sitting in the abbreviation field, which is worse than empty because it short-circuits every downstream fix.
+
+**Zotero's automatic abbreviation never leaves Zotero.** `extensions.zotero.cite.automaticJournalAbbreviations` defaults to `true`, but its only wiring (`cite.js`) hooks `getAbbreviation` onto citeproc-js. It writes no field and reaches no export. adamsmith confirms it: "Zotero itself doesn't ever use those on export, only in the word processor" (forums.zotero.org/discussion/102230). Its list, `resource/schema/abbreviations.json`, is 2 776 full titles in dotted ISO-4 form plus a 38 077-entry word-by-word engine — not NLM, and missing most mid-tier medical journals.
+
+Three ways out, all partial:
+- BBT's `journalAbbreviation` pref (`"abbrev"` default, `"auto"`, `"abbrev+auto"`) — the export worker computes `item.journalAbbreviation || item.autoJournalAbbreviation`, so `abbrev+auto` only arms on an **empty** field and leaves a wrongly-filled one alone.
+- `pandoc --citation-abbreviations` (or the `citation-abbreviations` YAML key, which Quarto passes through) — verified working on pandoc 3.12 and overriding `container-title-short`, but exact full-title matching only, and it puts a second source of truth back in the repo.
+- Typing the NLM abbreviation from the NLM Catalog. For a small corpus this wins.
+
+**Diagnosing a bad record without opening its source:** `container-title == container-title-short` in the exported CSL-JSON is the exact signature of the abbreviation defect. Inside Zotero, the only published recipe is advanced search with `field — does not contain — %` (`%` alone means "contains anything").
+
+**Zotero has no native metadata re-fetch for an existing item.** The item context menu holds only `Retrieve Metadata` (attachments only) and `Create Parent Item`; the community workaround is re-add by identifier then merge, which requires the same item type. Of the batch plugins, only `northword/zotero-format-metadata` ("Linter for Zotero", v4.0.1, 2026-09-09) is maintained and Zotero 10-compatible, but its abbreviations come from JabRef + LTWA rather than NLM and its update tool only fills *missing* fields. `ZotMeta` stops at Zotero 9; `zotero-shortdoi` and ZotFile are abandoned.
+
+**Why a connector capture of an institutional page has no author or date:** `Embedded Metadata.js` looks for a byline only in the CSS classes `byline`, `bylines`, `vcard`, `article-byline` and gives up otherwise, and it never reads `article:published_time` (its only non-Highwire date fallback is `time[datetime]`). This is structural, not a bug to work around: use the connector for the URL and access date, then type the rest.
+
+Related: [[reference_zotero_user_js_pref_precedence]] for where to set any of these prefs and the `resetKeyOnChange` hazard, [[reference_better_bibtex_export_control]] for what a BBT export honours, [[reference_citeproc_bib_vs_csl]] for title casing across the two routes.

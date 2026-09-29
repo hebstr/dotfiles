@@ -21,4 +21,4 @@ Entry-type mapping worth knowing: `@misc` produces an **empty** CSL type (styles
 
 Typst reads only Hayagriva `.yaml` and BibLaTeX `.bib`, never CSL-JSON, so a project that wants Typst-native citation handling cannot move its bibliography to CSL. See [[user_quarto_typst_only]] and [[reference_quarto_custom_format_render_target]].
 
-Zotero exports BibTeX and CSL JSON both ways but BibLaTeX only as an export. Since Zotero 8 citation keys live in a native, always-pinned, syncing field, so the old "pin your key in the Extra field" advice is obsolete; changing a Better BibTeX key formula does not regenerate existing keys without an explicit Refresh.
+Zotero exports BibTeX and CSL JSON both ways but BibLaTeX only as an export. Since Zotero 8 citation keys live in a native, always-pinned, syncing field, so the old "pin your key in the Extra field" advice is obsolete; changing a Better BibTeX key formula does not regenerate existing keys without an explicit Refresh, with one exception that [[reference_zotero_user_js_pref_precedence]] documents (`resetKeyOnChange`, which rewrites a native key on any item edit).
