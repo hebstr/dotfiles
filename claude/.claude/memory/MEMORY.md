@@ -84,7 +84,7 @@
 - feedback_review_severity_md_nesrine.md: md-nesrine render journal reviews: no journal line for a failed render, no commit-id field (`git blame` maps a line to its commit)
 - feedback_review_severity_stat_reports_fr.md: French stat report reviews: keep established English terms, run code before a method claim, skip caption-restating prose
 - feedback_review_severity_shell_installers.md: Review severity for personal shell installers (quarto-update, positron-update…), hook scripts and the `commit` skill's scripts
-- feedback_review_severity_hebstr_doc.md: Calibrate reviews of the quarto-hebstr-doc extension (filetree.lua): idiom, perf and duplication findings already dismissed
+- feedback_review_severity_hebstr_doc.md: Calibrate reviews of the quarto-hebstr-doc extension (filetree.lua and its tests): dismissed idiom, perf and duplication findings, an unobservable test-helper mutation, and when a coercion edge case is NOTED rather than fixed
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc: sole dev, own consumers: no compat shim, no public-API argument, never re-propose CONTRIBUTING.md; publishing shortcodes is not a goal, sharing them with hebstr-book is
 - feedback_review_severity_bats_tests.md: Calibrate review severity for bats `.bats` tests of personal shell tooling, and measure a proposed remedy before applying it
 - feedback_review_severity_bash_dotfiles.md: `bash/` reviews: SC1090 directives, one-machine firefox alias, `PROMPT_COMMAND` guard, no `nocaseglob`, doubled prek hooks are deliberate
