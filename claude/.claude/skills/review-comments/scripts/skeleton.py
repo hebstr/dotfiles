@@ -383,14 +383,14 @@ def render(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Lay down the skeleton of a register from the comments of a .docx."
+        description="Build the skeleton of a register from a .docx's comments."
     )
     parser.add_argument("docx", type=Path)
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument(
         "--source",
         type=Path,
-        help="authored source (.qmd, .md) to look each extract up in",
+        help="authored source (.qmd, .md) to check each extract against",
     )
     parser.add_argument("--force", action="store_true", help="overwrite an existing register")
     args = parser.parse_args()
@@ -406,7 +406,7 @@ def main() -> None:
     with archive:
         comments = load_comments(archive)
         if not comments:
-            sys.exit(f"{args.docx} carries no comment")
+            sys.exit(f"{args.docx} has no comments")
         order = walk_body(archive, comments)
         threaded = "word/commentsExtended.xml" in archive.namelist()
     roots = thread(comments, order)

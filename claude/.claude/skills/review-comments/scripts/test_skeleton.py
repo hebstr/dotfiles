@@ -504,8 +504,8 @@ def test_refuses_to_overwrite_a_register(tmp_path: Path) -> None:
     assert "**Décision** : à prendre." in out.read_text(encoding="utf-8")
 
 
-def test_docx_without_a_comment(tmp_path: Path) -> None:
-    path = tmp_path / "vide.docx"
+def test_docx_without_comments(tmp_path: Path) -> None:
+    path = tmp_path / "empty.docx"
     with zipfile.ZipFile(path, "w") as z:
         z.writestr(
             "word/document.xml", f"<w:document {NS}><w:body>{para(run('x'))}</w:body></w:document>"
@@ -527,7 +527,7 @@ def test_comment_resolved_in_word(tmp_path: Path) -> None:
     assert "marqué résolu dans Word" in out.read_text(encoding="utf-8")
 
 
-def test_agreement_with_a_single_reply(tmp_path: Path) -> None:
+def test_pluralisation_with_one_reply(tmp_path: Path) -> None:
     root, reply = ["Question ?"], ["Réponse."]
     docx = make_docx(
         tmp_path / "a.docx",
@@ -548,7 +548,7 @@ def test_agreement_with_a_single_reply(tmp_path: Path) -> None:
     assert "2 comments, 1 point, 1 reply," in proc.stderr
 
 
-def test_agreement_without_a_reply(tmp_path: Path) -> None:
+def test_pluralisation_with_no_reply(tmp_path: Path) -> None:
     texts = ["Remarque"]
     docx = make_docx(
         tmp_path / "a.docx",
