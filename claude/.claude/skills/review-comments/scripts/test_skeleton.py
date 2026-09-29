@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).with_name("squelette.py")
-_spec = importlib.util.spec_from_file_location("squelette", SCRIPT)
+SCRIPT = Path(__file__).with_name("skeleton.py")
+_spec = importlib.util.spec_from_file_location("skeleton", SCRIPT)
 assert _spec is not None and _spec.loader is not None
-squelette = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(squelette)
+skeleton = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(skeleton)
 
 APOS = chr(0x2019)
 
@@ -133,7 +133,7 @@ def entries(md: str) -> list[str]:
     return [p for p in parts[1:] if p[:1].isdigit()]
 
 
-def test_transcription_mot_pour_mot(tmp_path: Path) -> None:
+def test_word_for_word_transcription(tmp_path: Path) -> None:
     texts = [f"qu{APOS}est ce qui est apporté  ici ?", "Deuxième paragraphe, sans retouche."]
     docx = make_docx(
         tmp_path / "a.docx",
@@ -146,16 +146,16 @@ def test_transcription_mot_pour_mot(tmp_path: Path) -> None:
     assert f"> qu{APOS}est ce qui est apporté  ici ?\n> Deuxième paragraphe, sans retouche." in md
 
 
-def test_reponses_rangees_sous_leur_racine(tmp_path: Path) -> None:
-    racine, reponse, relance = ["Question ?"], ["Réponse."], ["Relance."]
+def test_replies_filed_under_their_root(tmp_path: Path) -> None:
+    root, reply, follow_up = ["Question ?"], ["Réponse."], ["Relance."]
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), start(2), start(3), run("passage"), end(1), end(2), end(3)),
-        [comment(1, racine), comment(2, reponse, "Autre"), comment(3, relance)],
+        [comment(1, root), comment(2, reply, "Autre"), comment(3, follow_up)],
         extended=[
-            (last_para(1, racine), None, False),
-            (last_para(2, reponse), last_para(1, racine), False),
-            (last_para(3, relance), last_para(2, reponse), False),
+            (last_para(1, root), None, False),
+            (last_para(2, reply), last_para(1, root), False),
+            (last_para(3, follow_up), last_para(2, reply), False),
         ],
     )
     proc, out = build(tmp_path, docx)
@@ -166,7 +166,7 @@ def test_reponses_rangees_sous_leur_racine(tmp_path: Path) -> None:
     assert items[0].index("> Réponse.") < items[0].index("> Relance.")
 
 
-def test_cycle_de_reponses_ne_perd_aucun_commentaire(tmp_path: Path) -> None:
+def test_reply_cycle_loses_no_comment(tmp_path: Path) -> None:
     a, b = ["A ?"], ["B."]
     docx = make_docx(
         tmp_path / "a.docx",
@@ -184,7 +184,7 @@ def test_cycle_de_reponses_ne_perd_aucun_commentaire(tmp_path: Path) -> None:
     assert len(entries(md)) == 2
 
 
-def test_sans_comments_extended_chaque_commentaire_est_un_point(tmp_path: Path) -> None:
+def test_without_comments_extended_every_comment_is_a_point(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), start(2), run("passage"), end(1), end(2)),
@@ -197,10 +197,10 @@ def test_sans_comments_extended_chaque_commentaire_est_un_point(tmp_path: Path) 
     assert len(entries(md)) == 2
     assert "sans réponse" not in md
     assert "réponses non rangées, `word/commentsExtended.xml` absent" in md
-    assert "réponses non rangées" in proc.stderr
+    assert "replies not filed" in proc.stderr
 
 
-def test_ancre_sur_plusieurs_paragraphes(tmp_path: Path) -> None:
+def test_anchor_spanning_several_paragraphs(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
         para(run("avant "), start(1), run("fin du premier")) + para(run("début du second"), end(1)),
@@ -210,7 +210,7 @@ def test_ancre_sur_plusieurs_paragraphes(tmp_path: Path) -> None:
     assert "extrait visé « fin du premier début du second »" in out.read_text(encoding="utf-8")
 
 
-def test_extrait_en_texte_d_origine(tmp_path: Path) -> None:
+def test_extract_in_original_text(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), run("le texte "), deleted("ancien"), inserted("nouveau"), end(1)),
@@ -222,11 +222,11 @@ def test_extrait_en_texte_d_origine(tmp_path: Path) -> None:
     assert "nouveau" not in md
 
 
-def test_insertion_supprimee_ensuite_absente_de_l_extrait(tmp_path: Path) -> None:
-    fantome = f'<w:ins w:id="905" w:author="A">{deleted("fantome ")}</w:ins>'
+def test_insertion_deleted_afterwards_absent_from_extract(tmp_path: Path) -> None:
+    ghost = f'<w:ins w:id="905" w:author="A">{deleted("fantome ")}</w:ins>'
     docx = make_docx(
         tmp_path / "a.docx",
-        para(start(1), run("le texte "), fantome, run("reste"), end(1)),
+        para(start(1), run("le texte "), ghost, run("reste"), end(1)),
         [comment(1, ["Remarque"])],
     )
     _, out = build(tmp_path, docx)
@@ -235,7 +235,7 @@ def test_insertion_supprimee_ensuite_absente_de_l_extrait(tmp_path: Path) -> Non
     assert "fantome" not in md
 
 
-def test_deplacement_suivi_garde_la_seule_origine(tmp_path: Path) -> None:
+def test_tracked_move_keeps_the_origin_only(tmp_path: Path) -> None:
     body = para(
         start(1),
         run("A "),
@@ -249,7 +249,7 @@ def test_deplacement_suivi_garde_la_seule_origine(tmp_path: Path) -> None:
     assert "extrait visé « A bouge B »" in out.read_text(encoding="utf-8")
 
 
-def test_zone_de_texte_lue_une_seule_fois(tmp_path: Path) -> None:
+def test_text_box_read_only_once(tmp_path: Path) -> None:
     body = para(run("Titre"), text_box("encart"), style="Titre1") + para(
         start(1), run("avant "), text_box("dans la boite"), run(" apres"), end(1)
     )
@@ -269,15 +269,15 @@ def test_zone_de_texte_lue_une_seule_fois(tmp_path: Path) -> None:
         + para(ref(1))
         + para(run("reste")),
     ],
-    ids=["debut_hors_paragraphe", "fin_hors_paragraphe"],
+    ids=["start_outside_paragraph", "end_outside_paragraph"],
 )
-def test_marqueurs_hors_paragraphe(tmp_path: Path, body: str) -> None:
+def test_markers_outside_a_paragraph(tmp_path: Path, body: str) -> None:
     docx = make_docx(tmp_path / "a.docx", body, [comment(1, ["Remarque"])])
     _, out = build(tmp_path, docx)
     assert "extrait visé « un deux »." in out.read_text(encoding="utf-8")
 
 
-def test_commentaire_dans_une_note(tmp_path: Path) -> None:
+def test_comment_inside_a_note(tmp_path: Path) -> None:
     body = (
         para(run("Chapitre"), style="Titre1")
         + para(run("autre"), style="Titre1")
@@ -306,12 +306,12 @@ def test_commentaire_dans_une_note(tmp_path: Path) -> None:
     assert "Sur le corps" in items[0] and "Sur la note" in items[1]
 
 
-def test_tabulations_et_sauts_de_ligne_separent_les_mots(tmp_path: Path) -> None:
-    taquets = (
+def test_tabs_and_line_breaks_separate_words(tmp_path: Path) -> None:
+    tab_stops = (
         '<w:pPr><w:pStyle w:val="Titre1"/>'
         '<w:tabs><w:tab w:val="left" w:pos="720"/></w:tabs></w:pPr>'
     )
-    body = f"<w:p>{taquets}{run('Chapitre')}</w:p>" + para(
+    body = f"<w:p>{tab_stops}{run('Chapitre')}</w:p>" + para(
         start(1),
         "<w:r><w:t>mot</w:t><w:tab/><w:t>suivant</w:t><w:br/><w:t>ligne</w:t></w:r>",
         end(1),
@@ -328,7 +328,7 @@ def test_tabulations_et_sauts_de_ligne_separent_les_mots(tmp_path: Path) -> None
     assert "> premiere\n> seconde" in md
 
 
-def test_equation_et_objet_sans_texte(tmp_path: Path) -> None:
+def test_equation_and_object_without_text(tmp_path: Path) -> None:
     omml = 'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"'
     equation = f"<m:oMath {omml}><m:r><m:t>x=2</m:t></m:r></m:oMath>"
     image = '<w:r><w:drawing><wp:inline xmlns:wp="urn:wp"/></w:drawing></w:r>'
@@ -340,10 +340,10 @@ def test_equation_et_objet_sans_texte(tmp_path: Path) -> None:
     md = out.read_text(encoding="utf-8")
     assert "extrait visé « soit x=2 ici »." in md
     assert "**Localisation** : avant le premier titre, ancré sur un objet sans texte." in md
-    assert "0 sans ancre" in proc.stderr
+    assert "0 unanchored" in proc.stderr
 
 
-def test_ancre_sur_un_passage_insere(tmp_path: Path) -> None:
+def test_anchor_on_an_inserted_passage(tmp_path: Path) -> None:
     body = para(run("la "), start(1), inserted("matrice"), end(1), run(" suit"))
     docx = make_docx(tmp_path / "a.docx", body, [comment(1, ["Pourquoi ce mot ?"])])
     _, out = build(tmp_path, docx)
@@ -352,9 +352,9 @@ def test_ancre_sur_un_passage_insere(tmp_path: Path) -> None:
     assert "objet sans texte" not in md
 
 
-def test_reponse_sans_date(tmp_path: Path) -> None:
-    racine = ["Question ?"]
-    sans_date = (
+def test_reply_without_a_date(tmp_path: Path) -> None:
+    root = ["Question ?"]
+    undated = (
         '<w:comment w:id="2" w:author="Autre"><w:p w14:paraId="P20">'
         + run("Réponse.")
         + "</w:p></w:comment>"
@@ -362,14 +362,14 @@ def test_reponse_sans_date(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), start(2), run("passage"), end(1), end(2)),
-        [comment(1, racine), sans_date],
-        extended=[(last_para(1, racine), None, False), ("P20", last_para(1, racine), False)],
+        [comment(1, root), undated],
+        extended=[(last_para(1, root), None, False), ("P20", last_para(1, root), False)],
     )
     _, out = build(tmp_path, docx)
     assert "**Réponse**, Autre\n" in out.read_text(encoding="utf-8")
 
 
-def test_style_de_titre_d_origine_sous_suivi(tmp_path: Path) -> None:
+def test_original_heading_style_under_tracking(tmp_path: Path) -> None:
     def restyled(text: str, now: str, before: str) -> str:
         now_style = f'<w:pStyle w:val="{now}"/>' if now else ""
         before_style = f'<w:pStyle w:val="{before}"/>' if before else ""
@@ -386,7 +386,7 @@ def test_style_de_titre_d_origine_sous_suivi(tmp_path: Path) -> None:
     assert "**Localisation** : « Ancien titre », extrait visé" in out.read_text(encoding="utf-8")
 
 
-def test_section_par_niveau_de_plan_herite(tmp_path: Path) -> None:
+def test_section_from_an_inherited_outline_level(tmp_path: Path) -> None:
     body = (
         para(run("Chapitre"), style="Titre1")
         + para(run("Table des matières"), style="TocHeading")
@@ -400,7 +400,7 @@ def test_section_par_niveau_de_plan_herite(tmp_path: Path) -> None:
     )
 
 
-def test_ponctuation_finale_retiree_des_titres(tmp_path: Path) -> None:
+def test_final_punctuation_stripped_from_headings(tmp_path: Path) -> None:
     body = para(run("Questions en suspens ?"), style="Titre1") + para(
         start(1), run("passage"), end(1)
     )
@@ -411,7 +411,7 @@ def test_ponctuation_finale_retiree_des_titres(tmp_path: Path) -> None:
     )
 
 
-def test_titre_de_meme_niveau_remplace_le_precedent(tmp_path: Path) -> None:
+def test_heading_of_same_level_replaces_the_previous_one(tmp_path: Path) -> None:
     body = (
         para(run("Chapitre A"), style="Titre1")
         + para(run("Section A"), style="Titre2")
@@ -423,17 +423,17 @@ def test_titre_de_meme_niveau_remplace_le_precedent(tmp_path: Path) -> None:
     assert "**Localisation** : « Chapitre B », extrait visé" in out.read_text(encoding="utf-8")
 
 
-def test_commentaire_sans_ancre(tmp_path: Path) -> None:
+def test_comment_without_an_anchor(tmp_path: Path) -> None:
     body = para(run("Chapitre"), style="Titre1") + para(run("texte"), ref(1))
     docx = make_docx(tmp_path / "a.docx", body, [comment(1, ["Avis général"])])
     proc, out = build(tmp_path, docx)
     assert "**Localisation** : « Chapitre », aucun passage ancré." in out.read_text(
         encoding="utf-8"
     )
-    assert "1 sans ancre" in proc.stderr
+    assert "1 unanchored" in proc.stderr
 
 
-def test_commentaire_hors_du_corps(tmp_path: Path) -> None:
+def test_comment_outside_the_body(tmp_path: Path) -> None:
     body = para(run("Chapitre"), style="Titre1") + para(start(1), run("passage"), end(1))
     docx = make_docx(
         tmp_path / "a.docx", body, [comment(1, ["Dans le corps"]), comment(2, ["En-tête"])]
@@ -442,10 +442,10 @@ def test_commentaire_hors_du_corps(tmp_path: Path) -> None:
     md = out.read_text(encoding="utf-8")
     assert "**Localisation** : hors du corps du document et de ses notes." in md
     assert "avant le premier titre" not in md
-    assert "0 sans ancre, 1 hors du corps" in proc.stderr
+    assert "0 unanchored, 1 outside the body" in proc.stderr
 
 
-def test_ponctuation_finale_retiree_de_l_extrait(tmp_path: Path) -> None:
+def test_final_punctuation_stripped_from_the_extract(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), run("Quelles sont les habitudes ?"), end(1)),
@@ -456,14 +456,14 @@ def test_ponctuation_finale_retiree_de_l_extrait(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("source", "attendu"),
+    ("source", "expected"),
     [
         ("Une phrase où l'analyse conjointe apparaît.", "retrouvé une fois dans la source"),
         ("Rien de commun.", "non retrouvé dans la source"),
         ("l'analyse conjointe, puis encore l'analyse conjointe", "ambigu, 2 occurrences"),
     ],
 )
-def test_localisation_contre_la_source(tmp_path: Path, source: str, attendu: str) -> None:
+def test_location_against_the_source(tmp_path: Path, source: str, expected: str) -> None:
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), run(f"l{APOS}analyse conjointe"), end(1)),
@@ -472,25 +472,25 @@ def test_localisation_contre_la_source(tmp_path: Path, source: str, attendu: str
     src = tmp_path / "index.qmd"
     src.write_text(source, encoding="utf-8")
     _, out = build(tmp_path, docx, "--source", str(src))
-    assert attendu in out.read_text(encoding="utf-8")
+    assert expected in out.read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("contenu", [None, b"\xff\xfe latin"], ids=["absente", "non_utf8"])
-def test_source_illisible(tmp_path: Path, contenu: bytes | None) -> None:
+@pytest.mark.parametrize("content", [None, b"\xff\xfe latin"], ids=["missing", "not_utf8"])
+def test_unreadable_source(tmp_path: Path, content: bytes | None) -> None:
     docx = make_docx(
         tmp_path / "a.docx", para(start(1), run("passage"), end(1)), [comment(1, ["Remarque"])]
     )
     src = tmp_path / "index.qmd"
-    if contenu is not None:
-        src.write_bytes(contenu)
+    if content is not None:
+        src.write_bytes(content)
     proc, out = build(tmp_path, docx, "--source", str(src))
     assert proc.returncode != 0
     assert "Traceback" not in proc.stderr
-    assert "illisible" in proc.stderr
+    assert "unreadable" in proc.stderr
     assert not out.exists()
 
 
-def test_refus_d_ecraser_un_registre(tmp_path: Path) -> None:
+def test_refuses_to_overwrite_a_register(tmp_path: Path) -> None:
     docx = make_docx(
         tmp_path / "a.docx", para(start(1), run("passage"), end(1)), [comment(1, ["Remarque"])]
     )
@@ -504,7 +504,7 @@ def test_refus_d_ecraser_un_registre(tmp_path: Path) -> None:
     assert "**Décision** : à prendre." in out.read_text(encoding="utf-8")
 
 
-def test_docx_sans_commentaire(tmp_path: Path) -> None:
+def test_docx_without_a_comment(tmp_path: Path) -> None:
     path = tmp_path / "vide.docx"
     with zipfile.ZipFile(path, "w") as z:
         z.writestr(
@@ -515,7 +515,7 @@ def test_docx_sans_commentaire(tmp_path: Path) -> None:
     assert not out.exists()
 
 
-def test_commentaire_resolu_dans_word(tmp_path: Path) -> None:
+def test_comment_resolved_in_word(tmp_path: Path) -> None:
     texts = ["Remarque"]
     docx = make_docx(
         tmp_path / "a.docx",
@@ -527,28 +527,28 @@ def test_commentaire_resolu_dans_word(tmp_path: Path) -> None:
     assert "marqué résolu dans Word" in out.read_text(encoding="utf-8")
 
 
-def test_accord_une_seule_reponse(tmp_path: Path) -> None:
-    racine, reponse = ["Question ?"], ["Réponse."]
+def test_agreement_with_a_single_reply(tmp_path: Path) -> None:
+    root, reply = ["Question ?"], ["Réponse."]
     docx = make_docx(
         tmp_path / "a.docx",
         para(start(1), start(2), run("passage"), end(1), end(2)),
-        [comment(1, racine), comment(2, reponse)],
+        [comment(1, root), comment(2, reply)],
         extended=[
-            (last_para(1, racine), None, False),
-            (last_para(2, reponse), last_para(1, racine), False),
+            (last_para(1, root), None, False),
+            (last_para(2, reply), last_para(1, root), False),
         ],
     )
     proc, out = build(tmp_path, docx)
     md = out.read_text(encoding="utf-8")
-    attendu = (
+    expected = (
         "Le fichier porte 2 commentaires, dont 1 réponse rangée "
         "sous le commentaire qu'elle prolonge : 1 point."
     )
-    assert attendu in md
-    assert "2 commentaires, 1 point, 1 réponse," in proc.stderr
+    assert expected in md
+    assert "2 comments, 1 point, 1 reply," in proc.stderr
 
 
-def test_accord_sans_reponse(tmp_path: Path) -> None:
+def test_agreement_without_a_reply(tmp_path: Path) -> None:
     texts = ["Remarque"]
     docx = make_docx(
         tmp_path / "a.docx",
@@ -560,13 +560,13 @@ def test_accord_sans_reponse(tmp_path: Path) -> None:
     assert "Le fichier porte 1 commentaire, sans réponse : 1 point." in out.read_text(
         encoding="utf-8"
     )
-    assert "1 commentaire, 1 point, 0 réponse," in proc.stderr
+    assert "1 comment, 1 point, 0 replies," in proc.stderr
 
 
-def test_normalize_rend_equivalentes_les_graphies() -> None:
-    assert squelette.normalize(f"l{APOS}épaule  « x »") == squelette.normalize('l\'épaule " x "')
+def test_normalize_makes_spellings_equivalent() -> None:
+    assert skeleton.normalize(f"l{APOS}épaule  « x »") == skeleton.normalize('l\'épaule " x "')
 
 
-def test_normalize_absorbe_la_typographie_de_pandoc() -> None:
-    rendu = f"a {chr(0x2013)} b {chr(0x2014)} c{chr(0x2026)} em et it"
-    assert squelette.normalize(rendu) == squelette.normalize("a -- b --- c... *em* et _it_")
+def test_normalize_absorbs_pandoc_typography() -> None:
+    rendered = f"a {chr(0x2013)} b {chr(0x2014)} c{chr(0x2026)} em et it"
+    assert skeleton.normalize(rendered) == skeleton.normalize("a -- b --- c... *em* et _it_")

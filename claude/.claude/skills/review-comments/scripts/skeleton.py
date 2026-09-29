@@ -173,10 +173,10 @@ def own_elements(el: ET.Element) -> Iterator[ET.Element]:
 def walk_body(archive: zipfile.ZipFile, comments: dict[str, Comment]) -> list[str]:
     body_root = read_xml(archive, "word/document.xml")
     if body_root is None:
-        sys.exit("word/document.xml absent : fichier docx invalide")
+        sys.exit("word/document.xml missing: invalid docx file")
     body = body_root.find(W + "body")
     if body is None:
-        sys.exit("corps du document absent")
+        sys.exit("document body missing")
     levels = outline_levels(read_xml(archive, "word/styles.xml"))
     notes: dict[tuple[str, str], ET.Element] = {}
     for kind in ("footnote", "endnote"):
@@ -288,8 +288,12 @@ def locate(extract: str, source: str) -> str:
     return f"ambigu, {hits} occurrences dans la source"
 
 
-def plural(n: int, word: str) -> str:
+def plural_fr(n: int, word: str) -> str:
     return f"{n} {word}" if n <= 1 else f"{n} {word}s"
+
+
+def plural_en(n: int, singular: str, plural: str) -> str:
+    return f"{n} {singular if n == 1 else plural}"
 
 
 def title_of(c: Comment) -> str:
@@ -325,8 +329,8 @@ def render(
         f"Fichier relu : `{docx}`.",
         f"Auteurs des commentaires : {', '.join(authors) or 'non renseignés'} ; "
         f"commentaires datés : {span}.",
-        f"Le fichier porte {plural(total, 'commentaire')}, {threads} : "
-        f"{plural(len(roots), 'point')}.",
+        f"Le fichier porte {plural_fr(total, 'commentaire')}, {threads} : "
+        f"{plural_fr(len(roots), 'point')}.",
         "Les commentaires sont transcrits mot pour mot depuis `word/comments.xml`.",
         "L'extrait visé est le texte d'origine, suppressions rétablies et insertions ignorées.",
     ]
@@ -379,37 +383,37 @@ def render(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Pose le squelette d'un registre depuis les commentaires d'un .docx."
+        description="Lay down the skeleton of a register from the comments of a .docx."
     )
     parser.add_argument("docx", type=Path)
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument(
         "--source",
         type=Path,
-        help="source rédigée (.qmd, .md) contre laquelle chercher chaque extrait",
+        help="authored source (.qmd, .md) to look each extract up in",
     )
-    parser.add_argument("--force", action="store_true", help="écraser un registre existant")
+    parser.add_argument("--force", action="store_true", help="overwrite an existing register")
     args = parser.parse_args()
 
     if args.output.exists() and not args.force:
         sys.exit(
-            f"{args.output} existe déjà : refus d'écraser un registre, --force pour passer outre"
+            f"{args.output} already exists: refusing to overwrite a register, --force to override"
         )
     try:
         archive = zipfile.ZipFile(args.docx)
     except (FileNotFoundError, zipfile.BadZipFile) as err:
-        sys.exit(f"{args.docx} illisible : {err}")
+        sys.exit(f"{args.docx} unreadable: {err}")
     with archive:
         comments = load_comments(archive)
         if not comments:
-            sys.exit(f"{args.docx} ne porte aucun commentaire")
+            sys.exit(f"{args.docx} carries no comment")
         order = walk_body(archive, comments)
         threaded = "word/commentsExtended.xml" in archive.namelist()
     roots = thread(comments, order)
     try:
         source = (args.source, args.source.read_text(encoding="utf-8")) if args.source else None
     except (OSError, UnicodeDecodeError) as err:
-        sys.exit(f"{args.source} illisible : {err}")
+        sys.exit(f"{args.source} unreadable: {err}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         render(args.docx, roots, len(comments), threaded, source), encoding="utf-8"
@@ -418,13 +422,15 @@ def main() -> None:
     unanchored = sum(1 for c in roots if c.located and not c.anchored)
     outside = sum(1 for c in roots if not c.located)
     summary = (
-        f"{plural(len(comments), 'commentaire')}, {plural(len(roots), 'point')}, "
-        f"{plural(len(comments) - len(roots), 'réponse')}, {unanchored} sans ancre"
+        f"{plural_en(len(comments), 'comment', 'comments')}, "
+        f"{plural_en(len(roots), 'point', 'points')}, "
+        f"{plural_en(len(comments) - len(roots), 'reply', 'replies')}, "
+        f"{unanchored} unanchored"
     )
     if outside:
-        summary += f", {outside} hors du corps"
+        summary += f", {outside} outside the body"
     if not threaded:
-        summary += ", réponses non rangées (word/commentsExtended.xml absent)"
+        summary += ", replies not filed (word/commentsExtended.xml missing)"
     if source is not None:
         status = [
             locate(clean_extract(c.anchor), source[1])
@@ -433,7 +439,7 @@ def main() -> None:
         ]
         missing = sum(s.startswith("non") for s in status)
         ambiguous = sum(s.startswith("ambigu") for s in status)
-        summary += f", {plural(missing, 'non retrouvé')}, {plural(ambiguous, 'ambigu')}"
+        summary += f", {missing} not found, {ambiguous} ambiguous"
     print(summary, file=sys.stderr)
 
 
