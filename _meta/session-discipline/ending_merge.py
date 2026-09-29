@@ -8,7 +8,13 @@ misses, the draw covering 316 of 1,419 silent rows.
 
 Shard 99 re-labels shard 00 through a second, independent labeller: their
 agreement is the only measure of how much the single-reader limit costs, the
-limit every earlier pass of this workstream recorded and none had sized.
+limit every earlier pass of this workstream recorded and none had sized. It is
+computed on the labels as read, before any adjudication.
+
+`ADJUDICATED_POSITION` holds the rows the user ruled on rather than a labeller,
+by row id rather than by a pattern over their prose. Each row keeps its
+`label_as_read`, so the override is visible and reversible; the rule behind it
+is in `.claude/PLAN-SESSION-DISCIPLINE.md`.
 
 Usage: python3 ending_merge.py   (reads ending_bench.json, ending_sample_index.json
 and every ending_labels_*.json beside this file)
@@ -24,6 +30,30 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 OVERLAP_SHARD = "99"
 CLOSE_PHRASE = re.compile(r"/commit\b")
+
+ADJUDICATED_POSITION = (
+    416,
+    417,
+    490,
+    563,
+    564,
+    566,
+    625,
+    630,
+    657,
+    694,
+    700,
+    738,
+    754,
+    923,
+    930,
+    932,
+    974,
+    1138,
+    1144,
+    1171,
+    1245,
+)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -100,7 +130,9 @@ def main() -> None:
                 "timestamp": r["timestamp"],
                 "stratum": "fires" if r["replay"]["families"] else "silent",
                 "replay": r["replay"],
-                "label": lab["label"],
+                "label": "position" if i in ADJUDICATED_POSITION else lab["label"],
+                "label_as_read": lab["label"],
+                "adjudicated": i in ADJUDICATED_POSITION,
                 "closure": bool(lab["closure"]),
                 "confidence": lab.get("confidence"),
                 "quote": lab.get("quote"),
@@ -168,6 +200,12 @@ def main() -> None:
             "recall_point": round(close_tp / (close_tp + close_est_fn), 3)
             if close_tp + close_est_fn
             else None,
+        },
+        "adjudication": {
+            "rows": len(ADJUDICATED_POSITION),
+            "overridden": sorted(
+                r["id"] for r in labelled if r["adjudicated"] and r["label_as_read"] != "position"
+            ),
         },
         "labels": dict(Counter(r["label"] for r in labelled)),
         "closure_true": sum(1 for r in labelled if r["closure"]),
