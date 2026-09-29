@@ -83,7 +83,8 @@ Known gap: legacy `/` division, deprecated in favor of `math.div()`, is caught b
 
 ## Positron
 
-`esbenp.prettier-vscode` is the `[css]` and `[scss]` default formatter, with `editor.formatOnSave` on for those two languages only (the global setting is off).
+`esbenp.prettier-vscode` is the `[css]` and `[scss]` default formatter, with `editor.formatOnSave` on for both (the global setting is off).
+It holds the same pair in four other language blocks, `[json]`, `[jsonc]`, `[jsonl]` and `[javascript]`, so a save formats more than this file's scope (measured 2026-09-29 in `positron/.config/Positron/User/profiles/-eb36ac2/settings.json`).
 It is not the gate's prettier: the extension resolves a workspace-local install when one exists and otherwise falls back to the copy it bundles, so it never reaches `~/.local/bin/prettier` unless `prettier.prettierPath` is set, and it is not.
 A save therefore runs a possibly different prettier version and neither stylelint pass. Format-on-save is not a substitute for the pipeline above.
 
