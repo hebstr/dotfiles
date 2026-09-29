@@ -1,5 +1,5 @@
 {
-  // ÉDITEUR ---------------------------------------------------------------------
+  // EDITOR --------------------------------------------------------------------
 
   "editor.fontFamily": "'Fira Code', 'monospace'",
   "editor.fontSize": 12,
@@ -16,7 +16,6 @@
   "editor.cursorStyle": "line",
   "editor.cursorWidth": 3,
   "editor.cursorSurroundingLines": 10,
-  "diffEditor.ignoreTrimWhitespace": false,
   "notebook.lineNumbers": "on",
 
   "editor.rulers": [
@@ -29,7 +28,7 @@
     },
   ],
 
-  // TERMINAL --------------------------------------------------------------------
+  // TERMINAL ------------------------------------------------------------------
 
   "terminal.integrated.fontFamily": "'Fira Code', 'monospace'",
   "terminal.integrated.fontSize": 12,
@@ -62,12 +61,13 @@
     "terminal.ansiBrightWhite": "#FFFFFF",
   },
 
-  // GESTION DES FICHIERS --------------------------------------------------------
+  // FILES ---------------------------------------------------------------------
 
   "files.defaultLanguage": "r",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
+
   "files.associations": {
     ".*ignore": "ignore",
     "**/dotfiles/bin/.local/bin/*": "shellscript",
@@ -76,12 +76,13 @@
     "renv.lock": "json",
   },
 
-  // EXCLUSIONS DE FICHIERS ------------------------------------------------------
+  // SEARCH AND EXCLUSIONS -----------------------------------------------------
 
   "files.exclude": {
     "**/.Rhistory": true,
     "**/*.Rproj": true,
     "**/.Rproj.user": true,
+    "**/rv/library": true,
     "**/renv/library": true,
     "**/renv/local": true,
     "**/renv/sandbox": true,
@@ -97,6 +98,7 @@
   "files.watcherExclude": {
     "**/.Rhistory": true,
     "**/.Rproj.user": true,
+    "**/rv/library": true,
     "**/renv/library": true,
     "**/renv/local": true,
     "**/renv/sandbox": true,
@@ -112,6 +114,7 @@
   "search.exclude": {
     "**/.Rhistory": true,
     "**/.Rproj.user": true,
+    "**/rv/library": true,
     "**/renv/library": true,
     "**/renv/local": true,
     "**/renv/sandbox": true,
@@ -126,18 +129,25 @@
 
   "search.quickOpen.includeSymbols": true,
 
-  // LANGAGE SPÉCIFIQUE ----------------------------------------------------------
+  // LANGUAGES -----------------------------------------------------------------
 
   "[r]": {
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "Posit.air-vscode",
   },
+  "air.executableStrategy": "environment",
 
   "[python]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "charliermarsh.ruff",
   },
+  "python.createEnvironment.contentButton": "show",
+  "python.createEnvironment.trigger": "off",
+  "python.installModulesInTerminal": true,
+  "python.enableAutoReload": false,
+  "pyrefly.lspPath": "/home/julien/.local/bin/pyrefly",
+  "python.pyrefly.typeCheckingMode": "default",
 
   "[rust]": {
     "editor.formatOnSave": true,
@@ -155,21 +165,10 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "jolars.panache",
   },
-
-  "quarto.render.previewType": "external",
-
   "panache.executableStrategy": "environment",
-
-  "air.executableStrategy": "environment",
-
-  "python.createEnvironment.contentButton": "show",
-  "python.installModulesInTerminal": true,
-  "python.globalModuleInstallation": false,
-  "python.enableAutoReload": false,
-  "python.terminal.activateEnvironment": true,
-
-  "pyrefly.lspPath": "/home/julien/.local/bin/pyrefly",
-  "python.pyrefly.typeCheckingMode": "default",
+  "quarto.render.previewType": "external",
+  "quarto.symbols.showCodeCellsInOutline": false,
+  "quartoWizard.ask.trustAuthors": "never",
 
   "[dockerfile]": {
     "editor.formatOnSave": true,
@@ -181,17 +180,13 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
   },
-  "bashIde.shellcheckPath": "shellcheck",
   "bashIde.shfmt.path": "/usr/bin/shfmt",
   "bashIde.enableSourceErrorDiagnostics": true,
-  "bashIde.shfmt.caseIndent": false,
-  "bashIde.shfmt.spaceRedirects": false,
 
   "[typst]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "myriad-dreamin.tinymist",
   },
-  "tinymist.formatterMode": "typstyle",
   "tinymist.lint.enabled": true,
   "tinymist.formatterPrintWidth": 100,
 
@@ -241,22 +236,20 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
 
-  // GIT -------------------------------------------------------------------------
+  // GIT AND DIFF --------------------------------------------------------------
 
   "git.openRepositoryInParentFolders": "always",
   "git.autoRepositoryDetection": false,
   "git.enableCommitSigning": true,
+  "diffEditor.ignoreTrimWhitespace": false,
 
-  "projectManager.git.baseFolders": ["/home/julien/Documents"],
-
-  // INTERFACE -------------------------------------------------------------------
+  // WORKBENCH -----------------------------------------------------------------
 
   "explorer.confirmDragAndDrop": false,
   "explorer.confirmDelete": false,
-  "extensions.autoRestart": true,
   "testing.resultsView.layout": "treeLeft",
 
-  // POSITRON --------------------------------------------------------------------
+  // POSITRON ------------------------------------------------------------------
 
   "console.fontFamily": "'Fira Code', 'monospace'",
   "console.fontSize": 12,
@@ -267,16 +260,20 @@
   "positron.r.quietMode": true,
   "positron.r.customBinaries": ["/opt/R/current/bin/R"],
   "positron.r.interpreters.default": "/opt/R/current/bin/R",
+  "interpreters.showSessions": true,
   "plots.darkFilter": "off",
   "positron.viewer.interactivePlotsInViewer": true,
   "positron.viewer.openLocalhostUrls": false,
   "dataExplorer.summaryCollapsed": true,
-  "interpreters.showSessions": true,
 
-  // EXTENSIONS ------------------------------------------------------------------
+  // EXTENSIONS ----------------------------------------------------------------
+
+  "extensions.autoRestart": true,
 
   "errorLens.delay": 500,
   "errorLens.padding": "0px",
+
+  "projectManager.git.baseFolders": ["/home/julien/Documents"],
 
   "material-icon-theme.files.associations": {
     ".Rprofile": "r",
@@ -284,36 +281,25 @@
     "DESCRIPTION": "r",
     "NAMESPACE": "r",
     "_targets.R": "r",
-    "*.Rproj": "r",
     "*.ggsql": "sql",
     ".Rbuildignore": "settings",
-    "renv.lock": "lock",
     "rv.lock": "lock",
+    "renv.lock": "lock",
   },
 
   "material-icon-theme.folders.associations": {
     "man": "mock",
-    "renv": "packages",
     "rv": "packages",
+    "renv": "packages",
     "vignettes": "docs",
   },
 
-  "quartoWizard.ask.trustAuthors": "never",
-
-  // RÉSEAU ET CONTENEURS --------------------------------------------------------
+  // NETWORK -------------------------------------------------------------------
 
   "json.schemaDownload.enable": false,
   "remote.autoForwardPortsSource": "hybrid",
-  "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
-  "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
 
-  // CLAUDE CODE -----------------------------------------------------------------
-
-  "claudeCode.preferredLocation": "panel",
-  "claudeCode.selectedModel": "opus",
-  "chat.useAgentSkills": false,
-
-  // APPARENCE GLOBALE -----------------------------------------------------------
+  // APPEARANCE ----------------------------------------------------------------
 
   "workbench.colorTheme": "Material Night Eighties",
   "workbench.iconTheme": "material-icon-theme",
@@ -323,12 +309,13 @@
   "workbench.editor.enablePreview": false,
   "workbench.editor.empty.hint": "hidden",
   "workbench.tree.renderIndentGuides": "always",
+  "workbench.panel.showLabels": false,
   "workbench.keybindings.rstudioKeybindings": true,
 
   "window.title": "${activeEditorFull}${separator}${rootName}",
   // "window.zoomLevel": 0.1,
 
-  // COLORATION SYNTAXIQUE -------------------------------------------------------
+  // SYNTAX HIGHLIGHTING -------------------------------------------------------
 
   "editor.semanticHighlighting.enabled": false,
   "editor.tokenColorCustomizations": {
@@ -778,7 +765,4 @@
       },
     ],
   },
-  "workbench.panel.showLabels": false,
-  "quarto.symbols.showCodeCellsInOutline": false,
-  "python.createEnvironment.trigger": "off",
 }

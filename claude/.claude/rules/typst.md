@@ -65,7 +65,7 @@ The dotfiles repo's own root `prek.toml` has no typstyle hook by design: that re
 
 Positron uses Open VSX; the `myriad-dreamin.tinymist` extension is published there and bundles its own server binary (no separate install, no `serverPath` config).
 The legacy `nvarner.typst-lsp` and `typst-preview` are deprecated and folded into tinymist; never install them alongside it (two LSPs for one language conflict).
-Settings live in the active Positron profile (`tinymist.formatterMode: "typstyle"`, `tinymist.lint.enabled: true`, plus a `[typst]` `formatOnSave` block).
+Settings live in the active Positron profile (`tinymist.lint.enabled: true`, `tinymist.formatterPrintWidth: 100`, plus a `[typst]` `formatOnSave` block). No `tinymist.formatterMode` key is set: typstyle is the extension's own declared default.
 
 ## References
 
