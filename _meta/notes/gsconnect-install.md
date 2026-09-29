@@ -87,7 +87,7 @@ L'ancien appareil bureau (kdeconnect) reste listé tant que le daemon tourne ; u
 
 Optionnel : supprimer l'ancien périphérique bureau côté téléphone (mort une fois kdeconnect désinstallé).
 
-## Étape 4 : Retrait du paquet apt (à exécuter par toi)
+## Étape 4 : Retrait du paquet apt (fait, constaté le 2026-09-29)
 
 À faire **après** confirmation que GSConnect fonctionne (sinon perte de moyen de communication temporaire) :
 
@@ -102,7 +102,7 @@ Optionnel : nettoyage de la conf legacy :
 rm -rf ~/.config/kdeconnect/
 ~~~
 
-## Étape 5 : Post-state (à capturer après les étapes manuelles)
+## Étape 5 : Post-state (fait, constaté le 2026-09-29)
 
 Une fois tout fini, re-roule la dernière exec ci-dessous (à ajouter par toi via `showboat exec` ou par moi à la prochaine session).
 
