@@ -267,7 +267,6 @@
   "positron.r.quietMode": true,
   "positron.r.customBinaries": ["/opt/R/current/bin/R"],
   "positron.r.interpreters.default": "/opt/R/current/bin/R",
-  "positron.assistant.enable": false,
   "plots.darkFilter": "off",
   "positron.viewer.interactivePlotsInViewer": true,
   "positron.viewer.openLocalhostUrls": false,
@@ -285,11 +284,11 @@
     "DESCRIPTION": "r",
     "NAMESPACE": "r",
     "_targets.R": "r",
+    "*.Rproj": "r",
+    "*.ggsql": "sql",
     ".Rbuildignore": "settings",
     "renv.lock": "lock",
     "rv.lock": "lock",
-    "*.Rproj": "r",
-    "*.ggsql": "sql",
   },
 
   "material-icon-theme.folders.associations": {
