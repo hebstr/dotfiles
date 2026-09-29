@@ -19,8 +19,8 @@ user_pref("extensions.zotero.import.fileHandling", "store");
 user_pref("extensions.zotero.sync.storage.groups.enabled", false);
 
 user_pref("extensions.zotero.translators.better-bibtex.resetKeyOnChange", false);
-user_pref("extensions.zotero.translators.better-bibtex.citekeyFormat", 'auth + "_" + year');
-user_pref("extensions.zotero.translators.better-bibtex.citekeyFormatEditing", 'auth + "_" + year');
+user_pref("extensions.zotero.translators.better-bibtex.citekeyFormat", 'auth.lower + year');
+user_pref("extensions.zotero.translators.better-bibtex.citekeyFormatEditing", 'auth.lower + year');
 user_pref("extensions.zotero.translators.better-bibtex.fillKeyAfter", 1);
 user_pref("extensions.zotero.translators.better-bibtex.preferencesOverride", "preferences.json");
 
