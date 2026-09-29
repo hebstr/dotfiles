@@ -18,7 +18,7 @@ The measurements behind each rule are in `~/dotfiles/_meta/notes/docx-verificati
 | `unzip` + `rg` | Read `word/document.xml`, `word/styles.xml`, `word/settings.xml` directly; the only route to anything resolved through style inheritance | coreutils, ripgrep |
 | `libreoffice` | Headless conversion to PDF, the only rendering engine on this machine | `/usr/local/bin/libreoffice` |
 | `pdftoppm` | PDF page to PNG, to hand a page to the native `Read` tool | poppler-utils |
-| `pandoc` | Reads docx; with `-f docx+styles` it surfaces style names as `custom-style` attributes | `/usr/bin/pandoc` |
+| `pandoc` | Reads docx; with `-f docx+styles` it surfaces style names as `custom-style` attributes | `/usr/local/bin/pandoc`, a link to quarto's bundled binary |
 | `python3` | Walk `word/document.xml` to assert the OOXML content model Word enforces and no renderer tests | stdlib, `zipfile` + `xml.etree.ElementTree` |
 ```
 

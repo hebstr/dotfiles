@@ -1,0 +1,18 @@
+---
+name: reference_pandoc_312_data_uri
+description: pandoc 3.12 leaves `#` unescaped in textual data URIs, silently truncating the CSS of self-contained htmlwidgets; the machine keeps only quarto's pandoc
+metadata:
+  type: reference
+---
+
+pandoc 3.12 (released 2026-09-29) changed `makeDataURI` in `src/Text/Pandoc/SelfContained.hs`: the escaping predicate went from `isOk` (ASCII alphanumerics only) to `Network.URI`'s `isUnescapedInURI` (`isReserved c || isUnreserved c`). That predicate is right for validating a whole URI and wrong for escaping a payload placed inside one: `#` is reserved, so it is left literal, and in a `data:` URI it opens the fragment. Everything after the first `#` is dropped by the browser.
+
+Effect on the hebstr stack: `htmlwidgets::saveWidget(selfcontained = TRUE)` shells out to pandoc, so reactable's stylesheet (twelve `#rrggbb` colours) is cut at the first one. Measured on eds-prise: 2,125 of 9,887 characters reach the browser, 17 CSS rules out of 98, `.rt-td-inner` padding `0px` instead of `7px 8px`, table height 223px instead of 406px. The PNG webshot2 takes of that page is broken the same way, and nothing errors. The visible diff marker is the URI prefix going from `data:text/css` to `data:text/css;charset=utf-8` — that half is a legitimate fix of an inverted condition in the same commit, not the defect.
+
+`rmarkdown:::find_pandoc` collects `RSTUDIO_PANDOC`, the first `pandoc` on PATH and `~/opt/pandoc`, then keeps the **highest version**, not the first source. So an apt pandoc newer than quarto's silently wins even though Positron already sets `RSTUDIO_PANDOC` to its bundled quarto pandoc. Passing `dir =` short-circuits the whole list. Quarto's own renders are never affected: quarto only ever runs its bundled copy.
+
+**Decision, 2026-09-29: the machine keeps one pandoc, quarto's.** The apt package (installed 2026-07-20 for `pandoc.utils.run_lua_filter`, absent from Ubuntu 24.04's 3.1.3) is purged, `/usr/local/bin/pandoc` links to quarto's binary through `quarto-update`'s `sync_bin_link()`, and `pandoc-update` plus its bats are retired. The original motive is dead: quarto's 3.10 has `run_lua_filter` (measured) and quarto-hebstr-doc's CI already runs `quarto pandoc lua tests/run.lua`. The link matters beyond tidiness: with no pandoc on PATH, a shell Positron did not spawn has no `RSTUDIO_PANDOC` either, and `hebstr:::.self_contained()` falls back to a non-self-contained widget with only a warning.
+
+Rejected, each on a measurement: a per-project `find_pandoc(dir =)` pin in `setup.R` (treats one repo out of several on the stack); the same call from `Rprofile.site` via `setHook(packageEvent("rmarkdown", "onLoad"))` (only protects the value of an independently-current system pandoc, which is nil here); an apt hold at 3.10 (`man apt-get`: under `-y`, changing a held package aborts, so `pandoc-update` and `sys-update` fail on every run, and a 3.10 pin duplicates quarto's copy anyway); a PATH shadow without the purge (two pandocs, one hidden, `pandoc --version` contradicting `dpkg -l`).
+
+Checks that settle whether a widget is affected: the data URI prefix, the count of literal `#` in it, and a headless-chromium probe of `getComputedStyle` on `.rt-td-inner` (see [[feedback_browser_layout_probe]], [[feedback_verify_quarto_theming]]). Reasoning kept in eds-prise's `.claude/PLAN.md`, section "pandoc 3.12 casse les widgets, le 2026-09-29". Related: [[reference_quarto_custom_format_render_target]], [[reference_hebstr_easy_out_subdir]], [[reference_tool_update_routines]].

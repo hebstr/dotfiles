@@ -25,7 +25,6 @@ ALL_MODULES=(
   claude-plugins
   agent-skills
   quarto
-  pandoc
   positron
   anki
   libreoffice
@@ -33,7 +32,7 @@ ALL_MODULES=(
   syncthing
 )
 
-SUDO_MODULES=(apt snap devtools rig gh quarto pandoc positron anki libreoffice zotero syncthing)
+SUDO_MODULES=(apt snap devtools rig gh quarto positron anki libreoffice zotero syncthing)
 
 usage() {
   cat <<EOF
@@ -261,14 +260,6 @@ update_quarto() {
     return
   fi
   run_or_dry quarto-update && record quarto OK
-}
-
-update_pandoc() {
-  if ! command -v pandoc-update >/dev/null 2>&1; then
-    record pandoc "skipped (not found)"
-    return
-  fi
-  run_or_dry pandoc-update && record pandoc OK
 }
 
 # The application updaters install the app when it is absent, so these modules

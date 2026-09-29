@@ -98,3 +98,19 @@ ls: cannot access '/usr/share/pandoc': No such file or directory
 <p>Un <em>test</em>.</p>
 <?xml version="1.0" encoding="utf-8"?>
 ```
+
+## Clos le 2026-09-29 : le paquet est purgé
+
+Les blocs ci-dessus ne sont plus rejouables, le paquet `pandoc` n'existant plus sur la machine.
+
+Le motif de l'upgrade est mort avant le paquet. Le gate Lua avait besoin de `pandoc.utils.run_lua_filter`, absent de la 3.1.3 gelée par Ubuntu 24.04 ; la 3.10 que quarto embarque l'a, mesuré le 2026-09-29, et la CI de `quarto-hebstr-doc` appelle de toute façon `quarto pandoc lua tests/run.lua`, jamais le binaire système. La divergence assumée en juillet entre `/usr/bin/pandoc` et `quarto pandoc` n'achetait donc plus rien.
+
+Elle a fini par coûter. pandoc 3.12, sorti et installé le 2026-09-29, remplace dans `makeDataURI` le prédicat d'échappement `isOk`, alphanumériques ASCII seulement, par `isUnescapedInURI` de `Network.URI`, qui vaut `isReserved c || isUnreserved c`. Le prédicat valide une URI entière, il n'échappe pas ce qu'on insère dedans : `#` est réservé, donc laissé littéral, et il ouvre le fragment. Toute CSS embarquée en data-URI est coupée à sa première couleur hexadécimale. Mesuré sur les widgets reactable d'eds-prise : 2 125 caractères sur 9 887 atteignent le navigateur, dix-sept règles sur quatre-vingt-dix-huit, et les captures PNG sortent illisibles sans qu'aucune commande n'échoue.
+
+Ce que R en fait aggrave le cas : `rmarkdown:::find_pandoc` collecte `RSTUDIO_PANDOC`, le premier `pandoc` du PATH et `~/opt/pandoc`, puis garde **la version la plus haute**, pas la première source. Positron pose pourtant déjà `RSTUDIO_PANDOC` sur son quarto embarqué : le pandoc système gagnait par son seul numéro de version.
+
+État final, et ce qui remplace ce qui part. `apt-get purge pandoc`, sans casse, `apt-cache rdepends --installed pandoc` étant vide et `dpkg -L pandoc` ne possédant que le binaire, sa page de man et son copyright. `quarto-update` pose désormais deux liens au lieu d'un, par une fonction `sync_link` partagée : `/usr/local/bin/quarto` et `/usr/local/bin/pandoc`, ce dernier vers `${PREFIX}/bin/tools/$(uname -m)/pandoc`. Le nom du répertoire d'architecture est vérifié sur x86_64 seulement, le cas aarch64 reste une hypothèse, et un test épingle le comportement si le binaire n'y est pas : le lien est sauté en silence, sortie 0. `pandoc-update` et `_meta/tests/pandoc-update.bats` sont supprimés, le module `pandoc` de `sys-update` aussi, avec ses quatre assertions dans `_meta/tests/sys-update.bats`.
+
+Le lien n'est pas cosmétique. Sans pandoc sur le PATH, un shell que Positron n'a pas lancé n'a pas non plus `RSTUDIO_PANDOC` : mesuré, `find_pandoc` rend la version `0` et `pandoc_available()` rend `FALSE`, sur quoi `hebstr:::.self_contained()` écrit un widget non autoportant avec un simple avertissement.
+
+Trois issues ont été écartées, chacune sur mesure. Un `find_pandoc(dir = )` par projet ne traite qu'un dépôt sur une pile qui en compte plusieurs. Le même appel depuis `Rprofile.site` par `setHook(packageEvent("rmarkdown", "onLoad"))` ne protégeait que la valeur d'un pandoc système tenu à jour indépendamment, valeur nulle une fois constaté qu'il n'y a aucun usage hors quarto. Un gel apt à la 3.10 fait échouer `pandoc-update` bruyamment, `man apt-get` disant que sous `-y` toute modification d'un paquet gelé fait abandonner apt, donc `sys-update` sortirait un module en échec à chaque passage, pour un paquet qui serait alors le doublon exact de la copie de quarto.

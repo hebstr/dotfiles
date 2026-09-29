@@ -10,17 +10,24 @@ command -v gh >/dev/null 2>&1 || {
 # reachable through PATH stubbing.
 PREFIX=${QUARTO_PREFIX:-/opt/quarto}
 BIN_LINK=${QUARTO_BIN_LINK:-/usr/local/bin/quarto}
+PANDOC_LINK=${QUARTO_PANDOC_LINK:-/usr/local/bin/pandoc}
 
-sync_bin_link() {
-  local target="${PREFIX}/bin/quarto"
+sync_link() {
+  local target=$1
+  local link=$2
   [ -x "$target" ] || return 0
-  [ "$(readlink -f "$BIN_LINK" 2>/dev/null || true)" = "$(readlink -f "$target")" ] && return 0
-  if [ -e "$BIN_LINK" ] && [ ! -L "$BIN_LINK" ]; then
-    echo "${BIN_LINK} exists and is not a symlink: leaving it alone." >&2
+  [ "$(readlink -f "$link" 2>/dev/null || true)" = "$(readlink -f "$target")" ] && return 0
+  if [ -e "$link" ] && [ ! -L "$link" ]; then
+    echo "${link} exists and is not a symlink: leaving it alone." >&2
     return 0
   fi
-  echo "Pointing ${BIN_LINK} at ${target}..."
-  sudo ln -sfn "$target" "$BIN_LINK"
+  echo "Pointing ${link} at ${target}..."
+  sudo ln -sfn "$target" "$link"
+}
+
+sync_bin_link() {
+  sync_link "${PREFIX}/bin/quarto" "$BIN_LINK"
+  sync_link "${PREFIX}/bin/tools/$(uname -m)/pandoc" "$PANDOC_LINK"
 }
 
 VER=$(gh api repos/quarto-dev/quarto-cli/releases/latest --jq '(.tag_name // "") | sub("^v"; "")')

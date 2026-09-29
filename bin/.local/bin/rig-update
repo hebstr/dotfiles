@@ -64,7 +64,7 @@ remove_apt_repo() {
 }
 
 # No checksums are published, so TLS to GitHub is the integrity boundary, as
-# in pandoc-update and quarto-update.
+# in duckdb-update.
 do_upgrade() {
   local version="$1" arch="$2" debs=()
   RIG_TMP=$(mktemp -d)

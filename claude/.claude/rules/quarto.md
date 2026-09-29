@@ -37,7 +37,7 @@ Fenced content is otherwise inert, including a fence nested inside a list item, 
 
 The convention and the hook's `.claude/` skip are not redundant, they cover different callers. The skip stops panache on Claude's own edits; the editor's format-on-save reaches the same file through the LSP, which no skip and no global exclude can gate, and there the fence is what survives. Neither covers the other's gap either: a tab inside a fence is still rewritten, and prose cannot be fenced at all, so an em dash in a `.claude/` note is protected by the skip alone.
 
-Quarto runs its own bundled pandoc, on a version of its own, never `/usr/bin/pandoc`: for anything that runs inside a Quarto render, query `quarto pandoc --version`.
+Quarto runs its own bundled pandoc, on a version of its own: for anything that runs inside a Quarto render, query `quarto pandoc --version`. Since 2026-09-29 that is the machine's only pandoc, `/usr/local/bin/pandoc` being a link `quarto-update` maintains to it, so a Quarto render and anything R renders now agree; the apt package that used to diverge is purged, and `rules/r.md` carries why.
 
 ## Mandatory pipeline after every create/edit
 

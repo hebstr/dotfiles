@@ -34,7 +34,7 @@
 - reference_streamlit_altair_charts.md: Altair in Streamlit: height/padding traps, legends ignoring the theme, one shared tooltip, which embedding runs JS
 - reference_streamlit_dataframe_styler.md: st.dataframe keeps only `color`, `background-color`, `font-weight` from a Styler; canvas grid, no CSS reaches rows, selection column fixed
 - reference_r_check_separable_model_tests.md: gtsummary/broom model tests can pass devtools::test() yet fail R CMD check on a separable model; de-separate test data, run check()
-- reference_claude_code_best_practices.md: Claude Code facts: past sessions via jsonl transcripts (7-day retention), 2026-03-26 MCP verdicts, `Edit|Write` hooks miss Bash writes, auto mode instructs shell writes against the rule
+- reference_claude_code_best_practices.md: Claude Code facts: past sessions via jsonl transcripts (7-day retention), 2026-03-26 MCP verdicts, `Edit|Write` hooks miss Bash writes, auto mode instructs shell writes against the rule, a hook arms without a restart, what reaches `UserPromptSubmit` besides typed text
 - reference_opus_cyber_classifier_review.md: Opus 5.5/Fable `cyber` safety classifier cuts adversarial security-control review during thinking; run the reviewer subagent on Sonnet, reframing does not help
 - reference_todo_sync.md: `todo-sync` prints aggregated TODO.md items, columns on a TTY, a markdown table when piped
 - reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores .Rbuildignore: root `*.md` become pages (`NA` title without H1), vignettes articles; only location excludes
@@ -57,6 +57,7 @@
 - reference_word_embedded_fonts_blocked.md: Recipients' Word refuses OOXML-embedded fonts; `w:altName` is honoured, so design Word outputs around the fallback list
 - reference_quarto_extension_format_knitr.md: Extension knitr options per format, svglite/systemfonts registration traps, what an extension can ship but not run
 - reference_quarto_custom_format_render_target.md: One `.qmd`, HTML and Word deliverables: `knitr::pandoc_to()` tells `hebstr-doc-docx` from `-html`; `--to` renders an undeclared format
+- reference_pandoc_312_data_uri.md: pandoc 3.12 leaves `#` unescaped in data URIs and silently truncates self-contained widget CSS; `find_pandoc` picks the highest version, so the machine keeps only quarto's pandoc
 - reference_citeproc_bib_vs_csl.md: citeproc title casing differs between `.bib` and CSL-JSON/YAML: protecting French titles, conversion and CSL-YAML traps
 - reference_better_bibtex_export_control.md: what a Better BibTeX export can be made to emit: how `skipFields` really matches (per-type, CSL names, lowercase-only), per-directory override files, the cache dropping itself, the postscript signature, no formatting pref, and the local API refusing translator names
 - reference_quarto_extension_install_resolution.md: `quarto add owner/repo` (even `@latest`) installs main, never the last release; only `@<tag>` pins

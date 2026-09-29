@@ -85,7 +85,7 @@ teardown() {
   _run --help
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude blesh devtools uv-python uv-tools \
-    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice zotero syncthing; do
+    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto positron anki libreoffice zotero syncthing; do
     [[ "$output" == *"$m"* ]] || {
       printf 'missing module: %s\n' "$m" >&2
       return 1
@@ -114,7 +114,6 @@ teardown() {
   echo "$output" | grep -E '^syncthing[[:space:]]+yes$'
   echo "$output" | grep -E '^npm[[:space:]]+no$'
   echo "$output" | grep -E '^quarto[[:space:]]+yes$'
-  echo "$output" | grep -E '^pandoc[[:space:]]+yes$'
   echo "$output" | grep -E '^positron[[:space:]]+yes$'
   echo "$output" | grep -E '^anki[[:space:]]+yes$'
   echo "$output" | grep -E '^rig[[:space:]]+yes$'
@@ -407,13 +406,6 @@ EOF
   [[ "$output" == *"[dry-run] css-toolchain-update"* ]]
 }
 
-@test "pandoc module dispatches to pandoc-update" {
-  _stub_command pandoc-update
-  _run --dry-run pandoc
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"[dry-run] pandoc-update"* ]]
-}
-
 @test "gh module dispatches to gh-update" {
   _stub_command gh-update
   _run --dry-run gh
@@ -455,7 +447,7 @@ EOF
   _run --dry-run
   [ "$status" -eq 0 ]
   for m in apt snap flatpak npm rustup cargo claude blesh devtools uv-python uv-tools \
-    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto pandoc positron anki libreoffice zotero syncthing; do
+    rv rig gh duckdb lua-toolchain css-toolchain claude-plugins agent-skills quarto positron anki libreoffice zotero syncthing; do
     [[ "$output" == *"→ ${m}"* ]] || {
       printf 'missing arrow for: %s\n' "$m" >&2
       return 1

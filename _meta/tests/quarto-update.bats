@@ -20,10 +20,12 @@ SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/quarto-update"
 #   MV_FAIL_ON_SOURCE      substring: mv fails when its source path contains it
 #   MV_FAIL_PARTIAL        1: that failing mv first leaves a partial destination
 #
-# The script reads two overridable paths, both pointed into a per-test ROOT:
+# The script reads three overridable paths, all pointed into a per-test ROOT:
 #   QUARTO_PREFIX          install tree (default /opt/quarto), populated by
 #                          _install_fake_prefix; remove it to simulate a first install
 #   QUARTO_BIN_LINK        PATH link (default /usr/local/bin/quarto)
+#   QUARTO_PANDOC_LINK     PATH link to the bundled pandoc
+#                          (default /usr/local/bin/pandoc)
 
 _create_stubs() {
   # gh ─ `gh api ... --jq ...` returns the resolved tag (post-jq output)
@@ -119,9 +121,11 @@ done
 mkdir -p "$target_dir"
 case "${TAR_STUB_MODE:-full}" in
     full)
-        mkdir -p "$target_dir/bin"
+        mkdir -p "$target_dir/bin/tools/${UNAME_ARCH:-x86_64}"
         printf '#!/usr/bin/env bash\nprintf "1.9.37"\nexit 0\n' > "$target_dir/bin/quarto"
         chmod +x "$target_dir/bin/quarto"
+        printf '#!/usr/bin/env bash\nprintf "pandoc 3.10"\nexit 0\n' > "$target_dir/bin/tools/${UNAME_ARCH:-x86_64}/pandoc"
+        chmod +x "$target_dir/bin/tools/${UNAME_ARCH:-x86_64}/pandoc"
         ;;
     no_binary)
         mkdir -p "$target_dir/bin"
@@ -145,12 +149,15 @@ EOF
 # ─── setup / teardown ───────────────────────────────────────────────────────
 
 _install_fake_prefix() {
-  mkdir -p "${QUARTO_PREFIX}/bin"
+  mkdir -p "${QUARTO_PREFIX}/bin/tools/${UNAME_ARCH:-x86_64}"
   cat >"${QUARTO_PREFIX}/bin/quarto" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "${QUARTO_CURRENT_VERSION:-1.9.0}"
 EOF
   chmod +x "${QUARTO_PREFIX}/bin/quarto"
+  printf '#!/usr/bin/env bash\nprintf "pandoc 3.10\\n"\n' \
+    >"${QUARTO_PREFIX}/bin/tools/${UNAME_ARCH:-x86_64}/pandoc"
+  chmod +x "${QUARTO_PREFIX}/bin/tools/${UNAME_ARCH:-x86_64}/pandoc"
 }
 
 setup() {
@@ -170,6 +177,7 @@ setup() {
   export SUDO_CHOWN_LOG="${ROOT}/sudo-chown.log"
   export QUARTO_PREFIX="${ROOT}/opt/quarto"
   export QUARTO_BIN_LINK="${ROOT}/usr-local-bin/quarto"
+  export QUARTO_PANDOC_LINK="${ROOT}/usr-local-bin/pandoc"
   mkdir -p "${ROOT}/usr-local-bin"
 
   _create_stubs
@@ -374,7 +382,7 @@ teardown() {
   export QUARTO_CURRENT_VERSION=1.9.37
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"Pointing"* ]]
+  [[ "$output" != *"Pointing ${QUARTO_BIN_LINK}"* ]]
 }
 
 @test "leaves a regular file at the PATH link alone" {
@@ -383,6 +391,44 @@ teardown() {
   [ "$status" -eq 0 ]
   [ ! -L "${QUARTO_BIN_LINK}" ]
   [[ "$output" == *"not a symlink"* ]]
+}
+
+@test "links the bundled pandoc alongside quarto" {
+  rm -rf "${QUARTO_PREFIX}"
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [ -L "${QUARTO_PANDOC_LINK}" ]
+  [ "$(readlink -f "${QUARTO_PANDOC_LINK}")" \
+    = "$(readlink -f "${QUARTO_PREFIX}/bin/tools/${UNAME_ARCH}/pandoc")" ]
+}
+
+@test "links the bundled pandoc even when quarto is already current" {
+  export QUARTO_CURRENT_VERSION=1.9.37
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"nothing to do"* ]]
+  [ -L "${QUARTO_PANDOC_LINK}" ]
+}
+
+@test "repoints a pandoc link that targets another pandoc" {
+  mkdir -p "${ROOT}/other/bin"
+  printf '#!/bin/sh\n' >"${ROOT}/other/bin/pandoc"
+  ln -s "${ROOT}/other/bin/pandoc" "${QUARTO_PANDOC_LINK}"
+  export QUARTO_CURRENT_VERSION=1.9.37
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Pointing ${QUARTO_PANDOC_LINK}"* ]]
+  [ "$(readlink -f "${QUARTO_PANDOC_LINK}")" \
+    = "$(readlink -f "${QUARTO_PREFIX}/bin/tools/${UNAME_ARCH}/pandoc")" ]
+}
+
+@test "skips the pandoc link when no pandoc sits under the arch directory" {
+  rm -rf "${QUARTO_PREFIX}/bin/tools"
+  export QUARTO_CURRENT_VERSION=1.9.37
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [ ! -e "${QUARTO_PANDOC_LINK}" ]
+  [[ "$output" != *"Pointing ${QUARTO_PANDOC_LINK}"* ]]
 }
 
 # ─── checksum verification ──────────────────────────────────────────────────

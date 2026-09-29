@@ -432,13 +432,13 @@ env -i HOME="$HOME" TERM=dumb bash -lic 'command -v quarto; quarto --version'
 ```
 
 Attendu : `/usr/local/bin/quarto`.
-`quarto-update` installe dans `/opt/quarto` et crée le lien `/usr/local/bin/quarto` s'il manque ; il lit la version installée dans `/opt/quarto`, pas sur le PATH.
+`quarto-update` installe dans `/opt/quarto` et crée deux liens s'ils manquent, `/usr/local/bin/quarto` et `/usr/local/bin/pandoc` ; il lit la version installée dans `/opt/quarto`, pas sur le PATH.
 Le `quarto` de `~/.positron-server/.../quarto/bin`, visible dans le terminal intégré de Positron, est la copie embarquée par Positron, pas une installation.
+Pandoc arrive avec quarto depuis le 2026-09-29 et n'a plus d'installeur propre : le paquet apt est purgé et `pandoc-update` supprimé, motif en `_meta/notes/pandoc-upgrade.md`.
 
-### Pandoc, DuckDB, Lua
+### DuckDB, Lua
 
 ```bash
-pandoc-update
 duckdb-update
 lua-toolchain-update
 ```
