@@ -23,6 +23,7 @@
 - project_hebstr_add_note_migration.md: hebstr's add_note() takes gtsummary, piped before tbl_format() (2026-07-17); one old SHA-pinned call site in ipl-sca breaks on sync
 - project_ordo_typst_template.md: `~/admin/pro-ordo/ordo.qmd` Typst prescription letterhead, blank and filled modes via `#let` params (not YAML); open items in its `.claude/DESIGN.md`
 - project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): notes `~/dotfiles/_meta/notes/ue5-horror-solo-pipeline.md`, files `~/Documents/sandbox/ue5-le-relais/`
+- project_transcription_local_cpu.md: Meeting transcription decided 2026-09-29 on ju-TP's CPU (faster-whisper via uv), not ju-TP2's GPU; Handy kept, OpenWhispr rejected
 
 ## Reference
 - reference_syncthing_ghost_records.md: Syncthing stuck at "Syncing 99 %" on ignored paths: find the holder with `syncthing debug database-file`; `ju-DG`/`ju-GO` `.stignore` by hand
