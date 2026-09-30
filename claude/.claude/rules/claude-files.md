@@ -17,13 +17,17 @@ Loaded when Claude reads a file meant for Claude or another agent (`CLAUDE.md`, 
 ## Form
 
 - In a `.claude/` markdown file, every table and every display equation goes inside a ``` fence: fenced content is the only thing a `panache` reformat leaves byte-identical, and these files are read by Claude rather than rendered. Never do this in a rendered document (`.qmd`, README, docs), where the table is the point. Rationale in `rules/quarto.md`.
-- Cite by name, never by line number: code by its symbol (a function, a branch named by its guard), a test by its `test_that()` or `def test_` title, prose by its section heading or a verbatim quote. A line number rots silently on any insertion above it, while a name either resolves under `rg -F` or fails loudly.
+- Cite by name, never by line number: code by its symbol (a function, a branch named by its guard), a test by its `test_that()`, `def test_` or `@test` title, prose by its section heading or a verbatim quote. A line number rots silently on any insertion above it, while a name either resolves under `rg -F` or fails loudly.
 - A drifted line reference is never renumbered: in live text, convert it to a name in the same edit; in a dated or superseded section, leave it as record. A shift in line numbers alone is therefore never staleness for a sync or audit pass. Carve-out: a project `CLAUDE.md` that deliberately keeps `file:line` pointers in a named section owns their upkeep, and no new ones are added elsewhere. Detail and incidents in `feedback_line_number_cross_refs.md`.
 
 ## Content
 
 - A tracking-file write states only what a command just confirmed (grep, count, `git log`, `git status`), never what recall suggests. The commit verifier re-derives these claims, and the ones the user's own action invalidates (a commit, a rename, a manual edit) are rechecked once they act.
 - `NOTES.md`, `TODO.md` and `CALENDRIER.md` are the user's personal scratchpads: read them freely, never write to them, keep them out of every tracking update, and surface to the user a change they need.
+- A tracking update deletes as well as records: an executed decision goes, unless it records a rejected alternative or a constraint that still binds future work. A step taken, a parameter changed, a verification passed belong to the commit message and to `git blame`.
+- What the criterion protects, and a pass leaves alone: walkthrough blocks, the internal `Rejected` and `Voies écartées` lists, fragile hypotheses, unclosed residuals, a WHY the code cannot carry (`CLAUDE.md` forbids comments in code and routes it to the tracking note), a measurement no better copy holds, and everything a pending measurement step must still compare.
+- A section that describes an artefact the repository carries goes: a script's exit codes, its flags and its cases are established better by its suite, which "Cite by name" above already prescribes citing by title. A verified fact with no other holder moves to a memory recalled by its description, rather than staying in a plan only the verifier reads.
+- After each cut, and not at the end of the pass, check the names: `rg -F` the title of what was cut and the names inside it across the repository's `.claude/`, its notes and its test files. A rename and a rewrite break a reference exactly as a deletion does. Incidents and the sweep script are in `~/dotfiles/.claude/PRUNE-OBSERVATIONS.md`.
 
 ## Where a new instruction goes
 

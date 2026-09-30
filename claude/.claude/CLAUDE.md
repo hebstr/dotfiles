@@ -28,7 +28,7 @@
 ## Plans and tracking
 
 - Claude-related files (plans, notes, handoffs, `CLAUDE.md`) are created under the project's `.claude/`. When a task spans several sessions and no `PLAN.md` exists, propose `.claude/PLAN.md` with objective, success criteria, scope (what is out), steps and blockers.
-- When a step completes, an item is deferred, a priority changes, a blocker appears, or the user accepts a decision in conversation (a sequencing, a scope limit, an option ruled out, a deadline), update every affected tracking file and memory in the same response, never waiting to be asked. After a structural change, grep for the old name across the project before marking the step done.
+- When a step completes, an item is deferred, a priority changes, a blocker appears, or the user accepts a decision in conversation, update every affected tracking file and memory in the same response, never waiting to be asked: deleting is half of updating, by the criterion of `rules/claude-files.md`. After a structural change, grep for the old name across the project before marking the step done.
 - Before marking a step done, verify its output is usable by the next step: re-read an edited region, sample extracted rows, check generated text for placeholder markers, check an API response's schema and payload.
 - An "audit du répertoire" or scan request covers all files of the working directory: propose `/workflow:sync` (user-invocable only) rather than ad-hoc single-file checks.
 
