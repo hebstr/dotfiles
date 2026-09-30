@@ -37,3 +37,7 @@ ldconfig -p | grep libjvm
 ```
 
 Redémarrer R.
+
+## État du JDK sur cette machine (2026-09-13)
+
+Le JDK Oracle 21.0.2 installé sous `/usr/lib/jvm/default-java` a été purgé ce jour-là (`.claude/PLAN-ORPHANS.md`, étape 9) : `default-java` est redevenu un lien vers `java-1.21.0-openjdk-amd64`, `java` tourne (OpenJDK 21.0.12) et **aucun `javac` n'est installé**. Une compilation depuis les sources qui en a besoin, `rJava` par exemple, demande `sudo apt install openjdk-21-jdk-headless` d'abord.
