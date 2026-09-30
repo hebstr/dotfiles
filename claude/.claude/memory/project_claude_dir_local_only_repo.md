@@ -1,6 +1,6 @@
 ---
-name: .claude in dotfiles is versioned by a nested repo with no remote
-description: Decision (2026-09-30) to version a project's .claude through a nested git repo with no remote, local to ju-TP, why git offers no path-level push filter, what the repo leaves out, and the measured fact that git-write-guard.sh refuses a bulk import there but allows a commit of what the session wrote
+name: A project's .claude is versioned by a nested repo with no remote
+description: Decision (2026-09-30) to version a project's .claude through a nested git repo with no remote, local to ju-TP, why git offers no path-level push filter, what the repo leaves out, why section 5 of the commit skill renders those commits rather than a hook or a cron, the measured fact that git-write-guard.sh refuses a bulk import there but allows a commit of what the session wrote, and the one-repo-per-project-on-demand rollout with eds-prise as the first adoption and sixteen still without
 metadata:
   type: project
 ---
