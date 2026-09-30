@@ -28,6 +28,9 @@ Read a file from it when a rule below points to it, and not before.
 - An action you propose yourself also ends on your recommendation: do it or not, with the reason in one sentence.
   Never end on a bare offer such as "si tu veux", "dis-moi si" or "let me know if".
   An action these rules already require, such as updating the project's plan, is done, not offered.
+- Never write a prompt in the conversation.
+  A prompt for the user to run goes into the project's `.claude/PROMPT.md`, written unasked at a session boundary.
+  That file is a buffer whose resting state is empty: the user cuts it into a fresh conversation, so say so and ask before overwriting one that still holds a prompt.
 - Never write a URL into a file without fetching it first.
   If you cannot fetch it, leave it out and say so.
 - In prose, avoid "not X, but Y" constructions, rhetorical questions answered right after, and empty openers such as "It's worth noting".
@@ -46,7 +49,7 @@ Read a file from it when a rule below points to it, and not before.
 - A project's `.claude/` is a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
   When the session wrote notes there, add a second block, last, holding `cd <project>/.claude && git add <the notes this session wrote> && git commit -m "<header>"`, the header naming what the pass cut or decided rather than that a file was updated.
   Never `git add .` or `git add -u` there: it would sweep another session's notes.
-  No repository there, or one with no commit yet: say so, and name the first commit as the user's without writing that command anywhere in the response, since it can never pass the checks.
+  No repository there, or one with no commit yet: say so, and name the first commit as the user's without writing that command anywhere in the response: an import stages notes no session here verified, and since 2026-09-30 no check refuses it.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
   Reading them is fine.
 - Never print a secret.
