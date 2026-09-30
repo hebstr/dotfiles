@@ -83,6 +83,27 @@ context() {
   [[ $(context) == *'`/design`, `/commit`'* ]]
 }
 
+@test "ignores a mention inside a subagent report" {
+  run_hook 'et ensuite ? <agent-message from="a1">Fix: propose /commit then /design.</agent-message>'
+  [ -z "$output" ]
+}
+
+@test "ignores a mention inside a task notification" {
+  run_hook 'où en est-on <task-notification><result>run /design next</result></task-notification>'
+  [ -z "$output" ]
+}
+
+@test "ignores a mention inside a cross-session message" {
+  run_hook 'alors <cross-session-message from="s2">lance /commit</cross-session-message>'
+  [ -z "$output" ]
+}
+
+@test "still names a skill the user types beside a subagent report" {
+  run_hook '/legacy <agent-message from="a1">run /commit</agent-message> puis /design'
+  [[ $(context) == *'`/design`'* ]]
+  [[ $(context) != *'`/commit`'* ]]
+}
+
 @test "names each skill once" {
   run_hook "a /design b /design c"
   [ "$(context | grep -o '/design' | wc -l)" -eq 1 ]

@@ -4,7 +4,11 @@ set -uo pipefail
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload=$(cat)
-prompt=$(printf '%s' "$payload" | jq -r '.prompt // "" | strings' 2>/dev/null) || exit 0
+prompt=$(printf '%s' "$payload" | jq -r '
+  .prompt // ""
+  | strings
+  | gsub("<(?<t>agent-message|cross-session-message|task-notification)\\b[^>]*>[\\s\\S]*?</\\k<t>>"; "")
+' 2>/dev/null) || exit 0
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 [[ -n $prompt ]] || exit 0
 
