@@ -309,7 +309,7 @@ _fixture() {
 
 # ─── smoke ──────────────────────────────────────────────────────────────────
 
-@test "smoke: real README.md is clean" {
-  run "$SCRIPT" "${BATS_TEST_DIRNAME}/../../README.md"
+@test "smoke: real _meta/notes/dotfiles-bootstrap.md is clean" {
+  run "$SCRIPT" "${BATS_TEST_DIRNAME}/../notes/dotfiles-bootstrap.md"
   [ "$status" -eq 0 ]
 }

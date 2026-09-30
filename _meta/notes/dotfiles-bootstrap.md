@@ -1,6 +1,8 @@
-# dotfiles
+# Dotfiles layout and bootstrap
 
-Personal stow-managed dotfiles.
+Personal stow-managed configuration.
+This note holds the repository layout, the stow package conventions and the rationale each package carries, so a fresh machine can be rebuilt from the clone alone.
+The ordered fresh-install sequence, with the steps this note leaves out (moving the stock `~/.bashrc`, `~/.profile` and `~/.bash_logout` aside, installing Node before any `npm`, apt packages, Syncthing, the toolchain), is `_meta/notes/wsl-init-tuto.md`, written for WSL but machine-agnostic in everything but its package selection.
 
 ## Structure
 
@@ -8,10 +10,12 @@ Personal stow-managed dotfiles.
 agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/ zotero/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
-├── backup/      # backup script + systemd timer/service + excludes
-├── notes/       # internal docs
-├── profiles/    # exportable app profiles + reusable config templates
-└── tests/       # bats test suites for bin/ scripts, claude/ hooks and skill scripts, the opencode plugin, the git diff driver and the html-id clean filter
+├── backup/              # backup script + systemd timer/service + excludes
+├── instructions-ab/     # A/B harness for the instruction files (fixtures, prompts, grading)
+├── notes/               # internal docs
+├── profiles/            # exportable app profiles + reusable config templates
+├── session-discipline/  # transcript measurements behind the commit gate
+└── tests/               # bats test suites for bin/ scripts, claude/ hooks and skill scripts, the opencode plugin, the git diff driver and the html-id clean filter
 ```
 
 Packages follow stow conventions: each top-level dir maps its tree relative to `~` (`bash/.bashrc` → `~/.bashrc`, `bin/.local/bin/` → `~/.local/bin/`).
@@ -30,11 +34,17 @@ npm config set prefix "$HOME/.npm-global"
 npm --prefix css/.local/share/css-gate ci
 ```
 
+That line is the main machine's package set.
+On a machine where Positron, Firefox, Obsidian, RStudio or Zotero is absent or lives on the Windows side, drop the matching package: the tutorial's section 5 table gives the per-package decision.
+Never `--adopt`, which copies the local file into the package over the synced version.
+
 `--no-folding` is the default here, deliberately.
 Stow folds an arborescence whose target directory does not exist into a single symlink to the repo, so on a fresh machine everything a program later writes there lands in `~/dotfiles` and in Syncthing: Claude Code sessions and `.credentials.json` under `~/.claude`, the `gh` token, editor state under `~/.config/Positron`, the whole notes vault through `~/notes`, SSH keys generated in `~/.ssh`, the Firefox profile (`places.sqlite`, `cookies.sqlite`, the cache) through `~/.mozilla`.
 `--no-folding` creates real directories and links the leaf files only.
 Three packages stay folded: `claude`, for the reason given with the skills below, `agents`, because `~/.agents` must remain a single link for the skills installer to write into the repo, and `css`, whose `~/.local/bin` links resolve through `~/.local/share/css-gate/node_modules`: folded, that directory follows whatever `npm ci` and `sys-update css-toolchain` install in the repo, where `--no-folding` would link each file one by one and miss those an update adds.
 On a machine that does not sync every Syncthing folder, add `--ignore='<folder>'` for each missing one, or stow creates empty directories just to hold their `.stignore`.
+
+## Agent skills
 
 Agent skills are split across two packages on purpose.
 `agents/.agents/skills/` holds what the `skills` CLI installs from upstream and what its `.skill-lock.json` tracks, and nothing there is hand-edited: an update replaces a skill directory whole.
@@ -43,8 +53,11 @@ Stow such a skill with plain `stow claude`, never `--no-folding`, which would li
 The whole `claude` package is therefore stowed plain, once `~/.claude/skills` exists as a real directory: `~/.claude` stays real, so the sessions and `.credentials.json` Claude Code writes there never reach the repo, `~/.claude/skills` stays real, so a skill installed from elsewhere is never written into the repo, and `hooks`, `memory` and `rules` fold into one link each, which is the intended layout.
 With `--no-folding`, a restow unlinks every skill directory and relinks its files one by one.
 
+## Per-package caveats
+
 `firefox` carries a single `user.js` under a randomly generated profile directory (`z24d9fn6.default-release`).
 That profile name is specific to one machine: elsewhere, rename the directory inside the package to match the local profile, otherwise the link lands where Firefox never reads and the setting vanishes with no error.
+The link is safe because Firefox reads `user.js` and never writes it; `_meta/notes/dns-dnsforge-firefox.md` holds the measurement and the `user.js` traps.
 `zotero` follows the same shape and carries the same caveat, with a single `user.js` under `.zotero/zotero/pucr7b5d.default/`.
 It holds the settings chosen by hand and nothing Zotero records as state, and it leaves out the sync user name.
 Zotero rewrites `prefs.js` by replacement, which would break a link to it, and applies `user.js` over it at every start: a setting changed in Zotero's own interface reverts on restart unless `user.js` changes with it.
@@ -87,7 +100,7 @@ The CHU workstation `cpd000001` is set up separately, by hand, from `_meta/notes
 
 The `git` package ships a `clean` filter named `html-id` and a `textconv` diff driver named `out-textconv`, so `stow git` is the whole setup and a fresh machine needs no extra step.
 Each program is a script in `git/.config/git/` (`clean-html-id`, `clean-positron-theme`, `out-textconv.py`) that `git/.gitconfig` calls by path, so a script added to the package reaches a machine only once `stow --no-folding git` is rerun there.
-The filter renumbers the random ids `gt` puts on its tables and `reactable` on its widgets, `gt1` and `htmlwidget-wdg1` upward in order of appearance, so a re-rendered HTML output diffs on content alone.
+The filter renumbers the random ids `gt` puts on its tables and `reactable` on its widgets, `gt1` and `htmlwidget-wdg1` upward in order of appearance, so a re-rendered HTML output diffs on content alone (`_meta/notes/git-html-id-filter.md`).
 The driver renders a `.docx`, `.xlsx`, `.pptx` or `.png` as stable text for `git diff`, hiding the metadata every render regenerates; it reads only and never rewrites a stored byte (`_meta/notes/git-out-textconv.md`).
 A second `clean` filter, `positron-theme`, serves this repository alone: it stores `workbench.colorTheme` in the Positron profile settings as `Material Night Eighties` whatever theme is active, so switching themes never reaches a commit or `git diff`.
 `git status` still lists the file after a switch to a theme name of another length, since git reads a size change as a modification without running the filter; staging the file clears it.

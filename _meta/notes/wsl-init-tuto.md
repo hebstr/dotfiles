@@ -450,7 +450,7 @@ uv python install 3.13 3.14
 for t in showboat pyrefly "sqlfluff[rs]" ouroboros-ai huggingface-hub yt-dlp; do uv tool install "$t"; done
 ```
 
-Liste reprise du `README.md` des dotfiles ; l'absence de manifeste versionné est suivie dans `.claude/DEFERRED.md`.
+Liste reprise de `_meta/notes/dotfiles-bootstrap.md` ; l'absence de manifeste versionné est suivie dans `.claude/DEFERRED.md`.
 
 ## 8. Positron (côté Windows)
 
@@ -600,7 +600,7 @@ La première clé ne peut passer que par mot de passe : l'étape 1 laisse donc l
 
 ### Prérequis
 
-- `networkingMode=mirrored` (section 0) et `stow ssh`, qui pose `~/.ssh/config` avec les alias `ju-TP` et `ju-TP2` : section 5 dans WSL, bootstrap du `README.md` sur la machine principale.
+- `networkingMode=mirrored` (section 0) et `stow ssh`, qui pose `~/.ssh/config` avec les alias `ju-TP` et `ju-TP2` : section 5 dans WSL, bootstrap de `_meta/notes/dotfiles-bootstrap.md` sur la machine principale.
 - Les alias distinguent la casse : taper `ju-TP2`, jamais `ju-tp2` que les messages d'erreur affichent. `ssh ju-tp2` ignore tout le bloc `Host ju-TP2` (port 22, aucune clé dédiée).
 - **Les noms d'hôte** : tout repose sur `ju-TP.local` et `ju-TP2.local`. Sur la machine principale, `hostnamectl hostname` doit répondre `ju-TP` (sinon `sudo hostnamectl set-hostname ju-TP`). WSL prend le nom de l'ordinateur Windows, qu'un Windows réinstallé nomme `DESKTOP-XXXX` : PowerShell administrateur, `Rename-Computer -NewName ju-TP2`, redémarrage, puis `hostname` dans WSL doit répondre `ju-TP2`. Autres noms : adapter `HostName` et `HostKeyAlias` dans `ssh/.ssh/config`.
 - **L'utilisateur** : `ssh/.ssh/config` écrit `User julien` pour les deux alias ; un autre nom d'utilisateur Linux impose d'y changer cette ligne.

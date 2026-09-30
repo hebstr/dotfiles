@@ -16,13 +16,13 @@ What the setup is made of, all tracked:
 
 ## GPU host, `ju-TP2`
 
-Two traces cover it and are not repeated here: `_meta/notes/llama-cuda-install-ju-tp2.md` (the CUDA build, and the proof that the GPU is used) and `_meta/notes/llama-update-deploy-ju-tp2.md` (`llama-update`, then `stow --no-folding bin` there). The `hf` CLI comes from `uv tool install huggingface-hub`, a manual step on a fresh machine (README, "Bootstrap"). No model needs fetching by hand: `llama-session` downloads its default on first start, about 6.3 GiB.
+Two traces cover it and are not repeated here: `_meta/notes/llama-cuda-install-ju-tp2.md` (the CUDA build, and the proof that the GPU is used) and `_meta/notes/llama-update-deploy-ju-tp2.md` (`llama-update`, then `stow --no-folding bin` there). The `hf` CLI comes from `uv tool install huggingface-hub`, a manual step on a fresh machine (`dotfiles-bootstrap.md`, "Per-package caveats"). No model needs fetching by hand: `llama-session` downloads its default on first start, about 6.3 GiB.
 
 ## Agent host, `ju-TP`
 
 Recorded after the fact on 2026-09-21: opencode was installed earlier that day, the two packages stowed and the link farm first built later the same day, none of it traced when run. These steps change state, so they sit in tilde fences with the state they left, and `verify` never replays them.
 
-Install opencode under the user npm prefix (README, "Bootstrap", sets it), which `sys-update npm` then keeps current:
+Install opencode under the user npm prefix (`dotfiles-bootstrap.md`, "Bootstrap", sets it), which `sys-update npm` then keeps current:
 
 ~~~bash
 npm install -g opencode-ai
@@ -33,7 +33,7 @@ npm ls -g --depth=0 opencode-ai
 └── opencode-ai@1.18.31
 ~~~
 
-Link the scripts and the configuration. Both packages are part of the README's `stow` line; on a machine already stowed, only the files added since need linking:
+Link the scripts and the configuration. Both packages are part of the `stow` line of `dotfiles-bootstrap.md`; on a machine already stowed, only the files added since need linking:
 
 ~~~bash
 cd ~/dotfiles && stow --no-folding bin opencode

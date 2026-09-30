@@ -327,7 +327,7 @@ stow -v -R --ignore='\.ruff_cache' -t ~ claude
 cd ~
 ```
 
-`~/.claude/skills` est créé en vrai répertoire avant le `stow claude`, pour que chaque skill y soit un lien vers son répertoire, comme le README l'exige.
+`~/.claude/skills` est créé en vrai répertoire avant le `stow claude`, pour que chaque skill y soit un lien vers son répertoire, comme `_meta/notes/dotfiles-bootstrap.md` l'exige.
 `~/.local/share/opencode-claude-skills` reste vide : c'est le répertoire des skills de plugins, que rien ne remplit sans Claude Code.
 
 Vérifications, depuis un nouveau shell de connexion pour que `~/.local/bin` soit sur le `PATH` :
