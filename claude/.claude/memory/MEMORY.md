@@ -112,6 +112,7 @@
 - feedback_rg_misses_gitignored_trackers.md: Bare `rg` skips hidden and gitignored paths, so `.claude/` trackers look clean; use `--hidden --no-ignore` for reference searches
 - feedback_git_clean_tree_hides_ignored.md: A `git status --porcelain` guard misses ignored files, so a rebase replaying a commit that adds one aborts; check `--ignored` first
 - feedback_line_number_cross_refs.md: Incidents behind the cite-by-name rule of `rules/claude-files.md`, and when a drifted reference stays as record
+- feedback_concision.md: Cut research narrative from notes and replies: record what binds future work, never how the answer was reached
 - feedback_prose-lint-write.md: Prose hygiene covers user-facing prose only: exempt trees, soft wraps belong to panache, typographic vs rhetorical dashes, when to run /workflow:write
 - feedback_no_bulk_regex_for_contextual_skills.md: Never swap a contextual editing skill (workflow:write, audit reviewers) for a bulk regex when per-case Edit is blocked; surface it
 - feedback_audit_walkthrough.md: `/audit:walkthrough` and `/audit:blindspot`: weigh findings by their evidence, read coverage line and size cap first
