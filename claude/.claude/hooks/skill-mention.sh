@@ -7,6 +7,7 @@ payload=$(cat)
 prompt=$(printf '%s' "$payload" | jq -r '
   .prompt // ""
   | strings
+  | gsub("<pasted_content[^>]*>[\\s\\S]*?</pasted_content[^>]*>"; "")
   | gsub("<(?<t>agent-message|cross-session-message|task-notification)\\b[^>]*>[\\s\\S]*?</\\k<t>>"; "")
 ' 2>/dev/null) || exit 0
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0

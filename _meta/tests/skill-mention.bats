@@ -78,9 +78,20 @@ context() {
   [ -z "$output" ]
 }
 
-@test "reads a mention inside backticks or pasted content" {
-  run_hook 'invoke `/design` here <pasted_content id="1">run /commit</pasted_content id="1">'
-  [[ $(context) == *'`/design`, `/commit`'* ]]
+@test "reads a mention inside backticks" {
+  run_hook 'invoke `/design` here'
+  [[ $(context) == *'`/design`'* ]]
+}
+
+@test "ignores a mention inside pasted content" {
+  run_hook 'chiffre ça avant de démarrer <pasted_content id="1">expect your first /commit to take both files</pasted_content id="1">'
+  [ -z "$output" ]
+}
+
+@test "still names a skill the user types beside pasted content" {
+  run_hook 'lis <pasted_content id="1">expect your first /commit to take both files</pasted_content id="1"> puis /design'
+  [[ $(context) == *'`/design`'* ]]
+  [[ $(context) != *'`/commit`'* ]]
 }
 
 @test "ignores a mention inside a subagent report" {
