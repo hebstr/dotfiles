@@ -1,6 +1,6 @@
 ---
 name: Claude Code session forensics, MCP verdicts and the Bash write blind spot
-description: "Local Claude Code facts not in upstream docs: probing past sessions through the jsonl transcripts (7-day retention here), the 2026-03-26 MCP server verdicts, PostToolUse on Edit|Write missing files written via Bash, auto mode instructing shell writes against the Edit-or-Write rule, a hook entry arming without a restart, the UserPromptSubmit payload field name with what reaches it besides typed text, the 10,000-character hook output cap and its 2 KB preview, additionalContext reaching the model on every permission decision, a paths: rule loading on a native Read only, and the autoMemoryDirectory load cap, near-cap nudge, frontmatter stamping and symlink asymmetry"
+description: "Local Claude Code facts not in upstream docs: probing past sessions through the jsonl transcripts (7-day retention here), reading the current session's context occupancy from its transcript usage fields, the 2026-03-26 MCP server verdicts, PostToolUse on Edit|Write missing files written via Bash, auto mode instructing shell writes against the Edit-or-Write rule, a hook entry arming without a restart, the UserPromptSubmit payload field name with what reaches it besides typed text, the 10,000-character hook output cap and its 2 KB preview, additionalContext reaching the model on every permission decision, a paths: rule loading on a native Read only, and the autoMemoryDirectory load cap, near-cap nudge, frontmatter stamping and symlink asymmetry"
 metadata:
   type: reference
 ---
@@ -40,6 +40,9 @@ anything that produced no commit (an audit, a review, an abandoned attempt).
   `rg -o "command-args>[^<]{0,150}" ~/.claude/projects/<proj>/*.jsonl | sed 's/.*command-args>//' | sort -u`.
   Grepping the command name alone is useless: it matches every conversational mention of the command,
   including skill descriptions and my own suggestions to run it.
+- **Read the context occupancy of the session you are in.** Each assistant entry carries `.message.usage`, and the last one's `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` is the context sent on that request:
+  `jq -r 'select(.message.usage) | (.message.usage.input_tokens + (.message.usage.cache_read_input_tokens // 0) + (.message.usage.cache_creation_input_tokens // 0))' <session>.jsonl | tail -1`.
+  Measured 600,359 tokens on a 320-turn session whose transcript was 5.3 MB (2026-09-30), matching the figure the user's own display showed. Two things are not it: the `<total_tokens>` line of the prompt, which is a per-turn budget, and the transcript's byte size, which gives an order of magnitude at best. Never answer that the context load cannot be measured; it is one `jq` away, and the answer decides whether to continue a long session or hand it to a fresh one.
 - **Date a session**: first and last `"timestamp"` fields of the file.
 - **Read the opening user turns** (what the session was actually for):
   `jq -r 'select(.type=="user") | .message.content | if type=="string" then . else (.[]? | select(.type=="text") | .text) end' <file>.jsonl | head`.
