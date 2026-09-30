@@ -24,7 +24,9 @@ from pathlib import Path
 CUE = re.compile(r"(?:voir|see|section|sous|under|puce|bullet|d[ée]cision|decision|of)\s+[«\"]")
 SPAN = re.compile(r"[«\"]\s*([^»\"\n]{12,120})\s*[»\"]")
 ORDINAL = re.compile(
-    r"\b(?:part|partie|point|d[ée]cision|decision|finding|constat)\s+(\d+)\b", re.I
+    r"\b(?:part|partie|point|step|[ée]tape|d[ée]cision|decision|finding|constat)"
+    r"\s+(\d+(?:\.\d+)*)\b",
+    re.I,
 )
 CORPUS = ("*.md", "*.bats", "*.sh", "*.py", "*.lua")
 PRUNED = frozenset({".git", "node_modules", ".venv", "__pycache__", "library", "renv", "_freeze"})

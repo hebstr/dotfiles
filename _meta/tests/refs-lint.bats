@@ -143,6 +143,40 @@ _note() {
   [[ $output == *"1 enumeration references"* ]]
 }
 
+@test "a step reference is listed without changing the exit code" {
+  local root
+  root=$(_project)
+  _note "$root/.claude/note.md" 'The criterion is stated in step 7 above.'
+
+  run "$SCRIPT" "$root/.claude/note.md"
+  [ "$status" -eq 0 ]
+  [[ $output == *"ordinal step 7"* ]]
+  [[ $output == *"1 enumeration references"* ]]
+}
+
+@test "a step reference in French is listed under either spelling" {
+  local root
+  root=$(_project)
+  _note "$root/.claude/note.md" 'Le critère est posé à étape 7, comme à etape 8.'
+
+  run "$SCRIPT" "$root/.claude/note.md"
+  [ "$status" -eq 0 ]
+  [[ $output == *"ordinal étape 7"* ]]
+  [[ $output == *"ordinal etape 8"* ]]
+  [[ $output == *"2 enumeration references"* ]]
+}
+
+@test "a sub-step ordinal is listed whole rather than truncated at its first digit" {
+  local root
+  root=$(_project)
+  _note "$root/.claude/note.md" 'The stamp is rewritten at step 0.1.4 of the commit skill.'
+
+  run "$SCRIPT" "$root/.claude/note.md"
+  [ "$status" -eq 0 ]
+  [[ $output == *"ordinal step 0.1.4"* ]]
+  [[ $output == *"1 enumeration references"* ]]
+}
+
 @test "an enumeration reference is listed beside a dangling name" {
   local root
   root=$(_project)
