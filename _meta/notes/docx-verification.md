@@ -29,3 +29,8 @@ The position of the appended empty paragraph relative to a trailing `w:bookmarkE
 ## Word fidelity
 
 Pandoc's own contribution guide holds its maintainers to the same limit as this machine: "For docx or pptx tests, open the files in Word or Powerpoint to ensure that they weren't corrupted and that they had the expected result, and mention the Word/Powerpoint version and OS in your commit comment" (pandoc.org/CONTRIBUTING.html, verified 2026-09-09).
+
+Two routes were searched 2026-09-30 and both are closed, so neither is worth proposing again.
+
+- **No substitute engine closes the gap.** SSIM at 150 dpi against Word on 48 documents: ONLYOFFICE 0.908 for 42/48 pages matched, LibreOffice 0.892 for 43/48, for a stated set-difficulty variance of ±0.02 (oxi-dd65f4.gitlab.io, verified 2026-09-30). The benchmark's own engine claims the best of both figures, 0.903 for 48/48, and ships nowhere, so its lead reopens nothing. `officer` owns no layout engine at all.
+- **Word for the web and Graph `?format=pdf` render from the server's own font set**, which multi-tenant Office offers no way to extend, while this machine has the genuine Aptos family and Luciole: the local render uses the declared metrics and the cloud one substitutes, so for a `hebstr-doc` output the cloud route is worse, not better. Corrected by the user 2026-09-30 against an overclaim of mine reading the "looks the same as Print Layout view" sentence as certification; the same support page says "Many kinds of objects are displayed as placeholders" and nothing of fonts. Microsoft's font-substitution wording is published on a Publisher page and its Office Online Server custom-font page is retired, so this rests on the user's correction rather than on a citation.
