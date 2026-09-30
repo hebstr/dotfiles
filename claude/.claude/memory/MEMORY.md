@@ -7,6 +7,7 @@
 ## Project
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` digests CLAUDE.md's behavioral rules and the commit skill's format; after changing one, update or propose it there in the same response
 - project_ju_tp2_receiveonly.md: On ju-TP2 (WSL) never write to `~/dotfiles` or `~/.claude`: Syncthing receive-only there, ju-TP is the single writer
+- project_claude_dir_local_only_repo.md: `~/dotfiles/.claude` versioned by a nested repo with no remote (2026-09-30, initialized, no commit yet); git has no path-level push filter, and two points stay open: what the first commit takes, and the history not replicating across machines
 - project_ubuntu_26_04_migration.md: Ubuntu 26.04 migration deferred to Dec 2026+ (trigger `Supported: 1`); research in `_meta/notes/ubuntu-26-04-migration-reco.md`, don't redo
 - project_zotero_agent_access.md: Zotero agent access via a `zotero` skill (local API, rg on `.zotero-ft-cache`), no MCP, and the 2026-09-28 refusal of a local-API write key; decision in `_meta/notes/zotero-agent-access-reco.md`
 - project_quarto_custom_crossref_float.md: Using quarto-hebstr-doc's `anx` crossref type (annex tables and figures): chunk labels, caption keys, the `crossref:` redeclaration trap
