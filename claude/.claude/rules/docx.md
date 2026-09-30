@@ -77,6 +77,7 @@ Two neighbouring breaches are non-blocking, since Word opens both: a paragraph c
 
 Fidelity to Word itself. No installed tool renders a docx the way Word does, and the divergence is documented, active and version-dependent rather than a fixed set of known gaps; Pandoc's contribution guide holds its own maintainers to a Word pass.
 Before a docx template or a docx output is declared finished, say plainly that a pass on a real Word install is owed, rather than presenting a LibreOffice render as the check.
+Three substitute routes are measured and closed in the note, ONLYOFFICE by either delivery, Word for the web and `pandoc --pdf-engine=typst`: propose none of them, and no trial to compare them.
 
 ## References
 
