@@ -46,16 +46,26 @@ if [[ $mode == seal ]]; then
   [[ $sealed_value =~ ^[0-9]+$ ]] || exit 2
   (
     umask 077
+    missed=0
     {
       declare -A resealed=()
       printf '%s\n' "$sealed_value"
       while IFS= read -r -d '' path; do
-        [[ -n $path && $path != *[$'\t\n']* ]] || continue
+        [[ -n $path ]] || continue
+        [[ $path != *[$'\t\n']* ]] || {
+          missed=1
+          continue
+        }
         real=$(realpath -ms -- "$path" 2>/dev/null) || real=$path
-        [[ $real != *[$'\t\n']* ]] || continue
+        [[ $real != *[$'\t\n']* ]] || {
+          missed=1
+          continue
+        }
+        if ! d=$(digest "$real") || [[ $d == *[$'\t\n']* ]]; then
+          missed=1
+          continue
+        fi
         resealed[$real]=1
-        d=$(digest "$real") || continue
-        [[ $d != *[$'\t\n']* ]] || continue
         printf '%s\t%s\n' "$d" "$real"
       done
       if ((carry)); then
@@ -74,7 +84,8 @@ if [[ $mode == seal ]]; then
           } <"${snapshot_prefix}${previous}.seen"
         fi
       fi
-    } >"${snapshot_prefix}${sealed_value}.seen"
+    } >"${snapshot_prefix}${sealed_value}.seen" || exit
+    ((missed == 0)) || exit 4
   ) 2>/dev/null || exit
   current=""
   [[ -r $stamp_file ]] && { read -r current <"$stamp_file" || true; }
@@ -196,11 +207,12 @@ if [[ $mode == only ]]; then
   [[ -r $journal || ! -e $journal ]] || failed=1
   while IFS= read -r -d '' path; do
     [[ -n $path ]] || continue
-    excluded "$path" && continue
-    [[ -n ${seen[$path]:-} ]] && continue
-    seen[$path]=1
-    changed "$path" listed || continue
-    stale+=("$class"$'\t'"$path")
+    real=$(realpath -ms -- "$path" 2>/dev/null) || real=$path
+    excluded "$real" && continue
+    [[ -n ${seen[$real]:-} ]] && continue
+    seen[$real]=1
+    changed "$real" listed || continue
+    stale+=("$class"$'\t'"$real")
   done
 else
   if [[ -r $journal ]]; then

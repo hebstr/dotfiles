@@ -84,7 +84,12 @@ if ((restamp)) && ((${#named[@]} > 0)); then
 fi
 
 if [[ -n $journal ]]; then
-  if ! { ((${#sealing[@]} == 0)) || printf '%s\0' "${sealing[@]}"; } | "$BASH" "$stale_script" --seal "$session" "$stamp_value" "${carry[@]}"; then
+  { ((${#sealing[@]} == 0)) || printf '%s\0' "${sealing[@]}"; } | "$BASH" "$stale_script" --seal "$session" "$stamp_value" "${carry[@]}"
+  seal_status=$?
+  if ((seal_status == 4)); then
+    printf 'writes.sh: at least one path named is missing from the snapshot, so the stale check keeps reporting it\n' >&2
+    ((restamp)) && exit 1
+  elif ((seal_status != 0)); then
     printf 'writes.sh: could not record the snapshot, so the stale check falls back to ctime\n' >&2
     ((restamp)) && exit 1
   elif ((restamp)); then

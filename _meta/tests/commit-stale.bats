@@ -428,10 +428,13 @@ commit_file() {
   [ "$output" = "changed"$'\t'"$PROJECT/a b[1]*.sh" ]
 }
 
-@test "counts a path holding a tab, which the seal cannot record" {
+@test "counts a path holding a tab, which the seal cannot record and reports as not recorded" {
   printf 'x\n' >"$PROJECT/t"$'\t'"ab.sh"
-  seal "$(date +%s%N)" "$PROJECT/t"$'\t'"ab.sh"
-  [ "$(wc -l <"$RUNTIME/claude-code-writes-s1.$(<"$RUNTIME/claude-code-writes-s1.stamp").seen")" -eq 1 ]
+  value=$(date +%s%N)
+  run seal_only "$value" "$PROJECT/t"$'\t'"ab.sh"
+  [ "$status" -ne 0 ]
+  stamp "$value"
+  [ "$(wc -l <"$RUNTIME/claude-code-writes-s1.$value.seen")" -eq 1 ]
   run_stale
   [ "$status" -eq 0 ]
   [ "$output" = "unsealed"$'\t'"$PROJECT/t"$'\t'"ab.sh" ]
@@ -485,6 +488,57 @@ commit_file() {
   run_stale
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+}
+
+@test "--seal --carry keeps the previous seal of a named path whose digest fails" {
+  commit_file proj/a.sh
+  commit_file proj/b.sh
+  seal 100 "$PROJECT/a.sh" "$PROJECT/b.sh"
+  chmod 000 "$PROJECT/b.sh"
+  seal_carry 200 "$PROJECT/b.sh" || true
+  run grep -c . "$RUNTIME/claude-code-writes-s1.200.seen"
+  [ "$output" = "3" ]
+  run grep -c -- "$PROJECT/b.sh" "$RUNTIME/claude-code-writes-s1.200.seen"
+  [ "$output" = "1" ]
+}
+
+@test "--seal exits non-zero when a named path was not recorded" {
+  commit_file proj/a.sh
+  commit_file proj/b.sh
+  seal 100 "$PROJECT/a.sh" "$PROJECT/b.sh"
+  chmod 000 "$PROJECT/b.sh"
+  run seal_carry 200 "$PROJECT/b.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "--seal keeps the previous snapshot when a named path was not recorded" {
+  commit_file proj/a.sh
+  seal 100 "$PROJECT/a.sh"
+  chmod 000 "$PROJECT/a.sh"
+  seal_carry 200 "$PROJECT/a.sh" || true
+  [ -e "$RUNTIME/claude-code-writes-s1.100.seen" ]
+}
+
+@test "--only normalises a relative path, so a modified sealed file is still reported" {
+  commit_file proj/a.sh
+  seal 100 "$PROJECT/a.sh"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  # shellcheck disable=SC2016
+  run env -u CLAUDE_PROJECT_DIR PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash -c 'cd "$3" && printf "%s\0" a.sh | /bin/bash "$1" --only s1 "$2"' _ "$SCRIPT" "$PROJECT" "$PROJECT"
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
+}
+
+@test "the seal keys a path named through a symlinked directory as the symlink, so the resolved path the journal names stays reported" {
+  commit_file proj/a.sh
+  ln -s "$PROJECT" "$WORK/link"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  write_at 200 "$PROJECT/a.sh"
+  seal 100 "$WORK/link/a.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "rejects a session id carrying a path separator" {

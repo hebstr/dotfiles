@@ -164,6 +164,34 @@ fail_git_status() {
   [ "$(<"$RUNTIME/claude-code-writes-s1.stamp")" = 100 ]
 }
 
+@test "--restamp exits 1 and keeps the stamp when a named path cannot be digested" {
+  commit_file a.sh
+  commit_file b.sh
+  seal_at 100 "$WORK/a.sh" "$WORK/b.sh"
+  printf '100\n' >"$RUNTIME/claude-code-writes-s1.stamp"
+  chmod 000 "$WORK/b.sh"
+  run_restamp "$WORK/b.sh"
+  [ "$status" -eq 1 ]
+  [[ $output == *"missing from the snapshot"* ]]
+  [ "$(<"$RUNTIME/claude-code-writes-s1.stamp")" = 100 ]
+}
+
+@test "--restamp keeps the previous seal of a named path it cannot digest" {
+  commit_file a.sh
+  commit_file b.sh
+  printf 'old-b\n' >"$WORK/b.sh"
+  old_b=$(digest_of "$WORK/b.sh")
+  seal_at 100 "$WORK/a.sh" "$WORK/b.sh"
+  printf '100\n' >"$RUNTIME/claude-code-writes-s1.stamp"
+  chmod 000 "$WORK/b.sh"
+  run_restamp "$WORK/b.sh"
+  value=${lines[1]#STAMP_VALUE=}
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.$value.seen"
+  [ "${#snapshot[@]}" -eq 3 ]
+  [[ $output == *"missing from the snapshot"* ]]
+  printf '%s\n' "${snapshot[@]}" | grep -qF -- "$old_b"$'\t'"$WORK/b.sh"
+}
+
 @test "--restamp writes nothing without a session id" {
   # shellcheck disable=SC2016
   run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_STATE_HOME="$STATE" CLAUDE_CODE_SESSION_ID= \
