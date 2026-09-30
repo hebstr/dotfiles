@@ -64,7 +64,9 @@ if [[ $mode == seal ]]; then
             IFS= read -r header || header=""
             if [[ $header == "$previous" ]]; then
               while IFS=$'\t' read -r d p; do
-                [[ -n $p && -z ${resealed[$p]+set} ]] && printf '%s\t%s\n' "$d" "$p"
+                if [[ -n $p && -z ${resealed[$p]+set} ]]; then
+                  printf '%s\t%s\n' "$d" "$p"
+                fi
               done
             fi
           } <"${snapshot_prefix}${previous}.seen"

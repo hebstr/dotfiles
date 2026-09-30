@@ -62,6 +62,14 @@ seal() {
   stamp "$1"
 }
 
+seal_carry() {
+  local value=$1
+  shift
+  # shellcheck disable=SC2016
+  env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash -c 'printf "%s\0" "${@:3}" | /bin/bash "$1" --seal s1 "$2" --carry' _ "$SCRIPT" "$value" "$@"
+}
+
 commit_file() {
   mkdir -p "$(dirname "$WORK/$1")"
   printf 'v1\n' >"$WORK/$1"
@@ -418,6 +426,25 @@ commit_file() {
   run seal_only 200 "$PROJECT/a.sh"
   [ "$status" -ne 0 ]
   [ -e "$RUNTIME/claude-code-writes-s1.100.seen" ]
+}
+
+@test "--seal --carry succeeds when a resealed path is the last entry of the previous snapshot" {
+  commit_file proj/a.sh
+  commit_file proj/b.sh
+  seal 100 "$PROJECT/a.sh" "$PROJECT/b.sh"
+  run seal_carry 200 "$PROJECT/b.sh"
+  [ "$status" -eq 0 ]
+  run grep -c . "$RUNTIME/claude-code-writes-s1.200.seen"
+  [ "$output" = "3" ]
+}
+
+@test "--seal --carry keeps one entry per path when a resealed path was carried before" {
+  commit_file proj/a.sh
+  commit_file proj/b.sh
+  seal 100 "$PROJECT/a.sh" "$PROJECT/b.sh"
+  seal_carry 200 "$PROJECT/b.sh"
+  run grep -c -- "$PROJECT/b.sh" "$RUNTIME/claude-code-writes-s1.200.seen"
+  [ "$output" = "1" ]
 }
 
 @test "rejects a session id carrying a path separator" {
