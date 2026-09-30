@@ -64,7 +64,7 @@
 - Any error (hook, tool, CI, linter, non-zero exit) is investigated before proceeding, never dismissed as cosmetic.
 - "Show me how to X" means a tutorial to follow, not execution; if intent is ambiguous, ask.
 - When explaining a concept: prose with the code, progressive, an analogy for the unfamiliar, expected output when it helps; deeper only when asked. When executing: concise, no unsolicited explanation.
-- At a natural session boundary (context limit, different working directory), provide a ready-to-paste continuation prompt unasked.
+- Never write a prompt in the conversation: every prompt for the user to run goes into the project's `.claude/PROMPT.md`, unasked at a session boundary (context limit, different working directory). Lifecycle in `rules/claude-files.md`.
 - Anticipate idiomatic R and Python pitfalls.
 - No em dashes, and no en dashes used as punctuation, in any language: use colons, parentheses, periods, or restructure. En dashes in numeric ranges (`1–2 min`) are fine.
 
