@@ -40,9 +40,13 @@ Read a file from it when a rule below points to it, and not before.
 - When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
   Never `git add -A`.
   When every task of the session is done, give that block unasked, instead of asking whether to.
-- Right after showing that block, run it exactly as shown, in one shell call, starting with `git` (never `git -C`, `bash -c` or any other form).
+- Right after showing that block, run it exactly as shown, in one shell call, starting with `git` or with the single prefix `cd <project>/.claude &&` that the bullet below prescribes (never `git -C`, `bash -c` or any other form).
   The permission prompt is where the user confirms it, and their answer there is the only authorization; a "yes" in the conversation is not one.
   If they refuse, or the call fails (a prek hook rewriting a file included), stop and report; never retry it another way.
+- A project's `.claude/` is a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
+  When the session wrote notes there, add a second block, last, holding `cd <project>/.claude && git add <the notes this session wrote> && git commit -m "<header>"`, the header naming what the pass cut or decided rather than that a file was updated.
+  Never `git add .` or `git add -u` there: it would sweep another session's notes.
+  No repository there: say so and render no block, the initial import being the user's.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
   Reading them is fine.
 - Never print a secret.

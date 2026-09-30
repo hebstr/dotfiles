@@ -18,5 +18,5 @@ Injected by `inject-rules.sh` on a `chromium` or `firefox` command.
 ## Where verification captures go
 
 - A binary verification artefact goes in `<project>/.claude/screenshots/`, never in the scratchpad, never under `~/snap/` or any other system directory: a headless browser capture, a `pdftoppm` page, a rasterized LibreOffice render. It is the evidence that a verification happened, so it belongs beside the plan that cites it and stays inspectable in the next session.
-- Check that `.claude/` is git-ignored before writing, and ignore it otherwise: a capture is never versioned.
+- Check that `screenshots/` itself is git-ignored before writing, whichever repository the project's `.claude/` belongs to, and ignore it otherwise: a capture is never versioned. Checking that `.claude/` is ignored no longer answers the question, a `.claude/` of its own being versioned in a nested repository (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
 - The scope is what you open and read. A purely intermediate file you never look at (a DOM probe, a throwaway HTML page) stays in the scratchpad when the tool can write there, which chromium cannot.

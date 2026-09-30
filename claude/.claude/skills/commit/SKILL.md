@@ -44,7 +44,7 @@ In this order, skipping none.
 
    Each printed line is `<class><TAB><path>`, the class being `changed` or `unsealed`: the path is the second field, and an `unsealed` path is one the last verification never recorded, so it is another session's file unless this session wrote it after that verification.
    Non-zero exit code: a source could not be read and the list is incomplete; leave the stamp as it is, and say so.
-   Empty output, or every printed path is a file an applied finding targets, whatever its kind (`rules/`, `_meta/notes/`, `README.md`; the gate already ignores `.claude/` and memory): rewrite the stamp and the recorded content together (`bash ~/.claude/skills/commit/scripts/writes.sh --restamp`), otherwise the gate would treat the commit blocks delivered right after these corrections as stale. A non-zero exit code means the stamp was not rewritten: say so.
+   Empty output, or every printed path is a file an applied finding targets, whatever its kind (`rules/`, `_meta/notes/`, `README.md`; read from the parent root, the gate ignores `.claude/` and memory, while a commit inside `.claude` is checked file by file, per section 5): rewrite the stamp and the recorded content together (`bash ~/.claude/skills/commit/scripts/writes.sh --restamp`), otherwise the gate would treat the commit blocks delivered right after these corrections as stale. A non-zero exit code means the stamp was not rewritten: say so.
    If at least one path falls outside that case, leave the stamp as it is and name that path to the user: the gate does not block again within the continuation it triggered (the marker it wrote when blocking), and will only block commit blocks that take that path (any commit line, when no fenced block holds it), delivered outside it, which is intended.
 
 This pass does not replace the check the session owes at every tracking write; it catches what that check let through.
@@ -67,7 +67,7 @@ Only the user can invoke these two skills: give the command, do not invoke it.
 
 ### 0.4 Blocks
 
-Sections 1 to 4.
+Sections 1 to 5.
 
 ## 1. Read the actual state
 
@@ -111,8 +111,20 @@ Right after the blocks, in the same response, run them, one Bash call per block,
 - A failed call ends it too, a prek hook rewriting a file included: report the output and run nothing more. The rewritten file is newer than the tracking verification, so the next attempt starts from this skill again.
 - A refusal from the `git-write-guard.sh` hook is not a failure to work around: it names the reason (a rerouted form, `--no-verify` or `--amend`, a git write left to the user, files changed since the verification, files the verification never sealed, which may be another session's, a source of the verification left unreadable). Follow what it says, never another form of the same command.
 - A block the user must run themselves (a `git add -p`, named in section 2) is left to them: say so, and stop the sequence before it.
-- So is a block holding any command other than `git add`, `git rm`, `git mv` or `git commit`: stop the sequence before it, and say which blocks remain.
+- So is a block holding any command other than `git add`, `git rm`, `git mv` or `git commit`, except a leading `cd` or `pushd` into the repository the commit takes place in, which is what section 5 needs and what the guard allows ("A command holding git commit runs only cd or pushd and git add, rm, mv or commit"): stop the sequence before it, and say which blocks remain.
+
+## 5. The tracking repository
+
+The project's `.claude/` is versioned in a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
+Its commits are what gives the subtractive criterion of `rules/claude-files.md` ("Content") the commit message and the `git blame` it routes a step taken, a parameter changed and a verification passed to, so they are rendered here rather than left to the user.
+
+- No repository there (`git -C <project>/.claude rev-parse --git-dir` fails): write `.claude/.gitignore` if it is missing, with `settings.local.json`, `screenshots/` and `*.pdf`, then give the user the `git init` and the import command to run in their own terminal, and render no block. The import cannot be an agent's: `git-write-guard.sh` refuses every file the session did not write.
+- Nothing this session wrote under `.claude/`: no block, and nothing said about it.
+- One block, last, after every block of the parent repository: `cd <project>/.claude && git add <paths> && git commit -m "<header>"`. The paths are the `.claude/` entries of the `WRITES` list of step 0.1.1, named one by one. Never `git add .` nor `git add -u` there: they would sweep the notes another session wrote, and the guard refuses them.
+- Last because a refusal in the parent's sequence stops it before this commit, and a note that records what the parent commit took must not be committed when that commit did not run.
+- The header names what the pass cut or decided, never that a file was updated: `docs(prune): drop the executed sections of the session-discipline plan`, not `docs(claude): update tracking`. A header naming neither loses the deletion exactly as no repository would.
+- Section 4 governs running it, the refusal of `git-write-guard.sh` included. Its check applies here file by file: the exemption that hides `.claude/` from a parent commit falls away when the root is `.claude` itself, which is deliberate.
 
 ## After
 
-Once the sequence has run, or when the user says they ran it, check with `git log --oneline -<n>` and `git status --short` that it produced what was proposed.
+Once the sequence has run, or when the user says they ran it, check with `git log --oneline -<n>` and `git status --short` that it produced what was proposed, in both repositories when section 5 rendered a block.
