@@ -45,7 +45,7 @@
 - reference_nanoparquet_col_select.md: nanoparquet 0.5.1 `col_select` silently drops NAs and shifts values within a row group: never use it, read then `dplyr::select()`
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 over ICU, RE2 `\b` is ASCII-only, fold with Latin-ASCII not NFD, map offsets back (edstr)
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments as titled callouts, section plan, CSS trap
-- reference_tool_update_routines.md: The update routine follows the install method (devtools-update, cargo install-update, uv tool upgrade, uv python upgrade); don't conflate
+- reference_tool_update_routines.md: The update routine follows the install method (devtools-update, cargo install-update, uv tool upgrade, uv python upgrade); don't conflate, and the uv tool venvs follow the minor-version symlink, read `pyvenv.cfg` not `readlink -f`
 - reference_uv_pip_virtual_env.md: `uv pip install` targets $VIRTUAL_ENV over the cwd project, silently installing into the wrong venv; fix with `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Positron: the profile's extensions.json beats the global one; never delete a folder only the global one calls orphan
 - reference_hebstr_easy_out_subdir.md: hebstr sha 97e8829 moved `easy_out()` to one kebab-case subfolder per output, removed `easy_out_map()`; silent break, clear old outputs

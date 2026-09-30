@@ -1,6 +1,6 @@
 ---
 name: Tool update routines (devtools-update vs cargo install-update vs uv tool upgrade vs uv python upgrade)
-description: Four disjoint update mechanisms on the user's machine; do not conflate them when adding/auditing a tool
+description: Four disjoint update mechanisms on the user's machine; do not conflate them when adding/auditing a tool, and how `uv python upgrade` reaches the uv tool venvs (read `pyvenv.cfg`, never `readlink -f`)
 metadata:
   type: reference
 ---
@@ -12,6 +12,7 @@ The per-routine inventories, the `GGSQL_SKIP_GENERATE=1` the `cargo` module need
 - **`devtools-update`** handles cargo-dist binaries only, via each repo's `<tool>-installer.sh` on GitHub `releases/latest`, installed system-wide to `/usr/local/bin`. Eligibility is mechanical: the repo must publish `<tool>-installer.sh`, and adding a tool that has none produces a 404 URL.
 - **`cargo install-update`** updates every crate registered in `~/.cargo/.crates.toml`, which is what `cargo install` writes; a binary dropped into `~/.cargo/bin` by any other means carries no entry and is invisible to it (none left since `arf` was removed on 2026-09-25).
 - **`uv tool upgrade --all`** updates everything installed with `uv tool install` (binary in `~/.local/bin`). A tool being Rust-written says nothing here: pyrefly is Rust and belongs to this routine, not the two above. `huggingface-hub` belongs to it on `ju-TP2`, where the models live. It only updates; nothing in the repo installs a uv tool on a fresh machine (backlog item in `~/dotfiles/.claude/DEFERRED.md`).
+- **`uv python upgrade`** reaches the tool venvs only because they are bound to the minor-version symlink rather than to a patch directory: measured 2026-09-20 on `ju-TP`, the seven tool venvs all read `home = .../cpython-3.14-linux-x86_64-gnu/bin` in their `pyvenv.cfg`, so the upgrade redirected all seven that day. That is a per-venv property, not a guarantee: `rules/install.md` records that one built against an explicit patch stays behind, and that a green `uv-python` proves nothing about a given venv. Check a venv by reading its `pyvenv.cfg`, never with `readlink -f` on its `bin/python`, which resolves through to the patch directory either way and reports a pinned venv and a following one identically.
 
 Decision rule when a new tool appears, in order. Is it `uv tool install`-ed (present in `uv tool list`, binary in `~/.local/bin`)? → `uv tool upgrade --all`, add nothing. Otherwise, for a Rust tool: does its repo ship `<tool>-installer.sh`? Yes and you want it system-wide → `devtools-update`. No, or it is `cargo install`-ed into `~/.cargo/bin` → it is already covered by `cargo install-update`, add nothing.
 
