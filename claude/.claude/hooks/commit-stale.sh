@@ -51,10 +51,12 @@ if [[ $mode == seal ]]; then
       printf '%s\n' "$sealed_value"
       while IFS= read -r -d '' path; do
         [[ -n $path && $path != *[$'\t\n']* ]] || continue
-        resealed[$path]=1
-        d=$(digest "$path") || continue
+        real=$(realpath -ms -- "$path" 2>/dev/null) || real=$path
+        [[ $real != *[$'\t\n']* ]] || continue
+        resealed[$real]=1
+        d=$(digest "$real") || continue
         [[ $d != *[$'\t\n']* ]] || continue
-        printf '%s\t%s\n' "$d" "$path"
+        printf '%s\t%s\n' "$d" "$real"
       done
       if ((carry)); then
         previous=""
@@ -116,7 +118,7 @@ memory=$(realpath -m -- "$HOME/.claude/memory" 2>/dev/null || printf '%s' "$HOME
 
 in_work_tree_unignored() {
   local dir=${1%/*}
-  while [[ -n $dir && ! -d $dir ]]; do
+  while [[ $dir == */* && ! -d $dir ]]; do
     dir=${dir%/*}
   done
   [[ $(git -C "${dir:-/}" rev-parse --is-inside-work-tree 2>/dev/null) == true ]] || return 1
@@ -191,6 +193,7 @@ declare -A seen=()
 stale=()
 
 if [[ $mode == only ]]; then
+  [[ -r $journal || ! -e $journal ]] || failed=1
   while IFS= read -r -d '' path; do
     [[ -n $path ]] || continue
     excluded "$path" && continue

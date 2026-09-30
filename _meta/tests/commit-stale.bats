@@ -83,6 +83,14 @@ commit_file() {
   [ -z "$output" ]
 }
 
+@test "terminates on a journalled relative path whose leading component is no directory" {
+  write_at 200 'a.sh'
+  write_at 200 'nowhere/b.sh'
+  run timeout 5 env -u CLAUDE_PROJECT_DIR PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash "$SCRIPT" s1 "$PROJECT"
+  [ "$status" -ne 124 ]
+}
+
 @test "prints a modified file newer than the stamp, one path per line" {
   commit_file proj/a.sh
   commit_file proj/b.sh
@@ -130,6 +138,14 @@ commit_file() {
   [ -z "$output" ]
 }
 
+@test "checks the files of a .claude commit when .claude itself is the root" {
+  stamp 100
+  write_at 200 "$PROJECT/.claude/PLAN.md"
+  run_stale s1 "$PROJECT/.claude"
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed"$'\t'"$PROJECT/.claude/PLAN.md" ]
+}
+
 @test "treats a malformed stamp as absent and exits non-zero" {
   commit_file proj/a.sh
   printf 'v2\n' >"$PROJECT/a.sh"
@@ -153,6 +169,16 @@ commit_file() {
   write_at 200 "$PROJECT/a.sh"
   chmod 000 "$RUNTIME/claude-code-writes-s1.log"
   run_stale
+  [ "$status" -ne 0 ]
+}
+
+@test "--only exits non-zero on an unreadable journal" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  write_at 100 "$PROJECT/a.sh"
+  seal 200 "$PROJECT/b.sh"
+  chmod 000 "$RUNTIME/claude-code-writes-s1.log"
+  run_only "$PROJECT/a.sh"
   [ "$status" -ne 0 ]
 }
 
@@ -445,6 +471,20 @@ commit_file() {
   seal_carry 200 "$PROJECT/b.sh"
   run grep -c -- "$PROJECT/b.sh" "$RUNTIME/claude-code-writes-s1.200.seen"
   [ "$output" = "1" ]
+}
+
+@test "--seal normalises a relative path, so resealing from the project root clears the file" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  write_at 100 "$PROJECT/a.sh"
+  value=$(date +%s%N)
+  # shellcheck disable=SC2016
+  (cd "$PROJECT" && env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" HOME="$FAKE_HOME" \
+    /bin/bash -c 'printf "%s\0" a.sh | /bin/bash "$1" --seal s1 "$2" --carry' _ "$SCRIPT" "$value")
+  stamp "$value"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
 
 @test "rejects a session id carrying a path separator" {

@@ -15,7 +15,7 @@ setup() {
   mkdir -p "$STUB_DIR" "$RUNTIME" "$STATE" "$WORK/.claude"
   git init -q "$WORK"
   printf '%s\n' .stubs/ runtime/ state/ .claude/ >>"$WORK/.git/info/exclude"
-  for cmd in git date sort rm mkdir sha256sum readlink; do
+  for cmd in realpath git date sort rm mkdir sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
