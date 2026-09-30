@@ -7,6 +7,7 @@ You start from a blank context: all you know of the session is what this prompt 
 
 - `REPO`: the repository root.
 - `WRITES`: the paths written during the session (Edit and Write), combined with the modified or untracked paths of the repository's `git status`, deduplicated, with paths resolved. It includes files git ignores, in particular `REPO/.claude/`, which `git status` does not show.
+- `SWEEP`: `yes` on the first pass of the day in this repository, `no` on the others. It governs section 5 alone.
 - `STAMP_FILE` and `STAMP_VALUE`: where to write the stamp at the end of the pass, and what to write in it.
 
 ## Rules of the pass
@@ -66,6 +67,8 @@ When a design note describes how a file written in the session works, compare th
 
 ### 5. Live to-do items already carried out
 
+**Run this section only when `SWEEP` is `yes`.** On `no`, skip it whole, run none of its commands, and report from it the single line `Section 5: skipped, SWEEP=no` and nothing else: a pass has already swept this repository today, and an item it would catch keeps until the first pass of the next day. Sections 1 to 4 run either way.
+
 This check covers all of the repository's tracking, not only `WRITES`: the action that carries out a to-do item often writes nothing in the file that lists it. It may have been done in a session without `/commit`, without any write (a measurement, a run, a review), or by the user outside any session.
 
 **Live passages only.** A live passage states what remains to be done: a status line, "Next", "Blockers", "Étape suivante", "Prochaine action", "Reste à faire", "Points ouverts", a list of steps, the entries of a `DEFERRED.md`. A section that records an event (a decision, a pass, a measurement, a log, a report, an approved design) or that the file declares superseded is an archive: never flag it, even if what it planned has been done since. A date in the heading does not make a section an archive ("Next, in the order agreed on …" stays live).
@@ -110,7 +113,7 @@ Absence of evidence proves nothing: transcripts are kept for only `cleanupPeriod
 A report in English, in this order:
 
 1. `Findings`: one entry per problem, with the tracking file concerned, the false claim or the missing record, the evidence (command and output), and the proposed fix in one sentence. Most serious first: a false claim before a missing record, a missing record before a vague or narrower statement.
-2. `Greps`: all six, each with its result or "not applicable".
+2. `Greps`: all six, each with its result or "not applicable". On `SWEEP=no`, the skip line of section 5 goes here, under them.
 3. `Out of scope`: only what lies outside `WRITES`, or what you genuinely could not settle, one line each.
 
 A defect you settle in a file of `WRITES`, or one that a write of the session introduced, is a `Findings` entry, however minor: a statement that is "not false, just narrower" than the file it describes, a stale index line, a reference re-anchored by an insertion. Never file it under `Out of scope` because it looks small.

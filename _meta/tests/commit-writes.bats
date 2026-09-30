@@ -8,12 +8,13 @@ setup() {
   WORK=$(realpath "$(mktemp -d)")
   STUB_DIR="$WORK/.stubs"
   RUNTIME="$WORK/runtime"
-  export WORK STUB_DIR RUNTIME
+  STATE="$WORK/state"
+  export WORK STUB_DIR RUNTIME STATE
 
-  mkdir -p "$STUB_DIR" "$RUNTIME" "$WORK/.claude"
+  mkdir -p "$STUB_DIR" "$RUNTIME" "$STATE" "$WORK/.claude"
   git init -q "$WORK"
-  printf '%s\n' .stubs/ runtime/ .claude/ >>"$WORK/.git/info/exclude"
-  for cmd in git date sort rm sha256sum readlink; do
+  printf '%s\n' .stubs/ runtime/ state/ .claude/ >>"$WORK/.git/info/exclude"
+  for cmd in git date sort rm mkdir sha256sum readlink; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
 }
@@ -26,8 +27,20 @@ teardown() {
 run_writes() {
   local session=${1-s1} dir=${2:-$WORK}
   # shellcheck disable=SC2016
-  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" CLAUDE_CODE_SESSION_ID="$session" \
+  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_STATE_HOME="$STATE" CLAUDE_CODE_SESSION_ID="$session" \
     /bin/bash -c 'cd "$1" && /bin/bash "$2"' _ "$dir" "$SCRIPT"
+}
+
+run_restamp() {
+  # shellcheck disable=SC2016
+  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_STATE_HOME="$STATE" CLAUDE_CODE_SESSION_ID=s1 \
+    /bin/bash -c 'cd "$1" && /bin/bash "$2" --restamp' _ "$WORK" "$SCRIPT"
+}
+
+marker_for() {
+  local key
+  key=$(printf '%s' "$1" | sha256sum)
+  printf '%s/claude-code/verifier-sweep-%s' "$STATE" "${key:0:16}"
 }
 
 write_at() {
@@ -49,12 +62,13 @@ fail_git_status() {
   chmod +x "$STUB_DIR/git"
 }
 
-@test "prints the stamp file and a nanosecond stamp value first" {
+@test "prints the stamp file, a nanosecond stamp value and the sweep flag first" {
   run_writes
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "STAMP_FILE=$RUNTIME/claude-code-writes-s1.stamp" ]
   [[ ${lines[1]} =~ ^STAMP_VALUE=[0-9]{19}$ ]]
-  [ "${#lines[@]}" -eq 2 ]
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  [ "${#lines[@]}" -eq 3 ]
   [ ! -e "$RUNTIME/claude-code-writes-s1.stamp" ]
 }
 
@@ -76,9 +90,7 @@ fail_git_status() {
 @test "--restamp writes a fresh stamp and the snapshot headed by it, and lists nothing" {
   printf '100\n' >"$RUNTIME/claude-code-writes-s1.stamp"
   printf 'x\n' >"$WORK/new.sh"
-  # shellcheck disable=SC2016
-  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" CLAUDE_CODE_SESSION_ID=s1 \
-    /bin/bash -c 'cd "$1" && /bin/bash "$2" --restamp' _ "$WORK" "$SCRIPT"
+  run_restamp
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 2 ]
   value=${lines[1]#STAMP_VALUE=}
@@ -92,9 +104,7 @@ fail_git_status() {
 @test "--restamp exits 1 and keeps the stamp when the snapshot cannot be written" {
   printf '100\n' >"$RUNTIME/claude-code-writes-s1.stamp"
   chmod 500 "$RUNTIME"
-  # shellcheck disable=SC2016
-  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" CLAUDE_CODE_SESSION_ID=s1 \
-    /bin/bash -c 'cd "$1" && /bin/bash "$2" --restamp' _ "$WORK" "$SCRIPT"
+  run_restamp
   [ "$status" -eq 1 ]
   [[ $output == *"could not record the snapshot"* ]]
   [ "$(<"$RUNTIME/claude-code-writes-s1.stamp")" = 100 ]
@@ -102,7 +112,7 @@ fail_git_status() {
 
 @test "--restamp writes nothing without a session id" {
   # shellcheck disable=SC2016
-  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" CLAUDE_CODE_SESSION_ID= \
+  run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_STATE_HOME="$STATE" CLAUDE_CODE_SESSION_ID= \
     /bin/bash -c 'cd "$1" && /bin/bash "$2" --restamp' _ "$WORK" "$SCRIPT"
   [ "$status" -eq 3 ]
   [ ! -e "$RUNTIME/claude-code-writes-.stamp" ]
@@ -116,10 +126,10 @@ fail_git_status() {
   write_at 200 "$WORK/.claude/PLAN.md"
   run_writes
   [ "$status" -eq 0 ]
-  [ "${#lines[@]}" -eq 5 ]
-  [ "${lines[2]}" = "$WORK/.claude/PLAN.md" ]
-  [ "${lines[3]}" = "$WORK/a.sh" ]
-  [ "${lines[4]}" = "$WORK/new.sh" ]
+  [ "${#lines[@]}" -eq 6 ]
+  [ "${lines[3]}" = "$WORK/.claude/PLAN.md" ]
+  [ "${lines[4]}" = "$WORK/a.sh" ]
+  [ "${lines[5]}" = "$WORK/new.sh" ]
 }
 
 @test "lists journal paths written before the stored stamp" {
@@ -128,9 +138,9 @@ fail_git_status() {
   write_at 200 "$WORK/a.sh"
   run_writes
   [ "$status" -eq 0 ]
-  [ "${#lines[@]}" -eq 4 ]
-  [ "${lines[2]}" = "$WORK/.claude/PLAN.md" ]
-  [ "${lines[3]}" = "$WORK/a.sh" ]
+  [ "${#lines[@]}" -eq 5 ]
+  [ "${lines[3]}" = "$WORK/.claude/PLAN.md" ]
+  [ "${lines[4]}" = "$WORK/a.sh" ]
 }
 
 @test "resolves git status paths against the repository root from a subdirectory" {
@@ -138,7 +148,7 @@ fail_git_status() {
   printf 'x\n' >"$WORK/sub/new.sh"
   run_writes s1 "$WORK/sub"
   [ "$status" -eq 0 ]
-  [ "${lines[2]}" = "$WORK/sub/new.sh" ]
+  [ "${lines[3]}" = "$WORK/sub/new.sh" ]
 }
 
 @test "lists both sides of a staged rename as separate paths" {
@@ -146,16 +156,16 @@ fail_git_status() {
   git -C "$WORK" mv a.sh b.sh
   run_writes
   [ "$status" -eq 0 ]
-  [ "${#lines[@]}" -eq 4 ]
-  [ "${lines[2]}" = "$WORK/a.sh" ]
-  [ "${lines[3]}" = "$WORK/b.sh" ]
+  [ "${#lines[@]}" -eq 5 ]
+  [ "${lines[3]}" = "$WORK/a.sh" ]
+  [ "${lines[4]}" = "$WORK/b.sh" ]
 }
 
 @test "keeps a git status path holding a space or an accented letter verbatim" {
   printf 'x\n' >"$WORK/my é.sh"
   run_writes
   [ "$status" -eq 0 ]
-  [ "${lines[2]}" = "$WORK/my é.sh" ]
+  [ "${lines[3]}" = "$WORK/my é.sh" ]
 }
 
 @test "skips a journal line that carries no path" {
@@ -164,13 +174,13 @@ fail_git_status() {
   run_writes
   [ "$status" -eq 0 ]
   [[ $output != *$'\n\n'* ]]
-  [ "${lines[2]}" = "$WORK/a.sh" ]
+  [ "${lines[3]}" = "$WORK/a.sh" ]
 }
 
 @test "puts the stamp under /tmp when XDG_RUNTIME_DIR is unset" {
   session="bats-writes-$$"
   # shellcheck disable=SC2016
-  run env -u XDG_RUNTIME_DIR PATH="$STUB_DIR" CLAUDE_CODE_SESSION_ID="$session" \
+  run env -u XDG_RUNTIME_DIR PATH="$STUB_DIR" XDG_STATE_HOME="$STATE" CLAUDE_CODE_SESSION_ID="$session" \
     /bin/bash -c 'cd "$1" && /bin/bash "$2"' _ "$WORK" "$SCRIPT"
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "STAMP_FILE=/tmp/claude-code-writes-${session}.stamp" ]
@@ -222,4 +232,68 @@ fail_git_status() {
   run_writes ''
   [ "$status" -eq 3 ]
   [[ $output == *"git status failed"* ]]
+}
+
+@test "posts a marker holding today's date and the repository root on the first pass" {
+  run_writes
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  marker=$(marker_for "$WORK")
+  [ "$(<"$marker")" = "$(date +%F)"$'\t'"$WORK" ]
+}
+
+@test "prints SWEEP=no on a second pass of the same day" {
+  run_writes
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  run_writes s2
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "SWEEP=no" ]
+}
+
+@test "prints SWEEP=yes again and refreshes the marker when it carries an earlier date" {
+  marker=$(marker_for "$WORK")
+  mkdir -p "${marker%/*}"
+  printf '%s\t%s\n' 2000-01-01 "$WORK" >"$marker"
+  run_writes
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  [ "$(<"$marker")" = "$(date +%F)"$'\t'"$WORK" ]
+}
+
+@test "keys the marker by repository root, so another repository sweeps the same day" {
+  run_writes
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  other=$(realpath "$(mktemp -d)")
+  git init -q "$other"
+  run_writes s1 "$other"
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  [ "$(<"$(marker_for "$other")")" = "$(date +%F)"$'\t'"$other" ]
+  rm -rf "$other"
+}
+
+@test "prints SWEEP=yes and posts no marker outside any git repository" {
+  outside=$(realpath "$(mktemp -d)")
+  run_writes s1 "$outside"
+  rm -rf "$outside"
+  [ "$status" -eq 1 ]
+  [[ $output == *"SWEEP=yes"* ]]
+  [ ! -d "$STATE/claude-code" ]
+}
+
+@test "--restamp prints no sweep flag and posts no marker" {
+  run_restamp
+  [ "$status" -eq 0 ]
+  [[ $output != *SWEEP* ]]
+  [ ! -e "$(marker_for "$WORK")" ]
+}
+
+@test "warns and keeps SWEEP=yes when the marker cannot be posted" {
+  mkdir -p "$STATE/claude-code"
+  chmod 500 "$STATE/claude-code"
+  run_writes
+  [ "$status" -eq 0 ]
+  [ "${lines[2]}" = "SWEEP=yes" ]
+  [[ $output == *"could not post the sweep marker"* ]]
+  [ ! -e "$(marker_for "$WORK")" ]
 }
