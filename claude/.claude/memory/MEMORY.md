@@ -77,7 +77,7 @@
 - feedback_r_environment.md: R environment idioms (rv not renv, `system2` over `system`, `.Rprofile` sources `rv/scripts/activate.R`, `.rv$sync()` optional)
 - feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret when the variable IS set; test presence with `[ -n "$VAR" ]` or `${VAR:+set}` alone
 - feedback_benchmark_power_state.md: Laptop benchmarks: ~2x slower on battery than AC, ~8% noise within a regime; claim gains as shares from paired runs
-- feedback_verify_before_claiming.md: 6 hard rules for verifying factual claims, behind the CLAUDE.md rule "never state a verifiable fact without checking it first"
+- feedback_verify_before_claiming.md: 7 hard rules for verifying factual claims, behind the CLAUDE.md rule "never state a verifiable fact without checking it first", the last on a sha or precedent inherited from another session's note
 - feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input (commands, paths, tokens), never on prose; prefer behavioural instructions and state triggers, and leave fewer patterns than before
 - feedback_check_before_hand_rolling.md: Query installed libraries before hand-rolling a helper or pricing "we would have to build X", then the web; an outside hit is a proposal
 - feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact: mirroring a neighbouring file reproduces its blind spots
