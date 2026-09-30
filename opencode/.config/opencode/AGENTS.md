@@ -46,7 +46,7 @@ Read a file from it when a rule below points to it, and not before.
 - A project's `.claude/` is a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
   When the session wrote notes there, add a second block, last, holding `cd <project>/.claude && git add <the notes this session wrote> && git commit -m "<header>"`, the header naming what the pass cut or decided rather than that a file was updated.
   Never `git add .` or `git add -u` there: it would sweep another session's notes.
-  No repository there: say so and render no block, the initial import being the user's.
+  No repository there, or one with no commit yet: say so, and name the first commit as the user's without writing that command anywhere in the response, since it can never pass the checks.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
   Reading them is fine.
 - Never print a secret.
