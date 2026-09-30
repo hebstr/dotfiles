@@ -1,8 +1,6 @@
 **/hosts.yml
 **/.credentials.json
 **/credentials.toml
-**/*token*
-**/*secret*
 
 **/history.jsonl
 **/*-cache.json
@@ -21,11 +19,10 @@ _meta/session-discipline/*.tsv
 **/node_modules/
 
 /.claude/
-!claude/.claude/rules/secrets.md
 
 /.stfolder
 
 **/*.reg
 
-PROMPT.md
-TODO.md
+/TODO.md
+/DRAFT.md
