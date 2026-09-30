@@ -46,6 +46,10 @@ write_at() {
   printf '%s\t%s\n' "$1" "$2" >>"$RUNTIME/claude-code-writes-s1.log"
 }
 
+peer_write() {
+  printf '100\t%s\n' "$1" >>"$RUNTIME/claude-code-writes-s2.log"
+}
+
 stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
 }
@@ -528,6 +532,27 @@ commit_file() {
   [[ $output == *"$WORK/a.sh"* ]]
 }
 
+@test "passes a pathspec commit while another session's work sits staged" {
+  commit_file a.sh
+  commit_file peer.md
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'v2\n' >"$WORK/peer.md"
+  git -C "$WORK" add peer.md
+  run_guard 'git commit -m "fix: x" -- a.sh'
+  [ "$status" -eq 0 ]
+}
+
+@test "still denies a pathspec commit whose own file changed after the verification" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  seal "$(date +%s%N)" "$WORK/a.sh"
+  printf 'v3\n' >"$WORK/a.sh"
+  run_guard 'git commit -m "fix: x" -- a.sh'
+  [ "$status" -eq 2 ]
+  [[ $output == *"$WORK/a.sh"* ]]
+}
+
 @test "resolves a directory pathspec to the files under it" {
   commit_file sub/a.sh
   printf 'v2\n' >"$WORK/sub/a.sh"
@@ -562,6 +587,7 @@ commit_file() {
   seal "$(date +%s%N)" "$WORK/a.sh" "$WORK/b.sh"
   printf 'v3\n' >"$WORK/b.sh"
   printf 'x\n' >"$WORK/other.md"
+  peer_write "$WORK/other.md"
   local c
   for c in 'git add -u && git commit -m x' 'git add -vu && git commit -m x' 'git add --upd && git commit -m x' 'git add --renormalize && git commit -m x' 'git add --renorm && git commit -m x'; do
     run_guard "$c"
@@ -642,6 +668,7 @@ commit_file() {
   printf 'v2\n' >"$WORK/a.sh"
   seal "$(date +%s%N)" "$WORK/a.sh"
   printf 'x\n' >"$WORK/other.md"
+  peer_write "$WORK/other.md"
   local c
   # shellcheck disable=SC2016
   for c in 'git add "a.sh" && git commit -m "fix: x"' 'git add *.sh && git commit -m x' 'git add :/ && git commit -m x' 'git add $f && git commit -m x' 'git add a\.sh && git commit -m x'; do
@@ -658,6 +685,7 @@ commit_file() {
   OTHER=$(realpath "$(mktemp -d)")
   git init -q "$OTHER"
   printf 'x\n' >"$OTHER/new.md"
+  peer_write "$OTHER/new.md"
   run_guard "cd $OTHER && git add -A && git commit -m x"
   rm -rf "$OTHER"
   [ "$status" -eq 2 ]
@@ -670,6 +698,7 @@ commit_file() {
   seal "$(date +%s%N)" "$WORK/a.sh"
   mkdir -p "$WORK/claude/.claude/hooks"
   printf 'x\n' >"$WORK/claude/.claude/hooks/h.sh"
+  peer_write "$WORK/claude/.claude/hooks/h.sh"
   run_guard "cd $WORK/claude && git add -A && git commit -m x"
   [ "$status" -eq 2 ]
   [[ $output == *"$WORK/claude/.claude/hooks/h.sh"* ]]
@@ -815,6 +844,7 @@ commit_file() {
   printf 'v2\n' >"$WORK/a.sh"
   seal "$(date +%s%N)" "$WORK/a.sh"
   printf 'x\n' >"$WORK/other.md"
+  peer_write "$WORK/other.md"
   run_guard 'git add . && git commit -m "fix: x"'
   [ "$status" -eq 2 ]
   [[ $output == *"never sealed"*"$WORK/other.md"* ]]
@@ -830,6 +860,7 @@ commit_file() {
   seal "$(date +%s%N)" "$WORK/a.sh"
   printf 'v3\n' >"$WORK/a.sh"
   printf 'x\n' >"$WORK/other.md"
+  peer_write "$WORK/other.md"
   run_guard 'git add . && git commit -m "fix: x"'
   [ "$status" -eq 2 ]
   [[ $output == *"changed after the last tracking verification"*"$WORK/a.sh"*"runs the tracking verifier"* ]]
@@ -842,6 +873,7 @@ commit_file() {
   seal "$(date +%s%N)" "$WORK/a.sh"
   printf 'v3\n' >"$WORK/a.sh"
   printf 'x\n' >"$WORK/other.md"
+  peer_write "$WORK/other.md"
   run_verdict 'git add . && git commit -m "fix: x"'
   [ "$status" -eq 0 ]
   [ "$output" = "$(printf 'changed\t%s\nunsealed\t%s' "$WORK/a.sh" "$WORK/other.md")" ]
@@ -1022,6 +1054,7 @@ commit_file() {
   OTHER=$(realpath "$(mktemp -d)")
   git init -q "$OTHER"
   printf 'x\n' >"$OTHER/new.md"
+  peer_write "$OTHER/new.md"
   local c
   for c in "(cd $OTHER); git add -A && git commit -m x" "{ (cd $OTHER); } && git add -A && git commit -m x"; do
     run_guard "$c"

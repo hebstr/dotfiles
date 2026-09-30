@@ -41,6 +41,10 @@ write_at() {
   printf '%s\t%s\n' "$1" "$2" >>"$RUNTIME/claude-code-writes-s1.log"
 }
 
+peer_write() {
+  printf '100\t%s\n' "$1" >>"$RUNTIME/claude-code-writes-s2.log"
+}
+
 stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
 }
@@ -192,6 +196,7 @@ commit_file() {
 
 @test "prints a file the snapshot does not hold, even when its ctime predates the stamp" {
   printf 'x\n' >"$PROJECT/new.sh"
+  peer_write "$PROJECT/new.sh"
   sleep 0.05
   seal "$(date +%s%N)"
   run_stale
@@ -274,6 +279,7 @@ commit_file() {
   seal "$(date +%s%N)" "$PROJECT/a.sh"
   printf 'v3\n' >"$PROJECT/a.sh"
   printf 'x\n' >"$PROJECT/new.md"
+  peer_write "$PROJECT/new.md"
   run_only "$PROJECT/a.sh" "$PROJECT/new.md"
   [ "$status" -eq 0 ]
   [ "$output" = "$(printf 'changed\t%s\nunsealed\t%s' "$PROJECT/a.sh" "$PROJECT/new.md")" ]
@@ -281,6 +287,36 @@ commit_file() {
   run_only "$PROJECT/a.sh" "$PROJECT/new.md"
   [ "$status" -eq 0 ]
   [ "$output" = "$(printf 'changed\t%s\nchanged\t%s' "$PROJECT/a.sh" "$PROJECT/new.md")" ]
+}
+
+@test "--only passes a dirty path no journal names, as the user's own edit" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "--only labels a dirty path another session's journal names unsealed" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)"
+  peer_write "$PROJECT/a.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/a.sh" ]
+}
+
+@test "--only labels a path this session journaled after the seal changed" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  write_at "$((value + 1000))" "$PROJECT/a.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
 @test "--only still reports an unreadable stamp" {
@@ -307,6 +343,7 @@ commit_file() {
   value=$(date +%s%N)
   seal "$value"
   rm "$PROJECT/a.sh"
+  peer_write "$PROJECT/a.sh"
   write_at "$((value + 1000))" "$PROJECT/tmp.sh"
   run_stale
   [ "$status" -eq 0 ]
@@ -336,6 +373,7 @@ commit_file() {
   commit_file proj/a.sh
   printf 'v2\n' >"$PROJECT/a.sh"
   printf 'x\n' >"$PROJECT/.claude/NOTE.md"
+  peer_write "$PROJECT/a.sh"
   seal "$(date +%s%N)"
   run_only "$PROJECT/.claude/NOTE.md" "$PROJECT/a.sh" "$PROJECT/a.sh"
   [ "$status" -eq 0 ]

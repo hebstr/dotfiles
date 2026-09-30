@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/skills/commit/scripts/writes.sh"
+STALE="$BATS_TEST_DIRNAME/../../claude/.claude/hooks/commit-stale.sh"
 
 setup() {
   mapfile -t git_env < <(git rev-parse --local-env-vars)
@@ -34,7 +35,22 @@ run_writes() {
 run_restamp() {
   # shellcheck disable=SC2016
   run env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_STATE_HOME="$STATE" CLAUDE_CODE_SESSION_ID=s1 \
-    /bin/bash -c 'cd "$1" && /bin/bash "$2" --restamp' _ "$WORK" "$SCRIPT"
+    /bin/bash -c 'cd "$1" && shift && /bin/bash "$@"' _ "$WORK" "$SCRIPT" --restamp "$@"
+}
+
+seal_at() {
+  local value=$1
+  shift
+  # shellcheck disable=SC2016
+  env PATH="$STUB_DIR" XDG_RUNTIME_DIR="$RUNTIME" \
+    /bin/bash -c 'printf "%s\0" "${@:3}" | /bin/bash "$1" --seal s1 "$2"' _ "$STALE" "$value" "$@"
+  printf '%s\n' "$value" >"$RUNTIME/claude-code-writes-s1.stamp"
+}
+
+digest_of() {
+  local sum
+  sum=$(sha256sum <"$1")
+  printf 'f:%s:-' "${sum%% *}"
 }
 
 marker_for() {
@@ -72,10 +88,10 @@ fail_git_status() {
   [ ! -e "$RUNTIME/claude-code-writes-s1.stamp" ]
 }
 
-@test "records a digest of every listed path under the stamp value" {
-  commit_file a.sh
-  printf 'v2\n' >"$WORK/a.sh"
+@test "records a digest of every journaled path under the stamp value" {
   write_at 100 "$WORK/.claude/PLAN.md"
+  write_at 200 "$WORK/a.sh"
+  printf 'v1\n' >"$WORK/a.sh"
   run_writes
   [ "$status" -eq 0 ]
   value=${lines[1]#STAMP_VALUE=}
@@ -87,9 +103,26 @@ fail_git_status() {
   [ ! -e "$RUNTIME/claude-code-writes-s1.stamp" ]
 }
 
+@test "seals the journal's paths only, still listing what git status adds" {
+  commit_file a.sh
+  printf 'v2\n' >"$WORK/a.sh"
+  printf 'x\n' >"$WORK/b.sh"
+  write_at 100 "$WORK/b.sh"
+  run_writes
+  [ "$status" -eq 0 ]
+  value=${lines[1]#STAMP_VALUE=}
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.$value.seen"
+  [ "${#snapshot[@]}" -eq 2 ]
+  [[ ${snapshot[1]} == f:*$'\t'"$WORK/b.sh" ]]
+  [ "${lines[3]}" = "$WORK/a.sh" ]
+  [ "${lines[4]}" = "$WORK/b.sh" ]
+  [ "${#lines[@]}" -eq 5 ]
+}
+
 @test "--restamp writes a fresh stamp and the snapshot headed by it, and lists nothing" {
   printf '100\n' >"$RUNTIME/claude-code-writes-s1.stamp"
   printf 'x\n' >"$WORK/new.sh"
+  write_at 200 "$WORK/new.sh"
   run_restamp
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 2 ]
@@ -99,6 +132,27 @@ fail_git_status() {
   mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.$value.seen"
   [ "${snapshot[0]}" = "$value" ]
   [[ ${snapshot[1]} == f:*$'\t'"$WORK/new.sh" ]]
+}
+
+@test "--restamp given paths reseals those and carries the other seals unchanged" {
+  commit_file a.sh
+  commit_file b.sh
+  printf 'old-a\n' >"$WORK/a.sh"
+  printf 'old-b\n' >"$WORK/b.sh"
+  old_b=$(digest_of "$WORK/b.sh")
+  seal_at 100 "$WORK/a.sh" "$WORK/b.sh"
+  printf 'new-a\n' >"$WORK/a.sh"
+  printf 'new-b\n' >"$WORK/b.sh"
+  new_a=$(digest_of "$WORK/a.sh")
+  run_restamp "$WORK/a.sh"
+  [ "$status" -eq 0 ]
+  value=${lines[1]#STAMP_VALUE=}
+  [ "$(<"$RUNTIME/claude-code-writes-s1.stamp")" = "$value" ]
+  mapfile -t snapshot <"$RUNTIME/claude-code-writes-s1.$value.seen"
+  [ "${snapshot[0]}" = "$value" ]
+  [ "${#snapshot[@]}" -eq 3 ]
+  [ "${snapshot[1]}" = "$new_a"$'\t'"$WORK/a.sh" ]
+  [ "${snapshot[2]}" = "$old_b"$'\t'"$WORK/b.sh" ]
 }
 
 @test "--restamp exits 1 and keeps the stamp when the snapshot cannot be written" {

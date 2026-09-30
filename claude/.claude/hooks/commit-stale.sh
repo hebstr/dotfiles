@@ -41,17 +41,35 @@ digest() {
 
 if [[ $mode == seal ]]; then
   sealed_value=${2-}
+  carry=0
+  [[ ${3-} == --carry ]] && carry=1
   [[ $sealed_value =~ ^[0-9]+$ ]] || exit 2
   (
     umask 077
     {
+      declare -A resealed=()
       printf '%s\n' "$sealed_value"
       while IFS= read -r -d '' path; do
         [[ -n $path && $path != *[$'\t\n']* ]] || continue
+        resealed[$path]=1
         d=$(digest "$path") || continue
         [[ $d != *[$'\t\n']* ]] || continue
         printf '%s\t%s\n' "$d" "$path"
       done
+      if ((carry)); then
+        previous=""
+        [[ -r $stamp_file ]] && { read -r previous <"$stamp_file" || true; }
+        if [[ $previous =~ ^[0-9]+$ && -r "${snapshot_prefix}${previous}.seen" ]]; then
+          {
+            IFS= read -r header || header=""
+            if [[ $header == "$previous" ]]; then
+              while IFS=$'\t' read -r d p; do
+                [[ -n $p && -z ${resealed[$p]+set} ]] && printf '%s\t%s\n' "$d" "$p"
+              done
+            fi
+          } <"${snapshot_prefix}${previous}.seen"
+        fi
+      fi
     } >"${snapshot_prefix}${sealed_value}.seen"
   ) 2>/dev/null || exit
   current=""
@@ -109,6 +127,28 @@ excluded() {
   [[ $1 == "$memory/"* ]]
 }
 
+declare -A owner=()
+owners_read=0
+
+read_owners() {
+  local file id path
+  ((owners_read)) && return 0
+  owners_read=1
+  for file in "$runtime"/claude-code-writes-*.log; do
+    [[ -r $file ]] || continue
+    id=${file##*/claude-code-writes-}
+    id=${id%.log}
+    while IFS=$'\t' read -r _ path; do
+      [[ -n $path ]] || continue
+      if [[ $id == "$session" ]]; then
+        owner[$path]=self
+      else
+        [[ -n ${owner[$path]+set} ]] || owner[$path]=peer
+      fi
+    done <"$file"
+  done
+}
+
 changed() {
   local now ctime
   class=changed
@@ -120,7 +160,16 @@ changed() {
     if [[ -n ${sealed_digest[$1]+set} ]]; then
       [[ $now != "${sealed_digest[$1]}" ]]
     else
-      class=unsealed
+      if [[ $1 == *[$'\t\n']* ]]; then
+        class=unsealed
+        return 0
+      fi
+      read_owners
+      case ${owner[$1]-} in
+      self) class=changed ;;
+      peer) class=unsealed ;;
+      *) return 1 ;;
+      esac
       [[ $now != - || $2 == listed ]]
     fi
     return

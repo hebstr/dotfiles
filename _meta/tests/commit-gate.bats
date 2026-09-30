@@ -54,6 +54,10 @@ write_at() {
   printf '%s\t%s\n' "$1" "$2" >>"$RUNTIME/claude-code-writes-s1.log"
 }
 
+peer_write() {
+  printf '100\t%s\n' "$1" >>"$RUNTIME/claude-code-writes-s2.log"
+}
+
 stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
 }
@@ -159,6 +163,7 @@ staged_change() {
   seal "$(date +%s%N)" "$OUTSIDE/filetree.lua" "$WORK/claude/.claude/memory/feedback_x.md"
   printf 'v2\n' >"$WORK/claude/.claude/hooks/inject-rules.sh"
   printf 'x\n' >"$OUTSIDE/other-session.lua"
+  peer_write "$OUTSIDE/other-session.lua"
   run_gate "$(payload "$(block_message "cd $WORK" 'git add claude/.claude/memory/feedback_x.md && git commit -m "docs(claude): x"')" false "$OUTSIDE")"
   [ "$status" -eq 0 ]
 }
@@ -206,10 +211,12 @@ staged_change() {
   seal "$(date +%s%N)" "$OUTSIDE/filetree.lua" "$WORK/claude/.claude/memory/feedback_x.md"
   printf 'v2\n' >"$WORK/claude/.claude/hooks/inject-rules.sh"
   printf 'x\n' >"$OUTSIDE/other-session.lua"
+  peer_write "$OUTSIDE/other-session.lua"
   run_gate "$(payload "$(block_message "cd $WORK && git add claude/.claude/memory/feedback_x.md && git commit -m \"docs(claude): x\"")" false "$OUTSIDE")"
   [ "$status" -eq 0 ]
   printf 'v3\n' >"$WORK/claude/.claude/memory/feedback_x.md"
   printf 'x\n' >"$WORK/a.sh"
+  peer_write "$WORK/a.sh"
   run_gate "$(payload "$(block_message "cd $WORK && git add claude/.claude/memory/feedback_x.md a.sh && git commit -m \"docs(claude): x\"")" false "$OUTSIDE")"
   [ "$status" -eq 2 ]
   [[ $output == *"$WORK/a.sh"* ]]
@@ -232,6 +239,7 @@ staged_change() {
   printf 'v2\n' >"$PROJECT/a.sh"
   seal "$(date +%s%N)" "$PROJECT/a.sh"
   printf 'x\n' >"$PROJECT/other.md"
+  peer_write "$PROJECT/other.md"
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 2 ]
   [[ $output == *"never sealed"*"$PROJECT/other.md"* ]]
@@ -247,6 +255,7 @@ staged_change() {
   seal "$(date +%s%N)" "$PROJECT/a.sh"
   printf 'v3\n' >"$PROJECT/a.sh"
   printf 'x\n' >"$PROJECT/other.md"
+  peer_write "$PROJECT/other.md"
   run_gate "$(payload "$(commit_message)")"
   [ "$status" -eq 2 ]
   [[ $output == *"are stale. 1 file(s) they take changed"*"$PROJECT/a.sh"* ]]
@@ -281,6 +290,7 @@ staged_change() {
   commit_file proj/a.sh
   seal "$(date +%s%N)" "$PROJECT/a.sh"
   printf 'x\n' >"$PROJECT/foreign.md"
+  peer_write "$PROJECT/foreign.md"
   message=$(block_message 'cd /tmp && git commit -m "feat(x): y"')
   run_gate "$(payload "$message")"
   [ "$status" -eq 2 ]

@@ -2,7 +2,12 @@
 set -uo pipefail
 
 restamp=0
-[[ ${1-} == --restamp ]] && restamp=1
+named=()
+if [[ ${1-} == --restamp ]]; then
+  restamp=1
+  shift
+  named=("$@")
+fi
 
 stamp_value=$(date +%s%N)
 session=${CLAUDE_CODE_SESSION_ID-}
@@ -23,12 +28,13 @@ else
   failed=3
 fi
 
-paths=()
+journaled=()
 if [[ -n $journal && -r $journal ]]; then
   while IFS=$'\t' read -r _ path; do
-    [[ -n $path ]] && paths+=("$path")
+    [[ -n $path ]] && journaled+=("$path")
   done <"$journal"
 fi
+paths=("${journaled[@]}")
 
 if top=$(git rev-parse --show-toplevel 2>/dev/null); then
   entries=()
@@ -69,8 +75,16 @@ fi
 listed=()
 ((${#paths[@]} == 0)) || mapfile -t listed < <(printf '%s\n' "${paths[@]}" | LC_ALL=C sort -u)
 
+sealing=()
+((${#journaled[@]} == 0)) || mapfile -t sealing < <(printf '%s\n' "${journaled[@]}" | LC_ALL=C sort -u)
+carry=()
+if ((restamp)) && ((${#named[@]} > 0)); then
+  sealing=("${named[@]}")
+  carry=(--carry)
+fi
+
 if [[ -n $journal ]]; then
-  if ! { ((${#listed[@]} == 0)) || printf '%s\0' "${listed[@]}"; } | "$BASH" "$stale_script" --seal "$session" "$stamp_value"; then
+  if ! { ((${#sealing[@]} == 0)) || printf '%s\0' "${sealing[@]}"; } | "$BASH" "$stale_script" --seal "$session" "$stamp_value" "${carry[@]}"; then
     printf 'writes.sh: could not record the snapshot, so the stale check falls back to ctime\n' >&2
     ((restamp)) && exit 1
   elif ((restamp)); then

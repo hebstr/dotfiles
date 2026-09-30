@@ -419,6 +419,7 @@ branch_writes() {
 
 tracked=0
 fallback=0
+committed_specs=0
 specs=()
 
 take() {
@@ -524,6 +525,7 @@ commit_specs() {
       continue
     fi
     if ((dashdash)); then
+      committed_specs=1
       take "$tok" "${aflags[a]}"
       continue
     fi
@@ -552,7 +554,10 @@ commit_specs() {
         esac
       done
       ;;
-    *) take "$tok" "${aflags[a]}" ;;
+    *)
+      committed_specs=1
+      take "$tok" "${aflags[a]}"
+      ;;
     esac
   done
 }
@@ -808,7 +813,11 @@ picked=()
 for entry in "${entries[@]}"; do
   code=${entry:0:2}
   path="$top/${entry:3}"
-  if ((fallback)) || [[ ${code:0:1} != [\ ?!] ]]; then
+  if ((fallback)); then
+    picked+=("$path")
+    continue
+  fi
+  if ((!committed_specs)) && [[ ${code:0:1} != [\ ?!] ]]; then
     picked+=("$path")
     continue
   fi
