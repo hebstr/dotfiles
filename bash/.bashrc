@@ -112,7 +112,7 @@ export BAT_THEME=ansi
 
 ### ALIASES -----------------------------------------------------------------
 
-alias firmup='fwupdmgr refresh && fwupdmgr update'
+alias firmup='fwupdmgr refresh --force && fwupdmgr update'
 
 alias ls='ls --color=auto'
 alias ll='ls -lah'
