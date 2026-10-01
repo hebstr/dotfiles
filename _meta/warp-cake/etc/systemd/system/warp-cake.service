@@ -1,0 +1,14 @@
+[Unit]
+Description=CAKE shaper on the Cloudflare WARP tunnel
+BindsTo=sys-subsystem-net-devices-CloudflareWARP.device
+After=sys-subsystem-net-devices-CloudflareWARP.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/tc qdisc replace dev CloudflareWARP root cake bandwidth 5Mbit
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=sys-subsystem-net-devices-CloudflareWARP.device
