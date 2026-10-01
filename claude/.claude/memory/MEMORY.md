@@ -43,6 +43,7 @@
 - reference_claude_code_marketplace_mechanics.md: Plugin lifecycle, cache vs live edits of directory-source plugins, the files holding a source path, moved-repo failure
 - reference_modern_r_model_tooling.md: R model evaluation packages (easystats, broom, yardstick, marginaleffects); surface on request only
 - reference_nanoparquet_col_select.md: nanoparquet 0.5.1 `col_select` silently drops NAs and shifts values within a row group: never use it, read then `dplyr::select()`
+- reference_r_list_key_lookup.md: Reading a declared key out of an R list (YAML, config): `$` partial-matches silently and `==` yields `logical(0)` that `stopifnot()` accepts; use `[[` and `identical()`
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 over ICU, RE2 `\b` is ASCII-only, fold with Latin-ASCII not NFD, map offsets back (edstr)
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments as titled callouts, section plan, CSS trap
 - reference_tool_update_routines.md: The update routine follows the install method (devtools-update, cargo install-update, uv tool upgrade, uv python upgrade); don't conflate, and the uv tool venvs follow the minor-version symlink, read `pyvenv.cfg` not `readlink -f`
@@ -53,6 +54,7 @@
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable with CSS tokens: gt rejects `var()`/`currentColor` (only `!important` reaches it), reactable passes strings through
 - reference_hebstr_outdec_locale_flag.md: hebstr's options(OutDec) locale flag breaks third-party numeric round-trips (tidycmprsk::cuminc): force OutDec="." around the fit, don't refactor hebstr
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text` (re-arm in a separate `+ theme()`); 3-color palette needs a darker anchor for 5 categories
+- reference_gtsummary_notes_and_labels.md: gtsummary 2.5.1 notes and labelling: `add_note()` works on merge and stack and its position is indifferent, `add_variable_group_header()` must follow hebstr's `gtsum_format()`, a labelling helper coercing logicals forces the join last
 - reference_quarto_lua_shortcodes.md: Quarto Lua shortcode traps (kwargs, YAML metadata, named pipes), `is_format` guards, embedded-shortcode loading, Pandoc fs API
 - reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in raw `{=typst}` substitutes scalars only and prints `?meta:<key>` when missing (exit 0): use Typst `#let` bindings
 - reference_word_embedded_fonts_blocked.md: Recipients' Word refuses OOXML-embedded fonts; `w:altName` is honoured, so design Word outputs around the fallback list
