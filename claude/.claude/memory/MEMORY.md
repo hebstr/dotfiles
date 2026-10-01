@@ -44,6 +44,7 @@
 - reference_modern_r_model_tooling.md: R model evaluation packages (easystats, broom, yardstick, marginaleffects); surface on request only
 - reference_nanoparquet_col_select.md: nanoparquet 0.5.1 `col_select` silently drops NAs and shifts values within a row group: never use it, read then `dplyr::select()`
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list (YAML, config): `$` partial-matches silently and `==` yields `logical(0)` that `stopifnot()` accepts; use `[[` and `identical()`
+- reference_git_html_id_filter.md: The `html-id` clean filter renumbering gt/reactable random ids in committed HTML: driver in dotfiles so `stow git` is the setup, per-repo `.gitattributes` names the deliverables, global attributes file rejected
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 over ICU, RE2 `\b` is ASCII-only, fold with Latin-ASCII not NFD, map offsets back (edstr)
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments as titled callouts, section plan, CSS trap
 - reference_tool_update_routines.md: The update routine follows the install method (devtools-update, cargo install-update, uv tool upgrade, uv python upgrade); don't conflate, and the uv tool venvs follow the minor-version symlink, read `pyvenv.cfg` not `readlink -f`
