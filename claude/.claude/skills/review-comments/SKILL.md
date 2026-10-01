@@ -60,7 +60,9 @@ The turn presents the transcribed comment, then three things.
 
 When a comment admits two readings that lead to different replies, set both out, one proposal per reading, and ask the user which reading holds.
 
-The entry is written only once the decision is made, in the same response as the next turn or on its own: reformulation, proposal and decision, including for a skipped point, whose substance stays useful.
+The entry is written only once the decision is made, in the same response as the next turn or on its own: reformulation, proposal and decision.
+A skipped point is the exception and takes its decision line alone, its reformulation and proposal lines deleted rather than filled: only a decision is carried into the source, so the rest is cost. What was measured for that point stays in the conversation, where it is read once.
+The register's head matter is what the script wrote, and a pass adds no narrative to it, a second pass over the same document being legible from the entries themselves.
 Decision vocabulary, carried by the entry's `**Décision** :` line: « proposition validée », whether the proposal was kept as it stood or amended, « sauté en revue », noting what the user will handle themselves when they say so, « reporté », with the place the task is recorded in.
 
 A deferral that calls for work of its own, a reference search for instance, is recorded as a specification in the design note of the chantier it belongs to, the one the project's `CLAUDE.md` or its plan's table names: what is already covered and verified, the questions to investigate, the bounds.
