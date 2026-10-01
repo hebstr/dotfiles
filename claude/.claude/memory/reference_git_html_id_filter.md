@@ -13,6 +13,6 @@ A rendered HTML output carries ids that change on every render: `gt` draws a ran
 
 The same per-repo file routes `*.docx`, `*.pptx`, `*.xlsx` and `*.png` to a `diff=out-textconv` driver since 2026-09-13.
 
-**What tells you the filter is armed, and what does not.** `git check-attr filter -- <file>` and `git config --get filter.html-id.clean` say the filter is wired and which one it is; neither says whether the content differs. For that, and for the trap where `git status` reports every output modified after a render while the filtered content is identical, see the project's own `CLAUDE.md`, section « Le filtre des identifiants HTML », which carries the oracle.
+**What tells you the filter is armed, and what does not.** `git check-attr filter -- <file>` and `git config --get filter.html-id.clean` say the filter is wired and which one it is; neither says whether the content differs. For that, and for the trap where `git status` reports the gt outputs modified after a render while the filtered content is identical, see the project's own `CLAUDE.md`, section « Le filtre des identifiants HTML », which carries the oracle and the count.
 
 Related: [[reference_pandoc_312_data_uri]] for the other reason a committed widget's HTML can change under you.
