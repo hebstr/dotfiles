@@ -66,7 +66,7 @@
     "hold_threshold_ms": 300,
     "keyboard_implementation": "tauri",
     "lazy_stream_close": false,
-    "log_level": "debug",
+    "log_level": "info",
     "model_unload_timeout": "min10",
     "mute_while_recording": false,
     "onboarding_completed": true,
