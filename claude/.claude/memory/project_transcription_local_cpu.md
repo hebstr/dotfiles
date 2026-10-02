@@ -1,11 +1,11 @@
 ---
 name: project_transcription_local_cpu
-description: Meeting-recording transcription decided 2026-09-29 to run on ju-TP's CPU, not on ju-TP2's GPU; OpenWhispr rejected, Handy kept for dictation
+description: Meeting-recording transcription decided 2026-09-29 to run on ju-TP's CPU, not on ju-TP2's GPU; OpenWhispr rejected, Handy kept for dictation and configured 2026-10-02
 metadata:
   type: project
 ---
 
-Transcribing the user's `.3gpp.3ga` meeting recordings was designed on 2026-09-29 and settled as: `faster-whisper` run ephemerally with `uv` on `ju-TP`'s CPU for the batch, Handy (already installed, `canary-1b-v2`, `ctrl+alt+space`) alone for dictation, OpenWhispr not installed, and **no inference delegated to `ju-TP2`'s GPU**. Full reasoning, measurements and rejected ways in `~/dotfiles/.claude/DESIGN-TRANSCRIPTION.md`; do not redo the comparison.
+Transcribing the user's `.3gpp.3ga` meeting recordings was designed on 2026-09-29 and settled as: `faster-whisper` run ephemerally with `uv` on `ju-TP`'s CPU for the batch, Handy alone for dictation, OpenWhispr not installed, and **no inference delegated to `ju-TP2`'s GPU**. Handy's own dictation settings were decided on 2026-10-02: `canary-1b-flash` Q5_K_M on the GGUF `transcribe.cpp` engine, French named explicitly (an `auto` language silently resolves to English on a Canary model), `hold_or_toggle` on `ctrl+shift+space`, and `settings_store.json` versioned as the `handy` stow package, whose caveats are in `_meta/notes/dotfiles-bootstrap.md`. Full reasoning, measurements and rejected ways in `~/dotfiles/.claude/DESIGN-TRANSCRIPTION.md`; do not redo the comparison.
 
 **Why:** the delegation pattern of `~/dotfiles/.claude/DESIGN-GPU-REMOTE.md` (opencode on `ju-TP`, `llama-server` on `ju-TP2`) is the house reflex and will be reproposed by default, but it does not apply here: whisper.cpp publishes no prebuilt CUDA binary for Linux (the Ubuntu release job carries no `GGML_CUDA`, CUDA assets are Windows-only) and `ju-TP2` has no CUDA toolkit, so a GPU path means a toolkit plus a compile or a whole second stack, for a one-off of a few hours of audio. `faster-whisper` also needs no system ffmpeg: its PyAV dependency reads the `3gp` container directly, verified 2026-09-29. Despite the `.3gpp.3ga` extension the recordings are **AAC 48 kHz mono, not AMR-NB 8 kHz**, so there is no narrowband quality ceiling to work around: check the codec before assuming one.
 

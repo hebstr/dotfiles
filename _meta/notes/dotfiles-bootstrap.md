@@ -7,7 +7,7 @@ The ordered fresh-install sequence, with the steps this note leaves out (moving 
 ## Structure
 
 ```
-agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/ zotero/   # config stow packages
+agents/ air/ bash/ bin/ claude/ css/ firefox/ gh/ git/ handy/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/ zotero/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/              # backup script + systemd timer/service + excludes
@@ -26,7 +26,7 @@ Packages follow stow conventions: each top-level dir maps its tree relative to `
 sudo apt install -y stow
 git clone https://github.com/hebstr/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin firefox gh git obsidian opencode panache positron prek R Rstudio ruff ssh syncthing zotero
+stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin firefox gh git handy obsidian opencode panache positron prek R Rstudio ruff ssh syncthing zotero
 mkdir -p ~/.claude/skills
 stow -R --ignore='\.ruff_cache' -t ~ claude
 stow -R -t ~ agents css
@@ -35,7 +35,7 @@ npm --prefix css/.local/share/css-gate ci
 ```
 
 That line is the main machine's package set.
-On a machine where Positron, Firefox, Obsidian, RStudio or Zotero is absent or lives on the Windows side, drop the matching package: the tutorial's section 5 table gives the per-package decision.
+On a machine where Positron, Firefox, Obsidian, RStudio, Zotero or Handy is absent or lives on the Windows side, drop the matching package: the tutorial's section 5 table gives the per-package decision.
 Never `--adopt`, which copies the local file into the package over the synced version.
 
 `--no-folding` is the default here, deliberately.
@@ -61,6 +61,13 @@ The link is safe because Firefox reads `user.js` and never writes it; `_meta/not
 `zotero` follows the same shape and carries the same caveat, with a single `user.js` under `.zotero/zotero/pucr7b5d.default/`.
 It holds the settings chosen by hand and nothing Zotero records as state, and it leaves out the sync user name.
 Zotero rewrites `prefs.js` by replacement, which would break a link to it, and applies `user.js` over it at every start: a setting changed in Zotero's own interface reverts on restart unless `user.js` changes with it.
+
+`handy` carries a single `settings_store.json` under `.local/share/com.pais.handy/`, and inverts the `firefox` and `zotero` caveat: Handy owns the file and rewrites it at every change made in its interface, so the repository records what the interface holds rather than the reverse.
+The link survives because `tauri-plugin-store` 2.4.2 saves with `fs::write` on the store path, truncating in place instead of replacing the file, and because the loader merges a partial store over the defaults, so a trimmed copy cannot fail the load.
+Editing the versioned copy therefore requires Handy closed, its in-memory cache otherwise overwrites the edit at the next save.
+Portable mode is no alternative: it keys on a `portable` marker beside the executable, which here means writing into `/usr/bin`.
+Its siblings under `com.pais.handy/` (`models/`, `recordings/`, `logs/`, `history.db`, `localstorage/`) are app state and stay out of the package, which `--no-folding` guarantees.
+The dictation settings it holds, and why each one, are in `.claude/DESIGN-TRANSCRIPTION.md`.
 
 `ssh` holds `.ssh/config` only, never a key, and that file stays `644`: `ssh` rejects a config others can write, and tolerates a group-writable one only because Ubuntu's build accepts a private user group.
 Setting up the servers and keys behind its aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
