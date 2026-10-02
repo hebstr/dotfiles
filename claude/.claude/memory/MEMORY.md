@@ -24,7 +24,7 @@
 - project_hebstr_add_note_migration.md: hebstr's add_note() takes gtsummary, piped before tbl_format() (2026-07-17); one old SHA-pinned call site in ipl-sca breaks on sync
 - project_ordo_typst_template.md: `~/admin/pro-ordo/ordo.qmd` Typst prescription letterhead, blank and filled modes via `#let` params (not YAML); open items in its `.claude/DESIGN.md`
 - project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): notes `~/dotfiles/_meta/notes/ue5-horror-solo-pipeline.md`, files `~/Documents/sandbox/ue5-le-relais/`
-- project_transcription_local_cpu.md: Meeting transcription decided 2026-09-29 on ju-TP's CPU (faster-whisper via uv), not ju-TP2's GPU; OpenWhispr rejected, and Handy's French dictation settings decided 2026-10-02
+- project_transcription_local_cpu.md: Meeting transcription decided 2026-09-29 on ju-TP's CPU (faster-whisper via uv), not ju-TP2's GPU; OpenWhispr rejected, Handy's French dictation settings decided 2026-10-02, and its hotkey impossible on GNOME Wayland (Xorg session chosen)
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: dotfiles' `user.js` re-forces Zotero/BBT prefs at every startup, so a pane change silently reverts; Prettier's format-on-save adds a trailing comma that silently kills the file (`.prettierignore` guard); plus the citekey facts (the formula in force, `auth.lower + year`, decided in eds-prise's `.claude/DESIGN-BIB.md` with the five HAS suffixes hand-set; `auth` vs `.lower`, diacritics folded, institutional creators, no regeneration except `resetKeyOnChange`, `a`/`b`/`c` clashes)
