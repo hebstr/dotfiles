@@ -78,7 +78,7 @@
 - feedback_verify_gt_output_on_render.md: Check gtsummary/gt formatting on the rendered PNG, never `table_styling` or HTML: helpers can flatten a hierarchy the styling still describes
 - feedback_gtsummary_stacked_blocks.md: Stacked gtsummary blocks: `add_variable_group_header()` before `tbl_stack()`; full-width gt group rows rejected
 - feedback_probe_must_test_the_deciding_form.md: A measurement ruling an option out must exercise its strongest form, not its weakest
-- feedback_commit_sequence_add_all.md: Commit proposals: `git add .` only if the commit takes all of `git status` and nothing moves the ignore state; else paths or `-u`, never `-A`
+- feedback_commit_sequence_add_all.md: Commit proposals: `git add .` only if the commit takes all of `git status` and nothing moves the ignore state; else paths or `-u`, never `-A`; explicit paths anyway where concurrent sessions write (dotfiles)
 - feedback_r_environment.md: R environment idioms (rv not renv, `system2` over `system`, `.Rprofile` sources `rv/scripts/activate.R`, `.rv$sync()` optional)
 - feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret when the variable IS set; test presence with `[ -n "$VAR" ]` or `${VAR:+set}` alone
 - feedback_benchmark_power_state.md: Laptop benchmarks: ~2x slower on battery than AC, ~8% noise within a regime; claim gains as shares from paired runs
