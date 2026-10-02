@@ -177,7 +177,7 @@
     "selected_channel": null,
     "selected_language": "fr",
     "selected_microphone": null,
-    "selected_model": "handy-computer/canary-1b-flash-gguf/canary-1b-flash-Q5_K_M.gguf",
+    "selected_model": "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf",
     "selected_output_device": null,
     "settings_schema_version": 2,
     "shortcut_activation": "hold_or_toggle",
