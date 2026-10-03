@@ -105,6 +105,19 @@ _widget() {
   cmp "$BATS_TEST_TMPDIR/once.html" "$BATS_TEST_TMPDIR/twice.html"
 }
 
+@test "reactable dataKeys are numbered in order of appearance" {
+  printf '{"a":1,"dataKey":"65180f2e54213a2a447c2305e7b1649b","static":false}\n{"dataKey":"21074cd8e6747cc516b3723dada926b1"}\n' >"$BATS_TEST_TMPDIR/in.html" # gitleaks:allow
+  run -0 --separate-stderr "$SCRIPT" <"$BATS_TEST_TMPDIR/in.html"
+  [ -z "$stderr" ]
+  [ "$output" = "$(printf '{"a":1,"dataKey":"dk1","static":false}\n{"dataKey":"dk2"}\n')" ]
+}
+
+@test "a dataKey that is not 32 hex, and the bare word in script text, are left untouched" {
+  printf '{"dataKey":"short"}\ndataKeys:function getMetadataKeys(t){return s(i(t)}\nvar x={dataKey:"65180f2e54213a2a447c2305e7b1649b"}\n' >"$BATS_TEST_TMPDIR/in.html" # gitleaks:allow
+  "$SCRIPT" <"$BATS_TEST_TMPDIR/in.html" >"$BATS_TEST_TMPDIR/out.html"
+  cmp "$BATS_TEST_TMPDIR/in.html" "$BATS_TEST_TMPDIR/out.html"
+}
+
 @test "html without generated ids passes through byte for byte" {
   printf '<p id="intro">Texte accentu\303\251</p>\r\n<p>\351</p>\n' >"$BATS_TEST_TMPDIR/in.html"
   "$SCRIPT" <"$BATS_TEST_TMPDIR/in.html" >"$BATS_TEST_TMPDIR/out.html" 2>"$BATS_TEST_TMPDIR/err"

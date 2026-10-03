@@ -8,7 +8,7 @@ binmode STDOUT;
 my $html = do { local $/; <STDIN> };
 
 my %id;
-my ( $gt, $widget ) = ( 0, 0 );
+my ( $gt, $widget, $key ) = ( 0, 0, 0 );
 
 while ( $html =~ /<div id="([a-z]{10})" style="padding-left/g ) {
     $id{$1} //= 'gt' . ++$gt;
@@ -20,5 +20,7 @@ while ( $html =~ /htmlwidget-([0-9a-f]{16,})/g ) {
 for my $old ( keys %id ) {
     $html =~ s/(id="|#|htmlwidget-)\Q$old\E\b/$1$id{$old}/g;
 }
+
+$html =~ s/("dataKey":")[0-9a-f]{32}(")/$1 . 'dk' . ++$key . $2/ge;
 
 print $html;

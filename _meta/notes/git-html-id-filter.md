@@ -65,6 +65,10 @@ Replacing it cost eds-prise 904 lines of pure renaming across twelve outputs, hi
 
 Numbering follows document order, so inserting a table upstream shifts the ones below it and produces a one-off churn.
 
+A third rule, added 2026-10-03, numbers the `reactable` `dataKey`, `dk1` upward, a 32-hex digest of the widget's inputs (`digest::digest(list(data, cols))`, closures included) that moves between renders while the visible HTML stays identical.
+It is anchored on `"dataKey":"`, 32 hex and the closing quote, because the reactable script text also holds the bare word `dataKey`.
+Adding it re-filters every widget blob already committed, so the first `git add --renormalize` after the change stages them all once.
+
 ## Step 3: renormalize the index
 
 ```bash
