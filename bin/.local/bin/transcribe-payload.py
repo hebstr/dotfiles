@@ -229,6 +229,7 @@ def run_asr(args: argparse.Namespace) -> int:
 def run_diarize(args: argparse.Namespace) -> int:
     """Label the segments of an existing transcript with pyannote turns."""
     from pyannote.audio import Pipeline
+    from pyannote.audio.pipelines.utils.hook import ProgressHook
 
     base = target_base(args.audio, args.out_dir)
     source = Path(f"{base}.json")
@@ -247,7 +248,8 @@ def run_diarize(args: argparse.Namespace) -> int:
 
     started = time.monotonic()
     asked = {"num_speakers": args.speakers} if args.speakers else {}
-    output = pipeline({"waveform": waveform, "sample_rate": SAMPLE_RATE}, **asked)
+    with ProgressHook() as hook:
+        output = pipeline({"waveform": waveform, "sample_rate": SAMPLE_RATE}, hook=hook, **asked)
     elapsed = time.monotonic() - started
     turns = [
         {"start": span.start, "end": span.end, "speaker": speaker}
