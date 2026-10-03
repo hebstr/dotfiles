@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+REMOTE=${TRANSCRIBE_REMOTE:-ju-TP2}
+
+SELF=$(readlink -f -- "$0")
+PAYLOAD=${SELF%/*}/transcribe-payload.py
+REMOTE_PAYLOAD=dotfiles/bin/.local/bin/transcribe-payload.py
+REMOTE_CUDA_DIR=.local/opt/llama.cpp
+CUDA_SONAME=libcublas.so.12
+TOKEN_PATH=.cache/huggingface/token
+
+REMOTE_DEVICE=cuda
+REMOTE_COMPUTE=float16
+REMOTE_THREADS=24
+LOCAL_DEVICE=cpu
+LOCAL_COMPUTE=int8
+LOCAL_THREADS=12
+
+LOCAL=0
+FORCE=0
+DIARIZE=0
+SPEAKERS=
+MODEL=
+LANGUAGE=
+OUT_DIR=
+PYTHON=
+SCRATCH=
+AUDIO=()
+STAGE_ARGS=()
+
+usage() {
+  cat <<'EOF'
+Usage: transcribe [options] <audio...>
+
+Transcribes recordings with faster-whisper, on the remote GPU host by default or
+on this host with --local, and labels the speakers with pyannote when asked.
+Writes <stem>.txt and <stem>.json beside each recording, or into --out-dir.
+
+  --speakers N   diarize with exactly N speakers
+  --diarize      diarize without imposing a speaker count
+  --model ID     CTranslate2 model (default: faster-whisper large-v3-turbo)
+  --language L   spoken language (default: fr)
+  --out-dir DIR  write the outputs here rather than beside each recording
+  --force        overwrite an existing transcript
+  --local        decode on this host instead of the remote
+  -h, --help     show this help
+
+An unreachable remote refuses rather than falling back to this host: the hosts
+differ by an order of magnitude in speed and only the remote carries the
+Hugging Face token the gated diarization model needs.
+
+Environment: TRANSCRIBE_REMOTE (default ju-TP2)
+EOF
+}
+
+die() {
+  printf 'transcribe: %s\n' "$1" >&2
+  exit 1
+}
+
+remote() {
+  ssh -o BatchMode=yes "$REMOTE" "$@" </dev/null
+}
+
+find_python() {
+  local candidate
+  for candidate in python3.14 python3.13 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      PYTHON=$candidate
+      return 0
+    fi
+  done
+  die 'no python3 on the PATH to read the output names from the payload'
+}
+
+target_stem() {
+  local base
+  base=$("$PYTHON" "$PAYLOAD" asr --print-target --audio "$1")
+  [ "$base" != "" ] || die "the payload named no output for $1"
+  printf '%s\n' "${base##*/}"
+}
+
+dest_dir() {
+  if [ "$OUT_DIR" != "" ]; then
+    printf '%s\n' "$OUT_DIR"
+  else
+    dirname -- "$1"
+  fi
+}
+
+check_clashes() {
+  local audio stem dir suffix clash=''
+  for audio in "${AUDIO[@]}"; do
+    stem=$(target_stem "$audio")
+    dir=$(dest_dir "$audio")
+    for suffix in json txt; do
+      [ ! -e "${dir}/${stem}.${suffix}" ] || clash="${clash} ${dir}/${stem}.${suffix}"
+    done
+  done
+  [ "$clash" = "" ] || die "exists, pass --force to overwrite:${clash}"
+}
+
+unreachable() {
+  die "cannot reach ${REMOTE}; pass --local to decode here instead"
+}
+
+remote_test() {
+  local rc=0
+  remote "$1" >/dev/null 2>&1 || rc=$?
+  [ "$rc" -ne 255 ] || unreachable
+  return "$rc"
+}
+
+check_remote() {
+  remote_test 'exit 0' || unreachable
+}
+
+check_remote_cuda() {
+  if ! remote_test "[ -e \"\$HOME/${REMOTE_CUDA_DIR}/${CUDA_SONAME}\" ]"; then
+    die "${CUDA_SONAME} is missing from ${REMOTE}:~/${REMOTE_CUDA_DIR}; llama-update poses it there"
+  fi
+}
+
+check_remote_token() {
+  if ! remote_test "[ -f \"\$HOME/${TOKEN_PATH}\" ] || [ \"\${HF_TOKEN:-}\" != '' ]"; then
+    die "no Hugging Face token on ${REMOTE}, where the gated diarization model needs one at ~/${TOKEN_PATH}"
+  fi
+}
+
+check_local_token() {
+  if [ ! -f "${HOME}/${TOKEN_PATH}" ] && [ "${HF_TOKEN:-}" = "" ]; then
+    die "no Hugging Face token on this host, where the gated diarization model needs one at ~/${TOKEN_PATH}"
+  fi
+}
+
+build_asr_args() {
+  STAGE_ARGS=(asr --audio "$1" --device "$2" --compute-type "$3" --threads "$4")
+  [ "$MODEL" = "" ] || STAGE_ARGS+=(--model "$MODEL")
+  [ "$LANGUAGE" = "" ] || STAGE_ARGS+=(--language "$LANGUAGE")
+  [ "$5" = "" ] || STAGE_ARGS+=(--out-dir "$5")
+  [ "$FORCE" -eq 0 ] || STAGE_ARGS+=(--force)
+}
+
+build_diarize_args() {
+  STAGE_ARGS=(diarize --audio "$1" --threads "$2")
+  [ "$SPEAKERS" = "" ] || STAGE_ARGS+=(--speakers "$SPEAKERS")
+  [ "$3" = "" ] || STAGE_ARGS+=(--out-dir "$3")
+}
+
+run_stage_local() {
+  uv run --locked --script "$PAYLOAD" "${STAGE_ARGS[@]}"
+}
+
+run_stage_remote() {
+  local quoted='' arg
+  for arg in "${STAGE_ARGS[@]}"; do
+    quoted="${quoted} $(printf '%q' "$arg")"
+  done
+  remote "cd $(printf '%q' "$SCRATCH") \
+    && LD_LIBRARY_PATH=\$HOME/${REMOTE_CUDA_DIR}\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH} \
+    uv run --locked --script \$HOME/${REMOTE_PAYLOAD}${quoted}"
+}
+
+cleanup() {
+  [ "$SCRATCH" != "" ] || return 0
+  local path=$SCRATCH
+  SCRATCH=
+  if remote "rm -rf $(printf '%q' "$path")" >/dev/null 2>&1; then
+    return 0
+  fi
+  printf 'transcribe: could not remove the scratch directory %s on %s; remove it there once the host answers\n' \
+    "$path" "$REMOTE" >&2
+}
+
+transcribe_remote() {
+  check_remote
+  check_remote_cuda
+  [ "$DIARIZE" -eq 0 ] || check_remote_token
+
+  SCRATCH=$(remote 'mktemp -d /tmp/transcribe.XXXXXX' | tr -d '\r')
+  [ "$SCRATCH" != "" ] || die "could not make a scratch directory on ${REMOTE}"
+
+  local audio name stem dir
+  for audio in "${AUDIO[@]}"; do
+    name=$(basename -- "$audio")
+    stem=$(target_stem "$audio")
+    dir=$(dest_dir "$audio")
+    mkdir -p -- "$dir"
+    printf 'staging %s on %s\n' "$name" "$REMOTE"
+    scp -q -o BatchMode=yes -- "$audio" "${REMOTE}:${SCRATCH}/"
+    build_asr_args "$name" "$REMOTE_DEVICE" "$REMOTE_COMPUTE" "$REMOTE_THREADS" ""
+    run_stage_remote
+    if [ "$DIARIZE" -eq 1 ]; then
+      build_diarize_args "$name" "$REMOTE_THREADS" ""
+      run_stage_remote
+    fi
+    scp -q -o BatchMode=yes -- \
+      "${REMOTE}:${SCRATCH}/${stem}.json" "${REMOTE}:${SCRATCH}/${stem}.txt" "${dir}/"
+    printf 'wrote %s\n' "${dir}/${stem}.txt"
+  done
+}
+
+transcribe_local() {
+  [ "$DIARIZE" -eq 0 ] || check_local_token
+
+  local audio stem dir
+  for audio in "${AUDIO[@]}"; do
+    stem=$(target_stem "$audio")
+    dir=$(dest_dir "$audio")
+    mkdir -p -- "$dir"
+    build_asr_args "$audio" "$LOCAL_DEVICE" "$LOCAL_COMPUTE" "$LOCAL_THREADS" "$OUT_DIR"
+    run_stage_local
+    if [ "$DIARIZE" -eq 1 ]; then
+      build_diarize_args "$audio" "$LOCAL_THREADS" "$OUT_DIR"
+      run_stage_local
+    fi
+    printf 'wrote %s\n' "${dir}/${stem}.txt"
+  done
+}
+
+while [ $# -gt 0 ]; do
+  case $1 in
+  --local) LOCAL=1 ;;
+  --force) FORCE=1 ;;
+  --diarize) DIARIZE=1 ;;
+  --speakers)
+    [ $# -ge 2 ] || die '--speakers needs a count'
+    SPEAKERS=$2
+    DIARIZE=1
+    shift
+    ;;
+  --model)
+    [ $# -ge 2 ] || die '--model needs an id'
+    MODEL=$2
+    shift
+    ;;
+  --language)
+    [ $# -ge 2 ] || die '--language needs a code'
+    LANGUAGE=$2
+    shift
+    ;;
+  --out-dir)
+    [ $# -ge 2 ] || die '--out-dir needs a directory'
+    OUT_DIR=$2
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  -*) die "unknown argument: $1" ;;
+  *) AUDIO+=("$1") ;;
+  esac
+  shift
+done
+
+[ "${#AUDIO[@]}" -gt 0 ] || die 'no audio file given; see transcribe --help'
+[ -f "$PAYLOAD" ] || die "the payload is missing beside this script at ${PAYLOAD}"
+
+if [ "$SPEAKERS" != "" ]; then
+  case $SPEAKERS in
+  *[!0-9]*) die "--speakers must be 1 or more, got ${SPEAKERS}" ;;
+  esac
+  [ "$SPEAKERS" -ge 1 ] || die "--speakers must be 1 or more, got ${SPEAKERS}"
+fi
+
+for audio in "${AUDIO[@]}"; do
+  [ -f "$audio" ] || die "not a file: ${audio}"
+done
+
+find_python
+[ "$FORCE" -eq 1 ] || check_clashes
+
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap cleanup EXIT
+
+if [ "$LOCAL" -eq 1 ]; then
+  transcribe_local
+else
+  transcribe_remote
+fi
