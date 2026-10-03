@@ -106,9 +106,8 @@ Say that the answer is shortened, and why.
 
 ## What comes before
 
-`ouroboros:interview` comes first, under the criteria of the global baseline. Those criteria can be met at any step; when they are, suspend the design and resume it on the answer: met at step 1 this costs nothing, met later it means rerunning the steps the answer invalidates.
-Then, when the request spans several interlocking workstreams, the breakdown into features ordered by dependency.
-Both feed the design: running them after it means redoing it.
+When the request spans several interlocking workstreams, the breakdown into features ordered by dependency comes first.
+It feeds the design: running it after means redoing the design.
 
 ## What comes after, and is not this skill's job
 
