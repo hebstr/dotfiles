@@ -90,9 +90,26 @@ An unlicensed Word opens and paginates a document and refuses to save, and in an
 `Application.Caption` carries the same string (`Word (Unlicensed Product)`) as soon as the instance exists, before any document is opened, which is what the payload now guards on: the control refuses in about 10 s, naming the caption, instead of hanging and leaving a wedged Word and a job directory Word still holds.
 The guard is a match on an English UI string and fails open: on another locale it would miss and the driver's timeout path would catch it instead, printing the payload trace and the task's last result.
 
+### The capture route, which an unlicensed Word still serves, measured 2026-10-04
+
+The user has no active subscription (`O365HomePremRetail` installed, no identity under `HKCU\...\Common\Identity\Identities`, every subscription edition at `LicenseStatus 0` and the `_Grace` edition at `5` with `GracePeriodRemaining 0`), so the PDF route cannot be unblocked by signing in.
+Printing is closed too: `PrintOut` to `Microsoft Print to PDF` blocks exactly like the two save paths, with no dialog anywhere in the window enumeration, so all three write paths are shut.
+
+What stays open is the thing "A fourth route is open" rejected, and its rejection is void because its motive was that a window capture "buys nothing on a layout question that Word's own PDF does not give", and that PDF no longer exists.
+`word-render --capture` therefore photographs Word's own window page by page, and it works: 9 pages counted, page 1 captured at 2562x1600 showing the whole page with its table, its spanner rule and its footnote, in Aptos.
+Word's layout engine runs fully in reduced functionality, so the line breaking, the justification and the pagination read from a capture are Word's own. The capture carries no text layer, it is the screen rendering rather than the print rendering, and the page occupies the middle of the window, so its effective resolution is near the 110 dpi the `pdftoppm` recipe uses rather than above it.
+
+Four mechanisms it rests on, each measured:
+
+- **The sign-in overlay is hidden, never closed.** It is a `NUIDialog` owned by `WINWORD`, and a `WM_CLOSE` to it switches Word into enforcement: the next `Selection.GoTo`, and `Document.GoTo` with it, throws "This method or property is not available because the license to use this application has expired". `ShowWindow(handle, SW_HIDE)` removes it from the screen and tells Word nothing, after which navigation works.
+- **Navigation goes through `Document.GoTo` and `Window.ScrollIntoView`**, which move no selection.
+- **`Quit` leaves the instance alive** once that dialog has been hidden, so the payload ends it by PID, which it may do safely because the capture refuses to start when a Word is already running on that desktop.
+- **`SetProcessDPIAware` before the capture** is what turns a 1477x928 image into the screen's real 2562x1600, and the full page is `WdPageFit` `1`, where `3` is the fit-to-text value that crops the page.
+
 Open:
 
-- **Office activation on `ju-TP2` is the only thing between this route and a deliverable**, and it is the user's to do, by signing in on that desktop. Nothing in the tool can work around a product that refuses to write.
-- **`rules/docx.md`, section "What nothing on this machine settles", stands.** No deliverable has come back as Word's own PDF, so it is rewritten only after the first one does.
-- Whether the control is worth running on the full report (44 pages) rather than on the assembled tables and figures is still untested, no export having completed.
+- **The capture renders the page dark.** Word follows the system theme (`HKCU\Software\Microsoft\Office\16.0\Common\UI Theme` is `6`, Windows being in dark mode), its `Application.Options` exposes no theme or dark-mode property (only the revision-marking colours), and `HKCU\...\Word\Options` carries no dark-mode value. So a capture inverts the document's colours, and a judgement on a table's header colour cannot be read from it. Setting `UI Theme` to `5` around the capture would fix it and is a change to the user's Word configuration on `ju-TP2`, so it is theirs to authorise.
+- **`rules/docx.md`, section "What nothing on this machine settles", stands.** Its sentence is about fidelity to Word, and a screen capture of Word is not the PDF the rewrite was made conditional on; the capture closes the gross-layout question, not the print one.
+- Whether the control is worth running on the full report (44 pages) rather than on the assembled tables and figures is still untested.
 - `word-render` has not been run on a document whose name carries a space; the remote paths are quoted for `scp`, which is untested.
+- Office activation would reopen the PDF route with no change to the tool, the `pdf` mode being the default and the licence guard firing only there.
