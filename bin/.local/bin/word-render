@@ -25,6 +25,7 @@ OUT_DIR=
 DOCX=
 JOB_WSL=
 JOB_WIN=
+TMP_DIR=
 KEEP_JOB=0
 PAGES=
 BUILD=
@@ -164,7 +165,10 @@ resolve_job() {
   raw=$(remote_ps '$env:LOCALAPPDATA' | tr -d '\r') || rc=$?
   [ "$rc" -ne 255 ] || unreachable
   [ "$raw" != "" ] || die "cannot resolve %LOCALAPPDATA% on ${REMOTE}"
-  base=$(remote "wslpath -u '${raw}'" | tr -d '\r')
+  rc=0
+  base=$(remote "wslpath -u '${raw}'" | tr -d '\r') || rc=$?
+  [ "$rc" -ne 255 ] || unreachable
+  [ "$rc" -eq 0 ] || die "wslpath could not translate ${raw} on ${REMOTE} (exit ${rc})"
   [ "$base" != "" ] || die "wslpath translated nothing for ${raw} on ${REMOTE}"
   JOB_WSL="${base}/${JOB_NAME}"
   JOB_WIN="${raw}\\${JOB_NAME}"
@@ -176,6 +180,7 @@ claim_job() {
 }
 
 cleanup() {
+  [ "$TMP_DIR" = "" ] || rm -rf -- "$TMP_DIR"
   [ "$JOB_WSL" != "" ] || return 0
   local path=$JOB_WSL
   JOB_WSL=
@@ -246,8 +251,15 @@ exit 4" >/dev/null 2>&1 || rc=$?
     KEEP_JOB=1
     exit 1
     ;;
-  255) unreachable ;;
-  *) die "the wait on ${REMOTE} failed (exit ${rc})" ;;
+  5) die "the job directory ${JOB_WIN} is gone on ${REMOTE}; another render may have claimed it" ;;
+  255)
+    KEEP_JOB=1
+    unreachable
+    ;;
+  *)
+    KEEP_JOB=1
+    die "the wait on ${REMOTE} failed (exit ${rc})"
+    ;;
   esac
 }
 
@@ -280,6 +292,10 @@ resolve_out_dir() {
     fi
     OUT_DIR="${root}/.claude/screenshots"
   fi
+  case $OUT_DIR in
+  /*) ;;
+  *) OUT_DIR=$PWD/$OUT_DIR ;;
+  esac
   guard_ignored "$anchor" "$OUT_DIR"
   mkdir -p -- "$OUT_DIR"
 }
@@ -293,7 +309,7 @@ guard_ignored() {
   *) return 0 ;;
   esac
   git -C "$root" check-ignore -q "$target" ||
-    die "${target} is tracked ground in ${root}; ignore it before writing captures there"
+    die "${target} is not ignored in ${root}; ignore it before writing captures there"
 }
 
 rasterize() {
@@ -320,6 +336,7 @@ fetch_captures() {
     rm -f -- "${stale[@]}"
   fi
   tmp=$(mktemp -d)
+  TMP_DIR=$tmp
   if ! scp -q -o BatchMode=yes -- "${REMOTE}:${JOB_WSL}/page-*.png" "${tmp}/"; then
     rm -rf -- "$tmp"
     die "no capture came back from ${REMOTE}"
@@ -346,7 +363,7 @@ report_fonts() {
 
 report_export() {
   local pdf=$1 pdf_pages
-  pdf_pages=$(pdfinfo "$pdf" | awk '/^Pages:/ { print $2 }')
+  pdf_pages=$({ pdfinfo "$pdf" || true; } | awk '/^Pages:/ { print $2 }')
   printf 'Word %s counts %s page(s), the PDF carries %s\n' "$BUILD" "$PAGES" "${pdf_pages:-?}"
   if [ "$pdf_pages" != "" ] && [ "$pdf_pages" != "$PAGES" ]; then
     printf 'word-render: Word and the PDF disagree on the page count\n' >&2
@@ -371,7 +388,7 @@ while [ $# -gt 0 ]; do
   --pages)
     [ $# -ge 2 ] || die '--pages needs a page or a F-L range'
     case $2 in
-    *[!0-9-]* | -* | *- | *-*-*) die "--pages takes N or F-L, got ${2}" ;;
+    '' | *[!0-9-]* | -* | *- | *-*-*) die "--pages takes N or F-L, got ${2}" ;;
     *-*)
       FIRST=${2%%-*}
       LAST=${2##*-}
@@ -390,6 +407,7 @@ while [ $# -gt 0 ]; do
     ;;
   --out-dir)
     [ $# -ge 2 ] || die '--out-dir needs a directory'
+    [ "$2" != "" ] || die '--out-dir needs a directory'
     OUT_DIR=$2
     shift
     ;;

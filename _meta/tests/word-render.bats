@@ -333,11 +333,11 @@ _run() {
   [[ "$output" == *"lastResult=267011"* ]]
 }
 
-@test "refusal: captures would land on tracked ground" {
+@test "refusal: captures would land on ground git does not ignore" {
   git -C "$STATE" init -q
   _run "$DOCX"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"tracked ground"* ]]
+  [[ "$output" == *"is not ignored in"* ]]
   [ ! -e "$SSH_LOG" ]
 }
 
