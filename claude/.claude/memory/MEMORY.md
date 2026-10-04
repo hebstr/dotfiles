@@ -54,7 +54,7 @@
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Positron's per-profile extensions.json beats the global one; orphan folders stay
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
-- reference_hebstr_gt_table_width.md: hebstr `tbl_format` width is fixed px: `pct()` refused, the fallback clips the PNG
+- reference_hebstr_gt_table_width.md: px widths: pct() refused, the PNG clipped, Word honours a fixed grid LibreOffice rescales
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
