@@ -595,6 +595,16 @@ _run() {
   [ ! -e "${STATE}/.claude/screenshots/report-word.pdf" ]
 }
 
+@test "refusal: an --out-dir in another repository is guarded too" {
+  git -C "$STATE" init -q
+  mkdir -p "${STATE}/other"
+  git -C "${STATE}/other" init -q
+  _run --out-dir "${STATE}/other/captures" "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"${STATE}/other/captures is not ignored in ${STATE}/other"* ]]
+  [ ! -e "${STATE}/other/captures/report-word.pdf" ]
+}
+
 @test "a relative --out-dir is resolved before the ignore guard reads it" {
   git -C "$STATE" init -q
   cd "$STATE"
