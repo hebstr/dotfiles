@@ -29,6 +29,7 @@ TMP_DIR=
 KEEP_JOB=0
 PAGES=
 BUILD=
+FIELDS=
 DECLARED=
 MISSING=
 
@@ -287,6 +288,7 @@ read_result() {
     captures) CAPTURES=$value ;;
     build) BUILD=$value ;;
     caption) CAPTION=$value ;;
+    fields) FIELDS=$value ;;
     declared) DECLARED=$value ;;
     missing) MISSING=$value ;;
     esac
@@ -373,6 +375,14 @@ report_fonts() {
   fi
 }
 
+report_fields() {
+  case $FIELDS in
+  '' | 0) return ;;
+  esac
+  printf "at least one field refused to update on %s, so a cross-reference, a page number or a table of contents entry read here may be a stale result or Word's own error text\n" \
+    "$REMOTE"
+}
+
 report_export() {
   local pdf=$1 pdf_pages
   pdf_pages=$({ pdfinfo "$pdf" || true; } | awk '/^Pages:/ { print $2 }')
@@ -381,6 +391,7 @@ report_export() {
     printf 'word-render: Word and the PDF disagree on the page count\n' >&2
   fi
   report_fonts
+  report_fields
 }
 
 report_capture() {
@@ -392,6 +403,7 @@ report_capture() {
     ;;
   esac
   report_fonts
+  report_fields
 }
 
 while [ $# -gt 0 ]; do

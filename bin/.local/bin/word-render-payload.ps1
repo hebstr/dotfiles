@@ -8,8 +8,7 @@ $resultPath = Join-Path $job 'result.txt'
 $errorPath = Join-Path $job 'error.txt'
 $tracePath = Join-Path $job 'trace'
 
-Add-Type -AssemblyName System.Drawing
-Add-Type @"
+$interop = @"
 using System;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -22,6 +21,7 @@ public class WordWin {
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr handle, out uint procId);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr handle, out RECT rect);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr handle);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr handle, int command);
 }
 "@
@@ -30,7 +30,10 @@ public class WordWin {
 
 function Write-Sentinel {
   param([string] $Path, [string[]] $Lines)
-  [IO.File]::WriteAllText($Path, (($Lines -join "`r`n") + "`r`n"))
+  $staging = $Path + '.part'
+  [IO.File]::WriteAllText($staging, (($Lines -join "`r`n") + "`r`n"))
+  [IO.File]::Delete($Path)
+  [IO.File]::Move($staging, $Path)
 }
 
 function Write-Trace {
@@ -102,6 +105,30 @@ function Hide-Overlay {
   return $script:overlayHidden
 }
 
+function Assert-Foreground {
+  param([IntPtr] $Handle, [int[]] $Owned)
+  $front = [IntPtr]::Zero
+  $procId = 0
+  foreach ($attempt in 1, 2) {
+    $front = [WordWin]::GetForegroundWindow()
+    $procId = 0
+    if ($front -ne [IntPtr]::Zero) {
+      [void][WordWin]::GetWindowThreadProcessId($front, [ref]$procId)
+      if ($Owned -contains [int]$procId) { return }
+    }
+    if ($attempt -eq 1) {
+      [void][WordWin]::SetForegroundWindow($Handle)
+      Start-Sleep -Milliseconds 400
+      Write-Trace 'foreground was lost, asking for it back'
+    }
+  }
+  $class = New-Object System.Text.StringBuilder 256
+  if ($front -ne [IntPtr]::Zero) { [void][WordWin]::GetClassName($front, $class, 256) }
+  $owner = 'none'
+  try { $owner = (Get-Process -Id $procId -ErrorAction Stop).ProcessName } catch { }
+  throw ('the window in front belongs to ' + $owner + ' (class ' + $class.ToString() + ') rather than to the Word this payload drives, and the capture reads the screen, so it would photograph that window instead of the page')
+}
+
 function Save-Window {
   param([IntPtr] $Handle, [string] $Path)
   $rect = New-Object RECT
@@ -127,17 +154,22 @@ $failure = $null
 $word = $null
 $doc = $null
 $created = $false
+$ours = @()
 $prevAlerts = $null
 $pages = 0
 $captures = 0
 $build = ''
 $caption = ''
 $mode = 'pdf'
+$fieldError = 0
 $declared = @()
 $missing = @()
 
 try {
   Write-Trace 'start'
+  Add-Type -AssemblyName System.Drawing
+  Add-Type $interop
+  Write-Trace 'interop compiled'
   if (-not [Environment]::UserInteractive) {
     throw 'this payload ran in a non-interactive Windows session, where Documents.Open returns null and wedges Word for every later activation'
   }
@@ -158,13 +190,15 @@ try {
 
   $declared = Get-DeclaredFont $docx
   Write-Trace ('mode ' + $mode + ', declared ' + ($declared -join ';'))
-  $created = -not (Get-Process -Name WINWORD -ErrorAction SilentlyContinue)
+  $before = @(Get-Process -Name WINWORD -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+  $created = ($before.Count -eq 0)
   if ($mode -eq 'capture' -and -not $created) {
     throw 'Word is already running on that desktop, and the capture takes over its window: close it there first'
   }
   Write-Trace ('activating Word, created=' + $created)
   $word = New-Object -ComObject Word.Application
-  Write-Trace 'activated'
+  $ours = @(Get-Process -Name WINWORD -ErrorAction SilentlyContinue | Where-Object { $before -notcontains $_.Id } | ForEach-Object { $_.Id })
+  Write-Trace ('activated, pid ' + ($ours -join ';'))
   $prevAlerts = $word.DisplayAlerts
   $word.DisplayAlerts = 0
   $build = $word.Build
@@ -183,8 +217,26 @@ try {
   foreach ($toc in $doc.TablesOfContents) { $toc.Update() }
   foreach ($tof in $doc.TablesOfFigures) { $tof.Update() }
   Write-Trace 'tables updated'
-  $null = $doc.Fields.Update()
-  Write-Trace 'fields updated'
+  $fieldError = $doc.Fields.Update()
+  Write-Trace ('main story fields updated, first error ' + $fieldError)
+  try {
+    foreach ($story in $doc.StoryRanges) {
+      if ($story.StoryType -eq 1) { continue }
+      $range = $story
+      while ($null -ne $range) {
+        try {
+          $storyError = $range.Fields.Update()
+          if ($fieldError -eq 0) { $fieldError = $storyError }
+        } catch {
+          Write-Trace ('story ' + $story.StoryType + ' refused its field update: ' + $_.Exception.Message)
+        }
+        try { $range = $range.NextStoryRange } catch { $range = $null }
+      }
+    }
+    Write-Trace ('other stories updated, first error ' + $fieldError)
+  } catch {
+    Write-Trace ('the story walk stopped: ' + $_.Exception.Message)
+  }
   $doc.Repaginate()
   $pages = $doc.ComputeStatistics(2)
   Write-Trace ('pages ' + $pages)
@@ -211,20 +263,36 @@ try {
     try { $window.View.FullScreen = $true } catch { Write-Trace 'full screen refused' }
     $window.ActivePane.View.Zoom.PageFit = 1
     $handle = [IntPtr]$window.Hwnd
-    [void][WordWin]::SetForegroundWindow($handle)
+    Write-Trace ('foreground requested, granted=' + [WordWin]::SetForegroundWindow($handle))
     Start-Sleep -Milliseconds 1500
     Write-Trace ('overlays hidden ' + (Hide-Overlay))
     Start-Sleep -Milliseconds 500
 
+    $previous = -1
+    $step = 100 / [Math]::Max(1, $pages - 1)
+    $discriminates = ($step -ge 2)
+    if (-not $discriminates) {
+      Write-Trace ('VerticalPercentScrolled is an integer percent and ' + $pages + ' pages leave it ' + [Math]::Round($step, 2) + ' point(s) per page, too few to tell two neighbouring pages apart, so the duplicate check is off for this document')
+    }
     for ($page = $first; $page -le $last; $page++) {
       $window.ActivePane.VerticalPercentScrolled = 0
       if ($page -gt 1) { $window.ActivePane.LargeScroll($page - 1, 0, 0, 0) }
       Start-Sleep -Milliseconds 1200
-      $null = Hide-Overlay
+      $position = $window.ActivePane.VerticalPercentScrolled
+      if ($discriminates -and $position -le $previous) {
+        throw ('page ' + $page + ' scrolled no further than page ' + ($page - 1) + ', both at ' + $position + ' percent, so one screenful is not one page in this document and the capture would repeat the previous page')
+      }
+      $previous = $position
+      $hidden = Hide-Overlay
+      if ($hidden -gt 0) {
+        Write-Trace ('overlays hidden ' + $hidden + ' before page ' + $page + ', waiting for the repaint')
+        Start-Sleep -Milliseconds 500
+      }
+      Assert-Foreground $handle $ours
       $name = 'page-{0:D3}.png' -f $page
       $size = Save-Window $handle (Join-Path $job $name)
       $captures++
-      Write-Trace ('captured page ' + $page + ' at ' + $size)
+      Write-Trace ('captured page ' + $page + ' at ' + $size + ', scrolled ' + $position + ' percent')
     }
     try { $window.View.FullScreen = $false } catch { }
   }
@@ -239,21 +307,32 @@ try {
     try { $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($doc) } catch { }
   }
   if ($null -ne $word) {
+    $shared = $false
+    try { $shared = ($word.Documents.Count -gt 0) } catch { }
     try {
       if ($null -ne $prevAlerts) { $word.DisplayAlerts = $prevAlerts }
     } catch { }
     try {
-      if ($created) { $word.Quit(0) }
+      if ($created -and -not $shared) { $word.Quit(0) }
     } catch { }
     try { $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($word) } catch { }
-    if ($created) {
+    if ($created -and $shared) {
+      Write-Trace 'another document joined that instance, leaving Word running rather than discarding it'
+    }
+    if ($created -and -not $shared -and $ours.Count -gt 0) {
       Start-Sleep -Milliseconds 800
-      $left = @(Get-Process -Name WINWORD -ErrorAction SilentlyContinue)
+      $left = @(Get-Process -Id $ours -ErrorAction SilentlyContinue)
       if ($left.Count -gt 0) {
+        $ended = 0
         foreach ($process in $left) {
-          try { Stop-Process -Id $process.Id -Force } catch { }
+          try {
+            Stop-Process -Id $process.Id -Force
+            $ended++
+          } catch { }
         }
-        Write-Trace ('Quit left ' + $left.Count + ' instance(s), ended by pid')
+        Start-Sleep -Milliseconds 200
+        $alive = @(Get-Process -Id $ours -ErrorAction SilentlyContinue)
+        Write-Trace ('Quit left ' + $left.Count + ' instance(s), ended by pid ' + $ended + ', still alive ' + $alive.Count)
       }
     }
   }
@@ -273,6 +352,7 @@ Write-Sentinel $resultPath @(
   "captures=$captures",
   "build=$build",
   "caption=$caption",
+  "fields=$fieldError",
   ('declared=' + ($declared -join ';')),
   ('missing=' + ($missing -join ';'))
 )

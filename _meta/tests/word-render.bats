@@ -144,8 +144,8 @@ case $script in
   fi
   missing=${STUB_MISSING:-Aptos;Aptos Display}
   [ "$missing" != "none" ] || missing=
-  printf 'mode=%s\npages=%s\ncaptures=%s\nbuild=16.0.20326\ncaption=%s\ndeclared=%s\nmissing=%s\n' \
-    "$mode" "$pages" "$captures" "${STUB_CAPTION:-Word}" \
+  printf 'mode=%s\npages=%s\ncaptures=%s\nbuild=16.0.20326\ncaption=%s\nfields=%s\ndeclared=%s\nmissing=%s\n' \
+    "$mode" "$pages" "$captures" "${STUB_CAPTION:-Word}" "${STUB_FIELDS:-0}" \
     "${STUB_DECLARED:-Aptos;Aptos Display;Courier New}" "$missing" >"${job}/result.txt"
   ;;
 *Get-ScheduledTask*)
@@ -497,6 +497,18 @@ _run() {
   [[ "$output" == *"never Word at the declared metrics"* ]]
 }
 
+@test "a field that refused to update is said rather than passing for a clean render" {
+  STUB_FIELDS=7 _run "$DOCX"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"at least one field refused to update"* ]]
+}
+
+@test "fields all updated say nothing" {
+  _run "$DOCX"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"refused to update"* ]]
+}
+
 @test "every family installed is said plainly rather than left silent" {
   STUB_MISSING=none STUB_DECLARED="Calibri;Courier New" _run "$DOCX"
   [ "$status" -eq 0 ]
@@ -593,6 +605,14 @@ _run() {
 
 # ─── the payload's session contract ─────────────────────────────────────────
 
+@test "a preamble failure lands in the error sentinel rather than passing for a wedged Word" {
+  try=$(grep -n '^try {' "$PAYLOAD" | cut -d: -f1)
+  interop=$(grep -n 'Add-Type $interop' "$PAYLOAD" | cut -d: -f1)
+  drawing=$(grep -n 'Add-Type -AssemblyName System.Drawing' "$PAYLOAD" | cut -d: -f1)
+  [ "$try" -lt "$interop" ]
+  [ "$try" -lt "$drawing" ]
+}
+
 @test "the payload asserts the interactive session before touching Word" {
   guard=$(grep -n "UserInteractive" "$PAYLOAD" | head -1 | cut -d: -f1)
   activation=$(grep -n "New-Object -ComObject Word.Application" "$PAYLOAD" | head -1 | cut -d: -f1)
@@ -623,6 +643,25 @@ _run() {
   run ! grep -q 'ScrollIntoView' "$PAYLOAD"
 }
 
+@test "the payload refuses a page whose foreground is not its own Word" {
+  grep -q 'GetForegroundWindow' "$PAYLOAD"
+  grep -q 'Assert-Foreground $handle $ours' "$PAYLOAD"
+  assert=$(grep -n 'Assert-Foreground $handle $ours' "$PAYLOAD" | cut -d: -f1)
+  save=$(grep -n 'size = Save-Window $handle' "$PAYLOAD" | cut -d: -f1)
+  [ "$assert" -lt "$save" ]
+}
+
+@test "the payload refuses two pages that scroll to the same place" {
+  grep -q 'position = $window.ActivePane.VerticalPercentScrolled' "$PAYLOAD"
+  grep -q 'scrolled no further than page' "$PAYLOAD"
+}
+
+@test "the duplicate check stands down where the integer percent cannot discriminate" {
+  grep -q 'step = 100 / \[Math\]::Max(1, $pages - 1)' "$PAYLOAD"
+  grep -q 'discriminates = ($step -ge 2)' "$PAYLOAD"
+  grep -q 'if ($discriminates -and $position -le $previous)' "$PAYLOAD"
+}
+
 @test "the payload fits the whole page rather than the text" {
   grep -q 'Zoom.PageFit = 1' "$PAYLOAD"
 }
@@ -637,17 +676,36 @@ _run() {
 }
 
 @test "the payload quits only the Word it started itself" {
-  grep -q 'created = -not (Get-Process -Name WINWORD' "$PAYLOAD"
-  grep -q 'if ($created) { $word.Quit(0) }' "$PAYLOAD"
+  grep -q 'created = ($before.Count -eq 0)' "$PAYLOAD"
+  grep -q 'if ($created -and -not $shared) { $word.Quit(0) }' "$PAYLOAD"
+}
+
+@test "the payload ends the pids it opened and spares a document that joined" {
+  grep -q 'shared = ($word.Documents.Count -gt 0)' "$PAYLOAD"
+  grep -q 'Get-Process -Id $ours' "$PAYLOAD"
+  run ! grep -q 'left = @(Get-Process -Name WINWORD' "$PAYLOAD"
 }
 
 @test "the payload updates the fields a headless conversion leaves empty" {
   grep -q 'TablesOfContents' "$PAYLOAD"
-  grep -q 'Fields.Update()' "$PAYLOAD"
+  grep -q 'fieldError = $doc.Fields.Update()' "$PAYLOAD"
+  grep -q '"fields=$fieldError"' "$PAYLOAD"
+}
+
+@test "the payload reaches the fields outside the main story without dying on them" {
+  grep -q 'foreach ($story in $doc.StoryRanges)' "$PAYLOAD"
+  grep -q 'range = $range.NextStoryRange' "$PAYLOAD"
+  grep -q 'refused its field update' "$PAYLOAD"
+}
+
+@test "the sentinel appears whole or not at all" {
+  grep -q 'staging = $Path' "$PAYLOAD"
+  grep -q 'IO.File\]::Move($staging, $Path)' "$PAYLOAD"
+  run ! grep -q 'IO.File\]::WriteAllText($Path' "$PAYLOAD"
 }
 
 @test "the payload writes its sentinel after Word is torn down" {
   result=$(grep -n 'Write-Sentinel $resultPath' "$PAYLOAD" | cut -d: -f1)
-  quit=$(grep -n 'if ($created) { $word.Quit(0) }' "$PAYLOAD" | cut -d: -f1)
+  quit=$(grep -n 'if ($created -and -not $shared) { $word.Quit(0) }' "$PAYLOAD" | cut -d: -f1)
   [ "$quit" -lt "$result" ]
 }
