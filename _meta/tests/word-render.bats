@@ -110,6 +110,13 @@ script=$(printf '%s' "$encoded" | base64 -d | iconv -f UTF-16LE -t UTF-8)
 printf '%s\n----\n' "$script" >>"${PS_LOG}"
 job="${STATE}/local/word-render"
 case $script in
+*'Get-Process LogonUI'*)
+  if [ -n "${STUB_LOCKED:-}" ]; then
+    printf 'locked\n'
+  else
+    printf 'open\n'
+  fi
+  ;;
 *'$env:LOCALAPPDATA'*)
   printf '%s\n' 'C:\Users\julien\AppData\Local'
   ;;
@@ -193,6 +200,7 @@ _run() {
     TRIGGER_FAILS="${TRIGGER_FAILS:-}" WORD_FAILS="${WORD_FAILS:-}" NO_RESULT="${NO_RESULT:-}" \
     STUB_PAGES="${STUB_PAGES:-}" STUB_DECLARED="${STUB_DECLARED:-}" STUB_CAPTION="${STUB_CAPTION:-}" \
     STUB_MISSING="${STUB_MISSING:-}" STUB_PDF_PAGES="${STUB_PDF_PAGES:-}" \
+    STUB_LOCKED="${STUB_LOCKED:-}" \
     WORD_RENDER_REMOTE="${WORD_RENDER_REMOTE:-}" WORD_RENDER_TASK="${WORD_RENDER_TASK:-}" \
     "$BASH" "$SCRIPT" "$@"
 }
@@ -273,6 +281,19 @@ _run() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"cannot reach"* ]]
   [ ! -e "$SCP_LOG" ]
+}
+
+@test "refusal: a capture on a locked session never reaches Word" {
+  STUB_LOCKED=1 _run --capture "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"is locked"* ]]
+  [ ! -e "$SCP_LOG" ]
+}
+
+@test "the pdf route runs on a locked session, which it never photographs" {
+  STUB_LOCKED=1 _run "$DOCX"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"is locked"* ]]
 }
 
 @test "refusal: a missing scheduled task hands back the registration command" {

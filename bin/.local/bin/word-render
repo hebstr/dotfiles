@@ -92,8 +92,8 @@ remote_stdin() {
 }
 
 remote_ps() {
-  local encoded
-  encoded=$(printf '%s' "$1" | iconv -f UTF-8 -t UTF-16LE | base64 -w0)
+  local encoded quiet="\$ProgressPreference = 'SilentlyContinue'"
+  encoded=$(printf '%s\n%s' "$quiet" "$1" | iconv -f UTF-8 -t UTF-16LE | base64 -w0)
   remote "$(q "$REMOTE_PS") -NoProfile -NonInteractive -EncodedCommand ${encoded}"
 }
 
@@ -156,6 +156,18 @@ try { \$task = Get-ScheduledTask -TaskName '${TASK}' } catch { exit 3 }
   case $args in
   *"\\${JOB_NAME}\\${PAYLOAD_NAME}"*) ;;
   *) die "the ${TASK} task runs ${args}, which is not the payload this driver stages at %LOCALAPPDATA%\\${JOB_NAME}\\${PAYLOAD_NAME}" ;;
+  esac
+}
+
+check_session() {
+  local out rc=0
+  out=$(remote_ps 'if (@(Get-Process LogonUI -ErrorAction SilentlyContinue).Count -gt 0) { "locked" } else { "open" }' | tr -d '\r') || rc=$?
+  [ "$rc" -ne 255 ] || unreachable
+  [ "$rc" -eq 0 ] || die "could not read the session state on ${REMOTE} (exit ${rc})"
+  case $out in
+  open) ;;
+  locked) die "the interactive session on ${REMOTE} is locked, so a capture would photograph the lock screen rather than Word; unlock it and run again" ;;
+  *) die "the session state on ${REMOTE} came back as ${out:-nothing}" ;;
   esac
 }
 
@@ -462,6 +474,7 @@ resolve_out_dir
 check_remote
 check_remote_windows
 check_task
+[ "$MODE" != "capture" ] || check_session
 resolve_job
 
 trap 'exit 130' INT
