@@ -85,7 +85,6 @@ exit 0'
 _install_pdf_stubs() {
   _stub_command pdftoppm '
 printf "%s\n" "$*" >>"${PDFTOPPM_LOG}"
-[ -z "${RASTER_FAILS:-}" ] || exit 1
 prefix=${*: -1}
 printf "png\n" >"${prefix}-01.png"
 printf "png\n" >"${prefix}-02.png"
@@ -131,6 +130,8 @@ case $script in
   fi
   [ -z "${NO_RESULT:-}" ] || exit 0
   mode=$(sed -n 's/^mode=//p' "${job}/request")
+  pages=${STUB_PAGES:-13}
+  [ "$pages" != "none" ] || pages=
   captures=0
   if [ "$mode" = "capture" ]; then
     for page in 001 002; do
@@ -144,7 +145,7 @@ case $script in
   missing=${STUB_MISSING:-Aptos;Aptos Display}
   [ "$missing" != "none" ] || missing=
   printf 'mode=%s\npages=%s\ncaptures=%s\nbuild=16.0.20326\ncaption=%s\ndeclared=%s\nmissing=%s\n' \
-    "$mode" "${STUB_PAGES:-13}" "$captures" "${STUB_CAPTION:-Word}" \
+    "$mode" "$pages" "$captures" "${STUB_CAPTION:-Word}" \
     "${STUB_DECLARED:-Aptos;Aptos Display;Courier New}" "$missing" >"${job}/result.txt"
   ;;
 *Get-ScheduledTask*)
@@ -195,7 +196,7 @@ _run() {
     PS_LOG="$PS_LOG" PDFTOPPM_LOG="$PDFTOPPM_LOG" REQUEST_LOG="$REQUEST_LOG" \
     WIN_SYSTEM32="${STUBS}/win32" \
     SSH_UNREACHABLE="${SSH_UNREACHABLE:-}" RM_UNREACHABLE="${RM_UNREACHABLE:-}" \
-    SCP_FAILS="${SCP_FAILS:-}" RASTER_FAILS="${RASTER_FAILS:-}" \
+    SCP_FAILS="${SCP_FAILS:-}" \
     TASK_ABSENT="${TASK_ABSENT:-}" TASK_STATE="${TASK_STATE:-}" TASK_ARGS="${TASK_ARGS:-}" \
     TRIGGER_FAILS="${TRIGGER_FAILS:-}" WORD_FAILS="${WORD_FAILS:-}" NO_RESULT="${NO_RESULT:-}" \
     STUB_PAGES="${STUB_PAGES:-}" STUB_DECLARED="${STUB_DECLARED:-}" STUB_CAPTION="${STUB_CAPTION:-}" \
@@ -241,6 +242,18 @@ _run() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"not a Word document"* ]]
   [ ! -e "$SSH_LOG" ]
+}
+
+@test "a macro-enabled document and a template are Word documents too" {
+  printf 'PK stub\n' >"${STATE}/memo.docm"
+  _run "${STATE}/memo.docm"
+  [ "$status" -eq 0 ]
+  grep -q "docx=memo.docm" "$REQUEST_LOG"
+  [ -f "${STATE}/.claude/screenshots/memo-word.pdf" ]
+  printf 'PK stub\n' >"${STATE}/letterhead.dotx"
+  _run "${STATE}/letterhead.dotx"
+  [ "$status" -eq 0 ]
+  [ -f "${STATE}/.claude/screenshots/letterhead-word.pdf" ]
 }
 
 @test "a second document is refused rather than silently ignored" {
@@ -396,8 +409,16 @@ _run() {
 
 @test "a job directory the driver could not remove is reported, not claimed gone" {
   RM_UNREACHABLE=1 _run "$DOCX"
+  [ "$status" -eq 0 ]
   [[ "$output" == *"could not remove the job directory"* ]]
-  [[ "$output" == *"word-render"* ]]
+  [[ "$output" == *'C:\Users\julien\AppData\Local\word-render on'* ]]
+}
+
+@test "a timed-out render keeps the job directory for the diagnosis" {
+  NO_RESULT=1 _run --timeout 2 "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'C:\Users\julien\AppData\Local\word-render is left in place'* ]]
+  [ -d "${STATE}/local/word-render" ]
 }
 
 @test "a failing render still tears the job directory down" {
@@ -456,9 +477,17 @@ _run() {
 }
 
 @test "a page count Word and the pdf disagree on is surfaced" {
-  STUB_PDF_PAGES=9 _run "$DOCX"
+  STUB_PAGES=13 STUB_PDF_PAGES=9 _run "$DOCX"
   [ "$status" -eq 0 ]
+  [[ "$output" == *"counts 13 page(s), the PDF carries 9"* ]]
   [[ "$output" == *"disagree on the page count"* ]]
+}
+
+@test "a result without a page count is refused rather than rasterized" {
+  STUB_PAGES=none _run "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"reported no page count"* ]]
+  [ ! -e "$PDFTOPPM_LOG" ]
 }
 
 @test "a family the host does not carry makes the pass a fallback render" {
