@@ -1,6 +1,6 @@
 ---
 name: Review severity for eds-prise
-description: "Calibration for code reviews of eds-prise, both subsystems (the R analysis pipeline under scripts/ and collect/, and the Streamlit annotation app under annot/): deliberate conventions not to re-flag, measurement traps, and the false-positive shapes of eight passes (2026-08-10 to 2026-09-02)"
+description: "Calibration for code reviews of eds-prise, three layers (the R analysis pipeline under scripts/ and collect/, the lib/ helper modules, and the Streamlit annotation app under annot/): deliberate conventions not to re-flag, measurement traps, which layer each reviewer is reliable on, and the false-positive shapes of nine passes (2026-08-10 to 2026-10-04)"
 metadata:
   type: feedback
 ---
@@ -11,7 +11,9 @@ Its former technical document `technique.qmd` has been archived to `.claude/arch
 
 ## The reviewer's diagnosis is sound, its remedy and its evidence are not
 
-Across eight passes (`critical-code-reviewer` on `scripts/` twice, the `annot/` app, `_common.R`, `annot/lib/password.py`, `annot/lib/note.py`, `code_douleur_rx()`; `review-testing` on `annot/tests`), the diagnoses held and a third to a half of the remedies needed rewriting after measurement; two proposed fixes would have introduced a new defect. Take the diagnosis seriously and run the remedy before applying it.
+Across nine passes (`critical-code-reviewer` on `scripts/` twice, the `annot/` app, `_common.R`, `annot/lib/password.py`, `annot/lib/note.py`, `code_douleur_rx()`, `lib/out-helpers.R`; `review-testing` on `annot/tests`), the diagnoses held and a third to a half of the remedies needed rewriting after measurement; two proposed fixes would have introduced a new defect. Take the diagnosis seriously and run the remedy before applying it.
+
+**The layer decides the hit rate, and `lib/` is where this reviewer is at its best.** Measured 2026-10-04 on `lib/out-helpers.R` (499 lines, Word deliverable assembly over officer and flextable): nine findings, eight diagnoses held, three fixes applied, one rejected on an unreachable premise. It volunteered the candidates it had measured and dropped, which no earlier pass did. Two evidence slips survived even so, both on claims about the surrounding stack rather than about the file: "`hebstr` exports `str_fig` and no table equivalent" while `tbl_caption()` and `str_cap()` exist (neither is that equivalent, so the conclusion held), and "shared verbatim with the reference implementation" for a function whose single divergence from md-nesrine is its abort message. Check a claim about a neighbouring package or an upstream file against the installed artifact, even when the finding's conclusion is right.
 
 - **A cited count on the wrong frame kills the tier, not the diagnosis.** Twice on `pat_cp`: counts taken from the full `pat` parquet (1 632 367 rows) or an intermediate frame (`df_pat_cp`) were 0 on the frames the scripts consume. Re-measure on those (`.df_pop`, `.pop_cs_pat`). Rejecting the evidence and fixing the underlying defect are compatible outcomes (`.dept_from_cp` now tests the length before padding).
 - **A severity resting on a mismatched comparator** (71.6 % vs 89.1 %, where the larger figure counted delays the sentence excludes; the honest contrast was one point): recompute the reviewer's own comparison.
@@ -20,6 +22,7 @@ Across eight passes (`critical-code-reviewer` on `scripts/` twice, the `annot/` 
 - **A remedy can fail the claim of its own finding, or break a fix applied earlier in the same walkthrough.** Run it on the case the finding names, and re-read later remedies against earlier fixes.
 - **A mechanism asserted from an older version's behaviour.** Streamlit 1.60 accepts additive `st.set_page_config` calls; check the installed source before a "must be first" claim.
 - **Cross-check the review against the design note's stated motivations.** `.claude/DESIGN-ANNOT-UI.md` named a concern the reviewer never mentioned; covering a target is not covering the concern that motivated it. Its threat model (internal CHU machine, two annotators, disposable passwords) closes auth findings on hashing and `st.login()` OIDC.
+- **An upstream defect found here is reported, not fixed here.** `lib/out-helpers.R` is reimported from `~/Documents/services/md-nesrine/lib/out_helpers.R`, which `rules/r.md` names the reference implementation, so a fix applied locally becomes a tracked divergence and the amont keeps the defect: measured 2026-10-04, all three fixes of that pass are live upstream, `.save_docx()` carrying the same `body_set_default_section()` that drops the template's footer over the same `hebstr-doc` template, `.front_date()` still reading `$date`, and the file holding no `isFALSE` at all. Count the divergences the pass creates, name the upstream consequence, and leave the carry to the user.
 - **`review-testing` is reliable on `annot/tests`** (11 of 11 accepted, remedies applied as written), where `critical-code-reviewer` is not on analysis code. Clean small modules under tests are also where the latter is reliable.
 
 ## Deliberate conventions, do not re-flag
@@ -40,7 +43,7 @@ Across eight passes (`critical-code-reviewer` on `scripts/` twice, the `annot/` 
 - **`%in%` returns `FALSE` on `NA`**, never `NA`: a `sum(..., na.rm = TRUE)` over `!(NA %in% x)` counts the missing values.
 - **`$` partially matches on a list, `[[` does not**: `list(imagerie = "x")$imag` returns `"x"`, so a removed YAML key with a same-prefix sibling returns the sibling's value. Every `_variables.yml` read uses `[[`; `with()` is exact and aborts loudly.
 - **`stopifnot(x == "literal")` passes when `x` is `NULL`** (`logical(0)`): use `identical()`.
-- **`nzchar(NA_character_)` is `TRUE`**, so `all(nzchar(x))` passes on exactly the missing value a completeness guard is named for, while `anyDuplicated()` counts two `NA`s as a duplicate, so from the second one a differently named guard fires: pair with `!is.na()` (measured 2026-10-03 on `docs/calendrier/prise_calendrier.R`).
+- **`nzchar(NA_character_)` is `TRUE`**, so `all(nzchar(x))` passes on exactly the missing value a completeness guard is named for, while `anyDuplicated()` counts two `NA`s as a duplicate, so from the second one a differently named guard fires: pair with `!is.na()` (measured 2026-10-03 on the timeline transcoder, then `docs/calendrier/prise_calendrier.R`, since split into `read_styled_sheet()` and `get_timeline()` in `lib/timeline.R`).
 - **`str_flatten()` on a nested list inlines its deparse** (`A|list("B1", "B2")|C`, a valid regex matching nothing): `unlist()` first.
 - **`stack()` keeps the level of a zero-length element while dropping its rows**: assert the observation, not the taxonomy.
 - **`nanoparquet::write_parquet(metadata = )` wants a named character vector** (0.5.1), and the read-back carries an `ARROW:schema` entry to drop. The code-pattern metadata lives in `code_douleur.parquet` itself, since two files written side by side had drifted six days apart.

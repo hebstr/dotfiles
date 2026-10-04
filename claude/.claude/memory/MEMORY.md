@@ -11,7 +11,7 @@
 - project_ubuntu_26_04_migration.md: Ubuntu 26.04 migration deferred to Dec 2026+ (trigger `Supported: 1`); research in `_meta/notes/ubuntu-26-04-migration-reco.md`, don't redo
 - project_zotero_agent_access.md: Zotero agent access via a `zotero` skill (local API, rg on `.zotero-ft-cache`), no MCP, and the 2026-09-28 refusal of a local-API write key; decision in `_meta/notes/zotero-agent-access-reco.md`
 - project_quarto_custom_crossref_float.md: Using quarto-hebstr-doc's `anx` crossref type (annex tables and figures): chunk labels, caption keys, the `crossref:` redeclaration trap
-- project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file: a `.qmd` using a custom format must stay there
+- project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file: a `.qmd` using a custom format must stay there, and adding a project file costs no render gate, a `render:` naming one document leaving the others alone
 - project_qmd_format_hook.md: .qmd/.md formatting with panache and its prek gate: config and exclude gotchas, the CLI/LSP format-on-save split, constructs panache damages
 - project_shellharden_dotfiles_normalized.md: The `$VAR` / `[ "$x" != "" ]` style in dotfiles `bin/`, `hooks/`, `bash/` is shellharden output (2026-09-12): never revert or flag it
 - project_litrev_separate_from_hebstr.md: Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
@@ -24,7 +24,7 @@
 - project_hebstr_add_note_migration.md: hebstr's add_note() takes gtsummary, piped before tbl_format() (2026-07-17); one old SHA-pinned call site in ipl-sca breaks on sync
 - project_ordo_typst_template.md: `~/admin/pro-ordo/ordo.qmd` Typst prescription letterhead, blank and filled modes via `#let` params (not YAML); open items in its `.claude/DESIGN.md`
 - project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): notes `~/dotfiles/_meta/notes/ue5-horror-solo-pipeline.md`, files `~/Documents/sandbox/ue5-le-relais/`
-- project_transcription_local_cpu.md: Meeting transcription, from the 2026-09-29 CPU batch (faster-whisper via uv, av pinned below 19) to the tool designed 2026-10-03 (bash driver over one PEP 723 payload, ju-TP2's GPU or --local, pyannote labels at 2.27 x realtime on CPU, the uv index and cached-environment traps, the HF token path); OpenWhispr rejected, Handy's French dictation on cohere-transcribe since no canary model works there, working under the Xorg session from gdm's WaylandEnable=false (a stow package for that file refused), autostart left off, and its phantom sentences on a silent clip
+- project_transcription_local_cpu.md: Meeting transcription, from the 2026-09-29 CPU batch (faster-whisper via uv, av pinned below 19) to the `transcribe` tool written 2026-10-04 (bash driver over one PEP 723 payload, 39.81 x realtime on ju-TP2's GPU against 5.23 x with --local, pyannote labels at 2.20 x realtime on CPU, the uv index and cached-environment traps, the HF token path); OpenWhispr rejected, Handy's French dictation on cohere-transcribe since no canary model works there, working under the Xorg session from gdm's WaylandEnable=false (a stow package for that file refused), autostart left off, and its phantom sentences on a silent clip
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: dotfiles' `user.js` re-forces Zotero/BBT prefs at every startup, so a pane change silently reverts; Prettier's format-on-save adds a trailing comma that silently kills the file (`.prettierignore` guard); plus the citekey facts (the formula in force, `auth.lower + year`, decided in eds-prise's `.claude/DESIGN-BIB.md` with the five HAS suffixes hand-set; `auth` vs `.lower`, diacritics folded, institutional creators, no regeneration except `resetKeyOnChange`, `a`/`b`/`c` clashes)
@@ -67,7 +67,7 @@
 - reference_citeproc_bib_vs_csl.md: citeproc title casing differs between `.bib` and CSL-JSON/YAML: protecting French titles, conversion and CSL-YAML traps
 - reference_better_bibtex_export_control.md: what a Better BibTeX export can be made to emit: how `skipFields` really matches (per-type, CSL names, lowercase-only), per-directory override files, the cache dropping itself, the postscript signature, no formatting pref, and the local API refusing translator names
 - reference_quarto_extension_install_resolution.md: `quarto add owner/repo` (even `@latest`) installs main, never the last release; only `@<tag>` pins
-- reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` gets no `_quarto.yml` metadata nor `output-dir`; pre-render and `_metadata.yml` still apply
+- reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` gets no `_quarto.yml` metadata nor `output-dir`, but `_metadata.yml` reaches it and silently renames it; `output-file` refuses a path, and a single-file render of a listed document keeps `output-dir` and both render scripts
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` dropped the format's `title-delim` though `quarto inspect` showed it merged; nest it under the format
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al." (empty `abbreviations:` file disables it); `-t markdown` breaks a Strong-ending LineBreak
 - reference_quarto_r_env_var.md: `QUARTO_R` (set by Positron's terminal) beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"; override per command
@@ -102,7 +102,7 @@
 - feedback_review_severity_skill_audits.md: SKILL.md and agent definition reviews: false positives (explicit-invocation gate, workflow:sync specifics), reading a SKILL.md as a spec
 - feedback_review_severity_hebstr.md: Calibrate reviews of the hebstr R package: deliberate designs not to flag
 - feedback_review_severity_edstr.md: Calibrate reviews of the edstr R package: deliberate designs not to flag
-- feedback_review_severity_eds_prise.md: eds-prise reviews: sound diagnoses with wrong remedies, deliberate conventions, measurement traps
+- feedback_review_severity_eds_prise.md: eds-prise reviews: sound diagnoses with wrong remedies, which layer the reviewer is reliable on, deliberate conventions, measurement traps, upstream defects reported not fixed
 - feedback_review_severity_edscrib.md: edscrib reviews: the write path not to soften, lessons on remedies, guards and measurement
 - feedback_review_severity_litrev_mcp.md: litrev-mcp (FastMCP) audits: 5 false positives on file mutation, env tips, sentinels, error dicts, regex tightening
 - feedback_review_severity_eds_avc.md: Calibrate reviews of eds-avc's `pred/` orchestrator and its R log helpers
