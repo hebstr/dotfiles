@@ -1,132 +1,133 @@
 # Memory Index
 
 ## User
-- user_profile.md: Environment, accounts, and context not in CLAUDE.md
+- user_profile.md: Environment, accounts and context not in CLAUDE.md
 - user_quarto_typst_only.md: Quarto PDF via Typst only, never the LaTeX `format: pdf` path
 
 ## Project
-- project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` digests CLAUDE.md's behavioral rules and the commit skill's format; after changing one, update or propose it there in the same response
-- project_ju_tp2_receiveonly.md: On ju-TP2 (WSL) never write to `~/dotfiles` or `~/.claude`: Syncthing receive-only there, ju-TP is the single writer
-- project_claude_dir_local_only_repo.md: a project's `.claude` versioned by a nested repo with no remote, history local to ju-TP (2026-09-30); git has no path-level push filter, section 5 of the `commit` skill produces the commits, the initial import is the user's by policy since the guard stopped refusing it, one repo per project on demand with eds-prise first (2026-09-30) and sixteen still without, a three-hook prek gate on the dotfiles one and none on the on-demand ones, `prose-lint`, `trailing-whitespace`, `check-added-large-files` and `refs-lint.py` refused there with `panache-format` excluded by policy, prompt buffers ignored since 2026-10-02 (`PROMPT*.md`, which untracks nothing by itself), and the design is `.claude/DESIGN-CLAUDE-REPO.md`
-- project_ubuntu_26_04_migration.md: Ubuntu 26.04 migration deferred to Dec 2026+ (trigger `Supported: 1`); research in `_meta/notes/ubuntu-26-04-migration-reco.md`, don't redo
-- project_zotero_agent_access.md: Zotero agent access via a `zotero` skill (local API, rg on `.zotero-ft-cache`), no MCP, and the 2026-09-28 refusal of a local-API write key; decision in `_meta/notes/zotero-agent-access-reco.md`
-- project_quarto_custom_crossref_float.md: Using quarto-hebstr-doc's `anx` crossref type (annex tables and figures): chunk labels, caption keys, the `crossref:` redeclaration trap
-- project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file: a `.qmd` using a custom format must stay there, and adding a project file costs no render gate, a `render:` naming one document leaving the others alone
-- project_qmd_format_hook.md: .qmd/.md formatting with panache and its prek gate: config and exclude gotchas, the CLI/LSP format-on-save split, constructs panache damages
-- project_shellharden_dotfiles_normalized.md: The `$VAR` / `[ "$x" != "" ]` style in dotfiles `bin/`, `hooks/`, `bash/` is shellharden output (2026-09-12): never revert or flag it
-- project_litrev_separate_from_hebstr.md: Decision (2026-04-26): keep litrev separate from hebstr marketplace; do not re-propose merge
-- project_autoresearch_skill_deferred.md: `uditgoenka/autoresearch` not adopted (2026-09-11); `_meta/notes/autoresearch-skill-reco.md`, don't redo
-- project_arity_evaluation.md: Arity (R formatter and linter) tested 2026-09-10 against air + jarl, not adopted; `~/dotfiles/_meta/notes/arity-trial.md`, don't redo
-- project_edstr_vignettes_pkgdown_articles.md: edstr vignettes use plain quarto html (pkgdown theme), on CRAN 2026-07-22; the hebstr-doc theme was tried and reverted inside pkgdown
-- project_md_nesrine_render_pitfalls.md: md-nesrine and hebstr projects: `filter` resolving to `stats::filter` via `.Rprofile`, `as_factor` dropping labels, commented chunks running
-- project_edscrib_annotation_package.md: eds-avc annotation socle `edscrib` (`~/Documents/packages/py-edscrib`), tracker `eds-avc/.claude/ANNOT-PKG.md`; owes `v0.1.0` tag and `__all__`
-- project_yaml_gate_deferred.md: YAML gate for dotfiles researched 2026-07-30 then deferred; write-up in `_meta/notes/yaml-gate-reco.md`, don't redo
-- project_hebstr_add_note_migration.md: hebstr's add_note() takes gtsummary, piped before tbl_format() (2026-07-17); one old SHA-pinned call site in ipl-sca breaks on sync
-- project_ordo_typst_template.md: `~/admin/pro-ordo/ordo.qmd` Typst prescription letterhead, blank and filled modes via `#let` params (not YAML); open items in its `.claude/DESIGN.md`
-- project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): notes `~/dotfiles/_meta/notes/ue5-horror-solo-pipeline.md`, files `~/Documents/sandbox/ue5-le-relais/`
-- project_transcription_local_cpu.md: Meeting transcription, from the 2026-09-29 CPU batch (faster-whisper via uv, av pinned below 19) to the `transcribe` tool written 2026-10-04 (bash driver over one PEP 723 payload, 39.81 x realtime on ju-TP2's GPU against 5.23 x with --local, pyannote labels at 2.20 x realtime on CPU, the uv index and cached-environment traps, the HF token path); OpenWhispr rejected, Handy's French dictation on cohere-transcribe since no canary model works there, working under the Xorg session from gdm's WaylandEnable=false (a stow package for that file refused), autostart left off, and its phantom sentences on a silent clip
-- project_word_render_control.md: `word-render`, the control driving the real Word on ju-TP2 through a scheduled task; its PDF route is shut by an unlicensed Office, `--capture` photographs Word's own window instead, and it refuses on a locked session, which used to hand back black captures at exit 0
+- project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
+- project_ju_tp2_receiveonly.md: ju-TP2 (WSL) never writes to `~/dotfiles` or `~/.claude`: Syncthing receive-only
+- project_claude_dir_local_only_repo.md: a project's `.claude` in a nested remote-less repo, local to ju-TP (2026-09-30)
+- project_ubuntu_26_04_migration.md: Ubuntu 26.04 migration deferred to Dec 2026 at the earliest; research done, don't redo
+- project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
+- project_quarto_custom_crossref_float.md: hebstr-doc's `anx` crossref type: annex labels, caption keys, the redeclaration trap
+- project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file
+- project_qmd_format_hook.md: .qmd/.md formatting by panache and its prek gate: config, excludes, format-on-save split
+- project_shellharden_dotfiles_normalized.md: The `$VAR` style in dotfiles `bin/`, `hooks/`, `bash/` is shellharden output
+- project_litrev_separate_from_hebstr.md: litrev stays out of the hebstr marketplace (2026-04-26); don't re-propose the merge
+- project_autoresearch_skill_deferred.md: `uditgoenka/autoresearch` not adopted (2026-09-11); analysis done, don't redo
+- project_arity_evaluation.md: Arity tested against air + jarl (2026-09-10), not adopted; measurements done, don't redo
+- project_edstr_vignettes_pkgdown_articles.md: edstr vignettes use plain quarto html; the hebstr-doc theme was rolled back
+- project_md_nesrine_render_pitfalls.md: md-nesrine render pitfalls: `stats::filter` masking, dropped labels, commented chunks run
+- project_edscrib_annotation_package.md: eds-avc's annotation socle `edscrib`: where the tracker is, what step 6 still owes
+- project_yaml_gate_deferred.md: dotfiles YAML gate deferred (2026-07-30); the reco is written up, don't redo it
+- project_hebstr_add_note_migration.md: hebstr `add_note()` is gtsummary-only, before `tbl_format()`; one call site in ipl-sca
+- project_ordo_typst_template.md: `~/admin/pro-ordo` Typst prescription letterhead: blank and filled modes, open print check
+- project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): where the pipeline note and the project folder live
+- project_transcription_local_cpu.md: Meeting transcription: the `transcribe` driver, its throughputs, uv traps, Handy dictation
+- project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked session
 
 ## Reference
-- reference_zotero_user_js_pref_precedence.md: dotfiles' `user.js` re-forces Zotero/BBT prefs at every startup, so a pane change silently reverts; Prettier's format-on-save adds a trailing comma that silently kills the file (`.prettierignore` guard); plus the citekey facts (the formula in force, `auth.lower + year`, decided in eds-prise's `.claude/DESIGN-BIB.md` with the five HAS suffixes hand-set; `auth` vs `.lower`, diacritics folded, institutional creators, no regeneration except `resetKeyOnChange`, `a`/`b`/`c` clashes)
-- reference_zotero_metadata_acquisition.md: Zotero 10 made PMID/PMCID native fields (Extra greps lie), only the PubMed translator yields an NLM abbreviation, Zotero's auto-abbreviation never leaves the word processor, PubMed connector == Add-by-identifier, and an identifier route acquires a missing record but never repairs an existing one
-- reference_syncthing_ghost_records.md: Syncthing stuck at "Syncing 99 %" on ignored paths: find the holder with `syncthing debug database-file`; `ju-DG`/`ju-GO` `.stignore` by hand
-- reference_warp_hotspot_bufferbloat.md: Claude Code "waiting for API" stalls on the `ju-DG` hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper at 5Mbit, its volatility, and the checks already ruled out
-- reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on lazy duckdb inlines a huge SQL `IN` and hangs; keep both sides lazy, `semi_join`, `collect()` last
-- reference_dbplyr_null_semantics.md: dbplyr follows SQL NULLs (`sum()` skips them, `col == v` never TRUE on NULL), so conditional counts undercount; `coalesce()`, check output
-- reference_streamlit_altair_charts.md: Altair in Streamlit: height/padding traps, legends ignoring the theme, one shared tooltip, which embedding runs JS
-- reference_streamlit_dataframe_styler.md: st.dataframe keeps only `color`, `background-color`, `font-weight` from a Styler; canvas grid, no CSS reaches rows, selection column fixed
-- reference_snds_variable_traps.md: SNDS declaration traps: ALD read by diagnosis not by number plus four `IR_IMB_R` reading traps, CIP derived from ATC, the C2S entitlement on two tables with opposite limits, AME countable only as activity, the FDep tables, 2015 as the all-regime exhaustivity threshold, and the DCIR double-counting public-hospital ACE with the PMSI (`ER_ETE_F` filter)
-- reference_r_check_separable_model_tests.md: gtsummary/broom model tests can pass devtools::test() yet fail R CMD check on a separable model; de-separate test data, run check()
-- reference_claude_code_best_practices.md: Claude Code facts: past sessions via jsonl transcripts (7-day retention), the current session's context occupancy read from its transcript, 2026-03-26 MCP verdicts, `Edit|Write` hooks miss Bash writes, auto mode instructs shell writes against the rule, a hook arms without a restart, what reaches `UserPromptSubmit` besides typed text, the 10,000-character hook output cap and its 2 KB preview, `additionalContext` on every permission decision, `paths:` loading on a native `Read` only, and the `autoMemoryDirectory` cap, nudge, stamping and symlink asymmetry
-- reference_opus_cyber_classifier_review.md: Opus 5.5/Fable `cyber` safety classifier cuts adversarial security-control review during thinking; run the reviewer subagent on Sonnet, reframing does not help
-- reference_todo_sync.md: `todo-sync` prints aggregated TODO.md items, columns on a TTY, a markdown table when piped
-- reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores .Rbuildignore: root `*.md` become pages (`NA` title without H1), vignettes articles; only location excludes
-- reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` works in `extra.css` not `.scss`, fonts via `template.bslib`
-- reference_claude_code_marketplace_mechanics.md: Plugin lifecycle, cache vs live edits of directory-source plugins, the files holding a source path, moved-repo failure
-- reference_modern_r_model_tooling.md: R model evaluation packages (easystats, broom, yardstick, marginaleffects); surface on request only
-- reference_nanoparquet_col_select.md: nanoparquet 0.5.1 `col_select` silently drops NAs and shifts values within a row group: never use it, read then `dplyr::select()`
-- reference_r_list_key_lookup.md: Reading a declared key out of an R list (YAML, config): `$` partial-matches silently and `==` yields `logical(0)` that `stopifnot()` accepts; use `[[` and `identical()`
-- reference_git_html_id_filter.md: The `html-id` clean filter renumbering gt/reactable random ids and the reactable `dataKey` in committed HTML: driver in dotfiles so `stow git` is the setup, per-repo `.gitattributes` names the deliverables, global attributes file rejected, and a prek commit after a render fails until `git add --renormalize` re-stages the outputs
-- reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 over ICU, RE2 `\b` is ASCII-only, fold with Latin-ASCII not NFD, map offsets back (edstr)
-- reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments as titled callouts, section plan, CSS trap
-- reference_tool_update_routines.md: The update routine follows the install method (devtools-update, cargo install-update, uv tool upgrade, uv python upgrade); don't conflate, and the uv tool venvs follow the minor-version symlink, read `pyvenv.cfg` not `readlink -f`
-- reference_uv_pip_virtual_env.md: `uv pip install` targets $VIRTUAL_ENV over the cwd project, silently installing into the wrong venv; fix with `env -u VIRTUAL_ENV`
-- reference_positron_extension_registries.md: Positron: the profile's extensions.json beats the global one; never delete a folder only the global one calls orphan
-- reference_hebstr_easy_out_subdir.md: hebstr sha 97e8829 moved `easy_out()` to one kebab-case subfolder per output, removed `easy_out_map()`; silent break, clear old outputs
-- reference_hebstr_gt_table_width.md: hebstr `tbl_format`/`theme_gt` width is hard px the gt container can only scroll: why `pct()` and `NULL` are refused, the 700 px fallback clipping the exported PNG, measuring natural width
-- reference_gt_reactable_css_theming.md: Theming gt vs reactable with CSS tokens: gt rejects `var()`/`currentColor` (only `!important` reaches it), reactable passes strings through
-- reference_hebstr_outdec_locale_flag.md: hebstr's options(OutDec) locale flag breaks third-party numeric round-trips (tidycmprsk::cuminc): force OutDec="." around the fit, don't refactor hebstr
-- reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text` (re-arm in a separate `+ theme()`); 3-color palette needs a darker anchor for 5 categories
-- reference_gtsummary_notes_and_labels.md: gtsummary 2.5.1 notes and labelling: `add_note()` works on merge and stack and its position is indifferent, `add_variable_group_header()` must follow hebstr's `gtsum_format()`, a labelling helper coercing logicals forces the join last
-- reference_quarto_lua_shortcodes.md: Quarto Lua shortcode traps (kwargs, YAML metadata, named pipes), `is_format` guards, embedded-shortcode loading, Pandoc fs API
-- reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in raw `{=typst}` substitutes scalars only and prints `?meta:<key>` when missing (exit 0): use Typst `#let` bindings
-- reference_word_embedded_fonts_blocked.md: Recipients' Word refuses OOXML-embedded fonts; `w:altName` is honoured, so design Word outputs around the fallback list
-- reference_quarto_extension_format_knitr.md: Extension knitr options per format, svglite/systemfonts registration traps, what an extension can ship but not run
-- reference_quarto_custom_format_render_target.md: One `.qmd`, HTML and Word deliverables: `knitr::pandoc_to()` tells `hebstr-doc-docx` from `-html`; `--to` renders an undeclared format
-- reference_pandoc_312_data_uri.md: pandoc 3.12 leaves `#` unescaped in data URIs and silently truncates self-contained widget CSS; `find_pandoc` picks the highest version, so the machine keeps only quarto's pandoc
-- reference_citeproc_bib_vs_csl.md: citeproc title casing differs between `.bib` and CSL-JSON/YAML: protecting French titles, conversion and CSL-YAML traps
-- reference_better_bibtex_export_control.md: what a Better BibTeX export can be made to emit: how `skipFields` really matches (per-type, CSL names, lowercase-only), per-directory override files, the cache dropping itself, the postscript signature, no formatting pref, and the local API refusing translator names
-- reference_quarto_extension_install_resolution.md: `quarto add owner/repo` (even `@latest`) installs main, never the last release; only `@<tag>` pins
-- reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` gets no `_quarto.yml` metadata nor `output-dir`, but `_metadata.yml` reaches it and silently renames it; `output-file` refuses a path, and a single-file render of a listed document keeps `output-dir` and both render scripts
-- reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` dropped the format's `title-delim` though `quarto inspect` showed it merged; nest it under the format
-- reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al." (empty `abbreviations:` file disables it); `-t markdown` breaks a Strong-ending LineBreak
-- reference_quarto_r_env_var.md: `QUARTO_R` (set by Positron's terminal) beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"; override per command
-- reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a comment ending in a backslash (bash does not); raw `Lit` escapes, operator codes
-- reference_bash_tool_pitfalls.md: Bash tool traps: `find` is bfs, `pkill -f` matches the tool's command, `rg -h` is help, no TTY for sudo or `!`
+- reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
+- reference_zotero_metadata_acquisition.md: Zotero 10 PMID/PMCID native fields, NLM abbreviations only from the PubMed translator
+- reference_syncthing_ghost_records.md: Finding which device holds a stale record of an ignored path; the phones' `.stignore`
+- reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
+- reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on a lazy duckdb table never completes; use `semi_join`
+- reference_dbplyr_null_semantics.md: SQL NULLs silently change a dplyr pipeline's counts; `coalesce()`, verify on the artifact
+- reference_streamlit_altair_charts.md: Altair in Streamlit: height/padding traps, legends ignoring the theme, one shared tooltip
+- reference_streamlit_dataframe_styler.md: st.dataframe keeps only 3 Styler properties; no CSS reaches the canvas grid's rows
+- reference_snds_variable_traps.md: SNDS declaration traps: ALD, `IR_IMB_R`, CIP, C2S, AME, FDep, 2015, DCIR/PMSI overlap
+- reference_r_check_separable_model_tests.md: A model test can pass `devtools::test()` and fail `R CMD check` on separable data
+- reference_claude_code_best_practices.md: Local Claude Code facts: transcripts, hooks, auto mode, injection and memory-store caps
+- reference_opus_cyber_classifier_review.md: `cyber` classifier cuts security-control review on Opus; run the reviewer on Sonnet
+- reference_todo_sync.md: The `todo-sync` command aggregating TODO.md items across projects
+- reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores `.Rbuildignore`: root `*.md` become pages, vignettes articles
+- reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` breaks in `extra.scss`
+- reference_claude_code_marketplace_mechanics.md: Plugin install vs cache, `extraKnownMarketplaces`, a moved `directory` source
+- reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
+- reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
+- reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
+- reference_git_html_id_filter.md: The `html-id` clean filter on committed HTML: `stow git`, `.gitattributes`, `--renormalize`
+- reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
+- reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments become callouts
+- reference_tool_update_routines.md: The four disjoint tool-update mechanisms here, and how `uv python upgrade` reaches tool venvs
+- reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
+- reference_positron_extension_registries.md: Positron's per-profile extensions.json beats the global one; orphan folders stay
+- reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
+- reference_hebstr_gt_table_width.md: hebstr `tbl_format` width is fixed px: `pct()` refused, the fallback clips the PNG
+- reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
+- reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
+- reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
+- reference_gtsummary_notes_and_labels.md: gtsummary 2.5.1 notes and labelling: where `add_note()` works, what must come last
+- reference_quarto_lua_shortcodes.md: Quarto Lua shortcode traps: empty Inlines, YAML scalars, named pipes, embedded loading
+- reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in a `{=typst}` block: no arrays, a missing key prints into the PDF
+- reference_word_embedded_fonts_blocked.md: Recipients' Word refuses embedded fonts; design around the fallback list
+- reference_quarto_extension_format_knitr.md: A Quarto extension can scope `knitr: opts_chunk:` per format; svglite vs cairo
+- reference_quarto_custom_format_render_target.md: `knitr::pandoc_to()` tells HTML from docx; `--to` renders an undeclared format
+- reference_pandoc_312_data_uri.md: pandoc 3.12 leaves `#` unescaped in data URIs, truncating self-contained widget CSS
+- reference_citeproc_bib_vs_csl.md: citeproc recases `.bib` titles and leaves CSL-JSON/YAML alone; protecting French titles
+- reference_better_bibtex_export_control.md: What a Better BibTeX export can emit: honoured prefs, `skipFields`, override files
+- reference_quarto_extension_install_resolution.md: `quarto add owner/repo` installs main even with `@latest`; only `@<tag>` pins
+- reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` loses metadata and `output-dir`, yet gets renamed
+- reference_quarto_include_path_resolution.md: `{{< include >}}` resolves against the includer; no root form, standalone only
+- reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
+- reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
+- reference_quarto_r_env_var.md: `QUARTO_R` beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"
+- reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
+- reference_bash_tool_pitfalls.md: Bash tool traps: `find` is bfs, `pkill -f` self-matches, `rg -h` is help, no TTY for sudo
 
 ## Feedback
-- feedback_verify_gt_output_on_render.md: Check gtsummary/gt formatting on the rendered PNG, never `table_styling` or HTML: helpers can flatten a hierarchy the styling still describes
-- feedback_gtsummary_stacked_blocks.md: Stacked gtsummary blocks: `add_variable_group_header()` before `tbl_stack()`; full-width gt group rows rejected
-- feedback_probe_must_test_the_deciding_form.md: A measurement ruling an option out must exercise its strongest form, not its weakest
-- feedback_commit_sequence_add_all.md: Commit proposals: `git add .` only if the commit takes all of `git status` and nothing moves the ignore state; else paths or `-u`, never `-A`; explicit paths anyway where concurrent sessions write (dotfiles)
-- feedback_r_environment.md: R environment idioms (rv not renv, `system2` over `system`, `.Rprofile` sources `rv/scripts/activate.R`, `.rv$sync()` optional)
-- feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret when the variable IS set; test presence with `[ -n "$VAR" ]` or `${VAR:+set}` alone
-- feedback_benchmark_power_state.md: Laptop benchmarks: ~2x slower on battery than AC, ~8% noise within a regime; claim gains as shares from paired runs
-- feedback_verify_before_claiming.md: 8 hard rules for verifying factual claims, behind the CLAUDE.md rule "never state a verifiable fact without checking it first", the last two on a sha or precedent inherited from another session's note, and on a number restated from the session's own earlier output instead of recomputed
-- feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input (commands, paths, tokens), never on prose; prefer behavioural instructions and state triggers, and leave fewer patterns than before
-- feedback_check_before_hand_rolling.md: Query installed libraries before hand-rolling a helper or pricing "we would have to build X", then the web; an outside hit is a proposal
-- feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact: mirroring a neighbouring file reproduces its blind spots
-- feedback_reviewer_review_testing_scope.md: review-testing scopes to test files changed on the branch; pass a scope override to review an existing suite on a clean tree
-- feedback_review_severity_personal.md: Calibrate review severity down for personal/internal packages
-- feedback_review_severity_md_nesrine.md: md-nesrine render journal reviews: no journal line for a failed render, no commit-id field (`git blame` maps a line to its commit)
-- feedback_review_severity_stat_reports_fr.md: French stat report reviews: keep established English terms, run code before a method claim, skip caption-restating prose
-- feedback_review_severity_shell_installers.md: Review severity for personal shell installers (quarto-update, positron-update…), hook scripts and the `commit` skill's scripts
-- feedback_review_severity_hebstr_doc.md: Calibrate reviews of the quarto-hebstr-doc extension (filetree.lua and its tests): dismissed idiom, perf and duplication findings, an unobservable test-helper mutation, and when a coercion edge case is NOTED rather than fixed
-- feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc: sole dev, own consumers: no compat shim, no public-API argument, never re-propose CONTRIBUTING.md; publishing shortcodes is not a goal, sharing them with hebstr-book is
-- feedback_review_severity_bats_tests.md: Calibrate review severity for bats `.bats` tests of personal shell tooling, and measure a proposed remedy before applying it
-- feedback_review_severity_bash_dotfiles.md: `bash/` reviews: SC1090 directives, one-machine firefox alias, `PROMPT_COMMAND` guard, no `nocaseglob`, doubled prek hooks are deliberate
-- feedback_review_severity_claude_rules.md: Calibrate reviews of `.claude/rules/` files: recurring false positives to skip
-- feedback_review_severity_profiles_scaffolds.md: `_meta/profiles/` template audits: 3 false positives (repo-specific excludes, fewer languages than a sibling, formatter-owned values)
-- feedback_review_severity_claude_config.md: `~/.claude` harness config audits: 5 false positives (PWD-guard expansion, cleanup-hook races, `inject-rules.sh` quotes)
-- feedback_review_severity_claude_md_content.md: `~/.claude/CLAUDE.md` audits: 12 false-positive shapes (trade-offs as gaps, backstopped hints, hooks for prose)
-- feedback_review_severity_skill_audits.md: SKILL.md and agent definition reviews: false positives (explicit-invocation gate, workflow:sync specifics), reading a SKILL.md as a spec
-- feedback_review_severity_hebstr.md: Calibrate reviews of the hebstr R package: deliberate designs not to flag
-- feedback_review_severity_edstr.md: Calibrate reviews of the edstr R package: deliberate designs not to flag
-- feedback_review_severity_eds_prise.md: eds-prise reviews: sound diagnoses with wrong remedies, which layer the reviewer is reliable on, deliberate conventions, measurement traps, upstream defects reported not fixed
-- feedback_review_severity_edscrib.md: edscrib reviews: the write path not to soften, lessons on remedies, guards and measurement
-- feedback_review_severity_litrev_mcp.md: litrev-mcp (FastMCP) audits: 5 false positives on file mutation, env tips, sentinels, error dicts, regex tightening
-- feedback_review_severity_eds_avc.md: Calibrate reviews of eds-avc's `pred/` orchestrator and its R log helpers
-- feedback_review_severity_heuristic_code.md: Stop rule for adversarial reviews of heuristic code: accept only findings reproduced on the real corpus, contradicting docs, or crashing
-- feedback_litrev_pipeline_patterns.md: `/litrev` scoping decisions: post-hoc restriction, snowball skip, DOI conflict, gate stall, pseudo-GRADE, prose cleanup
-- feedback_verify_quarto_theming.md: After a Quarto SCSS/CSS/theme edit, inspect the compiled CSS and measure computed styles in headless chromium, not screenshots
-- feedback_quarto_render_disabled_chapter.md: Rendering a `.qmd` commented out of `chapters:` can uncomment it in `_quarto.yml`; check `git status` after
-- feedback_french_prose.md: FR prose decisions for short edits outside /workflow:write: authorities, anglicism policy, the reformulation trap, typography, register
-- feedback_fr_to_en_translation.md: Claude-facing content into English: migrating a French file keeps fidelity rule by rule, but a text Claude drafted in French is re-authored from the facts, never rendered; a fidelity review flags calques
-- feedback_verify_after_install.md: Smoke-test new tools/hooks/integrations end-to-end before marking done; never suppress stderr on fresh config
-- feedback_shell_grep_pipefail.md: Shell shapes failing or lying under `set -Eeuo pipefail` (mid-pipeline grep, process substitution, `&&` lists, `jq -e`/`-r`), fixes, audit grep
-- feedback_rg_misses_gitignored_trackers.md: Bare `rg` skips hidden and gitignored paths, so `.claude/` trackers look clean; use `--hidden --no-ignore` for reference searches
-- feedback_git_clean_tree_hides_ignored.md: A `git status --porcelain` guard misses ignored files, so a rebase replaying a commit that adds one aborts; check `--ignored` first
-- feedback_line_number_cross_refs.md: Incidents behind the cite-by-name rule of `rules/claude-files.md`, and when a drifted reference stays as record
-- feedback_concision.md: Cut research narrative from notes and replies: record what binds future work, never how the answer was reached
-- feedback_prose-lint-write.md: Prose hygiene covers user-facing prose only: exempt trees, soft wraps belong to panache, typographic vs rhetorical dashes, when to run /workflow:write
-- feedback_no_bulk_regex_for_contextual_skills.md: Never swap a contextual editing skill (workflow:write, audit reviewers) for a bulk regex when per-case Edit is blocked; surface it
-- feedback_audit_walkthrough.md: `/audit:walkthrough` and `/audit:blindspot`: weigh findings by their evidence, read coverage line and size cap first
-- feedback_format_hook_strips_new_import.md: The format-on-edit hook runs `ruff check --fix`, stripping an import added before its first use (F401); write the usage first
-- feedback_browser_layout_probe.md: Inspect rendered layouts yourself in headless chromium (screenshots, CDP), never via the user; Streamlit needs CDP and a real sleep
-- feedback_personal_working_files.md: Write-gate on NOTES.md / TODO.md / CALENDRIER.md: reading is free, writing never is, and what a read still does not license
-- feedback_ouroboros_tools.md: Ouroboros evaluate and qa: consensus (Claude alone under `claude_code`), mid-evaluation fix races, Stage 1 config, input filter, `measure_drift`
-- feedback_xdg_open.md: xdg-open silently fails on file:// in Positron/VSCode; use `python3 -m http.server` for HTML preview
-- feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help and test on a copy
-- feedback_session_tool_residue.md: A timeout-killed tool skips cleanup: give it a mktemp state dir removed by an EXIT trap in the same call
-- feedback_edit_tool_unicode_escape.md: Tool parameters decode a four-hex-digit `\u` escape into the literal character, invisibly (U+00A0 in R source, 2026-09-16); in R write `\u{a0}`, in Python `\N{NO-BREAK SPACE}`, check with `rg -c $'\xc2\xa0'`
+- feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
+- feedback_gtsummary_stacked_blocks.md: Stacked gtsummary blocks: `add_variable_group_header()` before `tbl_stack()`
+- feedback_probe_must_test_the_deciding_form.md: A measurement ruling an option out must exercise its strongest form
+- feedback_commit_sequence_add_all.md: Staging in proposed commits: when `git add .` is allowed, never `git add -A`
+- feedback_r_environment.md: Confirmed R environment idioms (rv not renv, `system2`, how an rv project activates)
+- feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret; test presence with `[ -n "$VAR" ]`
+- feedback_benchmark_power_state.md: This machine is ~2x slower on battery: check the power state, pair the runs
+- feedback_verify_before_claiming.md: Verify every factual claim with tools; never reason from absence, recompute the number
+- feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input, never on natural language
+- feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
+- feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
+- feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
+- feedback_review_severity_personal.md: Calibrate review severity down for personal and internal packages
+- feedback_review_severity_md_nesrine.md: Calibrating reviews of the md-nesrine render journal
+- feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French-language statistical reports (.qmd)
+- feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
+- feedback_review_severity_hebstr_doc.md: Calibrating reviews of the quarto-hebstr-doc extension (filetree.lua and its tests)
+- feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING
+- feedback_review_severity_bats_tests.md: Calibrating reviews of bats tests for personal shell tooling; measure a remedy first
+- feedback_review_severity_bash_dotfiles.md: Calibrating reviews of the interactive shell dotfiles in `bash/`
+- feedback_review_severity_claude_rules.md: Calibrating reviews of path-scoped `.claude/rules/` files
+- feedback_review_severity_profiles_scaffolds.md: Calibrating audits of the config templates in `_meta/profiles/`
+- feedback_review_severity_claude_config.md: Calibrating audits of `~/.claude` config artifacts (settings.json, hooks)
+- feedback_review_severity_claude_md_content.md: Calibrating audits of the rules text of `~/.claude/CLAUDE.md`
+- feedback_review_severity_skill_audits.md: Calibrating audits of SKILL.md files and agent definitions
+- feedback_review_severity_hebstr.md: Calibrating reviews of the hebstr R package
+- feedback_review_severity_edstr.md: Calibrating reviews of the edstr R package
+- feedback_review_severity_eds_prise.md: Calibrating reviews of eds-prise's three layers (pipeline, lib/, annotation app)
+- feedback_review_severity_edscrib.md: Calibrating reviews of the edscrib annotation socle
+- feedback_review_severity_litrev_mcp.md: Calibrating reviews of the litrev-mcp server
+- feedback_review_severity_eds_avc.md: Calibrating reviews of eds-avc's inference orchestrator and its R log parser
+- feedback_review_severity_heuristic_code.md: Stop rule for adversarial reviews of heuristic code (parsers, scans, classifiers)
+- feedback_litrev_pipeline_patterns.md: Recurring scoping decisions on `/litrev` runs
+- feedback_verify_quarto_theming.md: After a Quarto SCSS, CSS or theme edit, inspect the compiled CSS, not a screenshot
+- feedback_quarto_render_disabled_chapter.md: Rendering a chapter commented out of `chapters:` can uncomment it in `_quarto.yml`
+- feedback_french_prose.md: Authorities, anglicism policy, typography and register for French prose work
+- feedback_fr_to_en_translation.md: Claude-facing content into English: migration keeps fidelity, a Claude draft is re-authored
+- feedback_verify_after_install.md: Smoke-test a new tool, hook or integration end-to-end before calling it done
+- feedback_shell_grep_pipefail.md: Shapes that fail or lie under `set -Eeuo pipefail` (mid-pipeline grep, `&&` lists, `jq -e`)
+- feedback_rg_misses_gitignored_trackers.md: Bare `rg` skips hidden and gitignored paths, so `.claude/` trackers look clean
+- feedback_git_clean_tree_hides_ignored.md: `git status --porcelain` omits ignored files, so a clean-tree guard misses one
+- feedback_line_number_cross_refs.md: Cite by name, not by line number; and when a drifted reference stays as record
+- feedback_concision.md: Cut research narrative from notes and replies: record what binds future work
+- feedback_prose-lint-write.md: prose-lint scope, typographic vs rhetorical dashes, when to run /workflow:write
+- feedback_no_bulk_regex_for_contextual_skills.md: Never swap a contextual editing skill for a bulk regex pass
+- feedback_audit_walkthrough.md: Running `/audit:walkthrough` and `/audit:blindspot`: weighing findings by their evidence
+- feedback_format_hook_strips_new_import.md: In Python, an import added before its usage is stripped as F401 by the format hook
+- feedback_browser_layout_probe.md: Inspect a rendered layout yourself in headless chromium; Streamlit needs CDP and a sleep
+- feedback_personal_working_files.md: The write-gate on NOTES.md, TODO.md and CALENDRIER.md: reading is free, writing never
+- feedback_ouroboros_tools.md: Which Ouroboros tools support consensus, and how to run evaluate and measure_drift
+- feedback_xdg_open.md: xdg-open on `file://` silently fails in Positron; use `python3 -m http.server`
+- feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
+- feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap
+- feedback_edit_tool_unicode_escape.md: A four-hex-digit `\u` escape in a tool parameter lands decoded; in R use `\u{a0}`
