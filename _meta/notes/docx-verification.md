@@ -125,6 +125,8 @@ Verified end to end the same day on `2026-10-03_prise_csi_tables.docx`: 9 pages 
 
 **Re-verified on the review walkthrough's nine fixes, 2026-10-04**, over three runs whose only validation until then had been `grep` assertions in the bats suite: `epimad_note_man_keywords.docx` at one page, then `2025-10-01_md_man_full.docx` at pages 1-5 and 1-3 of 62. All three exited 0 with distinct captures of 45 to 121 KB. The traces show the interop compiling inside the guarded region, the owned PID resolved at activation, both field passes returning 0, `SetForegroundWindow` granting the foreground and the per-page assertion passing, the duplicate check standing down at 1.64 points per page on the 62-page document and staying on for the one-page one, and no `WINWORD` surviving any run.
 
+**A document name carrying spaces reaches the remote shell intact**, measured 2026-10-04 on `controle de rendu.docx`, two spaces, built with `pandoc --toc` and rendered from outside any git repository: exit 0, 2 pages counted, 2 legible captures, the table of contents filled in the capture where pandoc writes only an empty field. The quoting that carries it is `q()`, `printf '%q'`, applied to the remote path of the PDF fetch-back; the bats suite covers the contract against a stub whose scp unescapes as a remote shell would, and this run is what covers it against the real one.
+
 **A locked station gives uniformly black captures at exit 0**, measured 2026-10-04 on `2026-10-04_prise_plan-snds.docx`: the capture is `Graphics.CopyFromScreen`, a GDI read of the screen, so a locked session returns black whatever Word is doing, and the driver reported `4 brought back as screen captures` with its font report over four unusable 20 KB images where the same document unlocked gives 39 to 390 KB.
 The driver's `LogonUI` refusal covers that one cause; the payload now also asserts, before every page, that the foreground window belongs to the `WINWORD` it started, which is the general property the incident violated (walkthrough 2026-10-04).
 The test is by owning PID rather than by handle equality against `Window.Hwnd`, whose level in Word's window hierarchy is not established here: a mismatch there would refuse every capture instead of the contaminated ones.
@@ -136,5 +138,4 @@ Open:
 
 - **`rules/docx.md`, section "What nothing on this machine settles", stands.** Its sentence is about fidelity to Word, and a screen capture of Word is not the PDF the rewrite was made conditional on; the capture closes the gross-layout question, not the print one.
 - Whether the control is worth running on the full report (44 pages) rather than on the assembled tables and figures is still untested.
-- `word-render` has not been run on a document whose name carries a space; the remote paths are quoted for `scp`, which is untested.
 - Office activation would reopen the PDF route with no change to the tool, the `pdf` mode being the default and the licence guard firing only there.
