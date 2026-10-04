@@ -57,10 +57,11 @@ A task registered as `julien` with an interactive logon carries the PowerShell p
 It needs no elevation, it leaves the SSH and keep-alive arrangement of `_meta/notes/ssh-lan-wsl.md` untouched, and its cost is one Windows object plus the requirement that the Windows session be open, which it is permanently on this machine (`quser` showing the console session open since 2026-10-03 17:26).
 Rejected against it: restarting the distro from the interactive session so every interop child lands in session 2, which is simpler in the payload and costs the unattended-boot property that note measured on 2026-09-19, `ssh ju-TP2` becoming dependent on a logged-on session.
 
-**No font of the deliverable's declared family is installed there, and the user decided 2026-10-04 not to install one.**
-`template.dotx` of `hebstr-doc` declares `Aptos` and `Aptos Display` in its `fontTable.xml`; `find` over `C:\Windows\Fonts` and the Office tree on `ju-TP2` returns no Aptos and no Luciole, where this machine carries both.
-The pass therefore measures the recipient's fallback render, which `reference_word_embedded_fonts_blocked.md` names as the case the Word output is designed around, and never the render at the declared metrics.
-A line break read from it is the fallback's line break.
+**Aptos is available to Word on `ju-TP2` after all, as a cloud font, which corrects the measurement of 2026-10-04 that decided not to install one.**
+That measurement looked in `C:\Windows\Fonts` and the Office tree, neither of which holds it: Office downloads it to `%LOCALAPPDATA%\Microsoft\FontCache\4\CloudFonts\`, where `Aptos`, `Aptos Display` and `Aptos Mono` each carry their `.ttf` files, dated 2026-09-13 to 2026-09-15.
+`Application.FontNames` lists them, so the payload's own check reports nothing missing for a `hebstr-doc` deliverable, whose `fontTable.xml` declares `Aptos`, `Aptos Display`, `Calibri`, `Cambria`, `Cambria Math`, `Courier New` and `Times New Roman`.
+The render would therefore be at the declared metrics rather than the recipient's fallback, and the decision not to install a font stands on a premise that no longer holds.
+Luciole was not re-checked, and whether a cloud font is embedded the same way as an installed one is unmeasured, since nothing has been exported yet.
 
 Rejected, with what disqualifies each:
 
@@ -68,8 +69,30 @@ Rejected, with what disqualifies each:
 - **A recipe in `rules/docx.md` with the PowerShell inline in an `ssh` call**, no tool: the quoting traps through SSH, WSL and PowerShell are repaid at every pass and nothing is testable.
 - **Doing nothing**, LibreOffice plus a manual pass by the user: the state until 2026-10-04, and it leaves the render unseen by Claude, which is the request itself.
 
+### The route is built and blocked on Office activation, measured 2026-10-04
+
+The tool is `word-render` with its `word-render-payload.ps1`, both in the `bin` stow package, tested by `_meta/tests/word-render.bats`.
+The scheduled task `Claude-WordRender` was registered on `ju-TP2` that day with the user's authorisation, for the logged-on user, interactive logon, `RunLevel Limited`, no trigger and `MultipleInstances IgnoreNew`; its action is fixed at `%LOCALAPPDATA%\word-render\word-render-payload.ps1`.
+`word-render` prints the registration command when the task is missing, so the task is reproducible from the tool rather than from this note.
+
+Three deviations from the design above, each forced by what the mechanism does:
+
+- The job directory is one fixed slot under `%LOCALAPPDATA%` rather than a `mktemp -d`, because neither `schtasks /run` nor `Start-ScheduledTask` passes an argument: the task's action path has to be constant, so the payload is staged at that path on every run and the directory is taken fresh and removed on exit.
+- The driver triggers with `Start-ScheduledTask` rather than `schtasks /run`: it already reads the task's state and action through `Get-ScheduledTask` to refuse a task that is running, disabled or pointing at another payload, and the cmdlet raises a catchable error where `schtasks` returns a localized string.
+- It waits on a `result.txt` the payload writes after Word is torn down, rather than on the PDF appearing: a PDF path appears before the export has finished writing it, and a job directory removed while Word still holds the document fails halfway.
+
+**Word reaches the interactive session and refuses to write anything, because that Word is unlicensed.**
+Through the task, `[Environment]::UserInteractive` is true and `WINWORD.EXE` runs in session 2 (`Console`), which closes the session-0 blocker above.
+The payload activates Word in about 1 s, enumerates `FontNames` in 17 s, opens the document, updates its tables of contents and fields, repaginates and counts pages in about 4 s more: 9 pages for `2026-10-03_prise_csi_tables.docx` as reassembled that day, 1 page for a plain `epimad_note_man_keywords.docx`.
+Then every write blocks forever, with no error and no timeout: `ExportAsFixedFormat` with its full flag set, with structure tags, bitmapped fonts, document properties and IRM all turned off, `SaveAs2` to PDF, and `SaveAs2` to a plain `.docx` alike.
+The cause was read by a watcher the payload spawns in its own session with `Start-Process`, which enumerates top-level windows while the save blocks: Word owns a visible `NUIDialog` titled `Sign in to set up Office`, and its `OpusApp` window reads `<document> [Compatibility Mode] - Word (Unlicensed Product)`.
+An unlicensed Word opens and paginates a document and refuses to save, and in an invisible instance the sign-in dialog no automation can answer never surfaces, so the COM call never returns.
+`Application.Caption` carries the same string (`Word (Unlicensed Product)`) as soon as the instance exists, before any document is opened, which is what the payload now guards on: the control refuses in about 10 s, naming the caption, instead of hanging and leaving a wedged Word and a job directory Word still holds.
+The guard is a match on an English UI string and fails open: on another locale it would miss and the driver's timeout path would catch it instead, printing the payload trace and the task's last result.
+
 Open:
 
-- **The scheduled task is decided and not yet created**, and the whole route is untested past the COM activation: nothing has come back as a PDF, so no claim about Word's rendering of a deliverable rests on it yet.
-- **`rules/docx.md`, section "What nothing on this machine settles", stands until the route works.** It is rewritten when a deliverable has come back as Word's own PDF, never on the strength of this design.
-- Whether the control is worth running on the full report (44 pages) rather than on the assembled tables and figures is untested, no timing having been measured past the open call.
+- **Office activation on `ju-TP2` is the only thing between this route and a deliverable**, and it is the user's to do, by signing in on that desktop. Nothing in the tool can work around a product that refuses to write.
+- **`rules/docx.md`, section "What nothing on this machine settles", stands.** No deliverable has come back as Word's own PDF, so it is rewritten only after the first one does.
+- Whether the control is worth running on the full report (44 pages) rather than on the assembled tables and figures is still untested, no export having completed.
+- `word-render` has not been run on a document whose name carries a space; the remote paths are quoted for `scp`, which is untested.
