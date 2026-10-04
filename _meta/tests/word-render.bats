@@ -67,8 +67,16 @@ dest=${paths[$last]}
 dest=${dest#*:}
 i=0
 while [ "$i" -lt "$last" ]; do
-  src=${paths[$i]}
-  cp "${src#*:}" "$dest" || exit 1
+  src=${paths[$i]#*:}
+  case "$src" in
+  *\**)
+    for match in $src; do
+      [ -e "$match" ] || exit 1
+      cp "$match" "$dest" || exit 1
+    done
+    ;;
+  *) cp "$src" "$dest" || exit 1 ;;
+  esac
   i=$((i + 1))
 done
 exit 0'
@@ -115,13 +123,22 @@ case $script in
     exit 0
   fi
   [ -z "${NO_RESULT:-}" ] || exit 0
-  pdf=$(sed -n 's/^pdf=//p' "${job}/request")
-  printf '%%PDF-1.7 stub\n' >"${job}/${pdf}"
+  mode=$(sed -n 's/^mode=//p' "${job}/request")
+  captures=0
+  if [ "$mode" = "capture" ]; then
+    for page in 001 002; do
+      printf 'png\n' >"${job}/page-${page}.png"
+      captures=$((captures + 1))
+    done
+  else
+    pdf=$(sed -n 's/^pdf=//p' "${job}/request")
+    printf '%%PDF-1.7 stub\n' >"${job}/${pdf}"
+  fi
   missing=${STUB_MISSING:-Aptos;Aptos Display}
   [ "$missing" != "none" ] || missing=
-  printf 'pages=%s\nbuild=16.0.20326\ndeclared=%s\nmissing=%s\n' \
-    "${STUB_PAGES:-13}" "${STUB_DECLARED:-Aptos;Aptos Display;Courier New}" \
-    "$missing" >"${job}/result.txt"
+  printf 'mode=%s\npages=%s\ncaptures=%s\nbuild=16.0.20326\ncaption=%s\ndeclared=%s\nmissing=%s\n' \
+    "$mode" "${STUB_PAGES:-13}" "$captures" "${STUB_CAPTION:-Word}" \
+    "${STUB_DECLARED:-Aptos;Aptos Display;Courier New}" "$missing" >"${job}/result.txt"
   ;;
 *Get-ScheduledTask*)
   [ -z "${TASK_ABSENT:-}" ] || exit 3
@@ -147,7 +164,7 @@ setup() {
   REQUEST_LOG="$(mktemp -u)"
   export STUBS STATE SSH_LOG SCP_LOG PS_LOG PDFTOPPM_LOG REQUEST_LOG
   local cmd
-  for cmd in base64 basename cat cp dirname git iconv ls mkdir mktemp printf readlink rm sed sleep touch tr awk; do
+  for cmd in base64 basename cat cp dirname git iconv ls mkdir mktemp mv printf readlink rm sed sleep touch tr awk; do
     [ -e "/usr/bin/${cmd}" ] && ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
@@ -174,7 +191,7 @@ _run() {
     SCP_FAILS="${SCP_FAILS:-}" RASTER_FAILS="${RASTER_FAILS:-}" \
     TASK_ABSENT="${TASK_ABSENT:-}" TASK_STATE="${TASK_STATE:-}" TASK_ARGS="${TASK_ARGS:-}" \
     TRIGGER_FAILS="${TRIGGER_FAILS:-}" WORD_FAILS="${WORD_FAILS:-}" NO_RESULT="${NO_RESULT:-}" \
-    STUB_PAGES="${STUB_PAGES:-}" STUB_DECLARED="${STUB_DECLARED:-}" \
+    STUB_PAGES="${STUB_PAGES:-}" STUB_DECLARED="${STUB_DECLARED:-}" STUB_CAPTION="${STUB_CAPTION:-}" \
     STUB_MISSING="${STUB_MISSING:-}" STUB_PDF_PAGES="${STUB_PDF_PAGES:-}" \
     WORD_RENDER_REMOTE="${WORD_RENDER_REMOTE:-}" WORD_RENDER_TASK="${WORD_RENDER_TASK:-}" \
     "$BASH" "$SCRIPT" "$@"
@@ -475,6 +492,55 @@ _run() {
   [ ! -e "$PDFTOPPM_LOG" ]
 }
 
+# ─── the capture route ──────────────────────────────────────────────────────
+
+@test "--capture asks the payload for a capture and never rasterizes a pdf" {
+  _run --capture "$DOCX"
+  [ "$status" -eq 0 ]
+  grep -q "mode=capture" "$REQUEST_LOG"
+  [ ! -e "$PDFTOPPM_LOG" ]
+  [ ! -e "${STATE}/.claude/screenshots/report-word.pdf" ]
+}
+
+@test "the captures land under the document's own name" {
+  _run --capture "$DOCX"
+  [ "$status" -eq 0 ]
+  [ -f "${STATE}/.claude/screenshots/report-word-001.png" ]
+  [ -f "${STATE}/.claude/screenshots/report-word-002.png" ]
+  [[ "$output" == *"2 brought back as screen captures"* ]]
+}
+
+@test "the default route stays the pdf export" {
+  _run "$DOCX"
+  [ "$status" -eq 0 ]
+  grep -q "mode=pdf" "$REQUEST_LOG"
+  [ -f "${STATE}/.claude/screenshots/report-word.pdf" ]
+}
+
+@test "--pages reaches the payload in capture mode rather than pdftoppm" {
+  _run --capture --pages 4-6 "$DOCX"
+  [ "$status" -eq 0 ]
+  grep -q "first=4" "$REQUEST_LOG"
+  grep -q "last=6" "$REQUEST_LOG"
+  [ ! -e "$PDFTOPPM_LOG" ]
+}
+
+@test "a capture from an unlicensed Word says so rather than passing for a render" {
+  STUB_CAPTION="Word (Unlicensed Product)" _run --capture "$DOCX"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"that Word is unlicensed"* ]]
+  [[ "$output" == *"it writes no file"* ]]
+}
+
+@test "earlier captures are replaced in capture mode too" {
+  mkdir -p "${STATE}/.claude/screenshots"
+  printf 'old\n' >"${STATE}/.claude/screenshots/report-word-009.png"
+  _run --capture "$DOCX"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"replacing 1 earlier capture"* ]]
+  [ ! -e "${STATE}/.claude/screenshots/report-word-009.png" ]
+}
+
 # ─── the payload's session contract ─────────────────────────────────────────
 
 @test "the payload asserts the interactive session before touching Word" {
@@ -490,6 +556,24 @@ _run() {
   open=$(grep -n 'word.Documents.Open(' "$PAYLOAD" | head -1 | cut -d: -f1)
   [ -n "$guard" ]
   [ "$guard" -lt "$open" ]
+}
+
+@test "the licence refusal spares the capture route, which an unlicensed Word still serves" {
+  grep -q "mode -eq 'pdf' -and \$caption -match 'Unlicensed'" "$PAYLOAD"
+}
+
+@test "the payload hides the sign-in overlay rather than closing it" {
+  grep -q 'ShowWindow($handle, 0)' "$PAYLOAD"
+  run ! grep -q 'PostMessage' "$PAYLOAD"
+}
+
+@test "the payload ends the instance Quit left behind in capture mode" {
+  grep -q 'Quit left ' "$PAYLOAD"
+  grep -q 'Stop-Process -Id $process.Id -Force' "$PAYLOAD"
+}
+
+@test "the capture refuses to take over a Word the user already has open" {
+  grep -q 'Word is already running on that desktop' "$PAYLOAD"
 }
 
 @test "the payload quits only the Word it started itself" {

@@ -16,6 +16,9 @@ REMOTE_PS=${WIN_SYSTEM32}/WindowsPowerShell/v1.0/powershell.exe
 DPI=110
 POLL=2
 TIMEOUT=240
+MODE=pdf
+CAPTION=
+CAPTURES=
 FIRST=
 LAST=
 OUT_DIR=
@@ -33,12 +36,16 @@ usage() {
 Usage: word-render [options] <file.docx>
 
 Renders a .docx through the real Word on the remote Windows host and brings the
-pages back as PNGs. Word exports its own PDF with ExportAsFixedFormat, fields
-and tables of contents updated, and pdftoppm rasterizes it here. The PDF and the
-captures land in <project>/.claude/screenshots/.
+pages back as PNGs, fields and tables of contents updated. By default Word
+exports its own PDF with ExportAsFixedFormat and pdftoppm rasterizes it here;
+--capture photographs Word's window instead. Both land in
+<project>/.claude/screenshots/.
 
-  --pages F[-L]   rasterize these pages only (default: all)
-  --dpi N         rasterization resolution (default: 110)
+  --capture       photograph Word's own window page by page instead of
+                  exporting a PDF, which is the only route an unlicensed
+                  Word leaves open
+  --pages F[-L]   these pages only (default: all)
+  --dpi N         rasterization resolution, export mode only (default: 110)
   --out-dir DIR   write the PDF and the captures here
   --timeout S     seconds to wait for Word (default: 240)
   -h, --help      show this help
@@ -52,6 +59,10 @@ the gross-breakage check beside this one and never a claim about Word.
 A family the document declares but the host does not carry is named in the
 output: the pass then measures the recipient's fallback render, so a line break
 read from it is the fallback's line break.
+
+A capture is Word's screen rendering, not its print rendering, and it carries no
+text layer: it answers a question about line breaking, justification and
+pagination, never one about a hairline rule.
 
 Environment: WORD_RENDER_REMOTE (default ju-TP2), WORD_RENDER_TASK (default
 Claude-WordRender)
@@ -184,7 +195,7 @@ stage() {
   local name=$1 pdf_name=$2
   scp -q -o BatchMode=yes -- "$PAYLOAD" "$DOCX" "${REMOTE}:${JOB_WSL}/" ||
     die "could not stage the document and the payload in ${JOB_WIN} on ${REMOTE}"
-  printf 'docx=%s\npdf=%s\n' "$name" "$pdf_name" |
+  printf 'mode=%s\ndocx=%s\npdf=%s\nfirst=%s\nlast=%s\n' "$MODE" "$name" "$pdf_name" "$FIRST" "$LAST" |
     remote_stdin "cat > $(q "${JOB_WSL}/request")" ||
     die "could not write the request in ${JOB_WIN} on ${REMOTE}"
 }
@@ -249,7 +260,9 @@ read_result() {
     value=${line#*=}
     case $key in
     pages) PAGES=$value ;;
+    captures) CAPTURES=$value ;;
     build) BUILD=$value ;;
+    caption) CAPTION=$value ;;
     declared) DECLARED=$value ;;
     missing) MISSING=$value ;;
     esac
@@ -299,13 +312,30 @@ rasterize() {
   printf 'wrote %s\n' "${made[@]}"
 }
 
-report() {
-  local pdf=$1 pdf_pages
-  pdf_pages=$(pdfinfo "$pdf" | awk '/^Pages:/ { print $2 }')
-  printf 'Word %s counts %s page(s), the PDF carries %s\n' "$BUILD" "$PAGES" "${pdf_pages:-?}"
-  if [ "$pdf_pages" != "" ] && [ "$pdf_pages" != "$PAGES" ]; then
-    printf 'word-render: Word and the PDF disagree on the page count\n' >&2
+fetch_captures() {
+  local prefix=$1 tmp src page name
+  local stale=("$prefix"-*.png) made=()
+  if [ "${#stale[@]}" -gt 0 ]; then
+    printf 'replacing %d earlier capture(s) of %s\n' "${#stale[@]}" "${prefix##*/}"
+    rm -f -- "${stale[@]}"
   fi
+  tmp=$(mktemp -d)
+  if ! scp -q -o BatchMode=yes -- "${REMOTE}:${JOB_WSL}/page-*.png" "${tmp}/"; then
+    rm -rf -- "$tmp"
+    die "no capture came back from ${REMOTE}"
+  fi
+  for src in "$tmp"/page-*.png; do
+    page=${src##*/page-}
+    name="${prefix}-${page}"
+    mv -- "$src" "$name"
+    made+=("$name")
+  done
+  rm -rf -- "$tmp"
+  [ "${#made[@]}" -gt 0 ] || die "no capture came back from ${REMOTE}"
+  printf 'wrote %s\n' "${made[@]}"
+}
+
+report_fonts() {
   if [ "$MISSING" != "" ]; then
     printf "fallback render: %s declared and not installed on %s, so a line break read here is the fallback's, never Word at the declared metrics\n" \
       "${MISSING//;/, }" "$REMOTE"
@@ -314,8 +344,30 @@ report() {
   fi
 }
 
+report_export() {
+  local pdf=$1 pdf_pages
+  pdf_pages=$(pdfinfo "$pdf" | awk '/^Pages:/ { print $2 }')
+  printf 'Word %s counts %s page(s), the PDF carries %s\n' "$BUILD" "$PAGES" "${pdf_pages:-?}"
+  if [ "$pdf_pages" != "" ] && [ "$pdf_pages" != "$PAGES" ]; then
+    printf 'word-render: Word and the PDF disagree on the page count\n' >&2
+  fi
+  report_fonts
+}
+
+report_capture() {
+  printf 'Word %s counts %s page(s), %s brought back as screen captures\n' "$BUILD" "$PAGES" "$CAPTURES"
+  case $CAPTION in
+  *Unlicensed*)
+    printf "that Word is unlicensed (%s): it still lays out and paginates, so the line breaking you read is Word's own, and it writes no file, so a capture is all this route can give\n" \
+      "$CAPTION"
+    ;;
+  esac
+  report_fonts
+}
+
 while [ $# -gt 0 ]; do
   case $1 in
+  --capture) MODE=capture ;;
   --pages)
     [ $# -ge 2 ] || die '--pages needs a page or a F-L range'
     case $2 in
@@ -405,8 +457,13 @@ trigger
 printf 'waiting on Word in the interactive session of %s\n' "$REMOTE"
 wait_for_result
 read_result
-scp -q -o BatchMode=yes -- "${REMOTE}:$(q "${JOB_WSL}/${PDF_NAME}")" "${OUT_DIR}/" ||
-  die "could not bring ${PDF_NAME} back from ${REMOTE}"
-printf 'wrote %s\n' "${OUT_DIR}/${PDF_NAME}"
-rasterize "${OUT_DIR}/${PDF_NAME}" "${OUT_DIR}/${STEM}-word"
-report "${OUT_DIR}/${PDF_NAME}"
+if [ "$MODE" = "capture" ]; then
+  fetch_captures "${OUT_DIR}/${STEM}-word"
+  report_capture
+else
+  scp -q -o BatchMode=yes -- "${REMOTE}:$(q "${JOB_WSL}/${PDF_NAME}")" "${OUT_DIR}/" ||
+    die "could not bring ${PDF_NAME} back from ${REMOTE}"
+  printf 'wrote %s\n' "${OUT_DIR}/${PDF_NAME}"
+  rasterize "${OUT_DIR}/${PDF_NAME}" "${OUT_DIR}/${STEM}-word"
+  report_export "${OUT_DIR}/${PDF_NAME}"
+fi
