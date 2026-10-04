@@ -567,6 +567,16 @@ _run() {
   run ! grep -q 'PostMessage' "$PAYLOAD"
 }
 
+@test "the payload pages by screenfuls, which alone frames a page from its top edge" {
+  grep -q 'VerticalPercentScrolled = 0' "$PAYLOAD"
+  grep -q 'LargeScroll($page - 1, 0, 0, 0)' "$PAYLOAD"
+  run ! grep -q 'ScrollIntoView' "$PAYLOAD"
+}
+
+@test "the payload fits the whole page rather than the text" {
+  grep -q 'Zoom.PageFit = 1' "$PAYLOAD"
+}
+
 @test "the payload ends the instance Quit left behind in capture mode" {
   grep -q 'Quit left ' "$PAYLOAD"
   grep -q 'Stop-Process -Id $process.Id -Force' "$PAYLOAD"

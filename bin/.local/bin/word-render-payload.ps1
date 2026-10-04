@@ -217,8 +217,8 @@ try {
     Start-Sleep -Milliseconds 500
 
     for ($page = $first; $page -le $last; $page++) {
-      $target = $doc.GoTo(1, 1, $page)
-      $window.ScrollIntoView($target, $true)
+      $window.ActivePane.VerticalPercentScrolled = 0
+      if ($page -gt 1) { $window.ActivePane.LargeScroll($page - 1, 0, 0, 0) }
       Start-Sleep -Milliseconds 1200
       $null = Hide-Overlay
       $name = 'page-{0:D3}.png' -f $page

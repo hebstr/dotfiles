@@ -102,13 +102,16 @@ Word's layout engine runs fully in reduced functionality, so the line breaking, 
 Four mechanisms it rests on, each measured:
 
 - **The sign-in overlay is hidden, never closed.** It is a `NUIDialog` owned by `WINWORD`, and a `WM_CLOSE` to it switches Word into enforcement: the next `Selection.GoTo`, and `Document.GoTo` with it, throws "This method or property is not available because the license to use this application has expired". `ShowWindow(handle, SW_HIDE)` removes it from the screen and tells Word nothing, after which navigation works.
-- **Navigation goes through `Document.GoTo` and `Window.ScrollIntoView`**, which move no selection.
+- **Paging goes through the pane's own scrolling**, `VerticalPercentScrolled` back to 0 then `LargeScroll` by `page - 1` screenfuls, because one screenful is one page under full-page fit. `ScrollIntoView` was tried first and rejected on the capture it produced: it scrolls minimally, so from page 2 on the tail of the previous page holds the top of the window and the target page loses about 150 px at the bottom, and handing it the whole page range rather than a point changes nothing.
 - **`Quit` leaves the instance alive** once that dialog has been hidden, so the payload ends it by PID, which it may do safely because the capture refuses to start when a Word is already running on that desktop.
 - **`SetProcessDPIAware` before the capture** is what turns a 1477x928 image into the screen's real 2562x1600, and the full page is `WdPageFit` `1`, where `3` is the fit-to-text value that crops the page.
 
+**The page renders in its true colours once Word's dark mode is off**, which the user settled on 2026-10-04 by setting `HKCU\Software\Microsoft\Office\16.0\Word\Options\DisableDarkMode` to `1`, the "never change the document page colour" switch.
+That is the lever, not `Common\UI Theme`, which stays at `6` so the interface follows the system while the page stays white; Word's `Application.Options` exposes neither (it carries only the revision-marking colours).
+Verified end to end the same day on `2026-10-03_prise_csi_tables.docx`: 9 pages counted by Word, 9 captures with 9 distinct checksums, each page framed from its top edge to its own footer number, zebra rows and rules in their declared colours, 58 s for the whole document.
+
 Open:
 
-- **The capture renders the page dark.** Word follows the system theme (`HKCU\Software\Microsoft\Office\16.0\Common\UI Theme` is `6`, Windows being in dark mode), its `Application.Options` exposes no theme or dark-mode property (only the revision-marking colours), and `HKCU\...\Word\Options` carries no dark-mode value. So a capture inverts the document's colours, and a judgement on a table's header colour cannot be read from it. Setting `UI Theme` to `5` around the capture would fix it and is a change to the user's Word configuration on `ju-TP2`, so it is theirs to authorise.
 - **`rules/docx.md`, section "What nothing on this machine settles", stands.** Its sentence is about fidelity to Word, and a screen capture of Word is not the PDF the rewrite was made conditional on; the capture closes the gross-layout question, not the print one.
 - Whether the control is worth running on the full report (44 pages) rather than on the assembled tables and figures is still untested.
 - `word-render` has not been run on a document whose name carries a space; the remote paths are quoted for `scp`, which is untested.
