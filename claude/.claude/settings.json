@@ -94,6 +94,7 @@
     ],
     "defaultMode": "default"
   },
+  "model": "claude-opus-5",
   "hooks": {
     "SessionStart": [
       {
@@ -307,6 +308,5 @@
   "autoMemoryDirectory": "~/.claude/memory",
   "autoDreamEnabled": false,
   "showThinkingSummaries": true,
-  "switchModelsOnFlag": true,
-  "model": "sonnet"
+  "switchModelsOnFlag": true
 }
