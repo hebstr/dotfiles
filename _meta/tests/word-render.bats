@@ -37,6 +37,10 @@ case "$cmd" in
   cp "${cmd#*cat > }" "${REQUEST_LOG}" 2>/dev/null || true
   exit 0
   ;;
+*"-e result.txt"*)
+  [ -z "${WAIT_UNREACHABLE:-}" ] || exit 255
+  [ -z "${JOB_GONE:-}" ] || rm -rf "${STATE}/local/word-render"
+  ;;
 *"rm -rf"*)
   case "$cmd" in
   *mkdir*) ;;
@@ -49,6 +53,16 @@ eval "$cmd"'
 
 _install_scp_stub() {
   _stub_command scp '
+_remote_unquote() {
+  case "$1" in
+  *:*)
+    set -f
+    eval "printf \"%s\" ${1#*:}"
+    set +f
+    ;;
+  *) printf "%s" "$1" ;;
+  esac
+}
 printf "%s\n" "$*" >>"${SCP_LOG}"
 [ -z "${SCP_FAILS:-}" ] || exit 1
 paths=()
@@ -63,11 +77,13 @@ while [ $# -gt 0 ]; do
   esac
 done
 last=$((${#paths[@]} - 1))
-dest=${paths[$last]}
-dest=${dest#*:}
+dest=$(_remote_unquote "${paths[$last]}")
+case "${paths[0]}" in
+*:*) [ -z "${SCP_FETCH_FAILS:-}" ] || exit 1 ;;
+esac
 i=0
 while [ "$i" -lt "$last" ]; do
-  src=${paths[$i]#*:}
+  src=$(_remote_unquote "${paths[$i]}")
   case "$src" in
   *\**)
     for match in $src; do
@@ -110,7 +126,9 @@ printf '%s\n----\n' "$script" >>"${PS_LOG}"
 job="${STATE}/local/word-render"
 case $script in
 *'Get-Process LogonUI'*)
-  if [ -n "${STUB_LOCKED:-}" ]; then
+  if [ -n "${STUB_SESSION:-}" ]; then
+    [ "${STUB_SESSION}" = none ] || printf '%s\n' "${STUB_SESSION}"
+  elif [ -n "${STUB_LOCKED:-}" ]; then
     printf 'locked\n'
   else
     printf 'open\n'
@@ -171,9 +189,13 @@ setup() {
   PDFTOPPM_LOG="$(mktemp -u)"
   REQUEST_LOG="$(mktemp -u)"
   export STUBS STATE SSH_LOG SCP_LOG PS_LOG PDFTOPPM_LOG REQUEST_LOG
-  local cmd
+  local cmd path
   for cmd in base64 basename cat cp dirname git iconv ls mkdir mktemp mv printf readlink rm sed sleep touch tr awk; do
-    [ -e "/usr/bin/${cmd}" ] && ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
+    path=$(type -P "$cmd") || {
+      printf 'setup: %s is not on the PATH, so the stub PATH would silently lack it\n' "$cmd" >&2
+      return 1
+    }
+    ln -s "$path" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
   _install_ssh_stub
@@ -196,14 +218,16 @@ _run() {
     PS_LOG="$PS_LOG" PDFTOPPM_LOG="$PDFTOPPM_LOG" REQUEST_LOG="$REQUEST_LOG" \
     WIN_SYSTEM32="${STUBS}/win32" \
     SSH_UNREACHABLE="${SSH_UNREACHABLE:-}" RM_UNREACHABLE="${RM_UNREACHABLE:-}" \
-    SCP_FAILS="${SCP_FAILS:-}" \
+    WAIT_UNREACHABLE="${WAIT_UNREACHABLE:-}" JOB_GONE="${JOB_GONE:-}" \
+    SCP_FAILS="${SCP_FAILS:-}" SCP_FETCH_FAILS="${SCP_FETCH_FAILS:-}" \
     TASK_ABSENT="${TASK_ABSENT:-}" TASK_STATE="${TASK_STATE:-}" TASK_ARGS="${TASK_ARGS:-}" \
     TRIGGER_FAILS="${TRIGGER_FAILS:-}" WORD_FAILS="${WORD_FAILS:-}" NO_RESULT="${NO_RESULT:-}" \
     STUB_PAGES="${STUB_PAGES:-}" STUB_DECLARED="${STUB_DECLARED:-}" STUB_CAPTION="${STUB_CAPTION:-}" \
+    STUB_FIELDS="${STUB_FIELDS:-}" \
     STUB_MISSING="${STUB_MISSING:-}" STUB_PDF_PAGES="${STUB_PDF_PAGES:-}" \
-    STUB_LOCKED="${STUB_LOCKED:-}" \
+    STUB_LOCKED="${STUB_LOCKED:-}" STUB_SESSION="${STUB_SESSION:-}" \
     WORD_RENDER_REMOTE="${WORD_RENDER_REMOTE:-}" WORD_RENDER_TASK="${WORD_RENDER_TASK:-}" \
-    "$BASH" "$SCRIPT" "$@"
+    "$BASH" "${SCRIPT_UNDER_TEST:-$SCRIPT}" "$@"
 }
 
 # ─── argument handling ──────────────────────────────────────────────────────
@@ -244,16 +268,28 @@ _run() {
   [ ! -e "$SSH_LOG" ]
 }
 
-@test "a macro-enabled document and a template are Word documents too" {
+@test "a macro-enabled document is a Word document too" {
   printf 'PK stub\n' >"${STATE}/memo.docm"
   _run "${STATE}/memo.docm"
   [ "$status" -eq 0 ]
   grep -q "docx=memo.docm" "$REQUEST_LOG"
   [ -f "${STATE}/.claude/screenshots/memo-word.pdf" ]
+}
+
+@test "a template is a Word document too" {
   printf 'PK stub\n' >"${STATE}/letterhead.dotx"
   _run "${STATE}/letterhead.dotx"
   [ "$status" -eq 0 ]
+  grep -q "docx=letterhead.dotx" "$REQUEST_LOG"
   [ -f "${STATE}/.claude/screenshots/letterhead-word.pdf" ]
+}
+
+@test "a driver without its payload beside it refuses before any ssh" {
+  cp "$SCRIPT" "${STATE}/word-render"
+  SCRIPT_UNDER_TEST="${STATE}/word-render" _run "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the payload is missing beside this script"* ]]
+  [ ! -e "$SSH_LOG" ]
 }
 
 @test "a second document is refused rather than silently ignored" {
@@ -287,6 +323,47 @@ _run() {
   [[ "$output" == *"--timeout must be"* ]]
 }
 
+@test "--timeout refuses a non-numeric number of seconds" {
+  _run --timeout abc "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--timeout takes a number of seconds, got abc"* ]]
+}
+
+@test "--pages refuses a page before the first one" {
+  _run --pages 0 "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--pages starts at 1, got 0"* ]]
+}
+
+@test "--dpi refuses a resolution below one" {
+  _run --dpi 0 "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--dpi must be 1 or more, got 0"* ]]
+}
+
+@test "a flag left without its operand is named rather than left to set -u" {
+  local spec flag want
+  for spec in \
+    "--pages:needs a page or a F-L range" \
+    "--dpi:needs a resolution" \
+    "--out-dir:needs a directory" \
+    "--timeout:needs a number of seconds"; do
+    flag=${spec%%:*}
+    want=${spec#*:}
+    _run "$flag"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"${flag} ${want}"* ]]
+    [[ "$output" != *"unbound variable"* ]]
+  done
+}
+
+@test "an empty --out-dir is refused rather than falling back to the default" {
+  _run --out-dir "" "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--out-dir needs a directory"* ]]
+  [ ! -e "${STATE}/.claude/screenshots/report-word.pdf" ]
+}
+
 # ─── refusals on the remote side ────────────────────────────────────────────
 
 @test "refusal: an unreachable host says so and stages nothing" {
@@ -300,6 +377,13 @@ _run() {
   STUB_LOCKED=1 _run --capture "$DOCX"
   [ "$status" -eq 1 ]
   [[ "$output" == *"is locked"* ]]
+  [ ! -e "$SCP_LOG" ]
+}
+
+@test "refusal: a session state that comes back silent is not read as open" {
+  STUB_SESSION=none _run --capture "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the session state on ju-TP2 came back as nothing"* ]]
   [ ! -e "$SCP_LOG" ]
 }
 
@@ -399,12 +483,19 @@ _run() {
   grep -q "pdf=report-word.pdf" "$REQUEST_LOG"
 }
 
-@test "the job directory is taken fresh and removed on exit" {
+@test "the job directory is removed on exit" {
   _run "$DOCX"
   [ "$status" -eq 0 ]
-  grep -q "rm -rf" "$SSH_LOG"
-  grep -q "mkdir -p" "$SSH_LOG"
   [ ! -e "${STATE}/local/word-render" ]
+}
+
+@test "the job directory is taken fresh, so an earlier result is not read as this one" {
+  mkdir -p "${STATE}/local/word-render"
+  printf 'mode=pdf\npages=99\ncaptures=0\nbuild=16.0.0\n' >"${STATE}/local/word-render/result.txt"
+  NO_RESULT=1 _run --timeout 2 "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no result after 2s"* ]]
+  [[ "$output" != *"99 page(s)"* ]]
 }
 
 @test "a job directory the driver could not remove is reported, not claimed gone" {
@@ -419,6 +510,22 @@ _run() {
   [ "$status" -eq 1 ]
   [[ "$output" == *'C:\Users\julien\AppData\Local\word-render is left in place'* ]]
   [ -d "${STATE}/local/word-render" ]
+}
+
+@test "a host that drops during the wait keeps the job directory too" {
+  WAIT_UNREACHABLE=1 _run "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot reach"* ]]
+  [[ "$output" == *'C:\Users\julien\AppData\Local\word-render is left in place'* ]]
+  [ -d "${STATE}/local/word-render" ]
+}
+
+@test "a job directory claimed away during the wait is named as gone" {
+  JOB_GONE=1 _run "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'C:\Users\julien\AppData\Local\word-render is gone on'* ]]
+  [[ "$output" == *"another render may have claimed it"* ]]
+  [[ "$output" != *"is left in place"* ]]
 }
 
 @test "a failing render still tears the job directory down" {
@@ -462,11 +569,40 @@ _run() {
   [[ "$output" == *"report-word-01.png"* ]]
 }
 
+@test "a document name with a space comes back through the quoted remote path" {
+  printf 'PK stub\n' >"${STATE}/mon rapport final.docx"
+  _run "${STATE}/mon rapport final.docx"
+  [ "$status" -eq 0 ]
+  [ -f "${STATE}/.claude/screenshots/mon rapport final-word.pdf" ]
+  [ -f "${STATE}/.claude/screenshots/mon rapport final-word-01.png" ]
+}
+
+@test "a document in a subdirectory still lands at the repository root" {
+  git -C "$STATE" init -q
+  printf '.claude/\n' >"${STATE}/.gitignore"
+  mkdir -p "${STATE}/rapports/2026"
+  printf 'PK stub\n' >"${STATE}/rapports/2026/note.docx"
+  _run "${STATE}/rapports/2026/note.docx"
+  [ "$status" -eq 0 ]
+  [ -f "${STATE}/.claude/screenshots/note-word.pdf" ]
+  [ ! -e "${STATE}/rapports/2026/.claude/screenshots/note-word.pdf" ]
+}
+
 @test "--out-dir takes the outputs instead of the project directory" {
   _run --out-dir "${STATE}/elsewhere" "$DOCX"
   [ "$status" -eq 0 ]
   [ -f "${STATE}/elsewhere/report-word.pdf" ]
   [ ! -e "${STATE}/.claude/screenshots/report-word.pdf" ]
+}
+
+@test "a relative --out-dir is resolved before the ignore guard reads it" {
+  git -C "$STATE" init -q
+  cd "$STATE"
+  [ "$PWD" = "$STATE" ]
+  _run --out-dir captures "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"${STATE}/captures is not ignored in ${STATE}"* ]]
+  [ ! -e "${STATE}/captures/report-word.pdf" ]
 }
 
 @test "the report names Word's build and both page counts" {
@@ -519,8 +655,7 @@ _run() {
 @test "--pages hands pdftoppm the range and nothing wider" {
   _run --pages 4-6 "$DOCX"
   [ "$status" -eq 0 ]
-  grep -q -- "-f 4" "$PDFTOPPM_LOG"
-  grep -q -- "-l 6" "$PDFTOPPM_LOG"
+  grep -q -- "-f 4 -l 6" "$PDFTOPPM_LOG"
 }
 
 @test "a single --pages value rasterizes that page alone" {
@@ -529,12 +664,17 @@ _run() {
   grep -q -- "-f 3 -l 3" "$PDFTOPPM_LOG"
 }
 
-@test "--dpi reaches pdftoppm and 110 is the default" {
+@test "110 is the default rasterization resolution" {
   _run "$DOCX"
   [ "$status" -eq 0 ]
   grep -q -- "-r 110" "$PDFTOPPM_LOG"
+}
+
+@test "--dpi replaces the default rather than adding to it" {
   _run --dpi 220 "$DOCX"
+  [ "$status" -eq 0 ]
   grep -q -- "-r 220" "$PDFTOPPM_LOG"
+  run ! grep -q -- "-r 110" "$PDFTOPPM_LOG"
 }
 
 @test "earlier captures of the same document are replaced, not added to" {
@@ -551,6 +691,14 @@ _run() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"could not stage"* ]]
   run ! grep -q "Start-ScheduledTask" "$PS_LOG"
+  [ ! -e "$PDFTOPPM_LOG" ]
+}
+
+@test "a pdf that will not come back is refused rather than rasterized" {
+  SCP_FETCH_FAILS=1 _run "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"could not bring report-word.pdf back"* ]]
+  [ ! -e "${STATE}/.claude/screenshots/report-word.pdf" ]
   [ ! -e "$PDFTOPPM_LOG" ]
 }
 
@@ -592,6 +740,20 @@ _run() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"that Word is unlicensed"* ]]
   [[ "$output" == *"it writes no file"* ]]
+}
+
+@test "captures that never come back are refused rather than reported as written" {
+  SCP_FETCH_FAILS=1 _run --capture "$DOCX"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no capture came back"* ]]
+  run ! grep -q "wrote " <<<"$output"
+}
+
+@test "a document name with a space lands under that name in capture mode too" {
+  printf 'PK stub\n' >"${STATE}/mon rapport final.docx"
+  _run --capture "${STATE}/mon rapport final.docx"
+  [ "$status" -eq 0 ]
+  [ -f "${STATE}/.claude/screenshots/mon rapport final-word-001.png" ]
 }
 
 @test "earlier captures are replaced in capture mode too" {
@@ -662,8 +824,28 @@ _run() {
   grep -q 'if ($discriminates -and $position -le $previous)' "$PAYLOAD"
 }
 
+@test "the payload shows Word for the capture alone, which photographs its window" {
+  grep -qF "\$word.Visible = (\$mode -eq 'capture')" "$PAYLOAD"
+}
+
+@test "the payload repaginates before it counts the pages the report rests on" {
+  repaginate=$(grep -n 'Repaginate()' "$PAYLOAD" | cut -d: -f1)
+  count=$(grep -n 'ComputeStatistics(2)' "$PAYLOAD" | cut -d: -f1)
+  [ -n "$repaginate" ]
+  [ "$repaginate" -lt "$count" ]
+}
+
+@test "an export that wrote no file refuses before the success sentinel" {
+  exported=$(grep -n 'ExportAsFixedFormat(' "$PAYLOAD" | cut -d: -f1)
+  guard=$(grep -n 'ExportAsFixedFormat wrote no file' "$PAYLOAD" | cut -d: -f1)
+  result=$(grep -n 'Write-Sentinel $resultPath' "$PAYLOAD" | cut -d: -f1)
+  [ -n "$guard" ]
+  [ "$exported" -lt "$guard" ]
+  [ "$guard" -lt "$result" ]
+}
+
 @test "the payload fits the whole page rather than the text" {
-  grep -q 'Zoom.PageFit = 1' "$PAYLOAD"
+  grep -qF '$window.ActivePane.View.Zoom.PageFit = 1' "$PAYLOAD"
 }
 
 @test "the payload ends the instance Quit left behind in capture mode" {
@@ -672,7 +854,11 @@ _run() {
 }
 
 @test "the capture refuses to take over a Word the user already has open" {
-  grep -q 'Word is already running on that desktop' "$PAYLOAD"
+  grep -qF "if (\$mode -eq 'capture' -and -not \$created) {" "$PAYLOAD"
+  grep -qF 'Word is already running on that desktop' "$PAYLOAD"
+  guard=$(grep -nF "if (\$mode -eq 'capture' -and -not \$created) {" "$PAYLOAD" | cut -d: -f1)
+  activation=$(grep -nF 'New-Object -ComObject Word.Application' "$PAYLOAD" | cut -d: -f1)
+  [ "$guard" -lt "$activation" ]
 }
 
 @test "the payload quits only the Word it started itself" {
@@ -687,8 +873,8 @@ _run() {
 }
 
 @test "the payload updates the fields a headless conversion leaves empty" {
-  grep -q 'TablesOfContents' "$PAYLOAD"
-  grep -q 'fieldError = $doc.Fields.Update()' "$PAYLOAD"
+  grep -qF 'foreach ($toc in $doc.TablesOfContents) { $toc.Update() }' "$PAYLOAD"
+  grep -qF 'fieldError = $doc.Fields.Update()' "$PAYLOAD"
   grep -q '"fields=$fieldError"' "$PAYLOAD"
 }
 
