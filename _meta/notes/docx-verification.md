@@ -65,7 +65,7 @@ Luciole was not re-checked, and whether a cloud font is embedded the same way as
 
 Rejected, with what disqualifies each:
 
-- **Capturing the Word window on the Windows desktop** instead of exporting a PDF: it needs an unlocked interactive session, it depends on the window state, the zoom and the ribbon, and it buys nothing on a layout question that Word's own PDF does not give.
+- **Capturing the Word window on the Windows desktop** instead of exporting a PDF: it needs an unlocked interactive session, it depends on the window state, the zoom and the ribbon, and it buys nothing on a layout question that Word's own PDF does not give. Taken after all once that PDF proved unreachable, see "The capture route" below: the window state was settled by the four mechanisms there, while the unlocked-session requirement held and is now a guard.
 - **A recipe in `rules/docx.md` with the PowerShell inline in an `ssh` call**, no tool: the quoting traps through SSH, WSL and PowerShell are repaid at every pass and nothing is testable.
 - **Doing nothing**, LibreOffice plus a manual pass by the user: the state until 2026-10-04, and it leaves the render unseen by Claude, which is the request itself.
 
@@ -80,6 +80,8 @@ Three deviations from the design above, each forced by what the mechanism does:
 - The job directory is one fixed slot under `%LOCALAPPDATA%` rather than a `mktemp -d`, because neither `schtasks /run` nor `Start-ScheduledTask` passes an argument: the task's action path has to be constant, so the payload is staged at that path on every run and the directory is taken fresh and removed on exit.
 - The driver triggers with `Start-ScheduledTask` rather than `schtasks /run`: it already reads the task's state and action through `Get-ScheduledTask` to refuse a task that is running, disabled or pointing at another payload, and the cmdlet raises a catchable error where `schtasks` returns a localized string.
 - It waits on a `result.txt` the payload writes after Word is torn down, rather than on the PDF appearing: a PDF path appears before the export has finished writing it, and a job directory removed while Word still holds the document fails halfway.
+
+`remote_ps` prefixes every script it encodes with `$ProgressPreference = 'SilentlyContinue'`: `Start-ScheduledTask` writes progress records that `ssh` relays as a CLIXML blob on stderr, landing in the middle of the driver's own output with its accents mangled. Silencing it in the one place that encodes commands keeps real errors on stderr, where a bash-side redirection would have dropped those too.
 
 **Word reaches the interactive session and refuses to write anything, because that Word is unlicensed.**
 Through the task, `[Environment]::UserInteractive` is true and `WINWORD.EXE` runs in session 2 (`Console`), which closes the session-0 blocker above.
@@ -110,6 +112,10 @@ Four mechanisms it rests on, each measured:
 **The page renders in its true colours once Word's dark mode is off**, which the user settled on 2026-10-04 by setting `HKCU\Software\Microsoft\Office\16.0\Word\Options\DisableDarkMode` to `1`, the "never change the document page colour" switch.
 That is the lever, not `Common\UI Theme`, which stays at `6` so the interface follows the system while the page stays white; Word's `Application.Options` exposes neither (it carries only the revision-marking colours).
 Verified end to end the same day on `2026-10-03_prise_csi_tables.docx`: 9 pages counted by Word, 9 captures with 9 distinct checksums, each page framed from its top edge to its own footer number, zebra rows and rules in their declared colours, 58 s for the whole document.
+
+**A locked station gives uniformly black captures at exit 0**, measured 2026-10-04 on `2026-10-04_prise_plan-snds.docx`: the capture is `Graphics.CopyFromScreen`, a GDI read of the screen, so a locked session returns black whatever Word is doing, and the driver reported `4 brought back as screen captures` with its font report over four unusable 20 KB images where the same document unlocked gives 39 to 390 KB.
+`--capture` therefore refuses before triggering the task when `LogonUI` is running, and the `pdf` mode, which never reads the screen, keeps running on a locked station.
+`LogonUI` is the only reliable signal of the three tried: `Win32_DesktopMonitor.Availability` reported `8` (off) on both monitors of a station that had just been unlocked, and `quser` reports the session `Actif` while it is locked.
 
 Open:
 
