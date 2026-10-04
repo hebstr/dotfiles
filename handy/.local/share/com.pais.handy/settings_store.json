@@ -31,6 +31,7 @@
         "name": "Transcribe with Post-Processing"
       }
     },
+    "chinese_script": "as_transcribed",
     "clamshell_microphone": null,
     "clipboard_handling": "dont_modify",
     "custom_filler_words": null,
