@@ -1,0 +1,412 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+shopt -s nullglob
+
+REMOTE=${WORD_RENDER_REMOTE:-ju-TP2}
+TASK=${WORD_RENDER_TASK:-Claude-WordRender}
+
+SELF=$(readlink -f -- "$0")
+PAYLOAD_NAME=word-render-payload.ps1
+PAYLOAD=${SELF%/*}/${PAYLOAD_NAME}
+JOB_NAME=word-render
+
+WIN_SYSTEM32=${WIN_SYSTEM32:-/mnt/c/Windows/System32}
+REMOTE_PS=${WIN_SYSTEM32}/WindowsPowerShell/v1.0/powershell.exe
+
+DPI=110
+POLL=2
+TIMEOUT=240
+FIRST=
+LAST=
+OUT_DIR=
+DOCX=
+JOB_WSL=
+JOB_WIN=
+KEEP_JOB=0
+PAGES=
+BUILD=
+DECLARED=
+MISSING=
+
+usage() {
+  cat <<'EOF'
+Usage: word-render [options] <file.docx>
+
+Renders a .docx through the real Word on the remote Windows host and brings the
+pages back as PNGs. Word exports its own PDF with ExportAsFixedFormat, fields
+and tables of contents updated, and pdftoppm rasterizes it here. The PDF and the
+captures land in <project>/.claude/screenshots/.
+
+  --pages F[-L]   rasterize these pages only (default: all)
+  --dpi N         rasterization resolution (default: 110)
+  --out-dir DIR   write the PDF and the captures here
+  --timeout S     seconds to wait for Word (default: 240)
+  -h, --help      show this help
+
+Word runs in the interactive Windows session, reached through an on-demand
+scheduled task: COM from the SSH session lands in session 0, where
+Documents.Open returns null and wedges Word for every later activation. An
+unreachable host refuses rather than falling back to LibreOffice, which stays
+the gross-breakage check beside this one and never a claim about Word.
+
+A family the document declares but the host does not carry is named in the
+output: the pass then measures the recipient's fallback render, so a line break
+read from it is the fallback's line break.
+
+Environment: WORD_RENDER_REMOTE (default ju-TP2), WORD_RENDER_TASK (default
+Claude-WordRender)
+EOF
+}
+
+die() {
+  printf 'word-render: %s\n' "$1" >&2
+  exit 1
+}
+
+require() {
+  command -v "$1" >/dev/null 2>&1 || die "$1 is required and is not on the PATH"
+}
+
+q() {
+  printf '%q' "$1"
+}
+
+remote() {
+  ssh -o BatchMode=yes "$REMOTE" "$@" </dev/null
+}
+
+remote_stdin() {
+  ssh -o BatchMode=yes "$REMOTE" "$@"
+}
+
+remote_ps() {
+  local encoded
+  encoded=$(printf '%s' "$1" | iconv -f UTF-8 -t UTF-16LE | base64 -w0)
+  remote "$(q "$REMOTE_PS") -NoProfile -NonInteractive -EncodedCommand ${encoded}"
+}
+
+unreachable() {
+  die "cannot reach ${REMOTE}; the control is unavailable while that host is down"
+}
+
+registration_command() {
+  local script
+  script=$(
+    cat <<EOF
+\$payload = Join-Path \$env:LOCALAPPDATA '${JOB_NAME}\\${PAYLOAD_NAME}'
+\$shell = Join-Path \$env:SystemRoot 'System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+\$action = New-ScheduledTaskAction -Execute \$shell -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + \$payload + '"')
+\$principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
+\$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 15) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName '${TASK}' -Action \$action -Principal \$principal -Settings \$settings -Description 'Exports a staged .docx to PDF through Word in the interactive session, for the word-render control.' -Force | Out-Null
+(Get-ScheduledTask -TaskName '${TASK}').State
+EOF
+  )
+  printf 'ssh %s %s -NoProfile -EncodedCommand %s\n' \
+    "$REMOTE" "$REMOTE_PS" "$(printf '%s' "$script" | iconv -f UTF-8 -t UTF-16LE | base64 -w0)"
+}
+
+check_remote() {
+  local rc=0
+  remote 'exit 0' >/dev/null 2>&1 || rc=$?
+  [ "$rc" -eq 0 ] || unreachable
+}
+
+check_remote_windows() {
+  local rc=0
+  remote "ls ${WIN_SYSTEM32} >/dev/null 2>&1 && [ -x $(q "$REMOTE_PS") ]" >/dev/null 2>&1 || rc=$?
+  [ "$rc" -ne 255 ] || unreachable
+  [ "$rc" -eq 0 ] || die "no WSL interop to Windows on ${REMOTE}: ${REMOTE_PS} is not executable from there"
+}
+
+check_task() {
+  local out rc=0 state args
+  out=$(remote_ps "\$ErrorActionPreference = 'Stop'
+try { \$task = Get-ScheduledTask -TaskName '${TASK}' } catch { exit 3 }
+\$task.State
+\$task.Actions[0].Arguments" 2>/dev/null | tr -d '\r') || rc=$?
+  [ "$rc" -ne 255 ] || unreachable
+  if [ "$rc" -eq 3 ]; then
+    printf 'word-render: no scheduled task named %s on %s, which is what carries Word into the interactive session.\n' \
+      "$TASK" "$REMOTE" >&2
+    printf 'Register it there with:\n\n%s\n' "$(registration_command)" >&2
+    exit 1
+  fi
+  [ "$rc" -eq 0 ] || die "could not read the scheduled task ${TASK} on ${REMOTE} (exit ${rc})"
+
+  state=$(printf '%s\n' "$out" | sed -n 1p)
+  args=$(printf '%s\n' "$out" | sed -n 2p)
+  case $state in
+  Ready) ;;
+  Running) die "the ${TASK} task is already running on ${REMOTE}: a render is in flight, wait for it" ;;
+  *) die "the ${TASK} task is ${state} on ${REMOTE}, so it will not start" ;;
+  esac
+  case $args in
+  *"\\${JOB_NAME}\\${PAYLOAD_NAME}"*) ;;
+  *) die "the ${TASK} task runs ${args}, which is not the payload this driver stages at %LOCALAPPDATA%\\${JOB_NAME}\\${PAYLOAD_NAME}" ;;
+  esac
+}
+
+resolve_job() {
+  local raw base rc=0
+  # shellcheck disable=SC2016
+  raw=$(remote_ps '$env:LOCALAPPDATA' | tr -d '\r') || rc=$?
+  [ "$rc" -ne 255 ] || unreachable
+  [ "$raw" != "" ] || die "cannot resolve %LOCALAPPDATA% on ${REMOTE}"
+  base=$(remote "wslpath -u '${raw}'" | tr -d '\r')
+  [ "$base" != "" ] || die "wslpath translated nothing for ${raw} on ${REMOTE}"
+  JOB_WSL="${base}/${JOB_NAME}"
+  JOB_WIN="${raw}\\${JOB_NAME}"
+}
+
+claim_job() {
+  remote "rm -rf $(q "$JOB_WSL") && mkdir -p $(q "$JOB_WSL")" >/dev/null ||
+    die "could not take the job directory ${JOB_WIN} on ${REMOTE}: an earlier render may still hold a file there"
+}
+
+cleanup() {
+  [ "$JOB_WSL" != "" ] || return 0
+  local path=$JOB_WSL
+  JOB_WSL=
+  if [ "$KEEP_JOB" -eq 1 ]; then
+    printf 'word-render: %s is left in place on %s, Word still holding it; the next run claims it fresh\n' \
+      "$JOB_WIN" "$REMOTE" >&2
+    return 0
+  fi
+  if remote "rm -rf $(q "$path")" >/dev/null 2>&1; then
+    return 0
+  fi
+  printf 'word-render: could not remove the job directory %s on %s; Word may still hold a file there\n' \
+    "$JOB_WIN" "$REMOTE" >&2
+}
+
+stage() {
+  local name=$1 pdf_name=$2
+  scp -q -o BatchMode=yes -- "$PAYLOAD" "$DOCX" "${REMOTE}:${JOB_WSL}/" ||
+    die "could not stage the document and the payload in ${JOB_WIN} on ${REMOTE}"
+  printf 'docx=%s\npdf=%s\n' "$name" "$pdf_name" |
+    remote_stdin "cat > $(q "${JOB_WSL}/request")" ||
+    die "could not write the request in ${JOB_WIN} on ${REMOTE}"
+}
+
+trigger() {
+  remote_ps "\$ErrorActionPreference = 'Stop'
+Start-ScheduledTask -TaskName '${TASK}'" >/dev/null ||
+    die "the ${TASK} task would not start on ${REMOTE}"
+}
+
+task_report() {
+  remote_ps "\$ErrorActionPreference = 'SilentlyContinue'
+\$info = Get-ScheduledTaskInfo -TaskName '${TASK}'
+'state=' + (Get-ScheduledTask -TaskName '${TASK}').State
+'lastResult=' + \$info.LastTaskResult
+'lastRun=' + \$info.LastRunTime
+foreach (\$p in @(Get-Process WINWORD)) { 'word=' + \$p.Id + ' session=' + \$p.SessionId + ' since=' + \$p.StartTime }" 2>/dev/null | tr -d '\r' || true
+}
+
+job_trace() {
+  remote "cat $(q "${JOB_WSL}/trace")" 2>/dev/null | tr -d '\r' || true
+}
+
+wait_for_result() {
+  local rc=0 cycles=$((TIMEOUT / POLL))
+  remote "cd $(q "$JOB_WSL") || exit 5
+i=0
+while [ \$i -lt ${cycles} ]; do
+  [ -e result.txt ] && exit 0
+  [ -e error.txt ] && exit 3
+  sleep ${POLL}
+  i=\$((i + 1))
+done
+exit 4" >/dev/null 2>&1 || rc=$?
+  case $rc in
+  0) ;;
+  3)
+    printf 'word-render: Word refused the document on %s:\n' "$REMOTE" >&2
+    remote "cat $(q "${JOB_WSL}/error.txt")" 2>/dev/null | tr -d '\r' >&2 || true
+    printf 'payload trace:\n%s\n' "$(job_trace)" >&2
+    exit 1
+    ;;
+  4)
+    printf 'word-render: no result after %ss, so Word is still on it or wedged.\npayload trace:\n%s\nthe task reports:\n%s\n' \
+      "$TIMEOUT" "$(job_trace)" "$(task_report)" >&2
+    printf 'stop it with: ssh %s %s -NoProfile -Command "Stop-ScheduledTask -TaskName %s" and end the Word pid above with Stop-Process -Id <pid> -Force\n' \
+      "$REMOTE" "$REMOTE_PS" "$TASK" >&2
+    KEEP_JOB=1
+    exit 1
+    ;;
+  255) unreachable ;;
+  *) die "the wait on ${REMOTE} failed (exit ${rc})" ;;
+  esac
+}
+
+read_result() {
+  local raw line key value
+  raw=$(remote "cat $(q "${JOB_WSL}/result.txt")" | tr -d '\r') ||
+    die "could not read the result from ${JOB_WIN} on ${REMOTE}"
+  while IFS= read -r line; do
+    key=${line%%=*}
+    value=${line#*=}
+    case $key in
+    pages) PAGES=$value ;;
+    build) BUILD=$value ;;
+    declared) DECLARED=$value ;;
+    missing) MISSING=$value ;;
+    esac
+  done <<<"$raw"
+  [ "$PAGES" != "" ] || die "the payload reported no page count"
+}
+
+resolve_out_dir() {
+  local anchor root
+  anchor=$(cd -- "$(dirname -- "$DOCX")" && pwd)
+  if [ "$OUT_DIR" = "" ]; then
+    root=$anchor
+    if command -v git >/dev/null 2>&1; then
+      root=$(git -C "$anchor" rev-parse --show-toplevel 2>/dev/null) || root=$anchor
+    fi
+    OUT_DIR="${root}/.claude/screenshots"
+  fi
+  guard_ignored "$anchor" "$OUT_DIR"
+  mkdir -p -- "$OUT_DIR"
+}
+
+guard_ignored() {
+  local anchor=$1 target=$2 root
+  command -v git >/dev/null 2>&1 || return 0
+  root=$(git -C "$anchor" rev-parse --show-toplevel 2>/dev/null) || return 0
+  case $target in
+  "$root"/*) ;;
+  *) return 0 ;;
+  esac
+  git -C "$root" check-ignore -q "$target" ||
+    die "${target} is tracked ground in ${root}; ignore it before writing captures there"
+}
+
+rasterize() {
+  local pdf=$1 prefix=$2
+  local args=() stale=("$prefix"-*.png) made
+  if [ "${#stale[@]}" -gt 0 ]; then
+    printf 'replacing %d earlier capture(s) of %s\n' "${#stale[@]}" "${prefix##*/}"
+    rm -f -- "${stale[@]}"
+  fi
+  [ "$FIRST" = "" ] || args+=(-f "$FIRST")
+  [ "$LAST" = "" ] || args+=(-l "$LAST")
+  pdftoppm -r "$DPI" -png "${args[@]}" "$pdf" "$prefix" ||
+    die "pdftoppm could not rasterize ${pdf}"
+  made=("$prefix"-*.png)
+  [ "${#made[@]}" -gt 0 ] || die "pdftoppm wrote no capture for ${pdf}"
+  printf 'wrote %s\n' "${made[@]}"
+}
+
+report() {
+  local pdf=$1 pdf_pages
+  pdf_pages=$(pdfinfo "$pdf" | awk '/^Pages:/ { print $2 }')
+  printf 'Word %s counts %s page(s), the PDF carries %s\n' "$BUILD" "$PAGES" "${pdf_pages:-?}"
+  if [ "$pdf_pages" != "" ] && [ "$pdf_pages" != "$PAGES" ]; then
+    printf 'word-render: Word and the PDF disagree on the page count\n' >&2
+  fi
+  if [ "$MISSING" != "" ]; then
+    printf "fallback render: %s declared and not installed on %s, so a line break read here is the fallback's, never Word at the declared metrics\n" \
+      "${MISSING//;/, }" "$REMOTE"
+  elif [ "$DECLARED" != "" ]; then
+    printf 'every declared family is installed on %s: %s\n' "$REMOTE" "${DECLARED//;/, }"
+  fi
+}
+
+while [ $# -gt 0 ]; do
+  case $1 in
+  --pages)
+    [ $# -ge 2 ] || die '--pages needs a page or a F-L range'
+    case $2 in
+    *[!0-9-]* | -* | *- | *-*-*) die "--pages takes N or F-L, got ${2}" ;;
+    *-*)
+      FIRST=${2%%-*}
+      LAST=${2##*-}
+      ;;
+    *)
+      FIRST=$2
+      LAST=$2
+      ;;
+    esac
+    shift
+    ;;
+  --dpi)
+    [ $# -ge 2 ] || die '--dpi needs a resolution'
+    DPI=$2
+    shift
+    ;;
+  --out-dir)
+    [ $# -ge 2 ] || die '--out-dir needs a directory'
+    OUT_DIR=$2
+    shift
+    ;;
+  --timeout)
+    [ $# -ge 2 ] || die '--timeout needs a number of seconds'
+    TIMEOUT=$2
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  -*) die "unknown argument: $1" ;;
+  *)
+    [ "$DOCX" = "" ] || die 'one document at a time; see word-render --help'
+    DOCX=$1
+    ;;
+  esac
+  shift
+done
+
+[ "$DOCX" != "" ] || die 'no document given; see word-render --help'
+[ -f "$DOCX" ] || die "not a file: ${DOCX}"
+case $DOCX in
+*.docx | *.docm | *.dotx) ;;
+*) die "not a Word document: ${DOCX}" ;;
+esac
+[ -f "$PAYLOAD" ] || die "the payload is missing beside this script at ${PAYLOAD}"
+
+case $DPI in
+'' | *[!0-9]*) die "--dpi takes a number, got ${DPI}" ;;
+esac
+[ "$DPI" -ge 1 ] || die "--dpi must be 1 or more, got ${DPI}"
+case $TIMEOUT in
+'' | *[!0-9]*) die "--timeout takes a number of seconds, got ${TIMEOUT}" ;;
+esac
+[ "$TIMEOUT" -ge "$POLL" ] || die "--timeout must be ${POLL} seconds or more, got ${TIMEOUT}"
+if [ "$FIRST" != "" ] && [ "$LAST" != "" ]; then
+  [ "$FIRST" -ge 1 ] || die "--pages starts at 1, got ${FIRST}"
+  [ "$LAST" -ge "$FIRST" ] || die "--pages range ends before it starts: ${FIRST}-${LAST}"
+fi
+
+for tool in ssh scp iconv base64 pdftoppm pdfinfo; do
+  require "$tool"
+done
+
+STEM=$(basename -- "$DOCX")
+STEM=${STEM%.*}
+PDF_NAME="${STEM}-word.pdf"
+
+resolve_out_dir
+check_remote
+check_remote_windows
+check_task
+resolve_job
+
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap cleanup EXIT
+
+claim_job
+printf 'staging %s in %s on %s\n' "$(basename -- "$DOCX")" "$JOB_WIN" "$REMOTE"
+stage "$(basename -- "$DOCX")" "$PDF_NAME"
+trigger
+printf 'waiting on Word in the interactive session of %s\n' "$REMOTE"
+wait_for_result
+read_result
+scp -q -o BatchMode=yes -- "${REMOTE}:$(q "${JOB_WSL}/${PDF_NAME}")" "${OUT_DIR}/" ||
+  die "could not bring ${PDF_NAME} back from ${REMOTE}"
+printf 'wrote %s\n' "${OUT_DIR}/${PDF_NAME}"
+rasterize "${OUT_DIR}/${PDF_NAME}" "${OUT_DIR}/${STEM}-word"
+report "${OUT_DIR}/${PDF_NAME}"
