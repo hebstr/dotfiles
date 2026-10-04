@@ -89,6 +89,7 @@ The cause was read by a watcher the payload spawns in its own session with `Star
 An unlicensed Word opens and paginates a document and refuses to save, and in an invisible instance the sign-in dialog no automation can answer never surfaces, so the COM call never returns.
 `Application.Caption` carries the same string (`Word (Unlicensed Product)`) as soon as the instance exists, before any document is opened, which is what the payload now guards on: the control refuses in about 10 s, naming the caption, instead of hanging and leaving a wedged Word and a job directory Word still holds.
 The guard is a match on an English UI string and fails open: on another locale it would miss and the driver's timeout path would catch it instead, printing the payload trace and the task's last result.
+That locale is nearer than it looks: `(Get-UICulture).Name` on `ju-TP2` is `fr-FR` (measured 2026-10-04, `HKCU\...\Office\16.0\Common\LanguageResources\UILanguage` unset), so Office's own UI language alone keeps the caption English, and a French Office language pack would move the refusal to the timeout path.
 
 ### The capture route, which an unlicensed Word still serves, measured 2026-10-04
 
