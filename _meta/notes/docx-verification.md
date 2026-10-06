@@ -162,6 +162,10 @@ The `SetThreadExecutionState` reference says `ES_DISPLAY_REQUIRED` "Forces the d
 If the keystroke relights nothing, or if the grant stays refused, `Assert-Foreground` refuses as it did on 2026-10-06, so the failure is safe either way and the station needs a physical touch.
 `Assert-Foreground`'s message now carries the idle time read by `GetLastInputInfo`, which is reliable in the interactive session where the payload runs and useless from the driver's own SSH, where it returned about 12.7 days, the time since boot rather than since user input.
 
+**The verification could not be taken the same day, the station having locked itself.** Three `--capture` runs on `2026-10-03_prise_csi.docx`, pages 16-24, refused pre-flight on `LogonUI`, and the user confirmed the lock screen on the panel.
+A desktop dark *and* unlocked is therefore not reached by waiting on this station: exercising the wake would mean changing its lock policy, which no verification is worth, so the decision waits for a run that lands on that state by itself, as 2026-10-06 did.
+The `LogonUI` refusal and the wake cover two different states and neither replaces the other: the lock is what no synthetic input can lift.
+
 Open:
 
 - **`rules/docx.md`, section "What nothing on this machine settles", stands.** Its sentence is about fidelity to Word, and a screen capture of Word is not the PDF the rewrite was made conditional on; the capture closes the gross-layout question, not the print one.
