@@ -25,7 +25,7 @@
 - project_ordo_typst_template.md: `~/admin/pro-ordo` Typst prescription letterhead: blank and filled modes, open print check
 - project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): where the pipeline note and the project folder live
 - project_transcription_local_cpu.md: Meeting transcription: the `transcribe` driver, its throughputs, uv traps, Handy dictation
-- project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked session
+- project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
 - project_sas_acquisition_deferred.md: Getting SAS on Ubuntu: no free local path left, researched 2026-10-06, deferred
 
 ## Reference
@@ -57,6 +57,7 @@
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_hebstr_gt_table_width.md: px widths: pct() refused, the PNG clipped, Word honours a fixed grid LibreOffice rescales
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
+- reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
 - reference_gtsummary_notes_and_labels.md: gtsummary 2.5.1 notes and labelling: where `add_note()` works, what must come last
