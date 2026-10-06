@@ -917,12 +917,16 @@ _run() {
 }
 
 @test "the display hold is released whatever the run did" {
-  hold=$(grep -nF 'SetThreadExecutionState(0x80000002)' "$PAYLOAD" | cut -d: -f1)
+  hold=$(grep -nF "SetThreadExecutionState([convert]::ToUInt32('80000002', 16))" "$PAYLOAD" | cut -d: -f1)
   finally=$(grep -n '^} finally {' "$PAYLOAD" | cut -d: -f1)
-  release=$(grep -nF 'SetThreadExecutionState(0x80000000)' "$PAYLOAD" | cut -d: -f1)
+  release=$(grep -nF "SetThreadExecutionState([convert]::ToUInt32('80000000', 16))" "$PAYLOAD" | cut -d: -f1)
   [ -n "$hold" ]
   [ "$hold" -lt "$finally" ]
   [ "$release" -gt "$finally" ]
+}
+
+@test "the execution-state flags never reach the call as a signed literal" {
+  run ! grep -qE 'SetThreadExecutionState\(0x8' "$PAYLOAD"
 }
 
 @test "the foreground refusal names the idle time of the session it ran in" {

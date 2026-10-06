@@ -166,6 +166,13 @@ If the keystroke relights nothing, or if the grant stays refused, `Assert-Foregr
 A desktop dark *and* unlocked is therefore not reached by waiting on this station: exercising the wake would mean changing its lock policy, which no verification is worth, so the decision waits for a run that lands on that state by itself, as 2026-10-06 did.
 The `LogonUI` refusal and the wake cover two different states and neither replaces the other: the lock is what no synthetic input can lift.
 
+**On an unlocked station with its screen lit, the whole path runs, measured 2026-10-06 once the user unlocked it.** Pages 16-24 of `2026-10-03_prise_csi.docx` came back as nine distinct captures at 2562x1518, mean luminance 0.469 to 0.475 against the 0 of a black one, every declared family installed, Word counting 39 pages.
+So the interop compiles with its four added imports, the hold is taken and released without disturbing a capture that already worked, and what stays unverified narrows to the one thing a lit screen cannot show: whether the keystroke relights a dark panel.
+
+**The first run of that path failed on the flag literal, and that is why the constants go through `[convert]::ToUInt32`.** PowerShell reads `0x80000002` as a signed `Int32`, so `SetThreadExecutionState` was handed `-2147483646` and refused it: "Impossible de convertir la valeur « -2147483646 » en type « System.UInt32 »".
+`[uint32]0x80000000` does not fix it either, the cast then applying to an already negative number, so the hexadecimal is carried as a string and converted explicitly.
+The bats test "the execution-state flags never reach the call as a signed literal" pins the form; it catches the shape, never the type error itself, which only a run on the host can raise.
+
 Open:
 
 - **`rules/docx.md`, section "What nothing on this machine settles", stands.** Its sentence is about fidelity to Word, and a screen capture of Word is not the PDF the rewrite was made conditional on; the capture closes the gross-layout question, not the print one.

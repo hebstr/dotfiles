@@ -123,7 +123,7 @@ function Wake-Display {
   [WordWin]::keybd_event(0x7E, 0, 0, [IntPtr]::Zero)
   [WordWin]::keybd_event(0x7E, 0, 2, [IntPtr]::Zero)
   Start-Sleep -Milliseconds 500
-  return [WordWin]::SetThreadExecutionState(0x80000002)
+  return [WordWin]::SetThreadExecutionState([convert]::ToUInt32('80000002', 16))
 }
 
 function Assert-Foreground {
@@ -328,7 +328,7 @@ try {
   $failure = $_
 } finally {
   if ($executionHeld) {
-    try { [void][WordWin]::SetThreadExecutionState(0x80000000) } catch { }
+    try { [void][WordWin]::SetThreadExecutionState([convert]::ToUInt32('80000000', 16)) } catch { }
     Write-Trace 'display hold released'
   }
   if ($null -ne $doc) {
