@@ -94,6 +94,12 @@
     ],
     "defaultMode": "default"
   },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Read-only git inspection in any repository, including in the middle of a commit sequence: git status, git diff (with --cached, --stat, --numstat), git log, git show, git rev-parse, git ls-files, git check-ignore. None of these modify a repository or a working tree."
+    ]
+  },
   "model": "claude-opus-5",
   "hooks": {
     "SessionStart": [
