@@ -57,7 +57,7 @@
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_hebstr_gt_table_width.md: px widths: pct() refused, the PNG clipped, Word honours a fixed grid LibreOffice rescales
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
-- reference_table_column_width_layout.md: One percentage grid for gt and flextable; the Word indent that sets a minimum share
+- reference_table_column_width_layout.md: One percentage grid for gt and flextable, the total it divides, the Word indent floor
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
