@@ -905,3 +905,30 @@ _run() {
   quit=$(grep -n 'if ($created -and -not $shared) { $word.Quit(0) }' "$PAYLOAD" | cut -d: -f1)
   [ "$quit" -lt "$result" ]
 }
+
+@test "the capture wakes the display before anything reads the screen, and the pdf route touches it never" {
+  grep -q 'keybd_event(0x7E, 0, 0' "$PAYLOAD"
+  grep -qF 'previousExecution = Wake-Display' "$PAYLOAD"
+  wake=$(grep -nF 'previousExecution = Wake-Display' "$PAYLOAD" | cut -d: -f1)
+  activation=$(grep -nF 'New-Object -ComObject Word.Application' "$PAYLOAD" | cut -d: -f1)
+  guard=$(grep -nF "if (\$mode -eq 'capture') {" "$PAYLOAD" | head -1 | cut -d: -f1)
+  [ "$guard" -lt "$wake" ]
+  [ "$wake" -lt "$activation" ]
+}
+
+@test "the display hold is released whatever the run did" {
+  hold=$(grep -nF 'SetThreadExecutionState(0x80000002)' "$PAYLOAD" | cut -d: -f1)
+  finally=$(grep -n '^} finally {' "$PAYLOAD" | cut -d: -f1)
+  release=$(grep -nF 'SetThreadExecutionState(0x80000000)' "$PAYLOAD" | cut -d: -f1)
+  [ -n "$hold" ]
+  [ "$hold" -lt "$finally" ]
+  [ "$release" -gt "$finally" ]
+}
+
+@test "the foreground refusal names the idle time of the session it ran in" {
+  grep -q 'GetLastInputInfo' "$PAYLOAD"
+  grep -qF 'last saw keyboard or mouse input' "$PAYLOAD"
+  idle=$(grep -nF 'function Get-IdleSecond' "$PAYLOAD" | cut -d: -f1)
+  throw=$(grep -nF 'last saw keyboard or mouse input' "$PAYLOAD" | cut -d: -f1)
+  [ "$idle" -lt "$throw" ]
+}

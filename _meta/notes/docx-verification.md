@@ -134,6 +134,34 @@ A locked session has its foreground owned by `LogonUI`, so the assertion catches
 `--capture` therefore refuses before triggering the task when `LogonUI` is running, and the `pdf` mode, which never reads the screen, keeps running on a locked station.
 `LogonUI` is the only reliable signal of the three tried: `Win32_DesktopMonitor.Availability` reported `8` (off) on both monitors of a station that had just been unlocked, and `quser` reports the session `Actif` while it is locked.
 
+### A sleeping display is that same failure by another route, and the capture wakes the station rather than refusing it, decided 2026-10-06
+
+Three consecutive `--capture` runs on `2026-10-03_prise_csi.docx`, pages 16-24, refused with "the window in front belongs to explorer", class `CabinetWClass` on the first and `Shell_TrayWnd` on the next two, `SetForegroundWindow` returning `granted=False` each time and no capture written.
+Word itself was fine throughout: build 16.0.20430, no missing family of the seven declared, both field passes at `first error 0`, 40 pages counted where LibreOffice gives 45.
+The cause is the display. `quser` reported `TEMPS INACT` of `1+16:53`, about 41 h with no keyboard or mouse input on the console session, against a display timeout of 300 s on AC and 180 s on DC (`powercfg /q <scheme> SUB_VIDEO VIDEOIDLE`), so the screen had been asleep since the station was last used by hand on the evening of 2026-10-04, which is when the last successful captures were taken.
+A dark screen leaves the foreground to the shell and would make `CopyFromScreen` read black, so the foreground assertion added that day is what turned the locked-session failure above into a clean refusal instead of four black images.
+Ruled out the same day, and not worth re-deriving: uptime 13 days, no Windows update since 2026-09-23, the same Word build as the last successful capture, CPU at 3 %, 22 GB free, no stray `WINWORD` process.
+`ForegroundLockTimeout = 200000` is a red herring, 41 h of idleness having expired it long before, and raising `monitor-timeout` after the fact changes nothing, a timeout never waking a display that is already off.
+
+**The payload wakes the screen and holds it awake for the run, in `capture` mode only, and no new signal gates that.**
+Acting rather than refusing is what the payload already does everywhere it meets the desktop: `Hide-Overlay` hides the sign-in dialog instead of refusing it, `SetForegroundWindow` takes the foreground instead of requiring the user to focus Word, and the `Claude-WordRender` task is registered `-AllowStartIfOnBatteries -DontStopIfGoingOnBatteries` (`registration_command` in the driver), so the tool already assumes a station nobody is sitting at.
+Detection drops out of the design once the action is unconditional and benign: a `VK_F15` keystroke through `keybd_event` is a key no application acts on, and it costs one call whether the screen was dark or lit.
+The 500 ms wait after it is the wait the two `Hide-Overlay` sites already take, for the same reason: nothing should read the screen while the panel is still coming back.
+
+**The hold is the load-bearing half, not the wake.** `SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)`, released with `ES_CONTINUOUS` in the `finally`, closes the one case in this family that no guard reaches: a display that goes to sleep *during* a run leaves Word in the foreground, so `Assert-Foreground` passes and the captures come back black at exit 0.
+That case is reachable in the tool's normal range, 58 s measured on a 9-page document against a 180 s timeout on battery, and the font enumeration alone took 2 min 21 s on the dark station of 2026-10-06.
+
+Rejected, with what disqualifies each:
+
+- **A pre-flight refusal in the driver** on `quser` idle time against the `powercfg` timeout, on the `LogonUI` precedent: two remote reads and two brittle parsings, one of them of a `quser` output localized in French, for a proxy rather than the thing itself, and the user still has to walk to the station. It also leaves the mid-run case open.
+- **A luminance probe** on a throwaway capture: it measures the right thing, but it runs after Word is up, and both black-capture incidents known here were already caught upstream of it, on 2026-10-04 by the `LogonUI` refusal and on 2026-10-06 by `Assert-Foreground`. The mid-run case it would catch is the one the hold removes at the source.
+- **An opt-in `--wake` flag**: the same mechanism behind a per-run consent, paid for with a full round trip (refuse, then re-run) and with the `request` plumbing and its stubs. The consent is already given elsewhere: `--capture` puts Word full screen and takes the foreground, which is more intrusive than a keystroke no application acts on.
+
+**Untested, and the weakest assumption of the decision**: that a synthetic keystroke relights a display that is off *and* restores the `SetForegroundWindow` grant.
+The `SetThreadExecutionState` reference says `ES_DISPLAY_REQUIRED` "Forces the display to be on by resetting the display idle timer" (learn.microsoft.com, verified 2026-10-06), a mechanism that holds a lit display on and says nothing of one already dark, so the wake rests on `keybd_event` and on the same page's "The system automatically detects activities such as local keyboard or mouse input".
+If the keystroke relights nothing, or if the grant stays refused, `Assert-Foreground` refuses as it did on 2026-10-06, so the failure is safe either way and the station needs a physical touch.
+`Assert-Foreground`'s message now carries the idle time read by `GetLastInputInfo`, which is reliable in the interactive session where the payload runs and useless from the driver's own SSH, where it returned about 12.7 days, the time since boot rather than since user input.
+
 Open:
 
 - **`rules/docx.md`, section "What nothing on this machine settles", stands.** Its sentence is about fidelity to Word, and a screen capture of Word is not the PDF the rewrite was made conditional on; the capture closes the gross-layout question, not the print one.

@@ -13,9 +13,14 @@ using System;
 using System.Text;
 using System.Runtime.InteropServices;
 public struct RECT { public int Left, Top, Right, Bottom; }
+public struct LASTINPUTINFO { public uint Size; public uint Time; }
 public class WordWin {
   public delegate bool Proc(IntPtr handle, IntPtr lparam);
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+  [DllImport("user32.dll")] public static extern void keybd_event(byte key, byte scan, uint flags, IntPtr extra);
+  [DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
+  [DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);
+  [DllImport("kernel32.dll")] public static extern ulong GetTickCount64();
   [DllImport("user32.dll")] public static extern bool EnumWindows(Proc callback, IntPtr lparam);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr handle, StringBuilder text, int max);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr handle, out uint procId);
@@ -105,6 +110,22 @@ function Hide-Overlay {
   return $script:overlayHidden
 }
 
+function Get-IdleSecond {
+  $info = New-Object LASTINPUTINFO
+  $info.Size = [Runtime.InteropServices.Marshal]::SizeOf($info)
+  if (-not [WordWin]::GetLastInputInfo([ref]$info)) { return -1 }
+  $elapsed = [int64]([WordWin]::GetTickCount64() % 4294967296) - [int64]$info.Time
+  if ($elapsed -lt 0) { $elapsed += 4294967296 }
+  return [int]($elapsed / 1000)
+}
+
+function Wake-Display {
+  [WordWin]::keybd_event(0x7E, 0, 0, [IntPtr]::Zero)
+  [WordWin]::keybd_event(0x7E, 0, 2, [IntPtr]::Zero)
+  Start-Sleep -Milliseconds 500
+  return [WordWin]::SetThreadExecutionState(0x80000002)
+}
+
 function Assert-Foreground {
   param([IntPtr] $Handle, [int[]] $Owned)
   $front = [IntPtr]::Zero
@@ -126,7 +147,7 @@ function Assert-Foreground {
   if ($front -ne [IntPtr]::Zero) { [void][WordWin]::GetClassName($front, $class, 256) }
   $owner = 'none'
   try { $owner = (Get-Process -Id $procId -ErrorAction Stop).ProcessName } catch { }
-  throw ('the window in front belongs to ' + $owner + ' (class ' + $class.ToString() + ') rather than to the Word this payload drives, and the capture reads the screen, so it would photograph that window instead of the page')
+  throw ('the window in front belongs to ' + $owner + ' (class ' + $class.ToString() + ') rather than to the Word this payload drives, and the capture reads the screen, so it would photograph that window instead of the page; that session last saw keyboard or mouse input ' + (Get-IdleSecond) + ' s ago, and a display asleep leaves the foreground to the shell')
 }
 
 function Save-Window {
@@ -156,6 +177,7 @@ $doc = $null
 $created = $false
 $ours = @()
 $prevAlerts = $null
+$executionHeld = $false
 $pages = 0
 $captures = 0
 $build = ''
@@ -187,6 +209,12 @@ try {
   $pdf = Join-Path $job $request['pdf']
   if (-not (Test-Path -LiteralPath $docx)) { throw "no staged document at $docx" }
   if (Test-Path -LiteralPath $pdf) { Remove-Item -LiteralPath $pdf -Force }
+
+  if ($mode -eq 'capture') {
+    $previousExecution = Wake-Display
+    $executionHeld = ($previousExecution -ne 0)
+    Write-Trace ('display woken and held awake, previous execution state ' + $previousExecution + ', idle ' + (Get-IdleSecond) + ' s')
+  }
 
   $declared = Get-DeclaredFont $docx
   Write-Trace ('mode ' + $mode + ', declared ' + ($declared -join ';'))
@@ -299,6 +327,10 @@ try {
 } catch {
   $failure = $_
 } finally {
+  if ($executionHeld) {
+    try { [void][WordWin]::SetThreadExecutionState(0x80000000) } catch { }
+    Write-Trace 'display hold released'
+  }
   if ($null -ne $doc) {
     try {
       $doc.Saved = $true
