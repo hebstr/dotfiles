@@ -57,6 +57,7 @@
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_hebstr_gt_table_width.md: px widths: pct() refused, the PNG clipped, Word honours a fixed grid LibreOffice rescales
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
+- reference_table_column_width_layout.md: One percentage grid for gt and flextable; the Word indent that sets a minimum share
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
@@ -133,3 +134,4 @@
 - feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
 - feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap
 - feedback_edit_tool_unicode_escape.md: A four-hex-digit `\u` escape in a tool parameter lands decoded; in R use `\u{a0}`
+- feedback_rm_rf_is_ask_not_deny.md: `rm -rf` is an ask rule, not deny: run the delete, don't hand the command over
