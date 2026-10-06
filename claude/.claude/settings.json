@@ -76,9 +76,6 @@
       "Bash(git branch --delete*)",
       "Bash(git branch --set-upstream-to*)",
       "Bash(git branch --unset-upstream*)",
-      "Bash(rm -rf*)",
-      "Bash(rm -fr*)",
-      "Bash(rm -r -f*)",
       "Bash(curl *better-bibtex/json-rpc*)",
       "Edit(~/.claude/plugins/marketplaces/**)",
       "Edit(~/.claude/plugins/cache/**)",
@@ -90,7 +87,10 @@
       "Bash(git add*)",
       "Bash(git commit*)",
       "Bash(git rm*)",
-      "Bash(git mv*)"
+      "Bash(git mv*)",
+      "Bash(rm -rf*)",
+      "Bash(rm -fr*)",
+      "Bash(rm -r -f*)"
     ],
     "defaultMode": "default"
   },
