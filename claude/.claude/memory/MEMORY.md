@@ -134,4 +134,3 @@
 - feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
 - feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap
 - feedback_edit_tool_unicode_escape.md: A four-hex-digit `\u` escape in a tool parameter lands decoded; in R use `\u{a0}`
-- feedback_rm_rf_is_ask_not_deny.md: `rm -rf` is an ask rule, not deny: run the delete, don't hand the command over
