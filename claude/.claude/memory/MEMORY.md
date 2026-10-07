@@ -27,6 +27,7 @@
 - project_transcription_local_cpu.md: Meeting transcription: the `transcribe` driver, its throughputs, uv traps, Handy dictation
 - project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
 - project_sas_acquisition_deferred.md: Getting SAS on Ubuntu: no free local path left, researched 2026-10-06, deferred
+- project_gortex_evaluation.md: gortex rejected 2026-10-07: no edges from .qmd chunks, no R LSP; don't redo it
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
