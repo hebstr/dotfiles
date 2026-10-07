@@ -36,6 +36,17 @@ run_hook() {
   [ -e "$RUNTIME/claude-code-rules-s2-a1" ]
 }
 
+@test "clears the session's injection marker on clear" {
+  printf 'pdf\n' >"$RUNTIME/claude-code-rules-s1"
+  printf 'pdf\n' >"$RUNTIME/claude-code-rules-s1-a1"
+  printf 'pdf\n' >"$RUNTIME/claude-code-rules-s2"
+  run_hook '{"session_id": "s1", "source": "clear"}'
+  [ "$status" -eq 0 ]
+  [ ! -e "$RUNTIME/claude-code-rules-s1" ]
+  [ ! -e "$RUNTIME/claude-code-rules-s1-a1" ]
+  [ -e "$RUNTIME/claude-code-rules-s2" ]
+}
+
 @test "keeps the marker on startup and resume" {
   printf 'pdf\n' >"$RUNTIME/claude-code-rules-s1"
   run_hook '{"session_id": "s1", "source": "startup"}'
