@@ -21,7 +21,7 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$WORK"
+  rm -rf "$WORK" ${OTHER:+"$OTHER"}
 }
 
 guard() {
@@ -215,6 +215,12 @@ commit_file() {
     run_guard "$c"
     [ "$status" -eq 0 ]
   done
+}
+
+@test "denies a git write nested in shell strings deeper than the guard reads" {
+  run_guard "eval 'eval \"eval \\\"eval git push\\\"\"'"
+  [ "$status" -eq 2 ]
+  [[ $output == *"nests shell strings deeper"* ]]
 }
 
 @test "denies a commit behind a wrapper" {
@@ -1044,6 +1050,16 @@ commit_file() {
   run_guard 'git status'
   [ "$status" -eq 2 ]
   [[ $output == *"shfmt is missing"* ]]
+  run_guard 'rg -n foo src/'
+  [ "$status" -eq 0 ]
+}
+
+@test "denies every git command when the jq program beside the guard is missing" {
+  cp "$SCRIPT" "$WORK/guard.sh"
+  SCRIPT="$WORK/guard.sh"
+  run_guard 'git status'
+  [ "$status" -eq 2 ]
+  [[ $output == *"could not read git-write-guard.jq"* ]]
   run_guard 'rg -n foo src/'
   [ "$status" -eq 0 ]
 }
