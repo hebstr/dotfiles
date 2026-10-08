@@ -1,11 +1,17 @@
 ---
 name: audit:walkthrough and audit:blindspot operating lessons
-description: "Running /audit:walkthrough and /audit:blindspot here: weigh blindspot findings by the evidence they needed rather than by bucket, read the judge's coverage line first, never collapse a near-miss, brief L1 with the competing reading, re-read fixes as a set at wrap-up, check ListAgents before writing"
+description: "Running /audit:walkthrough and /audit:blindspot here: weigh blindspot findings by the evidence they needed rather than by bucket, read the judge's coverage line first, never collapse a near-miss, brief L1 with the competing reading, re-read fixes as a set at wrap-up, check ListAgents before writing, never read a Step 3 unverified as a fabricated call"
 metadata:
   type: feedback
 ---
 
 Ouroboros was uninstalled on 2026-10-08 and removed from the `audit` plugin the same day, so the Step 3 evaluate, the drift check, the QA second opinion and lateral think are gone from the skill's text too; the bridge holding L1, L2 and the generation check is now `audit/walkthrough/agents/cross-model-bridge.md`. L2 has called `audit/walkthrough/scripts/openrouter-verdict.py` since 2026-09-15; every L2 count recorded before that date is intra-family agreement.
+
+## The generation check says `unverified` on calls that happened
+
+Two causes, both measured 2026-10-08, both fixed or documented the same day. `model_matches` accepted only an exact slug or one with a date appended, so a record naming `deepseek/deepseek-v4-pro-20260813` for a requested `deepseek/deepseek-v4-pro-0813` came back `model_mismatch`; it now also accepts an expansion, but only when the declared 8-digit run is a valid `YYYYMMDD` whose `MMDD` equals the requested 4-digit run, which keeps `llama-3` against `llama-13` refused. And OpenRouter's publication delay is erratic: about two minutes on 2026-09-19, 5 to over 35 minutes on 2026-10-08, tied to neither generation time nor provider, with two calls three minutes apart publishing out of order, against a 300 s retry deadline that the Bash tool's own 600 s ceiling forbids extending to cover it.
+
+So a `not_found` or a `model_mismatch` at Step 3 is never by itself evidence of a fabricated ID. Re-check the ID by a later run before rendering a blindspot report under its "external call is unverified" template: on 2026-10-08 that template held a real 0.0144 USD judge call out of the convergence analysis, and the whole pass had to be re-read once the record appeared. [[reference_bash_tool_pitfalls]]
 
 ## Calibration loading
 

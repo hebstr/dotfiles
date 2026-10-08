@@ -128,7 +128,7 @@
 - feedback_concision.md: Cut research narrative from notes and replies: record what binds future work
 - feedback_prose-lint-write.md: prose-lint scope, typographic vs rhetorical dashes, when to run /workflow:write
 - feedback_no_bulk_regex_for_contextual_skills.md: Never swap a contextual editing skill for a bulk regex pass
-- feedback_audit_walkthrough.md: Running `/audit:walkthrough` and `/audit:blindspot`: weighing findings by their evidence
+- feedback_audit_walkthrough.md: `/audit:walkthrough` and `/audit:blindspot`: weigh by evidence, unverified is not fake
 - feedback_format_hook_strips_new_import.md: In Python, an import added before its usage is stripped as F401 by the format hook
 - feedback_browser_layout_probe.md: Inspect a rendered layout yourself in headless chromium; Streamlit needs CDP and a sleep
 - feedback_personal_working_files.md: The write-gate on NOTES.md, TODO.md and CALENDRIER.md: reading is free, writing never
