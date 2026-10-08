@@ -96,7 +96,7 @@ if [[ -f $index ]]; then
   index_lines=$(wc -l <"$index")
   printf 'memory index: %s bytes, %s lines, not counted in the budget\n' "$index_bytes" "$index_lines"
   if ((index_bytes > index_max_bytes || index_lines > index_max_lines)); then
-    printf 'memory index over the harness limit of %s bytes or %s lines: the harness cuts the index there when it loads it. Prune it (merge or drop entries, shorten descriptions) before committing.\n' \
+    printf 'memory index over its ceiling of %s bytes or %s lines: the harness cuts the index at 25000 bytes or 200 lines when it loads it, and a lower ceiling pre-empts its compaction nudge. Prune it (merge or drop entries, shorten descriptions) before committing.\n' \
       "$index_max_bytes" "$index_max_lines"
     status=1
   fi

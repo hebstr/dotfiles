@@ -15,6 +15,7 @@ rules_dir=${CLAUDE_RULES_DIR:-$HOME/.claude/rules}
 marker="${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}${agent:+-$agent}"
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-code"
 cap=9500
+index_line_cap=150
 
 decision=""
 reason=""
@@ -142,7 +143,13 @@ Edit | Write | MultiEdit)
     want memory
     decide deny "Memory is written at its resolved path, never through the ~/.claude/memory link, where the harness rewrites the frontmatter and asks to compact the index: write $HOME/dotfiles/claude/.claude/memory/${file#"$HOME"/.claude/memory/} instead, reading it at that path first when it exists."
     ;;
-  "$HOME"/dotfiles/claude/.claude/memory/*) want memory ;;
+  "$HOME"/dotfiles/claude/.claude/memory/*)
+    want memory
+    index=$HOME/dotfiles/claude/.claude/memory/MEMORY.md
+    if [[ ! -e $file && $file != "$index" && -r $index ]] && lines=$(wc -l <"$index") && ((lines > index_line_cap)); then
+      decide deny "The memory index is at $lines lines, over the $index_line_cap-line ceiling that keeps it clear of the harness's own compaction nudge: add no entry until it is pruned. Apply the admission test of $rules_dir/memory.md first, since a mechanism whose firing already produces the behaviour needs no note, then prune MEMORY.md and the files it indexes, or edit an existing memory instead of adding one."
+    fi
+    ;;
   esac
   case $file in
   */.claude/*.md | */CLAUDE.md | */AGENTS.md) want claude-files ;;

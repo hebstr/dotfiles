@@ -11,7 +11,7 @@ setup() {
   export WORK STUB_DIR RULES RUNTIME STATE
 
   mkdir -p "$STUB_DIR" "$RULES" "$RUNTIME" "$STATE"
-  for cmd in cat jq awk grep date mkdir; do
+  for cmd in cat jq awk grep date mkdir wc; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
   for name in pdf docx secrets showboat install chromium agents memory claude-files; do
@@ -207,6 +207,37 @@ field() {
 
 @test "injects memory.md without a decision on a write to the canonical store" {
   run_hook "$(read_call Edit "$WORK/dotfiles/claude/.claude/memory/MEMORY.md")"
+  [ -z "$(field permissionDecision)" ]
+  [[ $(field additionalContext) == *BODY-memory* ]]
+}
+
+@test "denies a new memory file once the index is over the line ceiling" {
+  STORE="$WORK/dotfiles/claude/.claude/memory"
+  mkdir -p "$STORE"
+  seq 151 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
+  run_hook "$(read_call Write "$STORE/feedback_new.md")"
+  [ "$(field permissionDecision)" = deny ]
+  [[ $(field permissionDecisionReason) == *"at 151 lines, over the 150-line ceiling"* ]]
+  [[ $(field permissionDecisionReason) == *"admission test"* ]]
+  [[ $(field additionalContext) == *BODY-memory* ]]
+}
+
+@test "leaves the prune path open over the ceiling, and passes at it" {
+  STORE="$WORK/dotfiles/claude/.claude/memory"
+  mkdir -p "$STORE"
+  seq 151 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
+  printf 'body\n' >"$STORE/feedback_old.md"
+  for p in MEMORY.md feedback_old.md; do
+    rm -f "$RUNTIME"/claude-code-rules-*
+    run_hook "$(read_call Edit "$STORE/$p")"
+    [ -z "$(field permissionDecision)" ] && [[ $(field additionalContext) == *BODY-memory* ]] || {
+      echo "denied or silent: $p"
+      return 1
+    }
+  done
+  seq 150 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
+  rm -f "$RUNTIME"/claude-code-rules-*
+  run_hook "$(read_call Write "$STORE/feedback_new.md")"
   [ -z "$(field permissionDecision)" ]
   [[ $(field additionalContext) == *BODY-memory* ]]
 }

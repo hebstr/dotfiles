@@ -78,7 +78,19 @@ teardown() {
   head -c 30000 /dev/zero | tr '\0' 'd' >>"$BASE/memory/MEMORY.md"
   run "$SCRIPT" --budget 1024 --root "$WORK"
   [ "$status" -eq 1 ]
-  [[ $output == *'memory index over the harness limit of 25000 bytes or 200 lines'* ]]
+  [[ $output == *'memory index over its ceiling of 25000 bytes or 200 lines'* ]]
+}
+
+@test "fails on the line ceiling while the byte dimension stays on its default" {
+  for i in $(seq 149); do printf -- '- f%s.md: x\n' "$i" >>"$BASE/memory/MEMORY.md"; done
+  run "$SCRIPT" --budget 1024 --index-lines 150 --root "$WORK"
+  [ "$status" -eq 0 ]
+  printf -- '- f150.md: x\n' >>"$BASE/memory/MEMORY.md"
+  run "$SCRIPT" --budget 1024 --index-lines 150 --root "$WORK"
+  [ "$status" -eq 1 ]
+  [[ $output == *'memory index: '*' bytes, 151 lines'* ]]
+  [[ $output == *'over its ceiling of 25000 bytes or 150 lines'* ]]
+  [[ $output == *'cuts the index at 25000 bytes or 200 lines'* ]]
 }
 
 @test "fails above the index line limit and passes at it" {
