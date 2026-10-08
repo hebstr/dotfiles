@@ -15,4 +15,3 @@ For personal utility packages (not public CRAN libraries), calibrate review seve
 - Do not flag variable name shadowing when R's scoping rules resolve it unambiguously
 - Do not flag missing namespace prefixes for functions already in NAMESPACE imports
 - Do not flag testthat test isolation as "missing mutualisation" (self-sufficient tests are the recommended testthat 3 pattern)
-- Project-level memory files may contain package-specific examples of dismissed findings: check those before reviewing

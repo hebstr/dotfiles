@@ -1,20 +1,19 @@
 ---
 name: Review calibration for the edscrib Python package
-description: "Calibrate reviews of the edscrib annotation socle (~/Documents/packages/py-edscrib): never soften severity, the reviewer's mechanism is reliable and its tier and remedy are not, standing rejections not to re-raise, and the framework and library facts twelve passes established"
+description: "Calibrate reviews of the edscrib annotation socle (~/Documents/packages/py-edscrib): never soften severity, the reviewer's mechanism is reliable and its tier and remedy are not, standing rejections not to re-raise, and the framework and library facts the passes established"
 metadata:
   type: feedback
 ---
 
 Calibration drawn from twelve `/audit:walkthrough` and `/audit:blindspot` passes on `py-edscrib`, 2026-07-29 to 2026-08-02 (`navigation.py` twice, `auth.py` twice, `app.py` five times, `export.py` twice, `config.py`; reviewer `posit-dev:critical-code-reviewer` unless noted).
 Project context in [[project_edscrib_annotation_package]].
-Every L2 consensus count these passes recorded went through the Ouroboros `claude_code` backend, whose non-Anthropic voters all resolved to the default Claude model, so it is intra-family agreement, not cross-provider confirmation; the counts are left out below for that reason.
 
 ## Severity: never soften, and read the mechanism rather than the tier
 
 `edscrib` is neither a personal script nor a CRAN-style package: it is a shared socle heading for a Git-tagged dependency of several clinical annotation projects, and the parquet its write path touches is an irreversible gold standard. [[feedback_review_severity_personal]] does **not** apply here, even when its generic description matches.
 
-- **The reviewer reads the mechanism well and calibrates the tier poorly, in both directions.** Across twelve passes, tiers moved up (Suggestion to Blocking, Suggestion to Important) as often as down; one pass moved three of four down. Do not learn "it under-rates" or "it over-rates": reproduce, then set the tier.
-- **The reviewer's remedy is where it fails.** Its mechanism held on all eleven findings of the render pass while its remedy was wrong on four; the same shape recurred in every pass. Re-derive the remedy from what the code guarantees, never from consistency or from the one offered.
+- **The reviewer reads the mechanism well and calibrates the tier poorly, in both directions.** Across the passes on this target, tiers moved up as often as down. Do not learn "it under-rates" or "it over-rates": reproduce, then set the tier.
+- **The reviewer's remedy is where it fails.** Its mechanism holds while its remedy is often wrong, the same shape recurring in every pass. Re-derive the remedy from what the code guarantees, never from consistency or from the one offered.
 - **Cross-model L1 is worth its cost here, and its mechanism claims are checkable.** It reversed or corrected Claude's work in most passes, including two of Claude's own remedies in one session and a rejection Claude had built on a strawman measurement. It was also right in conclusion and wrong in mechanism in the same answer: take its verdict seriously and verify its mechanism.
 - **Justify an escalation on the axis that carries it.** When nothing is written wrong and nothing is lost, the axis is misdiagnosis or unavailability, not the clinical stakes; an escalation argued on the stakes alone is unfalsifiable.
 - **Adjudicate claim by claim.** A multi-claim finding is accepted or refused per sub-claim; a refused remedy still leaves its diagnosis to adjudicate; both of a finding's examples can be wrong while its mechanism holds; a Suggestion's remedy deserves the scrutiny of a Blocking's.
@@ -60,7 +59,6 @@ Every L2 consensus count these passes recorded went through the Ouroboros `claud
 - **Test a stop-under-contention on its own thread against a timeout**, never in line, or a regression hangs the suite.
 - **Some guarantees the gate cannot hold** (a rebuilt-dictionary type, `persist_state=None`): say they are held by review and `pyrefly`, not by the suite.
 - **Prefer a generic walk to an enumeration** on a shape still growing (the `{user}` placeholder guard became a recursive walk over `dataclasses.fields`, testing `str` before `Iterable`).
-- **A cross-repo signature change is cheapest taken whole**, both `eds-avc` apps migrated in the same pass; a public-contract change lands cheapest before the `v0.1.0` tag.
 
 ## Facts established
 

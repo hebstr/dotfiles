@@ -7,11 +7,10 @@ metadata:
 
 A rendered HTML output carries ids that change on every render: `gt` draws a random one per table, `reactable` one per widget. Committing such a file makes every render look like a change. The `html-id` clean filter renumbers them, `gt1` in order of appearance and `htmlwidget-wdg1` likewise, so a new render diffs only on content.
 
-**A third rule renumbers the reactable `dataKey` (`dk1`, `dk2` per file) since 2026-10-03.** It is `digest::digest(list(data, cols))`, a hash of the widget's inputs including closures and hidden `colDef` state, so it moves on a re-render while the visible HTML stays byte-identical. The regex is anchored on `"dataKey":"` plus 32 hex plus `"`: the reactable JS library also contains the bare word `dataKey`. Adding the rule meant a one-time `git add --renormalize` of every widget blob already in `HEAD`. `prek-metadata-only` never covered HTML (its `files` is docx, pptx, xlsx, png), so `--restore` could not help.
+**A third rule renumbers the reactable `dataKey` since 2026-10-03** (its digest and the regex anchoring are in `_meta/notes/git-html-id-filter.md`): the key moves on a re-render while the visible HTML stays byte-identical. Adding the rule meant a one-time `git add --renormalize` of every widget blob already in `HEAD`. `prek-metadata-only` never covered HTML (its `files` is docx, pptx, xlsx, png), so `--restore` could not help.
 
-**The setup is split in two halves on purpose.** The driver (`filter.html-id.clean`) lives in `~/dotfiles/git/.gitconfig` since 2026-09-12, so `stow git` is the whole installation and a fresh clone needs nothing more. The half that stays versioned per repository is its `.gitattributes`, because that is the half that says which files are deliverables: `output/**/*.html` in `eds-prise`, and the same driver serves `md-nesrine`. `~/dotfiles/_meta/profiles/gitattributes` carries the line a third project would declare.
+**The setup is split in two halves on purpose**, the driver stowed and the `.gitattributes` versioned per repository because that is the half naming which files are deliverables; `_meta/profiles/gitattributes` carries the line a new project declares.
 
-**A global attributes file was rejected**, and the reason still holds: it would apply to every repository on the machine, third-party clones included, where renumbering ids is not wanted.
 
 The same per-repo file routes `*.docx`, `*.pptx`, `*.xlsx` and `*.png` to a `diff=out-textconv` driver since 2026-09-13.
 

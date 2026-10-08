@@ -11,7 +11,7 @@ When reviewing or auditing the user's personal Claude Code harness config (`~/.c
 
 2. **Applying the "prefer `rg` over `grep`" rule to user-authored hook scripts.** The CLAUDE.md rule targets Claude's *interactive Bash searches*, not Claude-authored shell scripts that ship as part of the harness (e.g. `inject-project-context.sh`). Those hooks parse 1-3 single-token fields from small known-format files (DESCRIPTION, _quarto.yml, pyproject.toml). `grep | cut -d' ' -f2` is POSIX-portable and has nothing to gain from `rg`.
 
-3. Retired 2026-09-22: it dismissed message-aware notifications, and `notify.sh` now reads the payload's `.message` and titles each notification by project and conversation, so the pattern no longer has a target.
+3. Retired 2026-09-22: `notify.sh` reads the payload's `.message`, so the pattern has no target left. The number is kept so that references to later patterns stay valid.
 
 4. **Expanding the `WebFetch(domain:...)` allow list with marketing or console domains** (e.g. `anthropic.com`, `console.anthropic.com`) when only the doc subdomain is listed (`docs.anthropic.com`). The narrow allow list is deliberate: a WebFetch confirmation prompt on the rare case the user needs the marketing site is preferable to expanding the surface for prompt-injection-driven exfil.
 
@@ -19,7 +19,7 @@ When reviewing or auditing the user's personal Claude Code harness config (`~/.c
 
 6. **Blanking quoted text before the command-position triggers of `inject-rules.sh`** (to stop `rg 'a|apt install'` or a `showboat note` text from injecting `install.md`). Quoted text carries real commands: `ssh ju-TP2 'cd dotfiles && stow -n …'` and `ssh … 'systemctl --user …'` were 24 of the 27 install triggers found only inside quotes over 14 days of transcripts (2026-09-26 walkthrough), and a false trigger costs one injection per session, or per subagent, at most.
 
-**Why:** the 2026-05-13 `/health` audit on `~/.claude` (Waza skill, removed 2026-09-18) produced 5 findings; 4 (80%) were rejected as overstated. The 2026-05-14 walkthrough on `sweep-stale-consolidate-locks.sh` rejected 7 of 7 findings: 3 Required (PID-reuse, TOCTOU, empty-PID) and 4 Suggestion (log rotation, self-concurrency, kill -0 EPERM/ESRCH, mtime fallback). Pattern across both passes: treating intentional minimalism (narrow scope, plain tools, generic outputs, best-effort error handling) as defects requiring defensive expansion, often importing Claude's own behavioral rules or production-grade hardening expectations into user-authored config code where they don't apply.
+**Why:** the recurring shape across the passes on `~/.claude` and on `sweep-stale-consolidate-locks.sh` is treating intentional minimalism (narrow scope, plain tools, generic outputs, best-effort error handling) as defects requiring defensive expansion, often importing Claude's own behavioral rules or production-grade hardening expectations into user-authored config code where they don't apply.
 
 **How to apply:** in any future config audit, code-review, or audit pass over `~/.claude/` config artifacts, skip the five live categories of suggestion (1, 2, 4, 5, 6) immediately. They are recurring false positives. Real findings still apply: leaked credentials in committed settings, hooks that fail open and corrupt files, scope guards that demonstrably don't gate what they claim to gate, structural drift between CLAUDE.md and `rules/*.md` content, and logic bugs in hook scripts that produce wrong results within the script's stated contract.
 

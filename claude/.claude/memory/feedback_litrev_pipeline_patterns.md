@@ -32,7 +32,7 @@ Seen: `validate_gate` hung ≥30 min on the first call after `protocol.md` was w
 **Why:** No point waiting on a transport bug when the gate checks are trivial to reproduce manually.
 **How to apply:** First sign of stall on `validate_gate`, drop to manual validation via Read/Bash. Log the bug in the project's `.claude/litrev_feedback.md` and move on.
 
-**Rule 5.** Pseudo-GRADE in Conclusions is caught and remediated by self-check #10 of `skills/litrev-synthesize/SKILL.md` ("No pseudo-GRADE in Conclusions and Results"); follow its remediation. See [[feedback_review_severity_litrev_mcp]] for related calibrations on the same plugin.
+**Rule 5.** Retired: self-check 10 of `skills/litrev-synthesize/SKILL.md` is BLOCKING and produces the remediation in the same run, so nothing is left here. See [[feedback_review_severity_litrev_mcp]] for related calibrations on the same plugin.
 
 **Rule 6.** Post-generation prose cleanup: two passes, two different problems.
 
@@ -45,6 +45,6 @@ Seen on the PRISE epidemio book mise-en-forme (2026-05-18). Two distinct passes 
 **Why:** PRISMA-ScR scaffolding eliminates the canonical AI-slop tics (négatif parallèle, questions rhétoriques, « il convient de noter », « révolutionne », triplets symétriques vides) by forcing a factual, inductive register. The `/workflow:write` checklist targets those, so it returns near-empty diffs. But litrev output still reads like translated English: heavy nominalisations (« constitue le cadrage », « la présente scoping review », « s'inscrit dans une démarche »), bureaucratic chaining (« compte tenu de », « ayant produit », « à partir d'une approche couplée »), empty adjectives (« détaillé », « exécutif », « significatif » without a number), and announce-then-state framings (« une donnée structurante pour la pratique : … », « trois points méritent d'être réitérés »). These are not on any AI-tic list; they are formal-register translationese.
 
 **How to apply:**
-1. *Mechanical pass:* `rg -l '[—–]'` to convert em-dash/en-dash in internal punctuation; targeted sed on finding titles (`— \*(minor|major|critical)\*` → `, *$1*`); a quick run on vocabulary inflation (« à l'instar de », « par conséquent », « permettre de + verbe » chaîné). Cheap, mechanical, do it first.
+1. *Mechanical pass:* `rg -l '[—–]'` to locate em-dash and en-dash in internal punctuation, then one Edit per finding title (`— \*(minor|major|critical)\*` to `, *$1*`), never a `sed` rewrite; a quick run on vocabulary inflation (« à l'instar de », « par conséquent », « permettre de + verbe » chaîné). Cheap, mechanical, do it first.
 2. *Substantive pass:* don't delegate to `/workflow:write` agents; they apply the wrong checklist. The main model should rewrite directly, looking for nominalisation chains, bureaucratic openers (« la présente », « le présent document »), and announce-then-state ("X : Y" where Y is the actual content). Aim for verb-first, fact-first sentences. Cut adjectives that don't carry a constraint.
 3. *Skip:* the canonical AI-tic checklist (négatif, rhétorique, rituel openers, vide triplets). Confirmed absent on this corpus type; running /workflow:write on it is wasted budget.

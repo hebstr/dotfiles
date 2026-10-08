@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Before writing a helper whose body is generic mechanics, query the installed dependency for a function that already does it. The rule itself is unconditional and lives in `rules/code.md` (Before writing a helper), loaded on every code file; the per-language commands are in `rules/r.md` and `rules/python.md`. This memory holds the why and the failure shape.
+Before writing a helper whose body is generic mechanics, query the installed dependency for a function that already does it. The rule itself is unconditional and lives in `rules/code.md` (Before writing a helper), which is `paths:`-scoped and loads when Claude reads a matching code file, never on a `Write` of a new one; the per-language commands are in `rules/r.md` and `rules/python.md`. This memory holds the why and the failure shape.
 
 ## Why
 

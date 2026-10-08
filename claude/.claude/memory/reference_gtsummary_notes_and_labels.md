@@ -7,11 +7,7 @@ metadata:
 
 Measured in `eds-prise` on 2026-09-03 against suppositions that turned out false, on gtsummary 2.5.1 and gt 1.3.0 (`rv.lock`), so none of it needs re-deriving on that pair.
 
-**`add_note()` works on `tbl_merge` and on `tbl_stack`**, not only on a plain `tbl_summary`.
-
-**Its position relative to `gtsum_format()` is indifferent.** The final `modify_footnote(everything() ~ NA)` of that hebstr helper resets only the header note, so a note added before survives. Beware the version: whether `modify_footnote` reaches more than the header depends on where gtsummary is in its `modify_footnote` / `modify_footnote_header` split, so re-check on a gtsummary upgrade.
-
-**Declaration order is indifferent too**: gtsummary numbers the symbols in the table's reading order, not in the order the notes were declared.
+Where `add_note()` works, and why its position and declaration order are indifferent, is in `rules/r.md` § "Verified behaviours". One version caveat that rule does not carry: whether `modify_footnote` reaches more than the header depends on where gtsummary sits in its `modify_footnote` / `modify_footnote_header` split, so re-check on an upgrade.
 
 **`add_variable_group_header()` is the exception: it goes after `gtsum_format()`, never before.** The `add_overall()` that the helper's `.fmt_by` branch calls aborts on a table that already carries a group-header row. (Which call comes before `tbl_stack()` is a separate question, settled in [[feedback_gtsummary_stacked_blocks]].)
 

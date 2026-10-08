@@ -7,7 +7,7 @@ metadata:
 
 The Streamlit annotation apps of `eds-avc` were factored into one config-driven engine and moved to the Python package `edscrib`, so that several EDS projects share one socle. Package and remote are `hebstr/edscrib`; the local directory carries a language prefix, `~/Documents/packages/py-edscrib`, as `R-edstr` does for `hebstr/edstr`.
 
-**Tracker: `eds-avc/.claude/ANNOT-PKG.md`**, gitignored, on this machine only; it holds the design, the per-pass record and the step order. `py-edscrib/.claude/CLAUDE.md` points back to it and carries the frontier rule, structural constraints and Streamlit traps; it is deliberately the package's only Claude file. Review calibration: [[feedback_review_severity_edscrib]].
+**Tracker: `eds-avc/.claude/ANNOT-PKG.md`**, gitignored, on this machine only; it holds the design, the per-pass record and the step order. `py-edscrib/.claude/CLAUDE.md` points back to it and carries the frontier rule, structural constraints and Streamlit traps; `py-edscrib/.claude/` also holds a `DEFERRED.md`. Review calibration: [[feedback_review_severity_edscrib]].
 
 **State, re-derived 2026-09-22:** `main` is at `e327599`, 30 commits, pushed and level with `origin/main`. Step 6 (`ANNOT-PKG.md`, "Publier le dépôt, taguer `v0.1.0`, basculer `eds-avc` sur la dépendance Git") still owes the `v0.1.0` tag, the contents of `__all__` (empty), and the switch of `eds-avc` to the Git dependency. The `EMPTY` sentinel entry of `eds-avc/.claude/DEFERRED.md` is unarbitrated, with the tag as its hard deadline. Counts (guards, tests) move on every pass: re-derive them from the code, never carry them.
 

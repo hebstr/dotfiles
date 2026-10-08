@@ -12,7 +12,7 @@ metadata:
 - `$'…'` is `SglQuoted` with `Dollar: true` and the escapes undecoded in `Value`.
 - A quoted heredoc delimiter gives one `Lit` body; an unquoted one gives `CmdSubst` parts for `$(…)` and backticks, which run.
 - Brace expansion is never a node: `{git,}` is a plain `Lit`.
-- Operator codes: redirections `>` 54, `>>` 55, `<` 56, `<>` 57, `<&` 58, `>&` 59, `>|` 60, `<<` 61, `<<-` 62, `<<<` 63, `&>` 64, `&>>` 65; `BinaryCmd` `&&` 10, `||` 11, `|` 12, `|&` 13.
+- Operator codes are numeric and undocumented; `hooks/git-write-guard.jq` is where the ones that matter are enumerated, in its redirection and heredoc tests.
 - On a syntax error it exits 1 with `line:col: message` on stderr; piped into jq without `pipefail`, the failure is lost.
 
 Related: [[reference_bash_tool_pitfalls]], [[feedback_shell_grep_pipefail]].

@@ -60,11 +60,7 @@ So in `cmd_a >"$tmp" && mv "$tmp" "$dst"`, a failure of `cmd_a` or of its redire
 
 When a script keeps a `FAILED` accumulator so one failure does not stop the run, every one of these swallowed paths is a hole in that accounting, not a crash to prevent.
 
-**Encountered:**
-- `bin/.local/bin/sys-cleanup` `clean_claude_versions` (twice), 2026-05-10
-- `bin/.local/bin/devtools-update` `get_latest_version`, 2026-05-10
-- `bin/.local/bin/claude-plugins-update`, 2026-08-29, both swallowed shapes at once: the plugin loop read from `< <(jq -er ...)` and the `mcp.json` rewrite was a bare `jq ... >"$tmp" && mv ...`. The plugin loop alone is still pinned by `_meta/tests/claude-plugins-update.bats`: the `mcp.json` rewrite left the script on 2026-10-08 with the Ouroboros uninstall, and its tests went with it
-- `bin/.local/bin/claude-plugins-install`, 2026-08-30, both loops read from `< <(jq ...)`: an unparseable `settings.json` printed two jq errors, restored nothing, and still ended on `Done.` with exit 0, defeating the script's only purpose (fresh-machine restore). Pinned by `_meta/tests/claude-plugins-install.bats`. **A fix applied to one script of a pair does not travel to its sibling**: `claude-plugins-update` had carried the corrected shape *and* the comment explaining it since the day before, in the same directory, while `claude-plugins-install` kept the bug. After fixing this shape anywhere, grep the sibling scripts for `< <(` before closing the task
+**A fix applied to one script of a pair does not travel to its sibling.** `claude-plugins-update` carried the corrected shape and the comment explaining it since the day before, in the same directory, while `claude-plugins-install` kept the bug: an unparseable `settings.json` printed two jq errors, restored nothing, and still ended on `Done.` with exit 0, defeating the script's only purpose. After fixing this shape anywhere, grep the sibling scripts for `< <(` before closing the task. Both are pinned by `_meta/tests/claude-plugins-update.bats` and `_meta/tests/claude-plugins-install.bats`.
 
 ## A third shape: a non-zero status that means two different things
 
@@ -92,6 +88,6 @@ Branch on the validity probe, never on the numeric code: `jq`'s manual documents
 
 The mirror of this is a *zero* status that means "nothing there": `jq -r '.a.b'` prints the four characters `null` and exits 0 when the key is missing, so a downstream `[ "$v" != "" ]` guard passes and the word reaches whatever the value feeds. `jq -er` closes it by turning the null into exit 1, which an existing `|| v=""` fallback already handles. The general rule covers both directions: a filter's exit status answers "did I run", never "did I find something", so any guard that treats the two as the same question has a hole.
 
-**Encountered:** `bin/.local/bin/claude-plugins-update`, 2026-08-29, both shapes in the same file: the `mcp.json` entry guard conflated absent-key with malformed, and the PyPI version query let a literal `null` through into the rewritten pin. Both shapes and the tests that pinned them left the repository on 2026-10-08 with the Ouroboros uninstall, so this entry is the incident and no longer a live example.
+Both shapes and the tests that pinned them left the repository on 2026-10-08 with the Ouroboros uninstall, so no live example remains.
 
 When auditing a new shell script, run: `rg -n 'grep[^|]*\|' script | grep -Ev '\|\| (true|echo|\{)'` to surface candidates. The `-E` is load-bearing: in basic syntax `|` and `(` are literal and the filter removes nothing.

@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-Arity (jolars/arity), a Rust formatter + linter + LSP for R, was evaluated on 2026-09-10 as a single-binary replacement for `air` 0.11.0 and `jarl` 0.6.0, and not adopted. The binary sits in `~/.local/bin/arity`, outside the gate, kept for watching the project; `rm ~/.local/bin/arity && rm -rf ~/.cache/arity` reverts it.
+Arity (jolars/arity), a Rust formatter + linter + LSP for R, was evaluated on 2026-09-10 as a single-binary replacement for `air` 0.11.0 and `jarl` 0.6.0, the versions installed that day, and not adopted. Both blockers are structural, so a version bump does not reopen the verdict: on 2026-10-09 air reads 0.12.0 and jarl 0.6.0. The binary sits in `~/.local/bin/arity`, outside the gate, kept for watching the project; `rm ~/.local/bin/arity && rm -rf ~/.cache/arity` reverts it.
 
 Two blockers, neither reachable by configuration:
 

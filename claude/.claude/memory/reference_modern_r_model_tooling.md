@@ -9,7 +9,6 @@ Current-practice R packages for model evaluation, comparison, and effect interpr
 
 How to use this memory: surface these when the choice of tool is in play or when the user asks. Do not impose them spontaneously on analysis code, and when a script shows a formula by hand on purpose (e.g. pedagogical), that is the user's call. The user adopted these readily when directed (easystats and marginaleffects both came up and were accepted in a sandbox session).
 
-The set: easystats `performance` and `parameters`, broom, yardstick (tidymodels), marginaleffects; their function surfaces are in the package docs.
 
 **marginaleffects version note:** in marginaleffects >= 0.32 the string `hypothesis = "pairwise"` is rejected (use the formula `~pairwise`), and the package nudges from `"b1=b2"` toward `"b1 - b2 = 0"`.
 

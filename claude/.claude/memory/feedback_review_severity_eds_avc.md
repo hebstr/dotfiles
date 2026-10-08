@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Calibration for reviews of `pred/` in eds-avc (llama-server orchestrator, one fixed 3-GPU CHU server), from the 2026-09-17 walkthrough of `pred/lib/server.py` and `pred/avc_pred_output.py` (13 findings: 7 accepted, 4 rejected, 2 noted).
+Calibration for reviews of `pred/` in eds-avc (llama-server orchestrator, one fixed 3-GPU CHU server), from the 2026-09-17 walkthrough of `pred/lib/server.py` and `pred/avc_pred_output.py`.
 
 **Why:** four findings were rejected as documented design, hypothetical portability, or negligible cost, and one accepted finding carried a remedy that would have broken the R consumers.
 
@@ -16,7 +16,7 @@ Calibration for reviews of `pred/` in eds-avc (llama-server orchestrator, one fi
 - Before accepting a remedy that touches log or output file names, check the R consumers: `config/helpers_pred_logs.R` treats one `.log` file as exactly one run (`run_id` = basename, header on first match, tasks joined by `task_id` over the whole file) and rebuilds `run_id` from the parquet name, and `pred_output_ls()` globs `*output*.parquet`. Appending to a log, timestamping its name, or suffixing a sampled output all break or pollute them.
 - The `/v1/models` id under `--hf-repo` is the raw repo string, so its kebab equals the CLI-derived kebab; check the file names in `pred/data/` and `pred/logs/` before accepting a naming-mismatch claim.
 
-## `config/helpers_pred_logs.R`, walkthrough of 2026-09-18, commit `1bf98a5` (13 findings: 5 accepted, 5 rejected, 3 noted)
+## `config/helpers_pred_logs.R`, walkthrough of 2026-09-18
 
 **Why:** every rejection turned on the same axis, a remedy that would have replaced a loud failure with a silent one, or a claim resting on a unit of work the pipeline does not have.
 

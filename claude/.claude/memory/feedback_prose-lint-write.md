@@ -11,10 +11,6 @@ Prose hygiene rules (anti-AI-slop, em/en dash) apply only to text **rendered to 
 
 **Why:** the AI-tell rule is about audience perception. Internal notes are read by Claude only, where the rules' purpose (avoiding the AI register tells when humans read the output) does not apply. Enforcing them on working notes is busywork.
 
-**Enforcement via gitignore + prek (verified 2026-05-20):**
-- When `.claude/` is gitignored (default in this project), `prek` (pre-commit runner) skips it even with `--all-files`. Empirically verified: an em-dash inside `.claude/sweep-context.md` did not trigger the prose-lint hook. So a redundant `exclude = '^\.claude/'` in `prek.toml` is unnecessary when the directory is already gitignored.
-- The hard guarantee is `.gitignore`; the pre-commit skip is a consequence, not an independent layer.
-
 **How to apply:**
 - Before scanning a directory with prose-lint or /workflow:write, skip a project's `.claude/`, `~/.claude/memory/`, the user's scratchpads `NOTES.md` / `TODO.md` / `CALENDRIER.md`, which the write-gate puts out of reach of any fix prose-lint would demand (the script self-skips `TODO.md` and `CALENDRIER.md`, not `NOTES.md`, so a directory sweep still echoes a `NOTES.md` line back), or another working-notes location. Exception: the global config `~/.claude/CLAUDE.md` and `~/.claude/rules/*.md` (stowed under `~/dotfiles/claude/.claude/`) stays checked.
 - When in doubt: "does a human other than the author read this?" If no, it's a working note.
@@ -33,10 +29,7 @@ The `prose-lint` AI-tell rule targets em dashes used as **rhetorical punctuation
 
 **Why:** these are two semantically different uses of the same glyph. Conflating them produces ugly false fixes (`| — |` → `| n/a |`, `### X — Y` → `### X : Y`) that degrade typography without removing any AI tell. Concrete incident (2026-05-20): a /workflow:write pass on this repo replaced ~15 typographic em dashes in table cells and section headers with `n/a`/`none`/colons, triggering an explicit "STOP" from the user.
 
-**How the linter encodes this** (as of 2026-05-20, in `~/dotfiles/bin/.local/bin/prose-lint`):
-- Lines starting with `|` (table rows) or `#` (markdown headers) are exempt from em/en dash checks.
-- En-dashes between alphanumeric tokens (`[A-Za-z0-9.]+–[A-Za-z0-9.]+`) are stripped before the check, so numeric ranges and version ranges pass everywhere, including bullets and prose.
-- Verbatim-rule lines that need to quote forbidden punctuation (e.g. `Pas de tiret cadratin (—) ...` in `write-fr-*.md`) still need the `<!-- prose-lint:ignore -->` marker, because the em-dash is inside parens between non-alphanumerics, in a bullet line.
+A verbatim-rule line that has to quote forbidden punctuation still needs the `<!-- prose-lint:ignore -->` marker; the exemptions the script already encodes are in its own header.
 
 **How to apply:**
 - When prose-lint flags em/en dash violations, fix only the ones that are actual rhetorical punctuation in continuous prose. Convert to comma, semicolon, colon, parens, or restructure.

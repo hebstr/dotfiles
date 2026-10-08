@@ -66,7 +66,7 @@ Verified end to end: the generated SVG carries `font-family: "Luciole"`.
 
 `quarto-hebstr-doc` ships `fonts/` as `.woff`/`.woff2` only, for `fonts.css` `@font-face`. Neither Typst nor systemfonts can browse that directory: `typst fonts --ignore-system-fonts --font-path <fonts/>` lists only Typst's four built-ins, and `systemfonts::add_fonts()` on it adds 0 rows to `system_fonts()`. Only `register_font()` / `user_fonts`, handed an explicit *file* path, decode a woff2 (`font_info()` then reports family Luciole with real metrics).
 
-Consequence for the extension, now a record: its typst block's `font-paths: fonts` was inert, PDF output silently relying on a system-installed Luciole. hebstr-doc dropped the Typst format on 2026-09-29, so the block and that key are gone; the measurement above stands for any other extension shipping web fonts.
+The measurement above stands for any extension shipping web fonts.
 
 ## Dependency consequence
 

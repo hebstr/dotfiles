@@ -8,12 +8,12 @@
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
 - project_ju_tp2_receiveonly.md: ju-TP2 (WSL) never writes to `~/dotfiles` or `~/.claude`: Syncthing receive-only
 - project_claude_dir_local_only_repo.md: a project's `.claude` in a nested remote-less repo, local to ju-TP (2026-09-30)
-- project_ubuntu_26_04_migration.md: Ubuntu 26.04 migration deferred to Dec 2026 at the earliest; research done, don't redo
+- project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
 - project_quarto_custom_crossref_float.md: hebstr-doc's `anx` crossref type: annex labels, caption keys, the redeclaration trap
 - project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file
 - project_qmd_format_hook.md: .qmd/.md formatting by panache and its prek gate: config, excludes, format-on-save split
-- project_shellharden_dotfiles_normalized.md: The `$VAR` style in dotfiles `bin/`, `hooks/`, `bash/` is shellharden output
+- project_shellharden_dotfiles_normalized.md: dotfiles `$VAR` style is shellharden output: never revert or flag it
 - project_litrev_separate_from_hebstr.md: litrev stays out of the hebstr marketplace (2026-04-26); don't re-propose the merge
 - project_autoresearch_skill_deferred.md: `uditgoenka/autoresearch` not adopted (2026-09-11); analysis done, don't redo
 - project_arity_evaluation.md: Arity tested against air + jarl (2026-09-10), not adopted; measurements done, don't redo
@@ -57,13 +57,12 @@
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Positron's per-profile extensions.json beats the global one; orphan folders stay
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
-- reference_hebstr_gt_table_width.md: px widths: pct() refused, the PNG clipped, Word honours a fixed grid LibreOffice rescales
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
-- reference_table_column_width_layout.md: One percentage grid for gt and flextable, the total it divides, the Word indent floor
+- reference_table_column_width_layout.md: gt/flextable widths: percent grid, px total, PNG clipping, Word grid and indent floor
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
-- reference_gtsummary_notes_and_labels.md: gtsummary 2.5.1 notes and labelling: where `add_note()` works, what must come last
+- reference_gtsummary_notes_and_labels.md: gtsummary: `add_variable_group_header()` last, `easy_label()` coerces logicals
 - reference_quarto_lua_shortcodes.md: Quarto Lua shortcode traps: empty Inlines, YAML scalars, named pipes, embedded loading
 - reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in a `{=typst}` block: no arrays, a missing key prints into the PDF
 - reference_word_embedded_fonts_blocked.md: Recipients' Word refuses embedded fonts; design around the fallback list
@@ -87,7 +86,7 @@
 - feedback_gtsummary_stacked_blocks.md: Stacked gtsummary blocks: `add_variable_group_header()` before `tbl_stack()`
 - feedback_probe_must_test_the_deciding_form.md: A measurement ruling an option out must exercise its strongest form
 - feedback_commit_sequence_add_all.md: `git add .`, the peer sweep both ways, a dirty file left to the user
-- feedback_r_environment.md: Confirmed R environment idioms (rv not renv, `system2`, how an rv project activates)
+- feedback_r_environment.md: rv not renv (no install.packages), `system2` over `system`, how an rv project activates
 - feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret; test presence with `[ -n "$VAR" ]`
 - feedback_benchmark_power_state.md: This machine is ~2x slower on battery: check the power state, pair the runs
 - feedback_verify_before_claiming.md: Verify every factual claim with tools; never reason from absence, recompute the number

@@ -1,6 +1,6 @@
 ---
 name: Review calibration for Claude Code skill audits
-description: "Auditing SKILL.md files or Claude Code agent definitions (agents/*.md): nine recurring false-positive patterns to reject (portability hedging, explicit-invocation gate, restated host rules, half-read criteria, absolute mechanism claims), and lessons from seven skill audits"
+description: "Auditing SKILL.md files or Claude Code agent definitions (agents/*.md): recurring false-positive patterns to reject (portability hedging, explicit-invocation gate, restated host rules, half-read criteria, absolute mechanism claims), and the lessons the skill audits left"
 metadata:
   type: feedback
 ---
@@ -25,7 +25,7 @@ When reviewing or auditing `SKILL.md` files, or the agent definitions (`agents/*
 
 9. **Absolute mechanism claim about the audited document's own behaviour, refuted by its literal text or by one command.** Distinct from pattern 5: here the reviewer read the right section and then asserted a behaviour it does not have, usually in a quantifier the whole conclusion rests on. Shapes measured: a verification step described as *executing* code when it only re-reads files, so a revert path is demanded for a failure that cannot occur; a fail-safe declared missing when the file states it twice; a post-filter accused of an assumption the file explicitly declines, with the guard the finding asks for written three lines below; an objection filed as unaddressed when the file already states it, arbitrates it and imposes an anomaly for it; a document header called a fragile self-parse when no serialization boundary exists and three consumers are named; a defense mechanism said to degrade valid high-severity findings "systematically" when it only applies to the band where a cross-check also runs. Read the verb and the quantifier literally, then run the one command that settles the claim, before accepting anything built on it. A finding whose load-bearing sentence is false stays REJECTED even when the mechanism it describes would be a real risk in a document that behaved as claimed; an improvement drawn from it is a separate, voluntary change and is labelled as such, not as acceptance.
 
-**Where the patterns came from:** patterns 1 to 4 from the 2026-05-12 blindspot of `workflow/reco` (4 of 17 findings), 5 to 7 from two 2026-08-31 passes on the skill later called `cadrer` and, since 2026-09-24, `design`, 8 from the 2026-09-15 blindspot of `audit/walkthrough/agents/ouroboros-bridge.md`, 9 from the 2026-09-20 walkthrough of `audit/walkthrough`. Bucket reliability across these runs is in [[feedback_audit_walkthrough]].
+The patterns come from successive blindspot and walkthrough passes on `workflow/reco`, `design`, the walkthrough's bridge agent and `audit/walkthrough` itself. Bucket reliability across these runs is in [[feedback_audit_walkthrough]].
 
 **Lessons beyond the patterns:**
 
@@ -36,10 +36,7 @@ When reviewing or auditing `SKILL.md` files, or the agent definitions (`agents/*
 - **Merge a trigger-case block into one point when the skill is explicit-only**: nineteen cases with one cause, rejected by pattern 4, would otherwise have forced nineteen L2 calls.
 - **Measure the failure mode a finding asserts**, not only its counts (a claimed exit 127 was an exit 2 the existing branch already surfaced).
 - **A rule a skill states in prose usually has an executable twin.** Widening the model-ID regex in `SKILL.md` and the judge left `openrouter-generation.py` and `openrouter-verdict.py` enforcing the old `MODEL_PAT`; when a fix changes a validation rule, grep the scripts the skill calls.
-- **Run the walkthrough's final evaluate even when every point verified clean**: it caught two regressions from accepted fixes that pointed a branch at a template written for another case.
 - **Take the cheap wording fix** when L1 and L2 diverge on a one-sentence finding, rather than re-litigating scope.
 - **Run the exhaustive coverage check before the wrap-up**: following the report's processing order and then a severity sort once skipped its first critical finding.
-
-**Per-skill: `workflow:sync`.** The 2026-03-31 skill-adversary review of `workflow/sync/SKILL.md` rejected these as context-unaware, and they still hold: the `CONTEXT.md` dependent in the heuristic table is expected by design, not ecosystem-specific; the Grep catch-all is not insufficient for unlisted file types, since the table only boosts a domain and Grep covers the rest; minor count ambiguities in the report template ("Scanned: M dependents") are settled by the live session counting actual files; edge cases two levels deep in fallback paths (no git and wrong filenames) have obvious behaviour; `find 2>/dev/null` in the non-git fallback of the directory listing does not hide partial results that matter, since it runs in the user's own project (inside git the listing is `git ls-files`, since 2026-09-19).
 
 **How to apply:** in any future skill-adversary, blindspot, or sweep audit on a `SKILL.md`, skip these nine categories of suggestion immediately. Real findings still apply: least-privilege violations in `allowed-tools` (this is exactly the kind of blindspot cross-model review surfaces well), missing failure handling for sub-agents, ambiguous or operationally vague instructions, contradictions across sections, broken tool references after frontmatter changes.
