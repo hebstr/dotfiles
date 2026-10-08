@@ -1,6 +1,6 @@
 ---
 name: Claude Code marketplace install mechanics
-description: When `claude plugin install` is required vs skippable, when cache is populated, how `extraKnownMarketplaces` relates to `marketplace add`, and why a moved `directory` source breaks `marketplace update`. Verified 2026-08-21 against the on-disk cache and settings state.
+description: When `claude plugin install` is required vs skippable, when cache is populated, what an uninstall cleans and what it leaves for the user to delete by hand, how `extraKnownMarketplaces` relates to `marketplace add`, and why a moved `directory` source breaks `marketplace update`. Verified 2026-08-21 against the on-disk cache and settings state, the removal path on 2026-10-08.
 metadata:
   type: reference
   originSessionId: e3cb33c3-05ad-4318-aa10-31d456904d95
@@ -15,6 +15,7 @@ Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by
 - Running `claude plugin install <plugin>@<marketplace>` copies the plugin content into `~/.claude/plugins/cache/<marketplace>/<plugin>/<version-or-sha>/`: a full snapshot of the marketplace tree at that revision.
 - This happens even for `source: directory` marketplaces. Empirical evidence (2026-08-21): `litrev` is the only `directory` source declared, and `~/.claude/plugins/cache/litrev/litrev/0.1.0/` holds a full marketplace snapshot. `github` sources cache under a commit-sha subdir instead (`~/.claude/plugins/cache/hebstr/{audit,workflow}/<sha>/`).
 - Once cache exists, **the cache becomes the source of truth at runtime**: edits to the live source dir are NOT picked up until `claude plugin update <plugin>@<marketplace>` refreshes the cache. Verified by editing a skill file in the source tree and finding the cache copy unchanged.
+- **Removal leaves the cache behind, and Claude cannot clear it.** Measured 2026-10-08 uninstalling ouroboros: `claude plugin uninstall` and `claude plugin marketplace remove` cleaned `enabledPlugins`, `extraKnownMarketplaces`, `installed_plugins.json`, `known_marketplaces.json` and the marketplace clone under `~/.claude/plugins/marketplaces/`, and left `~/.claude/plugins/cache/<marketplace>/` whole, 351 MB of stacked revisions. The `deny` rule `Edit(~/.claude/plugins/cache/**)` covers an `rm` there too, so the `rm -rf ~/.claude/plugins/cache/<marketplace>` is the user's to run: name it rather than attempting it.
 
 **3. `plugin install` is skippable for `directory` source, with a behavioral consequence**
 - For `directory` source: if no install has been run (no cache entry), Claude Code falls back to reading live from the path declared in `marketplace.json`. Restart alone is enough to load the plugin. Which mode a given plugin sits in is decided per-plugin by the cache check below, never assumed.
