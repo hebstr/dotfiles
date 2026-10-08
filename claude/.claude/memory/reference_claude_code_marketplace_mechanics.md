@@ -9,7 +9,7 @@ Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by
 
 **1. `extraKnownMarketplaces` (settings.json) ≡ `claude plugin marketplace add`**
 - Declaring a marketplace under `extraKnownMarketplaces` registers it at Claude Code startup, equivalent to having run the CLI `add` command. No separate `claude plugin marketplace add <name>` needed.
-- This is what `ouroboros`, `r-skills`, `posit-dev-skills`, `claude-plugins-official`, `hebstr`, `litrev`, `astral-sh` all rely on.
+- This is what `r-skills`, `posit-dev-skills`, `claude-plugins-official`, `hebstr`, `litrev`, `astral-sh` all rely on.
 
 **2. Cache is populated by `plugin install`, regardless of source type**
 - Running `claude plugin install <plugin>@<marketplace>` copies the plugin content into `~/.claude/plugins/cache/<marketplace>/<plugin>/<version-or-sha>/`: a full snapshot of the marketplace tree at that revision.

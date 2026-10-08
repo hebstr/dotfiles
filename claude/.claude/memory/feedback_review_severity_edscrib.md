@@ -7,7 +7,7 @@ metadata:
 
 Calibration drawn from twelve `/audit:walkthrough` and `/audit:blindspot` passes on `py-edscrib`, 2026-07-29 to 2026-08-02 (`navigation.py` twice, `auth.py` twice, `app.py` five times, `export.py` twice, `config.py`; reviewer `posit-dev:critical-code-reviewer` unless noted).
 Project context in [[project_edscrib_annotation_package]].
-Every L2 consensus count these passes recorded went through the Ouroboros `claude_code` backend, so it is intra-family agreement, not cross-provider confirmation (see [[feedback_ouroboros_tools]]); the counts are left out below for that reason.
+Every L2 consensus count these passes recorded went through the Ouroboros `claude_code` backend, whose non-Anthropic voters all resolved to the default Claude model, so it is intra-family agreement, not cross-provider confirmation; the counts are left out below for that reason.
 
 ## Severity: never soften, and read the mechanism rather than the tier
 

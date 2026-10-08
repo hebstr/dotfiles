@@ -132,7 +132,6 @@
 - feedback_format_hook_strips_new_import.md: In Python, an import added before its usage is stripped as F401 by the format hook
 - feedback_browser_layout_probe.md: Inspect a rendered layout yourself in headless chromium; Streamlit needs CDP and a sleep
 - feedback_personal_working_files.md: The write-gate on NOTES.md, TODO.md and CALENDRIER.md: reading is free, writing never
-- feedback_ouroboros_tools.md: Which Ouroboros tools support consensus, and how to run evaluate and measure_drift
 - feedback_xdg_open.md: xdg-open on `file://` silently fails in Positron; use `python3 -m http.server`
 - feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
 - feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap

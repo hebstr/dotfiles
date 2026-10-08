@@ -9,11 +9,6 @@ command -v claude >/dev/null 2>&1 || {
   printf 'claude is required\n' >&2
   exit 1
 }
-command -v curl >/dev/null 2>&1 || {
-  printf 'curl is required\n' >&2
-  exit 1
-}
-
 INSTALLED=~/.claude/plugins/installed_plugins.json
 FAILED=0
 
@@ -44,48 +39,6 @@ elif [ "$PLUGINS" != "" ]; then
       FAILED=1
     }
   done <<<"$PLUGINS"
-fi
-
-MCP_JSON=~/.claude/mcp.json
-if [ -f "$MCP_JSON" ]; then
-  if ! jq -e . "$MCP_JSON" >/dev/null 2>&1; then
-    echo "Could not read ${MCP_JSON}" >&2
-    FAILED=1
-  elif jq -e '.mcpServers.ouroboros' "$MCP_JSON" >/dev/null 2>&1; then
-    echo "Checking ouroboros MCP version..."
-    LATEST=$(curl -sf "https://pypi.org/pypi/ouroboros-ai/json" | jq -er '.info.version' 2>/dev/null) || LATEST=""
-    if [ "$LATEST" != "" ]; then
-      CURRENT=$(jq -r '.mcpServers.ouroboros.args[] | select(test("ouroboros-ai"))' "$MCP_JSON" 2>/dev/null | grep -oP '(?<===)\S+' || echo "")
-      if [ "$CURRENT" = "" ]; then
-        echo "  → ouroboros MCP: could not parse pinned version in mcp.json" >&2
-        FAILED=1
-      elif [ "$CURRENT" != "$LATEST" ]; then
-        # The specifier is replaced whole rather than by its numeric prefix: a
-        # PEP 440 suffix left behind by a prefix patch names a nonexistent release.
-        tmp=$(mktemp "$(dirname "$MCP_JSON")/.mcp.XXXXXX")
-        trap 'rm -f "$tmp"' EXIT
-        # The whole write is the if-condition: a failure of jq or of the
-        # redirection is the left operand of the && and so escapes errexit,
-        # which would otherwise fall through to the success message below.
-        if jq --arg v "$LATEST" '
-          .mcpServers.ouroboros.args |= map(
-            if test("ouroboros-ai") then sub("==\\S+$"; "==" + $v) else . end
-          )' "$MCP_JSON" >"$tmp" && mv "$tmp" "$MCP_JSON"; then
-          echo "  → ouroboros MCP: ${CURRENT} → ${LATEST} (restart Claude Code to apply)"
-        else
-          echo "  → ouroboros MCP: failed to rewrite ${MCP_JSON}, pin left at ${CURRENT}" >&2
-          FAILED=1
-        fi
-      else
-        echo "  → ouroboros MCP: already at ${LATEST}"
-      fi
-    else
-      # A network miss is transient and stays out of FAILED. The parse
-      # failures above are persistent: they need a human before the pin
-      # can move again.
-      echo "  → ouroboros MCP: could not fetch latest version from PyPI" >&2
-    fi
-  fi
 fi
 
 # opencode reaches plugin skills through links pinned to install paths, which

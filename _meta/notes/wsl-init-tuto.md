@@ -447,7 +447,7 @@ lua-toolchain-update
 
 ```bash
 uv python install 3.13 3.14
-for t in showboat pyrefly "sqlfluff[rs]" ouroboros-ai huggingface-hub yt-dlp; do uv tool install "$t"; done
+for t in showboat pyrefly "sqlfluff[rs]" huggingface-hub yt-dlp; do uv tool install "$t"; done
 ```
 
 Liste reprise de `_meta/notes/dotfiles-bootstrap.md` ; l'absence de manifeste versionné est suivie dans `.claude/DEFERRED.md`.

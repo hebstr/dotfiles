@@ -27,9 +27,7 @@
       "WebFetch(domain:pypi.org)",
       "WebFetch(domain:pola.rs)",
       "WebFetch(domain:docs.python.org)",
-      "Skill(posit-dev:critical-code-reviewer)",
-      "mcp__plugin_ouroboros_ouroboros__ouroboros_session_status",
-      "mcp__plugin_ouroboros_ouroboros__ouroboros_evaluate"
+      "Skill(posit-dev:critical-code-reviewer)"
     ],
     "deny": [
       "Bash(git push*)",
@@ -93,12 +91,6 @@
       "Bash(rm -r -f*)"
     ],
     "defaultMode": "default"
-  },
-  "autoMode": {
-    "allow": [
-      "$defaults",
-      "Read-only git inspection in any repository, including in the middle of a commit sequence: git status, git diff (with --cached, --stat, --numstat), git log, git show, git rev-parse, git ls-files, git check-ignore. None of these modify a repository or a working tree."
-    ]
   },
   "model": "claude-opus-5",
   "hooks": {
@@ -189,14 +181,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f \"$CLAUDE_PROJECT_DIR/.ouroboros_eval_artifact.md\" ] && mkdir -p \"$CLAUDE_PROJECT_DIR/.claude\" && mv \"$CLAUDE_PROJECT_DIR/.ouroboros_eval_artifact.md\" \"$CLAUDE_PROJECT_DIR/.claude/.ouroboros_eval_artifact.md\" || true"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "bash ~/.claude/hooks/commit-gate.sh"
           }
         ]
@@ -241,7 +225,6 @@
     "open-source@posit-dev-skills": true,
     "quarto@posit-dev-skills": true,
     "skill-creator@claude-plugins-official": false,
-    "ouroboros@ouroboros": false,
     "claude-code-setup@claude-plugins-official": false,
     "mcp-server-dev@claude-plugins-official": false,
     "r-skills@r-skills": true,
@@ -255,12 +238,6 @@
     "astral@astral-sh": false
   },
   "extraKnownMarketplaces": {
-    "ouroboros": {
-      "source": {
-        "source": "github",
-        "repo": "Q00/ouroboros"
-      }
-    },
     "r-skills": {
       "source": {
         "source": "github",
@@ -314,5 +291,11 @@
   "autoMemoryDirectory": "~/.claude/memory",
   "autoDreamEnabled": false,
   "showThinkingSummaries": true,
-  "switchModelsOnFlag": true
+  "switchModelsOnFlag": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Read-only git inspection in any repository, including in the middle of a commit sequence: git status, git diff (with --cached, --stat, --numstat), git log, git show, git rev-parse, git ls-files, git check-ignore. None of these modify a repository or a working tree."
+    ]
+  }
 }

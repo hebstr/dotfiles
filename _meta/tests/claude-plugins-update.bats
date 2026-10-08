@@ -28,28 +28,18 @@ _write_installed() {
   cat >"${FAKE_HOME}/.claude/plugins/installed_plugins.json"
 }
 
-_write_mcp() {
-  mkdir -p "${FAKE_HOME}/.claude"
-  cat >"${FAKE_HOME}/.claude/mcp.json"
-}
-
 # ─── setup / teardown ───────────────────────────────────────────────────────
 
 setup() {
   STUBS="$(mktemp -d)"
   FAKE_HOME="$(mktemp -d)"
   export STUBS FAKE_HOME
-  # Real binaries the script drives directly. jq is real because several
-  # tests assert how *its* exit status propagates, so a stub would test the
-  # stub instead.
-  for cmd in jq mktemp dirname grep rm mv cat; do
-    ln -s "$(command -v "$cmd")" "${STUBS}/${cmd}"
-  done
-  REAL_JQ="$(command -v jq)"
-  export REAL_JQ
+  # jq is the one real binary the script drives directly, and it is real
+  # because several tests assert how *its* exit status propagates, so a stub
+  # would test the stub instead.
+  ln -s "$(command -v jq)" "${STUBS}/jq"
   ln -s "$BASH" "${STUBS}/bash"
   _stub_command claude
-  _stub_command curl
 }
 
 # The script parses no arguments, so this forwards none.
@@ -75,13 +65,6 @@ teardown() {
   _run
   [ "$status" -eq 1 ]
   [[ "$output" == *"claude is required"* ]]
-}
-
-@test "missing curl: exits 1 with message" {
-  rm "${STUBS}/curl"
-  _run
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"curl is required"* ]]
 }
 
 # ─── marketplace update ─────────────────────────────────────────────────────
@@ -155,132 +138,6 @@ EOF
   [ "$status" -eq 0 ]
 }
 
-# ─── ouroboros MCP pin ──────────────────────────────────────────────────────
-
-@test "mcp pin already current: exits 0, reports already at" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==2.0.0"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"2.0.0\"}}"'
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"already at 2.0.0"* ]]
-}
-
-@test "mcp pin outdated: rewrites mcp.json and exits 0" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==1.0.0"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"2.0.0\"}}"'
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"1.0.0 → 2.0.0"* ]]
-  grep -q 'ouroboros-ai==2.0.0' "${FAKE_HOME}/.claude/mcp.json"
-}
-
-@test "pypi body without .info.version: no null pin written, no success line" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==1.0.0"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{}}"'
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" != *"→ null"* ]]
-  [[ "$output" == *"could not fetch latest version"* ]]
-  grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
-}
-
-@test "pypi unreachable: transient miss stays out of the exit status" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==1.0.0"]}}}
-EOF
-  _stub_command curl 'exit 22'
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"could not fetch latest version"* ]]
-  grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
-}
-
-# ─── mcp.json rewrite failure ───────────────────────────────────────────────
-
-@test "mcp rewrite jq failure: exits non-zero, no success line, file intact" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==1.0.0"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"2.0.0\"}}"'
-  # fail only the rewrite invocation (the one carrying --arg), so the earlier
-  # probe and version parse still run against real jq
-  _stub_command jq '[ "$1" = "--arg" ] && exit 1; exec "$REAL_JQ" "$@"'
-  _run
-  [ "$status" -ne 0 ]
-  [[ "$output" != *"1.0.0 → 2.0.0 (restart"* ]]
-  [[ "$output" == *"mcp.json"* ]]
-  grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
-}
-
-@test "mcp rewrite mv failure: exits non-zero and does not print the success line" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==1.0.0"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"2.0.0\"}}"'
-  _stub_command mv 'exit 1'
-  _run
-  [ "$status" -ne 0 ]
-  [[ "$output" != *"1.0.0 → 2.0.0 (restart"* ]]
-  [[ "$output" == *"mcp.json"* ]]
-  # the original pin is left intact rather than half-written
-  grep -q 'ouroboros-ai==1.0.0' "${FAKE_HOME}/.claude/mcp.json"
-}
-
-# ─── prerelease pin replaced whole ──────────────────────────────────────────
-
-@test "prerelease pin outdated: whole specifier replaced, no orphan suffix" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai[mcp,claude]==0.26.0b4"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"0.51.17\"}}"'
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"0.26.0b4 → 0.51.17"* ]]
-  grep -q 'ouroboros-ai\[mcp,claude\]==0.51.17"' "${FAKE_HOME}/.claude/mcp.json"
-  run ! grep -q 'b4' "${FAKE_HOME}/.claude/mcp.json"
-}
-
-@test "prerelease pin whose prefix equals latest: still updated, not skipped" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai==0.26.0b4"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"0.26.0\"}}"'
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" != *"already at"* ]]
-  grep -q 'ouroboros-ai==0.26.0"' "${FAKE_HOME}/.claude/mcp.json"
-}
-
 # ─── plugin update stdin isolation ──────────────────────────────────────────
 
 @test "plugin update does not inherit the loop's plugin list on stdin" {
@@ -294,48 +151,6 @@ EOF
   [[ "$output" == *"alpha@mkt"* ]]
   [[ "$output" == *"beta@mkt"* ]]
   [[ "$output" == *"gamma@mkt"* ]]
-}
-
-# ─── malformed mcp.json ─────────────────────────────────────────────────────
-
-@test "malformed mcp.json: exits non-zero and names the file" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros":
-EOF
-  _run
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"mcp.json"* ]]
-}
-
-@test "mcp.json without an ouroboros entry: exits 0 and stays silent" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"other": {"args": []}}}
-EOF
-  _run
-  [ "$status" -eq 0 ]
-  [[ "$output" != *"ouroboros MCP"* ]]
-  [[ "$output" != *"mcp.json"* ]]
-}
-
-# ─── unparsable pin ─────────────────────────────────────────────────────────
-
-@test "ouroboros entry without a version specifier: exits non-zero" {
-  _write_installed <<'EOF'
-{"plugins": {}}
-EOF
-  _write_mcp <<'EOF'
-{"mcpServers": {"ouroboros": {"args": ["ouroboros-ai[mcp,claude]"]}}}
-EOF
-  _stub_command curl 'printf "{\"info\":{\"version\":\"0.51.17\"}}"'
-  _run
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"could not parse pinned version"* ]]
 }
 
 # ─── opencode skill links follow the updated install paths ──────────────────

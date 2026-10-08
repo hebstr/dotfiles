@@ -12,7 +12,7 @@ Injected by `inject-rules.sh` on the session's first `Agent` call.
 - Each agent prompt targets a non-overlapping facet; never give the same broad prompt to several agents.
 - 2 to 4 parallel agents is the sweet spot when you spawn and fuse them yourself; beyond that, fusion becomes the bottleneck. This does not cap a skill's internal orchestration (`/audit:sweep`, `/workflow:sync`), which sets its own count.
 - Background mode for exploration, foreground when the result feeds the next step.
-- `Explore` (haiku) for fast code scanning, `general-purpose` for complex multi-step tasks. The ouroboros roles (`architect`, `qa-judge` and the rest under its `agents/`) are the MCP server's internal personas, not `subagent_type` values: reach them through its tools, never through the `Agent` tool.
+- `Explore` (haiku) for fast code scanning, `general-purpose` for complex multi-step tasks.
 - `WebFetch` and `WebSearch` reach a subagent as deferred tools, name-only until it loads their schema with `ToolSearch`; a subagent not told so behaves as though it had no web access. Tell a subagent that needs the web to load the schema first, rather than picking its type for that.
 
 ## Coordinating

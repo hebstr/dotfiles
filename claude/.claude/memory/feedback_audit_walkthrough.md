@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Ouroboros specifics for the Step 3 evaluate and the drift check live in [[feedback_ouroboros_tools]]. L2 has called `audit/walkthrough/scripts/openrouter-verdict.py` since 2026-09-15; every L2 count recorded before that date is intra-family agreement.
+Ouroboros was uninstalled on 2026-10-08, so the Step 3 evaluate and the drift check no longer run at all; the skill's own text still describes them until the removal pass lands. L2 has called `audit/walkthrough/scripts/openrouter-verdict.py` since 2026-09-15; every L2 count recorded before that date is intra-family agreement.
 
 ## Calibration loading
 
