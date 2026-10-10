@@ -127,6 +127,16 @@ def renumber(assigned: Sequence[str | None], turns: Sequence[dict[str, Any]]) ->
     return {speaker: f"S{n}" for n, speaker in enumerate(order, start=1)}
 
 
+def label_segments(
+    segments: Sequence[dict[str, Any]], turns: Sequence[dict[str, Any]]
+) -> tuple[list[str | None], dict[str, str]]:
+    """Give each segment its `S1..Sn` label, with the raw-to-renumbered map beside it."""
+    assigned = assign_speakers(segments, turns)
+    labels = renumber(assigned, turns)
+    renumbered = [labels[speaker] if speaker is not None else None for speaker in assigned]
+    return renumbered, labels
+
+
 def render(segments: Sequence[dict[str, Any]], labels: Sequence[str | None] | None) -> str:
     """Render the transcript, one `[MM:SS.d] S1: text` line per segment."""
     lines = []
@@ -263,8 +273,7 @@ def run_diarize(args: argparse.Namespace) -> int:
     if args.speakers and len(found) != args.speakers:
         log(f"warning: {args.speakers} speakers asked, {len(found)} returned by the audio")
 
-    assigned = assign_speakers(record["segments"], turns)
-    labels = renumber(assigned, turns)
+    renumbered, labels = label_segments(record["segments"], turns)
     record["diarization"] = {
         "model": args.model,
         "speakers_asked": args.speakers,
@@ -272,7 +281,6 @@ def run_diarize(args: argparse.Namespace) -> int:
         "labels": labels,
         "turns": [{**turn, "label": labels[turn["speaker"]]} for turn in turns],
     }
-    renumbered = [labels[speaker] if speaker is not None else None for speaker in assigned]
     unlabelled = sum(1 for label in renumbered if label is None)
     if unlabelled:
         log(f"{unlabelled} of {len(renumbered)} segments overlap no turn and stay unlabelled")

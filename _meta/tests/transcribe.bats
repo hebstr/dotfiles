@@ -71,7 +71,10 @@ exit 0'
 _install_scp_stub() {
   _stub_command scp '
 printf "%s\n" "$*" >>"${SCP_LOG}"
-[ -z "${SCP_FAILS:-}" ] || exit 1
+if [ -n "${SCP_FAILS:-}" ]; then
+  printf "scp: realpath %s: No such file or directory\n" "$1" >&2
+  exit 1
+fi
 paths=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -126,10 +129,10 @@ setup() {
   UV_LOG="$(mktemp -u)"
   export STUBS STATE SSH_LOG SCP_LOG UV_LOG
   for cmd in basename cat cp dirname mkdir mktemp printf readlink rm sed touch tr; do
-    [ -e "/usr/bin/${cmd}" ] && ln -s "/usr/bin/${cmd}" "${STUBS}/${cmd}"
+    ln -s "$(type -P "$cmd")" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
-  ln -s "$(command -v python3.14)" "${STUBS}/python3.14"
+  ln -s "$(type -P python3.14)" "${STUBS}/python3.14"
   _install_ssh_stub
   _install_scp_stub
   _install_uv_stub
@@ -143,13 +146,13 @@ teardown() {
 }
 
 _run() {
-  run env PATH="$STUBS" STATE="$STATE" SSH_LOG="$SSH_LOG" SCP_LOG="$SCP_LOG" UV_LOG="$UV_LOG" \
+  run env PATH="$STUBS" HOME="$STATE" STATE="$STATE" SSH_LOG="$SSH_LOG" SCP_LOG="$SCP_LOG" UV_LOG="$UV_LOG" \
     SSH_UNREACHABLE="${SSH_UNREACHABLE:-}" NO_CUBLAS="${NO_CUBLAS:-}" NO_TOKEN="${NO_TOKEN:-}" \
     RM_UNREACHABLE="${RM_UNREACHABLE:-}" LOCK_STALE="${LOCK_STALE:-}" \
     SSH_DROP_AT="${SSH_DROP_AT:-}" SSH_ERROR="${SSH_ERROR:-}" \
     STAGE_FAILS="${STAGE_FAILS:-}" SCP_FAILS="${SCP_FAILS:-}" \
     DIARIZE_FAILS="${DIARIZE_FAILS:-}" \
-    TRANSCRIBE_REMOTE="${TRANSCRIBE_REMOTE:-}" HF_TOKEN= \
+    TRANSCRIBE_REMOTE="${TRANSCRIBE_REMOTE:-}" HF_TOKEN="${HF_TOKEN:-}" \
     "$BASH" "$SCRIPT" "$@"
 }
 
@@ -165,15 +168,28 @@ payload = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(payload)
 
 record = json.loads(sys.argv[2])
-turns = record.get("turns", [])
-assigned = payload.assign_speakers(record["segments"], turns)
-labels = payload.renumber(assigned, turns)
-renumbered = [labels[s] if s is not None else None for s in assigned]
+renumbered, _ = payload.label_segments(record["segments"], record.get("turns", []))
 print(payload.render(record["segments"], renumbered), end="")
 '
 
 _render() {
   run env PATH="$STUBS" python3.14 -c "$PURE" "$PAYLOAD" "$1"
+}
+
+LABELS='
+import importlib.util, json, sys
+
+spec = importlib.util.spec_from_file_location("payload", sys.argv[1])
+payload = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(payload)
+
+record = json.loads(sys.argv[2])
+_, labels = payload.label_segments(record["segments"], record.get("turns", []))
+print(json.dumps(labels, sort_keys=True), end="")
+'
+
+_labels() {
+  run env PATH="$STUBS" python3.14 -c "$LABELS" "$PAYLOAD" "$1"
 }
 
 # ─── argument handling ──────────────────────────────────────────────────────
@@ -191,6 +207,21 @@ _render() {
   _run --frobnicate "$AUDIO"
   [ "$status" -eq 1 ]
   [[ "$output" == *"unknown argument: --frobnicate"* ]]
+}
+
+@test "an option given without its value is named rather than left to set -u" {
+  _run --speakers
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--speakers needs a count"* ]]
+  _run --model
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--model needs an id"* ]]
+  _run --language
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--language needs a code"* ]]
+  _run --out-dir
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--out-dir needs a directory"* ]]
 }
 
 @test "no audio file exits 1 and nothing is sent" {
@@ -289,9 +320,26 @@ _render() {
   [[ "$(cat "${STATE}/rec.txt")" == *"stub transcript"* ]]
 }
 
+@test "--force reaches the asr stage on the local path" {
+  touch "${STATE}/rec.txt"
+  _run --local --force "$AUDIO"
+  [ "$status" -eq 0 ]
+  grep -q -- "--force" "$UV_LOG"
+}
+
 @test "refusal: two recordings of one run writing the same outputs are refused" {
   touch "${STATE}/rec.m4a"
   _run "$AUDIO" "${STATE}/rec.m4a"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"write the same outputs"* ]]
+  [ ! -e "$SSH_LOG" ]
+  [ ! -e "$SCP_LOG" ]
+}
+
+@test "refusal: --out-dir collapsing homonyms from different directories is refused" {
+  mkdir -p "${STATE}/a" "${STATE}/b"
+  touch "${STATE}/a/rec.m4a" "${STATE}/b/rec.m4a"
+  _run --out-dir "${STATE}/out" "${STATE}/a/rec.m4a" "${STATE}/b/rec.m4a"
   [ "$status" -eq 1 ]
   [[ "$output" == *"write the same outputs"* ]]
   [ ! -e "$SSH_LOG" ]
@@ -315,6 +363,14 @@ _render() {
   grep -q "dotfiles/bin/.local/bin/transcribe-payload.py" "$SSH_LOG"
   grep -q -- "uv run --locked --script" "$SSH_LOG"
   [ ! -e "$UV_LOG" ]
+}
+
+@test "the remote stage runs inside the scratch on the staged basename" {
+  _run "$AUDIO"
+  [ "$status" -eq 0 ]
+  grep -q -F -- "cd ${STATE}/scratch" "$SSH_LOG"
+  grep -q -F -- "--audio rec.3gpp.3ga" "$SSH_LOG"
+  run ! grep -q -F -- "--audio ${STATE}/" "$SSH_LOG"
 }
 
 @test "the remote pass points LD_LIBRARY_PATH at the llama.cpp tree" {
@@ -343,6 +399,12 @@ _render() {
   _run --local --speakers 2 "$AUDIO"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Hugging Face token"* ]]
+}
+
+@test "HF_TOKEN in the environment stands in for the token file" {
+  HF_TOKEN=hf_stub _run --local --speakers 2 "$AUDIO"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Hugging Face token"* ]]
 }
 
 # ─── per-host defaults ──────────────────────────────────────────────────────
@@ -416,6 +478,14 @@ _render() {
   [ ! -e "${STATE}/rec.txt" ]
 }
 
+@test "--local --out-dir reaches the payload and lands the outputs there" {
+  _run --local --out-dir "${STATE}/out" "$AUDIO"
+  [ "$status" -eq 0 ]
+  grep -q -F -- "--out-dir ${STATE}/out" "$UV_LOG"
+  [ -f "${STATE}/out/rec.txt" ]
+  [ ! -e "${STATE}/rec.txt" ]
+}
+
 @test "the remote scratch is removed on exit" {
   _run "$AUDIO"
   [ "$status" -eq 0 ]
@@ -425,6 +495,7 @@ _render() {
 
 @test "a scratch the driver could not remove is reported rather than claimed gone" {
   RM_UNREACHABLE=1 _run "$AUDIO"
+  [ "$status" -eq 0 ]
   [[ "$output" == *"could not remove"* ]]
   [[ "$output" == *"scratch"* ]]
 }
@@ -455,15 +526,19 @@ _render() {
 @test "a failing scp is surfaced rather than swallowed" {
   SCP_FAILS=1 _run "$AUDIO"
   [ "$status" -ne 0 ]
+  [[ "$output" == *"No such file or directory"* ]]
   [ ! -f "${STATE}/rec.txt" ]
   grep -q -- "rm -rf" "$SSH_LOG"
 }
 
-@test "the unreachable refusal carries ssh's own message" {
-  SSH_UNREACHABLE=1 SSH_ERROR='Host key verification failed.' _run "$AUDIO"
+@test "the unreachable refusal carries ssh's own last line, not its banner" {
+  SSH_UNREACHABLE=1 \
+    SSH_ERROR=$'@@@@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @@@@\nHost key verification failed.' \
+    _run "$AUDIO"
   [ "$status" -eq 1 ]
   [[ "$output" == *"cannot reach"* ]]
   [[ "$output" == *"Host key verification failed."* ]]
+  [[ "$output" != *"REMOTE HOST IDENTIFICATION HAS CHANGED"* ]]
 }
 
 @test "an unreachable remote on a diarization run is not answered with --local" {
@@ -514,6 +589,14 @@ _render() {
   [ "$output" = "[00:00.0] S1: un" ]
 }
 
+@test "the payload labels a turn speaker that wins no segment" {
+  _labels '{"segments": [{"start": 0.0, "end": 10.0, "text": "un"}],
+            "turns": [{"start": 0.0, "end": 2.0, "speaker": "SPEAKER_00"},
+                      {"start": 2.0, "end": 10.0, "speaker": "SPEAKER_01"}]}'
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"SPEAKER_00": "S2", "SPEAKER_01": "S1"}' ]
+}
+
 @test "the payload leaves a segment overlapping no turn unlabelled" {
   _render '{"segments": [{"start": 0.0, "end": 1.0, "text": "un"},
                          {"start": 50.0, "end": 51.0, "text": "deux"}],
@@ -530,6 +613,12 @@ _render() {
 
 @test "the payload strips one audio suffix as well as two" {
   _payload asr --print-target --audio /tmp/rec.m4a
+  [ "$status" -eq 0 ]
+  [ "$output" = "/tmp/rec" ]
+}
+
+@test "the payload strips an audio suffix spelled in upper case" {
+  _payload asr --print-target --audio /tmp/rec.WAV
   [ "$status" -eq 0 ]
   [ "$output" = "/tmp/rec" ]
 }
