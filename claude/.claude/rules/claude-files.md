@@ -3,15 +3,16 @@ paths:
   - "**/.claude/**/*.md"
   - "**/CLAUDE.md"
   - "**/AGENTS.md"
+  - "**/_meta/notes/*.md"
 ---
 
 # Files written for Claude
 
-Loaded when Claude reads a file meant for Claude or another agent (`CLAUDE.md`, `AGENTS.md`, rules, skills, memory, and the `.claude/` notes: plans, design notes, handoffs, `DEFERRED.md`), and injected by `inject-rules.sh` on the session's first write to one.
+Loaded when Claude reads a file meant for Claude or another agent (`CLAUDE.md`, `AGENTS.md`, rules, skills, memory, the `.claude/` notes: plans, design notes, handoffs, `DEFERRED.md`, and the decision notes of `_meta/notes/`), and injected by `inject-rules.sh` on the session's first write to one, `_meta/notes/` excepted: those notes load the rule on a read, the hook's `want claude-files` case covering `.claude/`, `CLAUDE.md` and `AGENTS.md` only.
 
 ## Language
 
-- Everything meant for Claude or agents is written in English, French only when the user explicitly asks for it: memory files, skills with their agents and prompts, rules files, `CLAUDE.md`, and the `.claude/` notes. The conversation itself still mirrors the user's language.
+- Everything meant for Claude or agents is written in English, French only when the user explicitly asks for it: memory files, skills with their agents and prompts, rules files, `CLAUDE.md`, the `.claude/` notes, and the decision notes of `_meta/notes/`. The conversation itself still mirrors the user's language.
 - A stored prompt (`.claude/PROMPT.md`, a handoff, a continuation prompt) is Claude-facing whoever pastes it, so it is English too: what decides is the reader, never the writer. A French one already in the tree is the deferred debt of the line below, never the precedent to follow.
 - Existing French content of that kind moves to English at its next substantial rewrite, skills one per conversation; the deferred list is in `~/dotfiles/.claude/DESIGN-CADRER.md`.
 
