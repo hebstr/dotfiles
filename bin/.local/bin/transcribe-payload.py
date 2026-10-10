@@ -117,7 +117,8 @@ def assign_speakers(
 
 
 def renumber(assigned: Sequence[str | None], turns: Sequence[dict[str, Any]]) -> dict[str, str]:
-    """Map the raw pyannote labels to `S1..Sn` by order of first appearance."""
+    """Map the raw pyannote labels to `S1..Sn` by order of first appearance among the
+    segments, then by turn start for the speakers winning none."""
     order: list[str] = []
     for speaker in assigned:
         if speaker is not None and speaker not in order:
@@ -177,6 +178,8 @@ def decode_waveform(audio: Path, threads: int) -> Any:
     for frame in container.decode(container.streams.audio[0]):
         for resampled in resampler.resample(frame):
             blocks.append(resampled.to_ndarray().reshape(-1))
+    for resampled in resampler.resample(None):
+        blocks.append(resampled.to_ndarray().reshape(-1))
     container.close()
     samples = np.concatenate(blocks).astype(np.float32) / 32768.0
     torch.set_num_threads(threads)
@@ -248,6 +251,9 @@ def run_diarize(args: argparse.Namespace) -> int:
         log(f"no transcript to label at {source}, run asr first")
         return 1
     record = json.loads(source.read_text(encoding="utf-8"))
+    if record.get("audio") != args.audio.name:
+        log(f"{source} transcribes {record.get('audio')}, not {args.audio.name}")
+        return 1
 
     waveform = decode_waveform(args.audio, args.threads)
     duration = waveform.shape[1] / SAMPLE_RATE
