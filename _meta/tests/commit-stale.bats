@@ -11,6 +11,7 @@ setup() {
   PROJECT="$WORK/proj"
   FAKE_HOME="$WORK/home"
   export WORK STUB_DIR RUNTIME PROJECT FAKE_HOME
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 
   mkdir -p "$STUB_DIR" "$RUNTIME" "$PROJECT/.claude" "$FAKE_HOME/.claude/memory"
   git init -q "$WORK"
@@ -43,6 +44,10 @@ write_at() {
 
 peer_write() {
   printf '100\t%s\n' "$1" >>"$RUNTIME/claude-code-writes-s2.log"
+}
+
+peer_write_at() {
+  printf '%s\t%s\n' "$1" "$2" >>"$RUNTIME/claude-code-writes-s2.log"
 }
 
 stamp() {
@@ -138,6 +143,32 @@ commit_file() {
   [ -z "$output" ]
 }
 
+@test "leaves out the repository's own .claude directory when the root is a subdirectory of it" {
+  stamp 100
+  write_at 200 "$WORK/.claude/NOTE.md"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "leaves out a journalled path git ignores" {
+  stamp 100
+  write_at 200 "$RUNTIME/scratch.log"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "reads a staged rename as two paths rather than one garbled one" {
+  commit_file proj/a.sh
+  git -C "$WORK" mv proj/a.sh proj/b.sh
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 2 ]
+  [[ $output == *"$PROJECT/a.sh"* ]]
+  [[ $output == *"$PROJECT/b.sh"* ]]
+}
+
 @test "checks the files of a .claude commit when .claude itself is the root" {
   stamp 100
   write_at 200 "$PROJECT/.claude/PLAN.md"
@@ -178,6 +209,16 @@ commit_file() {
   write_at 100 "$PROJECT/a.sh"
   seal 200 "$PROJECT/b.sh"
   chmod 000 "$RUNTIME/claude-code-writes-s1.log"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "--only exits non-zero when another session's journal is unreadable" {
+  commit_file proj/a.sh
+  printf 'v2\n' >"$PROJECT/a.sh"
+  seal "$(date +%s%N)"
+  peer_write "$PROJECT/a.sh"
+  chmod 000 "$RUNTIME/claude-code-writes-s2.log"
   run_only "$PROJECT/a.sh"
   [ "$status" -ne 0 ]
 }
@@ -353,6 +394,52 @@ commit_file() {
   [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
 }
 
+@test "--only labels a path this session wrote changed although an earlier session's journal names it" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  write_at "$((value + 1000))" "$PROJECT/a.sh"
+  printf '100\t%s\n' "$PROJECT/a.sh" >>"$RUNTIME/claude-code-writes-s0.log"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
+}
+
+@test "--only labels a sealed path another session wrote after the seal unsealed" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value" "$PROJECT/a.sh"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  peer_write_at "$((value + 1000))" "$PROJECT/a.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/a.sh" ]
+}
+
+@test "--only keeps a sealed path changed when the other session's entry predates the seal" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value" "$PROJECT/a.sh"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  peer_write "$PROJECT/a.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed"$'\t'"$PROJECT/a.sh" ]
+}
+
+@test "--only labels a path both journals name unsealed when the other session's entry postdates the seal" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value"
+  printf 'v2\n' >"$PROJECT/a.sh"
+  write_at "$((value + 1000))" "$PROJECT/a.sh"
+  peer_write_at "$((value + 2000))" "$PROJECT/a.sh"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ "$output" = "unsealed"$'\t'"$PROJECT/a.sh" ]
+}
+
 @test "--only still reports an unreadable stamp" {
   commit_file proj/a.sh
   stamp 'not-a-number'
@@ -432,7 +519,7 @@ commit_file() {
   printf 'x\n' >"$PROJECT/t"$'\t'"ab.sh"
   value=$(date +%s%N)
   run seal_only "$value" "$PROJECT/t"$'\t'"ab.sh"
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 4 ]
   stamp "$value"
   [ "$(wc -l <"$RUNTIME/claude-code-writes-s1.$value.seen")" -eq 1 ]
   run_stale
@@ -453,7 +540,7 @@ commit_file() {
   seal 100 "$PROJECT/a.sh"
   chmod 500 "$RUNTIME"
   run seal_only 200 "$PROJECT/a.sh"
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 1 ]
   [ -e "$RUNTIME/claude-code-writes-s1.100.seen" ]
 }
 
@@ -508,7 +595,7 @@ commit_file() {
   seal 100 "$PROJECT/a.sh" "$PROJECT/b.sh"
   chmod 000 "$PROJECT/b.sh"
   run seal_carry 200 "$PROJECT/b.sh"
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 4 ]
 }
 
 @test "--seal keeps the previous snapshot when a named path was not recorded" {
@@ -517,6 +604,19 @@ commit_file() {
   chmod 000 "$PROJECT/a.sh"
   seal_carry 200 "$PROJECT/a.sh" || true
   [ -e "$RUNTIME/claude-code-writes-s1.100.seen" ]
+}
+
+@test "--seal --carry clears a sealed path that vanished, at exit 0" {
+  commit_file proj/a.sh
+  value=$(date +%s%N)
+  seal "$value" "$PROJECT/a.sh"
+  rm "$PROJECT/a.sh"
+  run seal_carry "$((value + 1000))" "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  stamp "$((value + 1000))"
+  run_only "$PROJECT/a.sh"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
 
 @test "--only normalises a relative path, so a modified sealed file is still reported" {

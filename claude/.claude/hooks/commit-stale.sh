@@ -146,19 +146,25 @@ declare -A owner=()
 owners_read=0
 
 read_owners() {
-  local file id path
+  local file id ts path
   ((owners_read)) && return 0
   owners_read=1
   for file in "$runtime"/claude-code-writes-*.log; do
-    [[ -r $file ]] || continue
+    [[ -e $file ]] || continue
+    [[ -r $file ]] || {
+      failed=1
+      continue
+    }
     id=${file##*/claude-code-writes-}
     id=${id%.log}
-    while IFS=$'\t' read -r _ path; do
+    while IFS=$'\t' read -r ts path; do
       [[ -n $path ]] || continue
       if [[ $id == "$session" ]]; then
-        owner[$path]=self
+        [[ ${owner[$path]-} == peer ]] || owner[$path]=self
+      elif [[ $ts =~ ^[0-9]+$ ]] && ((ts > stamp)); then
+        owner[$path]=peer
       else
-        [[ -n ${owner[$path]+set} ]] || owner[$path]=peer
+        [[ -n ${owner[$path]+set} ]] || owner[$path]=peer_old
       fi
     done <"$file"
   done
@@ -173,7 +179,10 @@ changed() {
       return 0
     fi
     if [[ -n ${sealed_digest[$1]+set} ]]; then
-      [[ $now != "${sealed_digest[$1]}" ]]
+      [[ $now != "${sealed_digest[$1]}" ]] || return 1
+      read_owners
+      [[ ${owner[$1]-} != peer ]] || class=unsealed
+      return 0
     else
       if [[ $1 == *[$'\t\n']* ]]; then
         class=unsealed
@@ -181,8 +190,8 @@ changed() {
       fi
       read_owners
       case ${owner[$1]-} in
+      peer | peer_old) class=unsealed ;;
       self) class=changed ;;
-      peer) class=unsealed ;;
       *) return 1 ;;
       esac
       [[ $now != - || $2 == listed ]]
