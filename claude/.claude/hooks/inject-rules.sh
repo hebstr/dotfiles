@@ -152,7 +152,7 @@ Edit | Write | MultiEdit)
     ;;
   esac
   case $file in
-  */.claude/*.md | */CLAUDE.md | */AGENTS.md) want claude-files ;;
+  */.claude/*.md | */CLAUDE.md | */AGENTS.md | */_meta/notes/*.md) want claude-files ;;
   esac
   ;;
 Agent | Task)

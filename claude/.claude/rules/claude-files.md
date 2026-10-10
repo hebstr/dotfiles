@@ -8,7 +8,7 @@ paths:
 
 # Files written for Claude
 
-Loaded when Claude reads a file meant for Claude or another agent (`CLAUDE.md`, `AGENTS.md`, rules, skills, memory, the `.claude/` notes: plans, design notes, handoffs, `DEFERRED.md`, and the decision notes of `_meta/notes/`), and injected by `inject-rules.sh` on the session's first write to one, `_meta/notes/` excepted: those notes load the rule on a read, the hook's `want claude-files` case covering `.claude/`, `CLAUDE.md` and `AGENTS.md` only.
+Loaded when Claude reads a file meant for Claude or another agent (`CLAUDE.md`, `AGENTS.md`, rules, skills, memory, the `.claude/` notes: plans, design notes, handoffs, `DEFERRED.md`, and the decision notes of `_meta/notes/`), and injected by `inject-rules.sh` on the session's first write to one.
 
 ## Language
 

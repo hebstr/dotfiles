@@ -106,7 +106,7 @@ Read a file from it when a rule below points to it, and not before.
 | .sql | ~/.claude/rules/sql.md |
 | reading a PDF | ~/.claude/rules/pdf.md |
 | checking a .docx | ~/.claude/rules/docx.md |
-| a .claude/ note, CLAUDE.md, AGENTS.md | ~/.claude/rules/claude-files.md |
+| a .claude/ note, a _meta/notes/ note, CLAUDE.md, AGENTS.md | ~/.claude/rules/claude-files.md |
 ```
 
 Each language rule file gives the lint, format and test commands for that language.

@@ -243,7 +243,7 @@ field() {
 }
 
 @test "injects claude-files.md on a write to a file meant for Claude" {
-  for p in project/.claude/PLAN.md project/.claude/notes/DESIGN-X.md project/CLAUDE.md opencode/AGENTS.md; do
+  for p in project/.claude/PLAN.md project/.claude/notes/DESIGN-X.md project/CLAUDE.md opencode/AGENTS.md dotfiles/_meta/notes/some-reco.md; do
     rm -f "$RUNTIME"/claude-code-rules-*
     run_hook "$(read_call Edit "$WORK/$p")"
     [[ $(field additionalContext) == *BODY-claude-files* ]] || {
