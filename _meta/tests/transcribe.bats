@@ -19,7 +19,10 @@ EOF
 _install_ssh_stub() {
   _stub_command ssh '
 printf "%s\n" "$*" >>"${SSH_LOG}"
-[ -z "${SSH_UNREACHABLE:-}" ] || exit 255
+if [ -n "${SSH_UNREACHABLE:-}" ]; then
+  [ -z "${SSH_ERROR:-}" ] || printf "%s\n" "${SSH_ERROR}" >&2
+  exit 255
+fi
 n=$(($(cat "${STATE}/ssh_calls" 2>/dev/null || printf 0) + 1))
 printf "%s\n" "$n" >"${STATE}/ssh_calls"
 [ "$n" != "${SSH_DROP_AT:-}" ] || exit 255
@@ -48,6 +51,11 @@ case "$*" in
     exit 1
   fi
   [ -z "${STAGE_FAILS:-}" ] || exit 1
+  case "$*" in
+  *" diarize "*)
+    [ -z "${DIARIZE_FAILS:-}" ] || exit 1
+    ;;
+  esac
   mkdir -p "${STATE}/scratch"
   audio=$(printf "%s\n" "$*" | sed -n "s/.*--audio \([^ ]*\).*/\1/p")
   stem=${audio##*/}
@@ -138,8 +146,9 @@ _run() {
   run env PATH="$STUBS" STATE="$STATE" SSH_LOG="$SSH_LOG" SCP_LOG="$SCP_LOG" UV_LOG="$UV_LOG" \
     SSH_UNREACHABLE="${SSH_UNREACHABLE:-}" NO_CUBLAS="${NO_CUBLAS:-}" NO_TOKEN="${NO_TOKEN:-}" \
     RM_UNREACHABLE="${RM_UNREACHABLE:-}" LOCK_STALE="${LOCK_STALE:-}" \
-    SSH_DROP_AT="${SSH_DROP_AT:-}" \
+    SSH_DROP_AT="${SSH_DROP_AT:-}" SSH_ERROR="${SSH_ERROR:-}" \
     STAGE_FAILS="${STAGE_FAILS:-}" SCP_FAILS="${SCP_FAILS:-}" \
+    DIARIZE_FAILS="${DIARIZE_FAILS:-}" \
     TRANSCRIBE_REMOTE="${TRANSCRIBE_REMOTE:-}" HF_TOKEN= \
     "$BASH" "$SCRIPT" "$@"
 }
@@ -280,6 +289,23 @@ _render() {
   [[ "$(cat "${STATE}/rec.txt")" == *"stub transcript"* ]]
 }
 
+@test "refusal: two recordings of one run writing the same outputs are refused" {
+  touch "${STATE}/rec.m4a"
+  _run "$AUDIO" "${STATE}/rec.m4a"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"write the same outputs"* ]]
+  [ ! -e "$SSH_LOG" ]
+  [ ! -e "$SCP_LOG" ]
+}
+
+@test "--force does not license clobbering an output the same run just wrote" {
+  touch "${STATE}/rec.m4a"
+  _run --force "$AUDIO" "${STATE}/rec.m4a"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"write the same outputs"* ]]
+  [ ! -e "$SSH_LOG" ]
+}
+
 # ─── host choice ────────────────────────────────────────────────────────────
 
 @test "the remote is the default host and the payload is reached inside the synced tree" {
@@ -416,6 +442,43 @@ _render() {
   [ "$status" -eq 0 ]
   [ -f "${STATE}/rec.txt" ]
   [ -f "${STATE}/second.txt" ]
+}
+
+@test "a failing diarization keeps the transcript already decoded" {
+  DIARIZE_FAILS=1 _run --speakers 2 "$AUDIO"
+  [ "$status" -ne 0 ]
+  [ -f "${STATE}/rec.txt" ]
+  [ -f "${STATE}/rec.json" ]
+  grep -q -- "rm -rf" "$SSH_LOG"
+}
+
+@test "a failing scp is surfaced rather than swallowed" {
+  SCP_FAILS=1 _run "$AUDIO"
+  [ "$status" -ne 0 ]
+  [ ! -f "${STATE}/rec.txt" ]
+  grep -q -- "rm -rf" "$SSH_LOG"
+}
+
+@test "the unreachable refusal carries ssh's own message" {
+  SSH_UNREACHABLE=1 SSH_ERROR='Host key verification failed.' _run "$AUDIO"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot reach"* ]]
+  [[ "$output" == *"Host key verification failed."* ]]
+}
+
+@test "an unreachable remote on a diarization run is not answered with --local" {
+  SSH_UNREACHABLE=1 _run --speakers 2 "$AUDIO"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot reach"* ]]
+  [[ "$output" == *"cannot diarize"* ]]
+  [[ "$output" != *"pass --local to decode here instead"* ]]
+}
+
+@test "a recording named relatively reaches scp as an absolute path" {
+  cd "$STATE" || return 1
+  _run rec.3gpp.3ga
+  [ "$status" -eq 0 ]
+  grep -q -F -- "${STATE}/rec.3gpp.3ga" "$SCP_LOG"
 }
 
 # ─── the payload's pure path, under the bare interpreter ────────────────────

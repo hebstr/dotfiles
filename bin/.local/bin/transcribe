@@ -90,19 +90,35 @@ dest_dir() {
 }
 
 check_clashes() {
-  local audio stem dir suffix clash=''
+  local audio stem dir target seen suffix clash='' dup='' targets=()
   for audio in "${AUDIO[@]}"; do
     stem=$(target_stem "$audio")
     dir=$(dest_dir "$audio")
-    for suffix in json txt; do
-      [ ! -e "${dir}/${stem}.${suffix}" ] || clash="${clash} ${dir}/${stem}.${suffix}"
+    target="${dir}/${stem}"
+    for seen in "${targets[@]}"; do
+      [ "$seen" != "$target" ] || dup="${dup} ${target}"
     done
+    targets+=("$target")
+    if [ "$FORCE" -eq 0 ]; then
+      for suffix in json txt; do
+        [ ! -e "${target}.${suffix}" ] || clash="${clash} ${target}.${suffix}"
+      done
+    fi
   done
+  [ "$dup" = "" ] || die "two recordings of this run write the same outputs:${dup}"
   [ "$clash" = "" ] || die "exists, pass --force to overwrite:${clash}"
 }
 
+local_advice() {
+  if [ "$DIARIZE" -eq 1 ]; then
+    printf '%s\n' '--local would decode here but cannot diarize'
+  else
+    printf '%s\n' 'pass --local to decode here instead'
+  fi
+}
+
 unreachable() {
-  die "cannot reach ${REMOTE}; pass --local to decode here instead"
+  die "cannot reach ${REMOTE}; $(local_advice)"
 }
 
 remote_test() {
@@ -113,7 +129,13 @@ remote_test() {
 }
 
 check_remote() {
-  remote_test 'exit 0' || unreachable
+  local err rc=0
+  err=$(remote 'exit 0' 2>&1 >/dev/null) || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    return 0
+  fi
+  [ "$err" != "" ] || unreachable
+  die "cannot reach ${REMOTE}: ${err##*$'\n'}; $(local_advice)"
 }
 
 check_remote_cuda() {
@@ -162,6 +184,11 @@ run_stage_remote() {
     uv run --locked --script \$HOME/${REMOTE_PAYLOAD}${quoted}"
 }
 
+fetch_outputs() {
+  scp -q -o BatchMode=yes -- \
+    "${REMOTE}:${SCRATCH}/${1}.json" "${REMOTE}:${SCRATCH}/${1}.txt" "${2}/"
+}
+
 cleanup() {
   [ "$SCRATCH" != "" ] || return 0
   local path=$SCRATCH
@@ -191,12 +218,13 @@ transcribe_remote() {
     scp -q -o BatchMode=yes -- "$audio" "${REMOTE}:${SCRATCH}/"
     build_asr_args "$name" "$REMOTE_DEVICE" "$REMOTE_COMPUTE" "$REMOTE_THREADS" ""
     run_stage_remote
+    fetch_outputs "$stem" "$dir"
     if [ "$DIARIZE" -eq 1 ]; then
+      printf 'decoded %s, labelling the speakers\n' "${dir}/${stem}.txt"
       build_diarize_args "$name" "$REMOTE_THREADS" ""
       run_stage_remote
+      fetch_outputs "$stem" "$dir"
     fi
-    scp -q -o BatchMode=yes -- \
-      "${REMOTE}:${SCRATCH}/${stem}.json" "${REMOTE}:${SCRATCH}/${stem}.txt" "${dir}/"
     printf 'wrote %s\n' "${dir}/${stem}.txt"
   done
 }
@@ -265,12 +293,21 @@ if [ "$SPEAKERS" != "" ]; then
   [ "$SPEAKERS" -ge 1 ] || die "--speakers must be 1 or more, got ${SPEAKERS}"
 fi
 
-for audio in "${AUDIO[@]}"; do
-  [ -f "$audio" ] || die "not a file: ${audio}"
+case $OUT_DIR in
+'' | /*) ;;
+*) OUT_DIR="${PWD}/${OUT_DIR}" ;;
+esac
+
+for index in "${!AUDIO[@]}"; do
+  [ -f "${AUDIO[$index]}" ] || die "not a file: ${AUDIO[$index]}"
+  case ${AUDIO[$index]} in
+  /*) ;;
+  *) AUDIO[index]="${PWD}/${AUDIO[$index]}" ;;
+  esac
 done
 
 find_python
-[ "$FORCE" -eq 1 ] || check_clashes
+check_clashes
 
 trap 'exit 130' INT
 trap 'exit 143' TERM
