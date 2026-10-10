@@ -84,7 +84,8 @@ AUDIO_SUFFIXES = frozenset(
 
 def stamp(seconds: float) -> str:
     """Render a segment start as `[MM:SS.d]`."""
-    return f"[{int(seconds // 60):02d}:{seconds % 60:04.1f}]"
+    minutes, tenths = divmod(round(seconds * 10), 600)
+    return f"[{minutes:02d}:{tenths // 10:02d}.{tenths % 10}]"
 
 
 def target_base(audio: Path, out_dir: Path | None) -> Path:

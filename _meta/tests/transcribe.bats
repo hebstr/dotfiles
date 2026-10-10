@@ -570,6 +570,13 @@ _labels() {
   [ "$output" = "[02:05.5] x" ]
 }
 
+@test "the payload carries the minute when the seconds round up to 60" {
+  _render '{"segments": [{"start": 59.96, "end": 61.0, "text": "un"},
+                         {"start": 59.94, "end": 60.0, "text": "deux"}]}'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[01:00.0] un"$'\n'"[00:59.9] deux" ]
+}
+
 @test "the payload renumbers the raw labels by order of first appearance" {
   _render '{"segments": [{"start": 0.0, "end": 2.0, "text": "un"},
                          {"start": 3.0, "end": 4.0, "text": "deux"},
