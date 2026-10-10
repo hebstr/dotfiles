@@ -1,6 +1,6 @@
 ---
 name: Review calibration for Claude Code skill audits
-description: "Auditing SKILL.md files or Claude Code agent definitions (agents/*.md): recurring false-positive patterns to reject (portability hedging, explicit-invocation gate, restated host rules, half-read criteria, absolute mechanism claims), and the lessons the skill audits left"
+description: "Auditing SKILL.md files or Claude Code agent definitions (agents/*.md): recurring false-positive patterns to reject (portability hedging, explicit-invocation gate, restated host rules, half-read criteria, absolute mechanism claims, true-but-inert claims), and the lessons the skill audits left, the design note read first among them"
 metadata:
   type: feedback
 ---
