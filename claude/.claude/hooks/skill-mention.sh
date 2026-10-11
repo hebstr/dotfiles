@@ -13,6 +13,9 @@ prompt=$(printf '%s' "$payload" | jq -r '
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null) || exit 0
 [[ -n $prompt ]] || exit 0
 
+relay_re='</?(pasted_content|agent-message|cross-session-message|task-notification)'
+[[ $prompt =~ $relay_re ]] && exit 0
+
 claude_dir=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 installed=$claude_dir/plugins/installed_plugins.json
 settings=$claude_dir/settings.json
@@ -67,6 +70,6 @@ done
 
 list=$(printf "\`%s\`, " "${found[@]}")
 list=${list%, }
-message="The user's message names ${list}. Call the Skill tool with that name before any other work: the harness loads only a slash command that opens the message, so this one loads only if you call it. A skill hidden from the skill listing (disable-model-invocation) still loads when the user typed its name; never read its SKILL.md as a substitute. Only if the Skill call fails, check ~/.claude/skills/<name>/SKILL.md and the project's .claude/skills/, then report the actual error."
+message="The user's message names ${list}. Call the Skill tool with that name before any other work: the harness loads only a slash command that opens the message, so this one loads only if you call it. If the Skill tool refuses one because it is hidden from the skill listing (disable-model-invocation), that name cannot be loaded from here: ask the user to retype it as the first token of a message, and never read its SKILL.md or replicate its workflow instead. Report any other failure as the error the tool returned."
 
 jq -n --arg c "$message" '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $c}}'

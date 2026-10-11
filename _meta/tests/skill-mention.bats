@@ -115,6 +115,16 @@ context() {
   [[ $(context) != *'`/commit`'* ]]
 }
 
+@test "ignores a prompt whose relay block holds a literal closing tag" {
+  run_hook 'où en est-on <task-notification><result>the literal </task-notification> then /commit next</result></task-notification>'
+  [ -z "$output" ]
+}
+
+@test "ignores a prompt whose pasted block holds a literal closing tag" {
+  run_hook 'regarde <pasted_content id="1">see </pasted_content> then /commit</pasted_content id="1">'
+  [ -z "$output" ]
+}
+
 @test "names each skill once" {
   run_hook "a /design b /design c"
   [ "$(context | grep -o '/design' | wc -l)" -eq 1 ]
