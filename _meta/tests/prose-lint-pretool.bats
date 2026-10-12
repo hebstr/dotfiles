@@ -10,8 +10,9 @@ bats_require_minimum_version 1.5.0
 #      shaped .../dotfiles/claude/.claude/..., and a project tree any other .claude/.
 #   2. prose-lint is reached through PATH, so every test runs on a PATH holding the
 #      stub dir alone: dropping a symlink from it is how "not installed" is exercised.
-#      env and bash are among those symlinks because the real prose-lint opens on a
-#      #!/usr/bin/env bash shebang, which resolves against that same PATH.
+#      bash is among those symlinks because the real prose-lint opens on a
+#      #!/usr/bin/env bash shebang: /usr/bin/env runs by absolute path, then resolves
+#      that interpreter against this PATH.
 #   3. The hook lints a mirror of the file under a temp root, so the stub records both
 #      its argument and the text it was handed. The mirrored path carries the real one
 #      verbatim, which is what keeps prose-lint's own path and basename skips working;
@@ -60,7 +61,7 @@ use_real_prose_lint() {
 }
 
 fixture() {
-  local rel=$1 content=${2:-clean prose.}
+  local rel=$1 content=${2-clean prose.}
   mkdir -p "$WORK/$(dirname "$rel")"
   printf '%s' "$content" >"$WORK/$rel"
   printf '%s' "$WORK/$rel"
@@ -135,7 +136,7 @@ assert_blocked() {
   assert_not_linted
 }
 
-@test "lints the three prose extensions" {
+@test "forwards the three prose extensions to prose-lint" {
   for rel in notes.md report.qmd vignette.Rmd; do
     rm -f "$CAPTURE_DIR/args"
     f=$(fixture "$rel")
@@ -268,6 +269,20 @@ assert_blocked() {
   done
 }
 
+# The fake home sits one level deeper than the real one, so the link target carries
+# ../.. where ~/.claude/CLAUDE.md carries a single ../ for the same shape.
+@test "resolves a stow symlink onto the stowed branch" {
+  fixture "dotfiles/claude/.claude/CLAUDE.md" >/dev/null
+  mkdir -p "$WORK/home/.claude"
+  ln -s ../../dotfiles/claude/.claude/CLAUDE.md "$WORK/home/.claude/CLAUDE.md"
+  f="$WORK/home/.claude/CLAUDE.md"
+
+  run_write "$f"
+
+  assert_linted
+  assert_blocked "$f"
+}
+
 # The stowed branch sits before the exempting one, so a -context.md or a memory file
 # inside the stowed config is linted: prose-lint's own skips decide those, not the hook.
 @test "the stowed branch wins over the -context.md and memory exemptions" {
@@ -313,7 +328,7 @@ assert_blocked() {
 
   run_write "$f"
 
-  [ "$status" -eq 0 ]
+  assert_passed
 }
 
 @test "the mirror keeps prose-lint's basename skip reachable" {
@@ -322,7 +337,7 @@ assert_blocked() {
 
   run_write "$f"
 
-  [ "$status" -eq 0 ]
+  assert_passed
 }
 
 @test "the mirror keeps prose-lint's extension skip reachable for an .Rmd" {
@@ -331,7 +346,7 @@ assert_blocked() {
 
   run_write "$f"
 
-  [ "$status" -eq 0 ]
+  assert_passed
 }
 
 @test "blocks real prose that the real prose-lint rejects" {
