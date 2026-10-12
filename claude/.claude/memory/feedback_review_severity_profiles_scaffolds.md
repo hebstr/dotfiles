@@ -1,6 +1,6 @@
 ---
 name: Review calibration for _meta/profiles/ scaffolds
-description: When auditing the reusable config templates in ~/dotfiles/_meta/profiles/, do not flag repo-specific excludes, partial language coverage, or values a sibling config already owns
+description: When auditing the reusable config templates in ~/dotfiles/_meta/profiles/, do not flag repo-specific excludes, partial language coverage, values a sibling config already owns, or a hook family said to be unowned when the routing test shows a mechanism or a skill already carries it
 metadata:
   type: feedback
 ---
@@ -13,8 +13,10 @@ When reviewing or auditing the reusable config templates under `~/dotfiles/_meta
 
 3. **Proposing to duplicate into editor settings a value a formatter config already owns.** Example: adding `editor.tabSize: 2` to the `[r]` block because the user's live Positron profile has it. The user-level `~/.config/air/air.toml` (the `air` stow package) sets `indent-width = 2`, and format-on-save normalizes anyway, so the key would only affect pre-save typing while creating a second place to drift. `rules/lua.md` designs against exactly this ("single `stylua.toml`, no three-place drift"). A committed `.vscode/settings.json` also applies to every contributor, so personal typing preferences do not belong in it even when the live profile carries them.
 
+4. **Flagging a hook family in the scaffold as unowned because no `rules/*.md` carries a section for it.** Apply the routing test of `rules/claude-files.md` § "Where a new instruction goes" first: a deterministic mechanism that enforces the instruction is step 1, and "`CLAUDE.md` keeps nothing, not even a sentence naming the hook", while a multi-step procedure is step 4, a skill. Measured 2026-10-12 on `conventional-pre-commit`: the prek `commit-msg` hook is that mechanism in an adopting project, and the `commit` skill already carries the format ("the header alone, with no body, in Conventional Commits format (`type(scope): subject`)"), so a `rules/git.md` would be a third copy. Two further facts the shape usually ignores: the families that *do* have a section are language toolchains whose rules file auto-loads off a `paths:` glob on that language's files, so a convention with no file to trigger on would load by hand only and essentially never; and `metadata-only` already sets the precedent of a local hook documented in a note (`_meta/notes/git-out-textconv.md`) rather than a rules file. Check what already owns the instruction before proposing a file to own it.
+
 **Why:** the 2026-07-23 `/workflow:sync` walkthrough over the panache 3.0.0 adoption produced 12 findings, 5 rejected. Three of the five were these patterns, all sharing one root error: treating a template as a drop-in artifact that must be complete and self-sufficient, when it is a starting point adapted per project and deliberately narrow.
 
-**How to apply:** in any future audit touching `_meta/profiles/`, drop these three categories before reporting. Real findings still apply: pins that trail the live root config on a hook both files carry, a hook whose `files`/`exclude` regex cannot match what it claims to cover, and internal incoherence between two files of the same scaffold pair.
+**How to apply:** in any future audit touching `_meta/profiles/`, drop these four categories before reporting. Real findings still apply: pins that trail the live root config on a hook both files carry, a hook whose `files`/`exclude` regex cannot match what it claims to cover, and internal incoherence between two files of the same scaffold pair.
 
 Related: [[feedback_review_severity_claude_rules]] (rule files), [[feedback_review_severity_claude_config]] (harness config artifacts), [[project_qmd_format_hook]] (the panache config the scaffold ships).
