@@ -30,6 +30,12 @@ Members are walked in sorted order, which makes the output independent of the or
 Anything that is neither a ZIP nor a PNG, and anything that fails to parse, falls back to a digest and exits 0: a driver has no right to break `git diff`.
 Inside a package the fallback is per member, so one member that fails to parse, a JPEG under a `.png` name or a UTF-16 part, is digested alone and leaves the other members' timestamps neutralised.
 
+A truncated member raises nothing the tuple in `main` is missing, which settles an open question of 2026-09-12.
+Measured 2026-10-12 on `python3` 3.12.3, the interpreter of the `uv run --script` shebang, over the two shapes a truncation can take: with the local and central `compress_size` corrected to the shortened data, `zipfile` raises `BadZipFile` on the CRC, and with both headers left claiming the original size it raises `BadZipFile` on the overlap guard, "possible zip bomb".
+`zipfile.BadZipFile` is already in the tuple, so both forms print the digest and exit 0.
+That overlap guard is also what keeps the reader from ever being starved of bytes, which is the condition that would raise `EOFError`.
+Bounded negative: the two shapes above, not a zip64 member nor a `stored` one.
+
 ## Why a script rather than pandoc
 
 `gitattributes(5)` prefers an existing program as the filter, and pandoc reads `docx`, `pptx` and `xlsx` as input, so `textconv = pandoc -t plain` is the shorter and more idiomatic route.
