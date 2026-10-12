@@ -7,6 +7,7 @@ extend-exclude = [
   "_extensions/**",
   "tests/testthat/_snaps/",
   "**/.claude/**",
+  "**/_meta/notes/**",
 ]
 
 [format]
