@@ -35,11 +35,13 @@ This code exists for a data science/biostatistics purpose. When editing it for i
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `ruff format` | Formatter |
 | `ruff check` | Linter (static analysis + auto-fix) |
 | `pyrefly check` | Type checker |
+```
 
 Prefer `uv run ruff` in a project that pins `ruff` as a dev-dependency, so the gate runs the pinned version rather than the PATH one. Config discovery is not a reason to prefer it: ruff walks up from the target file to find `pyproject.toml` or `ruff.toml` whichever binary runs. Only when that walk finds nothing does ruff fall back to the user-level `~/.config/ruff/ruff.toml` (the `ruff` stow package); a project config replaces it wholesale rather than merging, and a `pyproject.toml` without `[tool.ruff]` does not count as one, though its `requires-python` still overrides the fallback's `target-version`. With no pin, the global `ruff` is correct, which is what the pipeline below and the `format-on-edit` hook both use.
 
@@ -98,22 +100,27 @@ Standalone scripts outside any project are covered by the `-p default` branch, n
 
 **ruff format**
 
+```
 | Flag | Effect |
 |---|---|
 | `--check` | Dry-run, exits non-zero if file would change |
 | `--diff` | Show diff without writing |
+```
 
 **ruff check**
 
+```
 | Flag | Effect |
 |---|---|
 | `--fix` | Auto-fix safe violations |
 | `--unsafe-fixes` | Include fixes that may alter intent |
 | `--select RULE` | Run specific rules only (e.g. `--select E,F`) |
 | `--show-fixes` | List all applied fixes |
+```
 
 **pyrefly check**
 
+```
 | Flag | Effect |
 |---|---|
 | `-p, --preset NAME` | Base configuration when no config file governs the file: `off`, `basic`, `legacy`, `default`, `strict`, `all`. Overrides a config's preset when one exists, so pass it only in the no-config branch |
@@ -121,6 +128,7 @@ Standalone scripts outside any project are covered by the `-p default` branch, n
 | `--project-excludes GLOB` | Exclude paths from the check |
 | `--output-format FORMAT` | `min-text`, `full-text`, `json`, `github`, `junit-xml`, `omit-errors` |
 | `--watch` | Re-check on file change (flagged highly experimental upstream) |
+```
 
 Other pyrefly subcommands worth knowing: `init` (create a config, or migrate one from mypy/pyright), `suppress` (add or prune ignore comments), `infer` (add annotations), `snippet` (check a code string).
 

@@ -27,6 +27,7 @@ paths:
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `cargo fmt` (rustfmt) | Formatter (cosmetic, no semantic change) |
@@ -34,6 +35,7 @@ paths:
 | `cargo check` | Fast validity check, no binary codegen (fastest feedback loop) |
 | `cargo test` | Test runner |
 | `bacon` | Background checker; re-runs `cargo check`/`clippy`/`test` on save (`cargo install bacon`) |
+```
 
 `cargo add <crate>` is built into Cargo (no `cargo-edit` needed for it).
 
@@ -51,18 +53,22 @@ Stay on default clippy. Do **not** gate on `clippy::pedantic` (false-positive pr
 
 **cargo fmt**
 
+```
 | Flag | Effect |
 |---|---|
 | `--check` | Dry-run, exits non-zero if a file would change |
+```
 
 **cargo clippy**
 
+```
 | Flag | Effect |
 |---|---|
 | `--all-targets` | Lint tests, examples, benches too (part of the mandatory gate, not optional) |
 | `--fix` | Auto-apply machine-applicable suggestions (needs clean VCS tree; implies `--all-targets` and `--no-deps`, so it skips dependency lints) |
 | `-- -D warnings` | Treat warnings as errors (strict CI gate; not the local default) |
 | `-- -W clippy::pedantic` | Enable the pedantic group (occasional idiom discovery only) |
+```
 
 ## Check without running
 

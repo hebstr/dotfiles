@@ -14,10 +14,12 @@ paths:
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `quarto render` | Render a document or project to its output (HTML, or PDF via Typst) |
 | `quarto check` | Verify the installation. Targets: `install`, `knitr`, `jupyter`, `julia`, `versions`, `all` (no `typst` target; the bundled Typst version shows under `versions`) |
+```
 
 Quarto ships no formatter or linter of its own. `panache` (Rust LSP + formatter + linter for Markdown/Quarto/Rmd) fills that gap when installed: it formats Pandoc/Quarto prose and delegates embedded chunks to `air`/`ruff` for formatting and to `jarl`/`ruff` for linting (`[formatters]` and `[linters]` in the config), with the caveat that the `ruff` formatter half never fires on a `{python}` chunk (see Code chunks below). Global config is stowed at `~/.config/panache/config.toml` with `wrap = "semantic"` (one sentence per line, no reflow). A project `panache.toml`, discovered by walking up from each file, **replaces** the global config wholesale instead of merging with it: every key it omits falls back to panache's own defaults, so a delta-only project config silently reverts `wrap` to `reflow` and destroys the one-sentence-per-line convention. Copy the stowed global config (`~/.config/panache/config.toml`, the `panache` package in the dotfiles repo) in full and edit from there; never write a project config that carries only the keys that differ. Directory traversal honors `.gitignore` inside a git repo and a built-in exclude base (`.git`, `node_modules`, `target`, `dist`, `build`, `_site`, `_freeze`, `renv`, `.venv`, `.cache`, `.Rproj.user`, `_book`, `**/LICENSE.md`), so a project config should use `extend-exclude` for extra paths: a bare `exclude` replaces that base instead of adding to it. Exclude patterns govern traversal only; a file named explicitly on the command line bypasses them unless `--force-exclude` is passed. That flag honors whichever config is in force, but exclude patterns anchor to the directory holding that config, so the global copy anchors at `~/.config/panache/` and matches nothing inside a project tree: the flag applies and finds no pattern to hit. Only a config sitting at the project root makes it bite, whether discovered as `panache.toml` or named with `--config`. Pointing `--config` at the global copy therefore changes nothing, its location being the variable rather than its content. The LSP hands panache one open document, the same shape as an explicit command-line path, so the anchoring rule above governs it too: a global-only exclude protects nothing on save, and only a config at the project root does. Positron sets `editor.formatOnSave` with `jolars.panache` in the `[markdown]` and `[quarto]` blocks, filters format-on-save by language id rather than by path glob, and the extension exposes no ignore setting of its own, so there is no editor-side way to spare a directory short of turning the language's `formatOnSave` off. The shipped global config still carries `**/.claude/**`, which covers a traversal sweep; the glob needs its `**/` prefix, since exclude patterns are root-anchored and a bare `.claude/**` misses a nested `.claude/`, and the right-hand `**` is what reaches a nested `memory/` or `skills/` where a `*.md` would stop at depth one. A config change reaches the LSP only after a window reload. The `format-on-edit` PostToolUse hook runs `panache format --force-exclude` in place on authored `.md`/`.qmd` files (guarded by `command -v`, so `prose-lint` still runs if panache is absent); it deliberately skips any `.claude/` tree at any depth (Claude-facing markdown, the same scope `prose-lint` gets below), instruction files (`CLAUDE.md`, `rules/*.md`, matched at any path, not just the curated dotfiles copies), transient Claude notes (`memory/`, `PLAN.md`, `DEFERRED.md`, `*-context.md`), verbatim captures compared against a re-run (testthat snapshots under `_snaps/`, showboat traces under `_meta/notes/`), and any `.md` sitting beside a same-named `.Rmd`/`.qmd` (knitr/Quarto `github_document` output, desynchronised from its source by a reflow). The basename patterns are not redundant with the tree one: they catch a `PLAN.md` or a `CLAUDE.md` sitting outside any `.claude/`. That skip list is what protects those files, since the hook's own `--force-exclude` stays inert until the edited file's project ships a `panache.toml`; from then on the hook additionally honors that project's `extend-exclude` on the explicit path it passes. The hook gates `prose-lint` too: the stowed global config (`~/dotfiles/claude/.claude/`, i.e. this `CLAUDE.md` and `rules/*.md`) stays checked, but a project's own `.claude/` tree and root-level `*-context.md` notes are exempt from `prose-lint` as well (Claude-facing, not user prose). panache does NOT handle Typst, so a Typst-raw `.qmd` gains little and its `{=typst}` blocks should be checked to survive verbatim. The render gate is unchanged: a clean render plus the language gate on chunk code, plus `prose-lint` on a user-facing `.qmd` for the always-on dash rules (mechanical enforcement, not optional polish: see Prose conventions below). `prose-lint` stays mandatory; panache covers Markdown structure, not the em/en dash anti-AI-slop rules.
 
@@ -110,6 +112,7 @@ Do not reconstruct Quarto feature syntax from memory (callouts, cross-references
 
 **quarto render**
 
+```
 | Flag | Effect |
 |---|---|
 | `--to FORMAT` | Render a single format (`html`, `pdf`, `docx`, ...) |
@@ -119,13 +122,16 @@ Do not reconstruct Quarto feature syntax from memory (callouts, cross-references
 | `--cache` | Enable execution caching (`--no-cache` disables it; `--cache-refresh` forces a refresh of an existing cache) |
 | `--output -` | Write rendered output to stdout |
 | `--output-dir DIR` | Write output to a directory (input/project-relative) |
+```
 
 **quarto check**
 
+```
 | Flag | Effect |
 |---|---|
 | `--no-strict` | Do not fail on imprecise dependency-version matches |
 | `--output PATH` | Write the report as JSON to a file (note: unlike `render`, `check` has no stdout `-` form) |
+```
 
 ## References
 

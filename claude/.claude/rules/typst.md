@@ -14,11 +14,13 @@ To inspect the generated Typst from a Quarto doc, set `keep-typ: true` in the fr
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `typstyle` | Formatter (`cargo install typstyle --locked`, at `~/.cargo/bin/typstyle`). `--check` to validate, `-i`/`--inplace` to rewrite |
 | `typst` | Compiler (`/snap/bin/typst`). `typst compile <file>.typ` (smoke test), `typst watch` (live recompile). No `lint`/`check` subcommand exists. Snap-confined: it only reads paths under `$HOME`, so compile a smoke test in the project dir, not in `/tmp` |
 | `tinymist` | Language server, bundled inside the Positron extension `myriad-dreamin.tinymist` (LSP, preview, completion, the linter, formatting via typstyle). Editor-only; not a CLI gate step |
+```
 
 There is no standalone Typst linter CLI: diagnostics live in `tinymist`, which surfaces them in-editor (config `tinymist.lint.enabled`).
 The gate below therefore has no report-only lint step, unlike `rules/r.md` / `rules/rust.md`.

@@ -8,10 +8,12 @@ paths:
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `air` | Formatter (config: `air.toml`) |
 | `jarl` | Linter (static analysis) |
+```
 
 ## Mandatory pipeline after every create/edit
 
@@ -130,18 +132,22 @@ Two consequences of the gtsummary route, both worth knowing before choosing it:
 
 **air format**
 
+```
 | Flag | Effect |
 |---|---|
 | `--check` | Dry-run, exits non-zero if file would change |
+```
 
 **jarl check**
 
+```
 | Flag | Effect |
 |---|---|
 | `--fix` | Auto-fix safe issues |
 | `--unsafe-fixes` | Include fixes that may alter intent |
 | `--allow-dirty` | Apply fixes even with uncommitted changes |
 | `--select RULE,GROUP` | Run specific rules or groups only |
+```
 
 ## Syntax check without executing
 

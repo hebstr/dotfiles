@@ -16,10 +16,12 @@ Sass is a means, not a goal: prefer native CSS (custom properties, nesting, `@la
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `stylelint` | Linter (`~/.local/bin/stylelint`, symlink into the pinned toolchain). Linter only: it deprecated its 76 stylistic rules in v15 and removed them in v16, delegating whitespace to a pretty printer. `--fix` corrects and still exits 2 on what it cannot fix |
 | `prettier` | Formatter (`~/.local/bin/prettier`, same mechanism). `--write` rewrites in place, `--check` validates without writing |
+```
 
 Both binaries come from a pinned toolchain in the `css` stow package, at `~/.local/share/css-gate/`, with `package.json` and `package-lock.json` tracked and `node_modules/` ignored.
 Update it with `css-toolchain-update`, wired as the `css-toolchain` module of `sys-update`.
@@ -71,11 +73,13 @@ Two further consequences for any tooling added later:
 
 At `~/.local/share/css-gate/stylelint.config.mjs`, extending `stylelint-config-standard-scss` with three deviations:
 
+```
 | Entry | Why |
 |---|---|
 | `comment-whitespace-inside: null` | Quarto region markers, above |
 | `selector-class-pattern` widened to camelCase | Pandoc emits `.sourceCode` and `.numberSource`, which cannot be renamed. The pattern stays strict on everything else rather than disabling the rule |
 | `at-rule-disallowed-list: ["import"]` | Sass `@import` is deprecated since Dart Sass 1.80.0 and removed in 3.0.0. A Quarto render swallows the compiler's deprecation warning, so the gate is the only signal. Use `@use` |
+```
 
 Legacy Sass color functions need no rule of their own: `scss/no-global-function-names`, active in the preset, already reports `lighten`, `darken`, `transparentize`, `adjust-hue`, `map-get` and `nth` with the exact module replacement to use.
 

@@ -14,11 +14,13 @@ paths:
 
 ## CLI tools
 
+```
 | Tool | Role | Installation |
 |---|---|---|
 | `shellcheck` | Linter (static analysis, `SC*` warnings) | `sudo apt install shellcheck` |
 | `shellharden` | Auto-fix variable quoting | `cargo install shellharden` (not available via apt on Ubuntu 24.04) |
 | `shfmt` | Formatter (indentation, spacing) | `sudo apt install shfmt` |
+```
 
 Orthogonal roles:
 - **shellcheck** reports; does not fix
@@ -44,6 +46,7 @@ The shfmt flags above match the prek hook in `prek.toml` (source of truth at com
 
 ## Useful shfmt flags
 
+```
 | Flag | Effect | Used in pipeline |
 |---|---|---|
 | `-w` | write in place | yes |
@@ -51,6 +54,7 @@ The shfmt flags above match the prek hook in `prek.toml` (source of truth at com
 | `-ci` | indent `case` branches | no (prek does not set it) |
 | `-sr` | space after redirections (`> file`) | no (prek does not set it) |
 | `-bn` | `&&` / `\|` at start of line | no |
+```
 
 Note: Positron's Bash IDE is configured to match prek's `-w -i 2` (no case-indent, no space-after-redirect); if a formatting conflict ever appears, the checked-in settings file is authoritative (see below). On-save formatting and the commit hook agree. Do not add `-ci`/`-sr` to the local pipeline or the `format-on-edit` hook: they produce formatting the commit gate reverts.
 

@@ -14,10 +14,12 @@ Editing a `.qmd` itself never triggers this gate; that path is `rules/quarto.md`
 
 ## CLI tools
 
+```
 | Tool | Role |
 |---|---|
 | `stylua` | Formatter (`~/.local/bin/stylua`, prebuilt binary from the `JohnnyMorganz/StyLua` releases). Reads project `stylua.toml`. `--check` validates (exit 1 if unformatted), no flag rewrites in place |
 | `lua-language-server` | LSP and type checker (`~/.local/bin/lua-language-server` → `~/.local/share/lua-language-server/`). `--check <workspace-root>` runs a headless type and diagnostics pass. No separate linter CLI exists; LuaLS is both |
+```
 
 There is no fixer stage before the formatter for Lua: StyLua is the only mutation, and `lua-language-server --check` is report-only.
 This makes the gate shorter than shell's or Python's, closer to `rules/typst.md`.
@@ -62,15 +64,18 @@ For a no-mutation CI gate, run `stylua --check` plus the `lua-language-server --
 
 **stylua**
 
+```
 | Flag | Effect |
 |---|---|
 | `-c, --check` | Check mode: exit 1 if any file is unformatted, print diffs, write nothing (the gate's validating step) |
 | `-f, --config-path <path>` | Use an explicit `stylua.toml`; default searches the current directory |
 | `--output-format <fmt>` | Diff format in check mode: `Standard`, `Unified`, `Json`, `Summary` (`Json` for CI parsing) |
 | `--verify` | Re-check the output AST against the input to catch a correctness change introduced by formatting |
+```
 
 **lua-language-server**
 
+```
 | Flag | Effect |
 |---|---|
 | `--check <dir>` | Run the headless diagnostics pass on the workspace root (the gate's lint step) |
@@ -78,6 +83,7 @@ For a no-mutation CI gate, run `stylua --check` plus the `lua-language-server --
 | `--configpath <path>` | Load a specific config, relative to the workspace; suppresses any editor-provided config |
 | `--check_format <fmt>` | `pretty` (stdout, default) or `json` (written under `--logpath`); the default is why no `check.json` appears |
 | `--logpath <path>` | Directory for the diagnostics log; point it at a temp dir to keep logs out of the repo |
+```
 
 ## What the type checker catches, and one thing it does not
 
