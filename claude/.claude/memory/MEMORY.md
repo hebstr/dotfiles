@@ -100,6 +100,7 @@
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
 - feedback_review_severity_hebstr_doc.md: Calibrating reviews of the quarto-hebstr-doc extension (filetree.lua and its tests)
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING
+- feedback_bats_comment_carve_out.md: Why the bats comment debt is won't-fix; don't re-measure the 41 suites
 - feedback_review_severity_bats_tests.md: Calibrating reviews of bats tests for personal shell tooling; measure a remedy first
 - feedback_review_severity_bash_dotfiles.md: Calibrating reviews of the interactive shell dotfiles in `bash/`
 - feedback_review_severity_claude_rules.md: Calibrating reviews of path-scoped `.claude/rules/` files

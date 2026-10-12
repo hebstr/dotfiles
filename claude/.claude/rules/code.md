@@ -25,6 +25,7 @@ On-demand reference, loaded when Claude reads a code file (a `Write` of a new fi
 
 - No comments in code, with no exception for a regex, a workaround or an invariant. What stays is only what is not a comment to a reader: section headers, API documentation (roxygen, docstrings), and lines a tool reads (shebang, `# shellcheck`, `# noqa`, `#|` chunk options, a PEP 723 block).
 - A WHY a reader would need goes into the tracking note that covers the code (the project's `.claude/` design note, its `_meta/notes/` entry, `PLAN.md`), written in the timeless present; when no note covers it, say so and propose one rather than falling back on a comment.
+- **A `.bats` suite is excepted**, and may carry comments: the preamble naming its harness's traps, the contract of a stub factory, the reason a test invokes the script directly instead of through `run`. A harness exists only in the file that holds it, so its rationale has no tracking note to move to. The exception stops at the harness: a WHY about the behaviour of the script under test goes to that script's note like any other. Decided 2026-10-12 against the house practice, calibration in `feedback_bats_comment_carve_out.md`.
 - Before reporting a code edit done, grep the lines just written for the language's comment marker and move every hit outside that list to the note.
 - Code text (names, roxygen and docstrings, section headers) is in English.
 - No cosmetic whitespace padding for alignment, such as aligning inline comments with extra spaces, unless asked.
