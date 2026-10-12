@@ -70,7 +70,9 @@ Its siblings under `com.pais.handy/` (`models/`, `recordings/`, `logs/`, `histor
 The dictation settings it holds, and why each one, are in `.claude/DESIGN-TRANSCRIPTION.md`.
 
 `ssh` holds `.ssh/config` only, never a key, and that file stays `644`: `ssh` rejects a config others can write, and tolerates a group-writable one only because Ubuntu's build accepts a private user group.
-Setting up the servers and keys behind its aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
+Setting up the servers and keys behind its LAN aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
+Its two GitHub aliases are not covered there: `alisp59` and `hebstr` read `~/.ssh/alisp59` and `~/.ssh/hebstr`, which live outside the dotfiles by design, so a reinstall or a lost key recreates one with `ssh-keygen -t ed25519 -f ~/.ssh/<alias>`, registers it with `gh ssh-key add ~/.ssh/<alias>.pub` under the matching account, and checks it with `ssh -T <alias>`.
+Each alias is registered on the GitHub account of the same name, which is what `ssh -T` answers (`Hi alisp59!`, `Hi hebstr!`, checked 2026-10-12); without the key, both fail with `Permission denied (publickey)`.
 
 The `npm ci` step is required: the `css` package ships pinned `package.json` + `package-lock.json` but its `node_modules/` is gitignored, so `~/.local/bin/{stylelint,prettier}` dangle until it runs, and `symlinks-check` fails.
 Thereafter `sys-update css-toolchain` keeps that toolchain current.
