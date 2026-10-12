@@ -14,6 +14,13 @@ case "$FILE" in
 *) exit 0 ;;
 esac
 
+REAL=$(realpath -m "$FILE")
+
+case "$REAL" in
+*/dotfiles/claude/.claude/*) ;;
+*/.claude/* | *-context.md) exit 0 ;;
+esac
+
 # Reconstruct the full post-edit file. prose-lint skips fenced code blocks and
 # display-math blocks, so it must see the whole file with those intact; linting
 # the bare Edit fragment (new_string) misreads such lines as prose. Write
@@ -43,7 +50,6 @@ PY
 
 # Mirror the real path under a temp root so prose-lint's path/basename skips
 # (.claude/memory/, PLAN.md, etc.) apply exactly as they would on the real file.
-REAL=$(realpath -m "$FILE")
 TMPROOT=$(mktemp -d)
 trap 'rm -rf "$TMPROOT"' EXIT
 TMP="$TMPROOT/${REAL#/}"
