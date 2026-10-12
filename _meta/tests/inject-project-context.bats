@@ -55,9 +55,10 @@ run_hook() {
 }
 
 @test "ignores an unsafe session id" {
-  printf 'pdf\n' >"$RUNTIME/claude-code-rules-x"
-  run_hook '{"session_id": "../claude-code-rules-x", "source": "compact"}'
-  [ -e "$RUNTIME/claude-code-rules-x" ]
+  mkdir -p "$RUNTIME/claude-code-rules-sub"
+  printf 'pdf\n' >"$RUNTIME/outside"
+  run_hook '{"session_id": "sub/../outside", "source": "compact"}'
+  [ -e "$RUNTIME/outside" ]
 }
 
 @test "points at .claude/PLAN.md on startup and after compaction" {
@@ -76,6 +77,14 @@ run_hook() {
   [[ $output == *'Legacy root-level Claude file(s): PLAN.md.'* ]]
 }
 
+@test "lists every root-level Claude file it treats as legacy" {
+  : >"$PROJECT/PLAN.md"
+  : >"$PROJECT/MEMORY.md"
+  : >"$PROJECT/DEFERRED.md"
+  run_hook '{"session_id": "s1", "source": "startup"}'
+  [[ $output == *'Legacy root-level Claude file(s): PLAN.md MEMORY.md DEFERRED.md.'* ]]
+}
+
 @test "says nothing about plans or legacy files in a bare project" {
   run_hook '{"session_id": "s1", "source": "startup"}'
   [[ $output != *PLAN* ]]
@@ -88,6 +97,15 @@ run_hook() {
   : >"$PROJECT/.claude/CLAUDE.md"
   run_hook '{"session_id": "s1", "source": "resume"}'
   [[ $output == *'root copy masks the other'* ]]
+}
+
+@test "says nothing about legacy or masking files after a compaction" {
+  mkdir -p "$PROJECT/.claude"
+  : >"$PROJECT/CLAUDE.md"
+  : >"$PROJECT/.claude/CLAUDE.md"
+  run_hook '{"session_id": "s1", "source": "compact"}'
+  [[ $output != *Legacy* ]]
+  [[ $output != *masks* ]]
 }
 
 @test "prints the pointer before the project memory index" {
