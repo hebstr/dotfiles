@@ -109,11 +109,17 @@ check_clashes() {
   [ "$clash" = "" ] || die "exists, pass --force to overwrite:${clash}"
 }
 
+have_local_token() {
+  [ -f "${HOME}/${TOKEN_PATH}" ] || [ "${HF_TOKEN:-}" != "" ]
+}
+
 local_advice() {
-  if [ "$DIARIZE" -eq 1 ]; then
-    printf '%s\n' '--local would decode here but cannot diarize'
-  else
+  if [ "$DIARIZE" -eq 0 ]; then
     printf '%s\n' 'pass --local to decode here instead'
+  elif have_local_token; then
+    printf '%s\n' 'pass --local to decode and label here'
+  else
+    printf '%s\n' '--local would decode here but cannot diarize'
   fi
 }
 
@@ -151,7 +157,7 @@ check_remote_token() {
 }
 
 check_local_token() {
-  if [ ! -f "${HOME}/${TOKEN_PATH}" ] && [ "${HF_TOKEN:-}" = "" ]; then
+  if ! have_local_token; then
     die "no Hugging Face token on this host, where the gated diarization model needs one at ~/${TOKEN_PATH}"
   fi
 }

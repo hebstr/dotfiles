@@ -542,11 +542,19 @@ _labels() {
 }
 
 @test "an unreachable remote on a diarization run is not answered with --local" {
-  SSH_UNREACHABLE=1 _run --speakers 2 "$AUDIO"
+  SSH_UNREACHABLE=1 HF_TOKEN='' _run --speakers 2 "$AUDIO"
   [ "$status" -eq 1 ]
   [[ "$output" == *"cannot reach"* ]]
   [[ "$output" == *"cannot diarize"* ]]
   [[ "$output" != *"pass --local to decode here instead"* ]]
+}
+
+@test "an unreachable remote on a diarization run offers labelling when the token is here" {
+  SSH_UNREACHABLE=1 HF_TOKEN=hf_stub _run --speakers 2 "$AUDIO"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"cannot reach"* ]]
+  [[ "$output" == *"pass --local to decode and label here"* ]]
+  [[ "$output" != *"cannot diarize"* ]]
 }
 
 @test "a recording named relatively reaches scp as an absolute path" {
