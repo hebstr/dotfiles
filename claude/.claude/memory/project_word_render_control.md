@@ -1,6 +1,6 @@
 ---
 name: project_word_render_control
-description: The word-render control driving the real Word on ju-TP2 over SSH, its --capture route, and the unlicensed Office that shuts every write path
+description: The word-render control driving the real Word on ju-TP2 over SSH, its --capture route, the unlicensed Office that shuts every write path, and the capture limits that need the captures read by eye (a locked or dark station, each run pruning the earlier captures, and no duplicate detection at all past about fifty pages)
 metadata:
   type: project
 ---
@@ -19,5 +19,7 @@ That refusal, and the `-match 'Unlicensed'` guard of the payload, match an Engli
 **Why:** the design, every measurement, the three deviations from the written plan (fixed job slot, `Start-ScheduledTask`, the `result.txt` sentinel), the four mechanisms the capture rests on (hide the `NUIDialog` rather than close it, page by `VerticalPercentScrolled` plus `LargeScroll` rather than `ScrollIntoView`, end the instance `Quit` leaves, and `SetProcessDPIAware` with `WdPageFit` 1 for the geometry) and the correction that Aptos *is* available there as a cloud font live in `~/dotfiles/_meta/notes/docx-verification.md`, sections "A fourth route is open" and "The capture route".
 
 **Each run prunes that document's earlier captures, measured 2026-10-07.** A second run announces `replacing N earlier capture(s)` and leaves only the pages it just took, so a `--pages 3-4` control pass after a full one destroys the rest, and `<project>/.claude/screenshots/` is git-ignored with no net. Copy what must survive, or re-take the full range, before narrowing `--pages`; a note citing a capture range goes stale the moment a narrower run lands.
+
+**Past about fifty pages there is no duplicate detection at all, and no remedy exists, measured 2026-10-04 and re-measured 2026-10-12.** `VerticalPercentScrolled` returns an integer percent, 1.64 points per page on a 62-page document, so the payload's duplicate check stands down whenever `100 / (pages - 1)` falls under 2 points. Covering it needs an assertion on the page the pane actually shows, and no API for that is established on `ju-TP2`: `Selection.Information(wdActiveEndPageNumber)` follows the selection rather than the view, and `RangeFromPoint` throws off text. The deliverables this tool serves run 4 to 9 pages, so the blind spot sits outside its normal range; read the captures yourself when a document passes fifty pages. The *skipped*-page half of the same finding is separable, has a derivable remedy and stays an open row of `DEFERRED.md`.
 
 **How to apply:** do not re-derive the route or re-propose LibreOffice, ONLYOFFICE, Word for the web or `pandoc --pdf-engine=typst` ([[reference_word_embedded_fonts_blocked]]); run `word-render --capture <file.docx>`. Its refusal names the registration command for the `Claude-WordRender` scheduled task when that task is missing. The page stays white only while `HKCU\...\Word\Options\DisableDarkMode` is `1` on that machine.
