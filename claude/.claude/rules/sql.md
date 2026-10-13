@@ -148,7 +148,7 @@ Worth adding only to a project writing DDL against a PostgreSQL instance under r
 ## Watch item
 
 DuckDB merged a first-party SQL formatter into `main` on 2026-03-31: `duckdb -format-file`, `-format` on stdin, `.auto_format on`, and a `duckdb_format_sql()` function with `keyword_case`, `inline_threshold` and `indent_size` options.
-It is in no released version (absent from 1.5.5, the 1.5.x branch having diverged before the merge) and absent from the DuckDB docs.
+It is in no released version (absent from the installed 1.5.6, the 1.5.x branch having diverged before the merge) and absent from the DuckDB docs.
 When it ships it will be exact on the dialect where SQLFluff guesses, and the formatting half of the gate is worth reconsidering for DuckDB files at that point. The linting half has no DuckDB-native counterpart planned.
 
 ## References
