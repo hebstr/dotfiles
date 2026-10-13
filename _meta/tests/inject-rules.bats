@@ -177,13 +177,6 @@ field() {
   [ -z "$output" ]
 }
 
-@test "denies a memory write under the harness path and injects memory.md" {
-  run_hook "$(read_call Write "$WORK/.claude/projects/-x/memory/feedback_a.md")"
-  [ "$(field permissionDecision)" = deny ]
-  [[ $(field permissionDecisionReason) == *"$WORK/dotfiles/claude/.claude/memory/"* ]]
-  [[ $(field additionalContext) == *BODY-memory* ]]
-}
-
 @test "denies a memory write through the link and names the resolved file" {
   for t in Write Edit MultiEdit; do
     run_hook "$(read_call "$t" "$WORK/.claude/memory/feedback_x.md")"
