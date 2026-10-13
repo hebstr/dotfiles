@@ -1,6 +1,6 @@
 ---
 name: feedback_litrev_pipeline_patterns
-description: "Recurring decisions on `/litrev` scoping runs: corpus sizing, snowball skip heuristic, audit_claims false positives, validate_gate workaround, pseudo-GRADE detection, post-generation prose cleanup."
+description: "Recurring decisions on `/litrev` scoping runs: corpus sizing, snowball skip heuristic, audit_claims false positives, validate_gate workaround, pseudo-GRADE detection, post-generation prose cleanup, the per-user LITREV_EMAIL rule, and the >75 % direction flag firing on genuine consensus."
 metadata:
   type: feedback
 ---
@@ -48,3 +48,17 @@ Seen on the PRISE epidemio book mise-en-forme (2026-05-18). Two distinct passes 
 1. *Mechanical pass:* `rg -l '[—–]'` to locate em-dash and en-dash in internal punctuation, then one Edit per finding title (`— \*(minor|major|critical)\*` to `, *$1*`), never a `sed` rewrite; a quick run on vocabulary inflation (« à l'instar de », « par conséquent », « permettre de + verbe » chaîné). Cheap, mechanical, do it first.
 2. *Substantive pass:* don't delegate to `/workflow:write` agents; they apply the wrong checklist. The main model should rewrite directly, looking for nominalisation chains, bureaucratic openers (« la présente », « le présent document »), and announce-then-state ("X : Y" where Y is the actual content). Aim for verb-first, fact-first sentences. Cut adjectives that don't carry a constraint.
 3. *Skip:* the canonical AI-tic checklist (négatif, rhétorique, rituel openers, vide triplets). Confirmed absent on this corpus type; running /workflow:write on it is wasted budget.
+
+**Rule 7.** `LITREV_EMAIL` is the user's own address, never a shared or generic one.
+
+Migrated 2026-10-13 from the legacy harness store. Nothing in the repo says it: the `LITREV_EMAIL` rows of `README.md` and `mcp/README.md` describe the polite pool neutrally, and `.env.example` is still an open checkbox in `.claude/REPO_QUALITY.md`.
+
+**Why:** a polite-pool address identifies the requester, so a shared one concentrates every user's traffic under one identity and one user's abuse blocks all of them. NCBI's terms ask for a valid contact per user or organisation.
+**How to apply:** when `LITREV_EMAIL` configuration comes up, recommend the user's own address. Do not propose a generic project mailbox as a convenience default, and do not write one into `.env.example` when that file is finally created.
+
+**Rule 8.** The >75 % direction flag fires on genuine literature consensus, and that is not an extraction defect.
+
+`litrev-extract/SKILL.md`'s "Validate direction distribution" step flags any direction value holding more than 75 % of claims as a possible calibration issue, with no exemption for topics where the evidence really is near-unanimous. Measured on the melatonin / ASD / sleep run: 82.4 % positive, and a hedge-word scan found only 4 of 313 true misclassifications.
+
+**Why:** the threshold is topic-agnostic by design, which is what makes it useful as a forced human check; reading every firing as a bias is what produces the false positive.
+**How to apply:** when the flag fires, ask whether the topic has a known consensus. If it does, record it in the synthesis limitations as literature consensus rather than extraction bias, and keep the flag. Two sibling patterns of the same legacy file were left as repo work rather than memory, and are proposed as `claude-code-litrev/.claude/DEFERRED.md` rows: the regex-to-semantic `effect_size` cross-reference has no guard on match quality, and nothing checks a positive "no protocol deviation" statement against `search_log.md` and `protocol.md`.

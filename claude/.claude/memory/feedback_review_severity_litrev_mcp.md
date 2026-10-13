@@ -1,11 +1,11 @@
 ---
 name: feedback_review_severity_litrev_mcp
-description: "Calibrate adversarial review severity for the litrev-mcp MCP server: five established design choices recurring reviewers misread as defects."
+description: "Calibrate adversarial review severity for the litrev-mcp MCP server: the design choices recurring reviewers misread as defects (in-memory transformations, reactive env tips, the empty-string sentinel, LLM-consumed error dicts, context-asymmetric regex, nine further dismissals) and the five won't-fix shapes no file in the repo records."
 metadata:
   type: feedback
 ---
 
-Adversarial reviewers (skill-adversary, mcp-adversary, cross-model judges) tend to misread five established design choices in `mcp/src/litrev_mcp/`. Do not re-litigate them on every audit.
+Adversarial reviewers (skill-adversary, mcp-adversary, cross-model judges) tend to misread established design choices in `mcp/src/litrev_mcp/`. Do not re-litigate them on every audit. Rules 1 to 5 come from the 2026-05-17 audits; rules 6 and 7 were migrated on 2026-10-13 from the legacy harness store, whose project key no longer resolves.
 
 **Rule 1.** In-memory pipeline transformations are not "mutations" of the persisted source of truth.
 
@@ -45,3 +45,13 @@ Prose regex (e.g. PMID detection in markdown) needs strict bounds to avoid noise
 
 **Why:** Tightening BibTeX-side regex introduces false negatives without any false-positive gain on user-authored, annotated input. Rejected in the 2026-05-17 walkthrough.
 **How to apply:** Before recommending regex tightening, check whether the input context is user-annotated (structured) or free-form (prose). User-annotated → keep lax.
+
+**Rule 6.** Nine further dismissals, migrated 2026-10-13 from the legacy harness store with every subject re-checked in `mcp/src/litrev_mcp/` on that date.
+
+The four module-level `httpx.Client` instances of `lib/http.py` are correct in a long-lived server process: do not flag them as "never closed". Natural-language ambiguity between tool descriptions is the LLM's discrimination job, not a schema defect. The `_regex` suffix of `extract_claims_regex` deliberately marks the automated first pass against a future LLM-based extraction. `study_types: list[str] | None` is correctly open, its values coming from external APIs with no fixed enum. `timeout: int = 10` as a tool parameter is an operational knob, not an implementation leak. `except Exception` inside the HTTP retry wrappers of `lib/` is acceptable, FastMCP catching tool-level exceptions. A missing `Path.exists()` check is not a gap, FastMCP surfacing `FileNotFoundError`. The `full_dedup[len(existing_deduped):]` slice of `citation_chain` correctly returns only the new candidates. And `process_results`'s formatters handle a `str` and a `list[str]` author at render time by design. One item of that legacy list was dropped at migration: the `Literal["s2", "openalex", "s2,openalex"]` with a `sources.split(",")` is gone, `citation_chain` now declaring `sources: list[Literal["s2", "openalex"]] | None`.
+
+**Rule 7.** Five won't-fix shapes the user settled once and no file in the repo records.
+
+Migrated 2026-10-13 from the legacy `skipped_review_points`, which lived under a harness path that no longer resolves; `claude-code-litrev` has no `CLAUDE.md` and no review-calibration file, so nothing else carries them. No `defusedxml` against the `ET.fromstring` of `lib/pubmed.py` and `lib/fulltext.py`: CPython's expat resolves no external entities and the sources are trusted NCBI APIs. Author parsing duplicated at about twelve sites, each call site parsing a different input shape for a different purpose, so factoring buys complexity. No test for the PMC to Unpaywall to S2 cascade of `fetch_and_cache`, a linear cascade whose components are tested (`tests/test_fulltext.py` covers the parser and the cache, and exercises `fetch_and_cache` on the cache-hit path alone). `seen_keys = set(md_keys.values())` in `tools/verify.py` pre-seeds the markdown keys on purpose, reserving them so an orphan DOI cannot collide. And the collision branch of `unique_key` in `lib/bibtex.py` keeps the bare key in `seen_keys` deliberately, since removing it would break collision detection.
+
+Three further items of that list lost their subject before this migration and are not carried: the Sci-Hub default fallback (no `sci-hub` string anywhere in the tree, the cascade being PMC, Unpaywall then S2 in `lib/fulltext.py`), `sys.path.insert` for sibling imports (`mcp/` is a package with relative imports and a `py.typed`), and `process_articles` mutating its input dicts (the function is gone). Its two remaining blocks, the deliberate design decisions and the dismissed `SKILL.md` ambiguities, were not re-checked item by item: treat them as unverified if one resurfaces.

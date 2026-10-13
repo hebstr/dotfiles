@@ -94,7 +94,7 @@
 - feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
 - feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
 - feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
-- feedback_review_severity_personal.md: Calibrate review severity down for personal and internal packages
+- feedback_review_severity_personal.md: Personal and internal packages, and the already-compromised-host rejection
 - feedback_review_severity_md_nesrine.md: Calibrating reviews of the md-nesrine render journal
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French-language statistical reports (.qmd)
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
@@ -107,7 +107,7 @@
 - feedback_review_severity_profiles_scaffolds.md: Calibrating audits of the config templates in `_meta/profiles/`
 - feedback_review_severity_claude_config.md: Calibrating audits of `~/.claude` config artifacts (settings.json, hooks)
 - feedback_review_severity_claude_md_content.md: Calibrating audits of the rules text of `~/.claude/CLAUDE.md`
-- feedback_review_severity_skill_audits.md: Calibrating audits of SKILL.md files and agent definitions
+- feedback_review_severity_skill_audits.md: Audits of SKILL.md files, agent definitions and a skill's scripts
 - feedback_review_severity_hebstr.md: Calibrating reviews of the hebstr R package
 - feedback_review_severity_edstr.md: Calibrating reviews of the edstr R package
 - feedback_review_severity_eds_prise.md: Calibrating reviews of eds-prise's three layers (pipeline, lib/, annotation app)
