@@ -27,7 +27,7 @@ On-demand reference, loaded when Claude reads a code file (a `Write` of a new fi
 - A WHY a reader would need goes into the tracking note that covers the code (the project's `.claude/` design note, its `_meta/notes/` entry, `PLAN.md`), written in the timeless present; when no note covers it, say so and propose one rather than falling back on a comment.
 - **A `.bats` suite is excepted**, and may carry comments: the preamble naming its harness's traps, the contract of a stub factory, the reason a test invokes the script directly instead of through `run`. A harness exists only in the file that holds it, so its rationale has no tracking note to move to. The exception stops at the harness: a WHY about the behaviour of the script under test goes to that script's note like any other. Decided 2026-10-12 against the house practice, calibration in `feedback_bats_comment_carve_out.md`.
 - Before reporting a code edit done, grep the lines just written for the language's comment marker and move every hit outside that list to the note.
-- Code text (names, roxygen and docstrings, section headers) is in English.
+- Code text (names, roxygen and docstrings, section headers) is in English, and so are the strings a developer reads: `cli_abort()`, `cli_warn()`, `stop()`, validation messages, log lines. What may stay in the user's language is the output a pipeline prints for its operator (`cli_alert_info()` and friends in a French project), which is content rather than code text.
 - No cosmetic whitespace padding for alignment, such as aligning inline comments with extra spaces, unless asked.
 
 ## Scope of a change

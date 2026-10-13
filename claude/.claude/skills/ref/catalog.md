@@ -58,6 +58,7 @@ Listed here to prevent re-considering.
 3. Add a one-line entry above under the matching `## <domain>/` section.
 4. Format: `- [<author>-<topic>](<domain>/<author>-<topic>.md): <one-line summary>. Source: <repo>.` Use `Sources:` (plural) followed by a comma-separated list when the note aggregates several upstream repos/blogs.
 5. Before creating a note, check the "Out of scope" list: if an installed skill already covers the topic, don't duplicate.
+6. For a mainstream topic only (the docs of a widely used tool: git, docker, postgres, a mainstream R or Python library, an official Quarto or tidyverse API), run **one** search of the skill and MCP registries and surface any credible candidate to the user before writing the note; let them choose between installing it and keeping a `ref` note. Skip that search for a niche topic (one named developer's pattern, a micro-domain, a specific hot-fix, a verbatim extract from one repo), which is what `ref` exists for. The graded form is deliberate: an unconditional search was refused as too costly for the niche case.
 
 ### Naming convention
 
