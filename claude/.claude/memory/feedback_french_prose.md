@@ -1,6 +1,6 @@
 ---
 name: French prose conventions
-description: Authorities, anglicism policy, typography, and registration rules for French prose work
+description: Authorities, anglicism policy, typography, and registration rules for French prose work, plus the languages the work covers (English and French only, Chinese refused) and inclusive writing kept as the source has it
 metadata:
   type: feedback
 ---
@@ -13,8 +13,12 @@ When editing or producing French prose for the user, apply these decisions. Do n
 
 **Variety:** français de France (fr_FR), not Québec. No anti-anglicism crusade.
 
+**Languages covered:** English and French only. Chinese support was weighed and refused while the skill was being built, so a request for it is a new decision, not an extension.
+
+**Inclusive writing (`utilisateur·ice·s`):** an editorial choice belonging to the source text, never a translation drift. Keep it where the source has it; never introduce it, never strip it.
+
 **Anglicism policy:**
-- *Idiomatic technical anglicisms preserved as-is* (FR is the running prose): framework, runtime, deploy, debug, push, ship, refactor, mock, scope, log, parser, build, embedding, pipeline, stack, commit, merge, rollback, prompt, token, backend, frontend, benchmark, week-end. Target is anti-AI-slop, not anti-English.
+- *Idiomatic technical anglicisms preserved as-is* (FR is the running prose): framework, runtime, deploy, debug, push, ship, refactor, mock, scope, log, parser, build, embedding, pipeline, stack, commit, merge, rollback, prompt, token, backend, frontend, benchmark, lifecycle, payload, binding, week-end. Target is anti-AI-slop, not anti-English.
 - *Reformulation zeal trap.* When rewriting bureaucratic FR for idiomatic feel, do not additionally re-translate preserved anglicisms. Concrete example (2026-05-18): renamed chapter title "Pipeline log" → "Journal du pipeline" while reformulating a Quarto book chapter; user reverted to "Pipeline logs". The gain from FR reformulation lives in nominalisation reduction and bureaucratic-opener removal, not in lexical purification; those are two different passes and the second is already covered by the preserved-list rule above. If a term appears in the preserved list, leave it alone even when the surrounding sentence is being rewritten.
 - *Corporate francised verbs to translate back to French*: leverager, actionner, onboarder, scaler (en métaphore floue), pusher (une idée), driver, challenger.
 - *Structural calques to translate*: adresser un problème → traiter ; supporter une feature → prendre en charge ; définitivement (au sens *certainly*) → certainement ; ça fait du sens → c'est cohérent ; compléter une tâche → terminer ; en charge de → chargé de.

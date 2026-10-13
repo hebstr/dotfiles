@@ -47,6 +47,7 @@
 - reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores `.Rbuildignore`: root `*.md` become pages, vignettes articles
 - reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` breaks in `extra.scss`
 - reference_claude_code_marketplace_mechanics.md: Plugin install vs cache, `extraKnownMarketplaces`, a moved `directory` source
+- reference_plugin_skill_env_vars.md: `${CLAUDE_PLUGIN_ROOT}` renders `//`; `${CLAUDE_SKILL_DIR}` empty in skill Bash
 - reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
 - reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
@@ -119,7 +120,7 @@
 - feedback_litrev_pipeline_patterns.md: Recurring scoping decisions on `/litrev` runs
 - feedback_verify_quarto_theming.md: After a Quarto SCSS, CSS or theme edit, inspect the compiled CSS, not a screenshot
 - feedback_quarto_render_disabled_chapter.md: Rendering a chapter commented out of `chapters:` can uncomment it in `_quarto.yml`
-- feedback_french_prose.md: Authorities, anglicism policy, typography and register for French prose work
+- feedback_french_prose.md: Authorities, anglicism policy, typography, register, EN/FR only, inclusive writing
 - feedback_fr_to_en_translation.md: Claude-facing content into English: migration keeps fidelity, a Claude draft is re-authored
 - feedback_verify_after_install.md: Smoke-test a new tool, hook or integration end-to-end before calling it done
 - feedback_shell_grep_pipefail.md: Shapes that fail or lie under `set -Eeuo pipefail` (mid-pipeline grep, `&&` lists, `jq -e`)

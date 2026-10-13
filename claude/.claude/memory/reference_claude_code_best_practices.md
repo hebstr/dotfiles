@@ -1,6 +1,6 @@
 ---
 name: Claude Code session forensics, MCP verdicts and the Bash write blind spot
-description: "Local Claude Code facts not in upstream docs: probing past sessions through the jsonl transcripts (7-day retention here), reading the current session's context occupancy from its transcript usage fields, the 2026-03-26 MCP server verdicts, PostToolUse on Edit|Write missing files written via Bash, auto mode instructing shell writes against the Edit-or-Write rule, the auto mode classifier being a layer `permissions.allow` does not satisfy and the `autoMode` block that steers it, a hook entry arming without a restart, the UserPromptSubmit payload field name with what reaches it besides typed text, the three self-started turns that fire the event with compaction excluded, a hook firing being unverifiable from the transcripts, the 10,000-character hook output cap and its 2 KB preview, additionalContext reaching the model on every permission decision, a paths: rule loading on a native Read only, and the autoMemoryDirectory load cap, near-cap nudge, frontmatter stamping and symlink asymmetry"
+description: "Local Claude Code facts not in upstream docs: probing past sessions through the jsonl transcripts (7-day retention here), reading the current session's context occupancy from its transcript usage fields, the 2026-03-26 MCP server verdicts, PostToolUse on Edit|Write missing files written via Bash, auto mode instructing shell writes against the Edit-or-Write rule, the auto mode classifier being a layer `permissions.allow` does not satisfy and the `autoMode` block that steers it, a hook entry arming without a restart, the UserPromptSubmit payload field name with what reaches it besides typed text, the three self-started turns that fire the event with compaction excluded, a hook firing being unverifiable from the transcripts, the 10,000-character hook output cap and its 2 KB preview, additionalContext reaching the model on every permission decision, a paths: rule loading on a native Read only, the autoMemoryDirectory load cap, near-cap nudge, frontmatter stamping and symlink asymmetry, and the subagent facts that decide where an orchestrating step runs (fork mode by default, no AskUserQuestion in any subagent, Skill and Agent kept to depth 3)"
 metadata:
   type: reference
 ---
@@ -31,6 +31,14 @@ metadata:
 - A fourth behaviour runs the other way: the edit permission check resolves every spelling of the target path, the symlink target included, and lets an `.md` write skip the permission prompt only when every spelling starts with the configured directory, compared as a string after `~/` expansion, with no `realpath`, and before the protected-path check on `.claude/`.
 - All four key on the literal configured path and none follows a symlink, so pointing the setting at the link (`~/.claude/memory`) keeps every memory write prompting and escapes the nudge, the stamp and the per-file checks, while pointing it at the resolved store would silence the prompt and stamp every diff. That asymmetry is why dotfiles names the link and denies writes through it, sending them to the resolved path instead.
 - The native per-turn recall, a selector over the memory files' `description`, is gated by a server flag and off on this account; when it is on, the binary drops the index from context and recall runs through that selector instead.
+
+## Subagents
+
+Read on the official sub-agents doc page on 2026-09-14, against 2.1.232, and not re-derived since; a skill that orchestrates agents is built on them, so re-check before relying on one.
+
+- **Fork mode is the default in an interactive session**, so every `Agent` call starts in the background and Claude cannot ask for the foreground. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` is the only lever back.
+- **`AskUserQuestion` is removed from every subagent**, with no exception. A step that has to question the user therefore belongs in the main context: that is why the `audit:walkthrough` orchestrator and its batch-triage and bridge steps run there, and only the reviewer goes to an `Agent`.
+- **A background subagent keeps `Skill` and `Agent`**, nesting to depth 3. What stays unmeasured is the notification path: whether a subagent can launch background `Agent` calls of its own *and* receive their completion notifications. The `audit/sweep` Phase 1 fan-out depends on it when a sweep is itself spawned as a reviewer, and the open row of `~/Documents/packages/claude-code-plugins/.claude/DEFERRED.md` asks for that measurement.
 
 ## Session transcript forensics
 
