@@ -1,0 +1,21 @@
+---
+name: Serving GGUF models with llama-server on multi-GPU
+description: Upstream llama.cpp serving facts measured on a 3-GPU Quadro RTX 6000 box: the two flags that defeat auto-fit and crash on OOM (--n-gpu-layers, --tensor-split), the flash-attn compute-capability floor, why top_k=1 is needed for greedy since PR 9897 and why seed is then inert, the cost of the default thinking mode and that the kwarg is silently ignored by models without one, why auto n_parallel starves each slot under kv_unified, and why a hybrid SWA plus recurrent-memory architecture cannot reuse the KV cache between requests
+metadata:
+  type: reference
+---
+Serving a GGUF model with `llama-server`, measured in 2026 on three Quadro RTX 6000 (compute capability 7.5, 24 GB each) and on a CPU-only build 9106.
+
+**Two flags defeat the auto-fit and turn a tight fit into a fatal OOM at load.** llama.cpp offloads as many layers as the VRAM allows on its own, and refuses to adjust once the decision is forced. `--n-gpu-layers 99` on a model that does not fit crashes instead of falling back, so that flag is only for *limiting* GPU layers (reserving VRAM for another process). `--tensor-split` has the same effect as a side effect: passing it explicitly disables the auto-fit, llama.cpp detects the overflow and still refuses to adjust. Hence the rule that a small model takes the split and a large one must not: a 70B on 33 GB free crashes with the split and loads with CPU-fallback layers without it. Without the flag at all, everything loads on CUDA0 only. Values are relative ratios, so three identical cards take `1,1,1` and a 24/16/8 GB box takes `3,2,1`.
+
+**`--flash-attn on` needs compute capability ≥ 7.5**, which the Quadro RTX 6000 meets exactly, at the supported floor. It recomputes attention blockwise instead of storing the full matrix, so it cuts VRAM and speeds up long contexts, and it is a pure algorithmic optimisation: identical output, no effect on reproducibility. A CPU backend has no flash-attn implementation and crashes if the flag is left on.
+
+**`temperature=0` alone is no longer guaranteed greedy since PR ggml-org/llama.cpp#9897** ("llama : default sampling changes + greedy update", merged), so `top_k=1` goes in the payload beside it. Under greedy, `seed` has no effect at all. `--mlock` buys nothing when the model fits in VRAM with no swap, and `--numa` only matters on a multi-socket CPU.
+
+**The default thinking mode is the single largest cost on recent models.** Qwen3, Gemma 4 and DeepSeek-R1 chat templates enable it, which added about 1,600 tokens per request on Qwen3.5-27B: 150 s per document against 20 s once disabled by `chat_template_kwargs: {"enable_thinking": False}`. Models without a thinking mode ignore the kwarg silently, with no regression, so it is safe to send unconditionally. One exception measured: `gpt-oss-20b`'s native thinking is not controllable this way and ends in `LengthFinishReasonError`.
+
+**Auto `--parallel` starves each slot.** With `n_parallel = 4` and `kv_unified = true`, the KV budget is shared across concurrent requests, so each slot gets only `ctx_total / 4` (about 3k tokens out of 12,000) and *rejects* a longer prompt. Forcing `--parallel` to the client pool size and sizing `--ctx-size` as context-per-sequence times that number is what guarantees every slot covers the longest prompt. Note that `--ctx-size` is rounded up to align on the slot count (12,000 became 12,032 for 4 × 3,008).
+
+**A hybrid sliding-window plus recurrent-memory architecture cannot reuse the KV cache between requests.** Qwen3.5 and Qwen3.6 combine SWA with Mamba/GDN recurrent memory, and llama.cpp re-processes the whole prompt on every request, logging `forcing full prompt re-processing`. Measured cost on a 5,500-token system prompt: 10-11 t/s against 16-26 t/s for a model without SWA (Ministral-3-14B, Qwen3-30B-A3B). A larger `--batch-size` only cuts the number of prefill passes, it does not restore the cache. Gemma 4 and Llama 3.3 do not have the architecture.
+
+**A CPU smoke test does not validate constrained generation.** On build 9106 CPU-only, the free-text path works while grammar-constrained generation with logprobs stalls: prefill completes, then zero tokens in ten minutes on a 0.5B model. The same path was validated on GPU, so the limit is the CPU backend, not the payload.

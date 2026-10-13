@@ -10,7 +10,7 @@ Calibration for reviews of `pred/` in eds-avc (llama-server orchestrator, one fi
 **Why:** four findings were rejected as documented design, hypothetical portability, or negligible cost, and one accepted finding carried a remedy that would have broken the R consumers.
 
 **How to apply:**
-- Do not flag the hardcoded `CUDA_VISIBLE_DEVICES="0,1,2"` in `start_server`: it is documented in `.claude/llama_tuto.md` as the multi-GPU proxy for the single 3-GPU target, and every split in use has three entries.
+- Do not flag the hardcoded `CUDA_VISIBLE_DEVICES="0,1,2"` in `start_server`: it is documented in `.claude/NOTE-LLAMA-SERVER.md` (named `llama_tuto.md` until 2026-10-13) as the multi-GPU proxy for the single 3-GPU target, and every split in use has three entries.
 - Do not ask to move the server-only env reads (`LLAMA_FLASH_ATTN`, `LLAMA_BATCH_SIZE`, `LLAMA_UBATCH_SIZE`, `LLAMA_TENSOR_SPLIT`) into `config.py`: `config.py` holds what the clients share, `server.py` what only the llama-server command line consumes.
 - Do not flag per-prompt re-reads of the input parquet: one prompt is active, so the cost is nil against inference.
 - Before accepting a remedy that touches log or output file names, check the R consumers: `config/helpers_pred_logs.R` treats one `.log` file as exactly one run (`run_id` = basename, header on first match, tasks joined by `task_id` over the whole file) and rebuilds `run_id` from the parquet name, and `pred_output_ls()` globs `*output*.parquet`. Appending to a log, timestamping its name, or suffixing a sampled output all break or pollute them.

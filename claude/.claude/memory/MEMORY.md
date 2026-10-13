@@ -53,6 +53,7 @@
 - reference_git_html_id_filter.md: The `html-id` clean filter on committed HTML: `stow git`, `.gitattributes`, `--renormalize`
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments become callouts
+- reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy since PR 9897, thinking, SWA
 - reference_tool_update_routines.md: The four disjoint tool-update mechanisms here, and how `uv python upgrade` reaches tool venvs
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Positron's per-profile extensions.json beats the global one; orphan folders stay
