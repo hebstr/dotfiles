@@ -139,7 +139,7 @@ Les PDF chiffrés restent hors règle, décision du 2026-09-23. Sur les 450 PDF 
 
 ## 2026-09-23 : tableaux des articles scientifiques
 
-La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Corpus, sorties et comptage cellule par cellule : `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-*.md`), non versionné.
+La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Corpus, sorties et comptage cellule par cellule : `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-*.md`), versionné depuis `42fb9ab` (2026-09-30) dans le dépôt propre à `.claude/` ; seuls les PDF et les captures restent hors git.
 
 ### Protocole
 
@@ -179,4 +179,4 @@ Recherche externe (détail dans `COMPARAISON.md`, section « Métrique ») : le 
 
 Rien à construire. Un filtre qui supprimerait les tableaux de la sortie `pdf2md` jetterait aussi les tableaux justes, sans rien apporter que la règle ne couvre déjà : la valeur se relit de toute façon dans `-layout`. Appliqué le 2026-09-23 dans `~/.claude/rules/pdf.md` : une phrase ajoutée à la règle 3, une règle 6 (tableaux) avec la commande de localisation par légende, et la section des défauts mesurés étendue aux articles. L'entrée `pdf2md` de `rules/environment.md` suit.
 
-À réévaluer si les correctifs upstream des exposants (#297), des en-têtes pivotés (#296) et des tableaux scindés (#270) sont publiés, ou si une version annonce un correctif de la césure : le corpus et `COMPARAISON.md` permettent de refaire la mesure à l'identique. Cette note est la source de chaque chiffre que cite la section « Measured defects of pdf2md » de `rules/pdf.md` : une re-mesure s'écrit ici d'abord, puis le chiffre de tête s'y reporte.
+À réévaluer si les correctifs upstream des exposants (#297), des en-têtes pivotés (#296) et des tableaux scindés (#270) sont publiés, ou si une version annonce un correctif de la césure : le corpus et `COMPARAISON.md` permettent de refaire la mesure avec le même protocole, mais plus à l'identique : la mesure porte sur la 1.24.0 et la version installée est la 1.25.2 depuis (constaté 2026-10-13), donc une reprise mesure un autre outil et les chiffres d'ici restent la seule lecture de cette version. Cette note est la source de chaque chiffre que cite la section « Measured defects of pdf2md » de `rules/pdf.md` : une re-mesure s'écrit ici d'abord, puis le chiffre de tête s'y reporte.
