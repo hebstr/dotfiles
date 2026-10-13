@@ -29,7 +29,7 @@ printf "%s\n" "$n" >"${STATE}/ssh_calls"
 case "$*" in
 *"mktemp -d"*)
   mkdir -p "${STATE}/scratch"
-  printf "%s\n" "${STATE}/scratch"
+  printf "%s\r\n" "${STATE}/scratch"
   exit 0
   ;;
 *libcublas*)
@@ -41,8 +41,11 @@ case "$*" in
   exit 0
   ;;
 *"rm -rf"*)
+  # the stub removes only the scratch it was actually sent, so that a driver
+  # naming another path leaves the directory standing
   [ -z "${RM_UNREACHABLE:-}" ] || exit 255
-  rm -rf "${STATE}/scratch"
+  sent=${*: -1}
+  [ "${sent#rm -rf }" != "${STATE}/scratch" ] || rm -rf "${STATE}/scratch"
   exit 0
   ;;
 *"uv run"*)
@@ -59,7 +62,10 @@ case "$*" in
   # looks inside the scratch the stage runs in
   case "$*" in
   *" diarize "*)
+    # the real payload rewrites the transcript with a speaker label, which is
+    # what tells the output of this stage from the output of the asr stage
     [ -z "${DIARIZE_FAILS:-}" ] || exit 1
+    label="S1: "
     ;;
   *" asr "*)
     case "$*" in
@@ -74,7 +80,7 @@ case "$*" in
     ;;
   esac
   printf "{\"segments\": []}\n" >"${STATE}/scratch/${stem}.json"
-  printf "[00:00.0] stub transcript\n" >"${STATE}/scratch/${stem}.txt"
+  printf "[00:00.0] %sstub transcript\n" "${label:-}" >"${STATE}/scratch/${stem}.txt"
   exit 0
   ;;
 esac
@@ -381,25 +387,26 @@ _labels() {
 @test "the remote is the default host and the payload is reached inside the synced tree" {
   _run "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q "ju-TP2" "$SSH_LOG"
+  grep -q -F -- " ju-TP2 " "$SSH_LOG"
   grep -q "dotfiles/bin/.local/bin/transcribe-payload.py" "$SSH_LOG"
   grep -q -- "uv run --locked --script" "$SSH_LOG"
+  [ "$(grep -c -F -- "-o BatchMode=yes" "$SSH_LOG")" -eq "$(wc -l <"$SSH_LOG")" ]
+  [ "$(grep -c -F -- "-o BatchMode=yes" "$SCP_LOG")" -eq "$(wc -l <"$SCP_LOG")" ]
   [ ! -e "$UV_LOG" ]
 }
 
 @test "the remote stage runs inside the scratch on the staged basename" {
   _run "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q -F -- "cd ${STATE}/scratch" "$SSH_LOG"
-  grep -q -F -- "--audio rec.3gpp.3ga" "$SSH_LOG"
+  grep -q -F -- "cd ${STATE}/scratch " "$SSH_LOG"
+  grep -q -F -- "--audio rec.3gpp.3ga " "$SSH_LOG"
   run ! grep -q -F -- "--audio ${STATE}/" "$SSH_LOG"
 }
 
 @test "the remote pass points LD_LIBRARY_PATH at the llama.cpp tree" {
   _run "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q "LD_LIBRARY_PATH=" "$SSH_LOG"
-  grep -q ".local/opt/llama.cpp" "$SSH_LOG"
+  grep -q -F -- 'LD_LIBRARY_PATH=$HOME/.local/opt/llama.cpp' "$SSH_LOG"
 }
 
 @test "TRANSCRIBE_REMOTE names another host" {
@@ -429,29 +436,37 @@ _labels() {
   [[ "$output" != *"Hugging Face token"* ]]
 }
 
+@test "the token file on this host stands in for HF_TOKEN" {
+  mkdir -p "${STATE}/.cache/huggingface"
+  touch "${STATE}/.cache/huggingface/token"
+  _run --local --speakers 2 "$AUDIO"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Hugging Face token"* ]]
+}
+
 # ─── per-host defaults ──────────────────────────────────────────────────────
 
 @test "the remote decodes on the GPU at float16 over 24 threads" {
   _run "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q -- "--device cuda" "$SSH_LOG"
-  grep -q -- "--compute-type float16" "$SSH_LOG"
-  grep -q -- "--threads 24" "$SSH_LOG"
+  grep -q -E -- '--device cuda( |$)' "$SSH_LOG"
+  grep -q -E -- '--compute-type float16( |$)' "$SSH_LOG"
+  grep -q -E -- '--threads 24( |$)' "$SSH_LOG"
 }
 
 @test "--local decodes on the CPU at int8 over 12 threads" {
   _run --local "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q -- "--device cpu" "$UV_LOG"
-  grep -q -- "--compute-type int8" "$UV_LOG"
-  grep -q -- "--threads 12" "$UV_LOG"
+  grep -q -E -- '--device cpu( |$)' "$UV_LOG"
+  grep -q -E -- '--compute-type int8( |$)' "$UV_LOG"
+  grep -q -E -- '--threads 12( |$)' "$UV_LOG"
 }
 
 @test "--model and --language reach the payload" {
   _run --model some/model --language en "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q -- "--model some/model" "$SSH_LOG"
-  grep -q -- "--language en" "$SSH_LOG"
+  grep -q -E -- '--model some/model( |$)' "$SSH_LOG"
+  grep -q -E -- '--language en( |$)' "$SSH_LOG"
 }
 
 # ─── diarization wiring ─────────────────────────────────────────────────────
@@ -467,7 +482,7 @@ _labels() {
   _run --speakers 3 "$AUDIO"
   [ "$status" -eq 0 ]
   grep -q " diarize " "$SSH_LOG"
-  grep -q -- "--speakers 3" "$SSH_LOG"
+  grep -q -E -- '--speakers 3( |$)' "$SSH_LOG"
 }
 
 @test "--diarize runs the stage without imposing a count" {
@@ -480,7 +495,13 @@ _labels() {
 @test "the diarize stage gets the 24 CPU threads of the remote" {
   _run --speakers 2 "$AUDIO"
   [ "$status" -eq 0 ]
-  grep -q -- "diarize .*--threads 24" "$SSH_LOG"
+  grep -q -E -- 'diarize .*--threads 24( |$)' "$SSH_LOG"
+}
+
+@test "the labelled transcript of the diarize stage is brought back here" {
+  _run --speakers 2 "$AUDIO"
+  [ "$status" -eq 0 ]
+  grep -q -F -- "S1: stub transcript" "${STATE}/rec.txt"
 }
 
 # ─── outputs and teardown ───────────────────────────────────────────────────
@@ -685,4 +706,17 @@ _labels() {
   _payload diarize --audio "$AUDIO" --speakers 0
   [ "$status" -eq 1 ]
   [[ "$output" == *"--speakers must be 1 or more"* ]]
+}
+
+@test "the payload refuses an existing target without --force" {
+  printf '{}\n' >"${STATE}/rec.json"
+  _payload asr --audio "$AUDIO"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"exists, pass --force to overwrite"* ]]
+}
+
+@test "the payload refuses an audio file that does not exist" {
+  _payload asr --audio "${STATE}/absent.m4a"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not a file"* ]]
 }
