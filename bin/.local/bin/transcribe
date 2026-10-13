@@ -38,8 +38,8 @@ on this host with --local, and labels the speakers with pyannote when asked.
 Writes <stem>.txt and <stem>.json beside each recording, or into --out-dir.
 
   --speakers N   diarize with exactly N speakers
-  --diarize      diarize without imposing a speaker count
-  --model ID     CTranslate2 model (default: faster-whisper large-v3-turbo)
+  --diarize      diarize without imposing a count; --speakers wins over it
+  --model ID     CTranslate2 model (default: dropbox-dash/faster-whisper-large-v3-turbo)
   --language L   spoken language (default: fr)
   --out-dir DIR  write the outputs here rather than beside each recording
   --force        overwrite an existing transcript
@@ -223,6 +223,7 @@ transcribe_remote() {
     printf 'staging %s on %s\n' "$name" "$REMOTE"
     scp -q -o BatchMode=yes -- "$audio" "${REMOTE}:${SCRATCH}/"
     build_asr_args "$name" "$REMOTE_DEVICE" "$REMOTE_COMPUTE" "$REMOTE_THREADS" ""
+    [ "$FORCE" -eq 1 ] || STAGE_ARGS+=(--force)
     run_stage_remote
     fetch_outputs "$stem" "$dir"
     if [ "$DIARIZE" -eq 1 ]; then
@@ -299,17 +300,11 @@ if [ "$SPEAKERS" != "" ]; then
   [ "$SPEAKERS" -ge 1 ] || die "--speakers must be 1 or more, got ${SPEAKERS}"
 fi
 
-case $OUT_DIR in
-'' | /*) ;;
-*) OUT_DIR="${PWD}/${OUT_DIR}" ;;
-esac
+[ "$OUT_DIR" = "" ] || OUT_DIR=$(realpath -s -- "$OUT_DIR")
 
 for index in "${!AUDIO[@]}"; do
   [ -f "${AUDIO[$index]}" ] || die "not a file: ${AUDIO[$index]}"
-  case ${AUDIO[$index]} in
-  /*) ;;
-  *) AUDIO[index]="${PWD}/${AUDIO[$index]}" ;;
-  esac
+  AUDIO[index]=$(realpath -s -- "${AUDIO[$index]}")
 done
 
 find_python

@@ -51,15 +51,28 @@ case "$*" in
     exit 1
   fi
   [ -z "${STAGE_FAILS:-}" ] || exit 1
-  case "$*" in
-  *" diarize "*)
-    [ -z "${DIARIZE_FAILS:-}" ] || exit 1
-    ;;
-  esac
   mkdir -p "${STATE}/scratch"
   audio=$(printf "%s\n" "$*" | sed -n "s/.*--audio \([^ ]*\).*/\1/p")
   stem=${audio##*/}
   stem=${stem%%.*}
+  # the payload refuses an existing target unless --force, and on the remote it
+  # looks inside the scratch the stage runs in
+  case "$*" in
+  *" diarize "*)
+    [ -z "${DIARIZE_FAILS:-}" ] || exit 1
+    ;;
+  *" asr "*)
+    case "$*" in
+    *--force*) ;;
+    *)
+      if [ -e "${STATE}/scratch/${stem}.json" ]; then
+        printf "exists, pass --force to overwrite: %s\n" "${STATE}/scratch/${stem}.json" >&2
+        exit 1
+      fi
+      ;;
+    esac
+    ;;
+  esac
   printf "{\"segments\": []}\n" >"${STATE}/scratch/${stem}.json"
   printf "[00:00.0] stub transcript\n" >"${STATE}/scratch/${stem}.txt"
   exit 0
@@ -128,7 +141,7 @@ setup() {
   SCP_LOG="$(mktemp -u)"
   UV_LOG="$(mktemp -u)"
   export STUBS STATE SSH_LOG SCP_LOG UV_LOG
-  for cmd in basename cat cp dirname mkdir mktemp printf readlink rm sed touch tr; do
+  for cmd in basename cat cp dirname mkdir mktemp printf readlink realpath rm sed touch tr; do
     ln -s "$(type -P "$cmd")" "${STUBS}/${cmd}"
   done
   ln -s "$BASH" "${STUBS}/bash"
@@ -346,6 +359,15 @@ _labels() {
   [ ! -e "$SCP_LOG" ]
 }
 
+@test "refusal: two recordings colliding through a dot segment are refused" {
+  mkdir -p "${STATE}/a"
+  touch "${STATE}/a/rec.3gpp" "${STATE}/a/rec.3ga"
+  _run "${STATE}/a/rec.3gpp" "${STATE}/a/./rec.3ga"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"write the same outputs"* ]]
+  [ ! -e "$SSH_LOG" ]
+}
+
 @test "--force does not license clobbering an output the same run just wrote" {
   touch "${STATE}/rec.m4a"
   _run --force "$AUDIO" "${STATE}/rec.m4a"
@@ -513,6 +535,15 @@ _labels() {
   [ "$status" -eq 0 ]
   [ -f "${STATE}/rec.txt" ]
   [ -f "${STATE}/second.txt" ]
+}
+
+@test "homonyms from different directories are both decoded on the remote" {
+  mkdir -p "${STATE}/a" "${STATE}/b"
+  touch "${STATE}/a/rec.m4a" "${STATE}/b/rec.m4a"
+  _run "${STATE}/a/rec.m4a" "${STATE}/b/rec.m4a"
+  [ "$status" -eq 0 ]
+  [ -f "${STATE}/a/rec.txt" ]
+  [ -f "${STATE}/b/rec.txt" ]
 }
 
 @test "a failing diarization keeps the transcript already decoded" {
