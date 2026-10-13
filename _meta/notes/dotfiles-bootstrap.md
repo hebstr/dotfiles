@@ -67,7 +67,7 @@ The link survives because `tauri-plugin-store` 2.4.2 saves with `fs::write` on t
 Editing the versioned copy therefore requires Handy closed, its in-memory cache otherwise overwrites the edit at the next save.
 Portable mode is no alternative: it keys on a `portable` marker beside the executable, which here means writing into `/usr/bin`.
 Its siblings under `com.pais.handy/` (`models/`, `recordings/`, `logs/`, `history.db`, `localstorage/`) are app state and stay out of the package, which `--no-folding` guarantees.
-The dictation settings it holds, and why each one, are in `.claude/DESIGN-TRANSCRIPTION.md`.
+The dictation settings it holds, and why each one, are in the memory `project_transcription_local_cpu`, with the reasoning behind the model, the language and the two shortcuts in `.claude/DESIGN-TRANSCRIPTION.md`.
 
 `ssh` holds `.ssh/config` only, never a key, and that file stays `644`: `ssh` rejects a config others can write, and tolerates a group-writable one only because Ubuntu's build accepts a private user group.
 Setting up the servers and keys behind its LAN aliases, on both machines, is section 12 of `_meta/notes/wsl-init-tuto.md`, with the recovery table under its "Pièges".
