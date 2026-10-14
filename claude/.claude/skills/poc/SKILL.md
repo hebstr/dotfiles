@@ -4,7 +4,7 @@ description: >
   User-invocable ONLY via `/poc <candidate>`.
   Does not auto-trigger on mentions of "should I install X", "is this tool worth it", "evaluate this tool", "worth adopting", "proof of concept", "PoC", or French equivalents ("est-ce que j'installe X", "cet outil vaut le coup", "évaluer cet outil", "tester cet outil", "preuve de concept").
   The pass deciding whether a candidate tool enters this machine's toolchain or its Claude Code harness.
-  Not for: acquisitions, licences and pricing, hardware, OS upgrades, which keep the `_meta/notes/<subject>-reco.md` convention without this procedure; an externally grounded recommendation on a question that is not local (use `/workflow:reco`); reviewing an MCP server already in place (use `audit:mcp-adversary`); choosing between ways of implementing something here (use `/design`).
+  Not for: acquisitions, licences and pricing, hardware, OS upgrades, which keep the `_meta/notes/<subject>-reco.md` convention without this procedure; an externally grounded recommendation on a question that is not local (use `/workflow:reco`); choosing between ways of implementing something here (use `/design`).
 disable-model-invocation: true
 ---
 

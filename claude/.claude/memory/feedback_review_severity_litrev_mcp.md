@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Adversarial reviewers (skill-adversary, mcp-adversary, cross-model judges) tend to misread established design choices in `mcp/src/litrev_mcp/`. Do not re-litigate them on every audit. Rules 1 to 5 come from the 2026-05-17 audits; rules 6 and 7 were migrated on 2026-10-13 from the legacy harness store, whose project key no longer resolves.
+Adversarial reviewers (skill-adversary, cross-model judges) tend to misread established design choices in `mcp/src/litrev_mcp/`. Do not re-litigate them on every audit. Rules 1 to 5 come from the 2026-05-17 audits; rules 6 and 7 were migrated on 2026-10-13 from the legacy harness store, whose project key no longer resolves.
 
 **Rule 1.** In-memory pipeline transformations are not "mutations" of the persisted source of truth.
 

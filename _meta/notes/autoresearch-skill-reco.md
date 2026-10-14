@@ -50,7 +50,7 @@ Lever la garde aurait une conséquence directe et durable : des dizaines de comm
 | `:plan` (objectif vers Scope/Metric/Verify validés) | discipline « what does done look like », `ouroboros_generate_seed` |
 | `:fix` et `:debug` | gate lint+format+test par langage, `/audit:walkthrough` |
 | `:evals` et `:regression` | `/ouroboros:evaluate`, `ouroboros_measure_drift` |
-| `:learn` (scout, génération de docs, validation) | `posit-dev:describe-design`, `/workflow:doc-structure`, `/init` |
+| `:learn` (scout, génération de docs, validation) | `posit-dev:describe-design`, `/workflow:doc-structure` (retiré le 2026-10-14), `/init` |
 | `:security` | `security-review` (builtin) |
 | `:ship` | git et déploiement tenus à la main |
 | boucle planifiée | `/loop` (builtin) |
