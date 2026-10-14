@@ -765,4 +765,7 @@
       },
     ],
   },
+  "workbench.editorAssociations": {
+    "*.md": "default",
+  },
 }
