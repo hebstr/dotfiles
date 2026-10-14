@@ -1,6 +1,6 @@
 ---
 name: QMD formatting via panache
-description: Quarto/.qmd formatting solved by panache (Rust LSP+formatter+linter), not by waiting on air .qmd support
+description: How panache formats .qmd/.md here: its config, the hook and prek gate, the exclusions that bite, and the sentence-splitter defects that mangle a file
 metadata:
   type: project
 ---
