@@ -56,6 +56,9 @@ The shfmt flags above match the prek hook in `prek.toml` (source of truth at com
 | `-bn` | `&&` / `\|` at start of line | no |
 ```
 
+shfmt spaces an unquoted array subscript, in an assignment as in an expansion: `A[windows-temp]=1` becomes `A[windows - temp]=1` and `${A[windows-temp]}` becomes `${A[windows - temp]}`, which works since write and read use the same literal key but reads as arithmetic (measured on 3.8.0, 2026-10-14).
+Quote the keys of a `declare -A` and shfmt leaves them alone.
+
 Note: Positron's Bash IDE is configured to match prek's `-w -i 2` (no case-indent, no space-after-redirect); if a formatting conflict ever appears, the checked-in settings file is authoritative (see below). On-save formatting and the commit hook agree. Do not add `-ci`/`-sr` to the local pipeline or the `format-on-edit` hook: they produce formatting the commit gate reverts.
 
 ## Positron extensions
