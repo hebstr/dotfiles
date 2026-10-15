@@ -139,7 +139,7 @@ Les PDF chiffrés restent hors règle, décision du 2026-09-23. Sur les 450 PDF 
 
 ## 2026-09-23 : tableaux des articles scientifiques
 
-La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Corpus, sorties et comptage cellule par cellule : `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-*.md`), versionné depuis `42fb9ab` (2026-09-30) dans le dépôt propre à `.claude/` ; seuls les PDF et les captures restent hors git.
+La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Corpus, sorties et comptage cellule par cellule : `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-*.md`), versionné depuis `42fb9ab` (2026-09-30) dans le dépôt propre à `.claude/`. Les PDF et les captures, restés hors git, ont été supprimés le 2026-10-15 : les seize pièces jointes sont intactes dans `~/Zotero/storage` et les 95 rendus se refont par `pdftoppm`.
 
 ### Protocole
 
