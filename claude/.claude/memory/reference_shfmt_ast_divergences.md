@@ -5,7 +5,7 @@ metadata:
   type: reference
 ---
 
-`shfmt -ln bash --to-json` (3.8.0, the apt build on Ubuntu 24.04) is the command parser of `git-write-guard.sh` since option B of `~/dotfiles/.claude/PLAN-SESSION-DISCIPLINE.md` (2026-09-27). Traps measured that day:
+`shfmt -ln bash --to-json` (3.8.0, the apt build on Ubuntu 24.04) is the command parser of `git-write-guard.sh` since option B of `~/dotfiles/.claude/DESIGN-COMMIT-GUARD.md` (2026-09-27). Traps measured that day:
 
 - A comment ending in a backslash (`git status # see \` then `git push` on the next line) is read as a line continuation: shfmt returns one command `git status git push`, while bash ends the comment at the newline and runs two. The comment's `Text` keeps the trailing `\` and newline, so a consumer can detect it (`any(.. | objects | select(has("Hash")) | .Text; test("\\\\\n$"))`) and treat it as a parse failure.
 - `Lit` values stay raw: an unquoted `pu\sh` comes out as `pu\\sh` and a double-quoted `\$` keeps its backslash, so the consumer unescapes (unquoted: drop every backslash; double-quoted: only before `$`, backtick, `"`, `\` and newline). A backslash-newline outside a comment is removed by the parser.
