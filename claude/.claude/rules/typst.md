@@ -19,11 +19,12 @@ To inspect the generated Typst from a Quarto doc, set `keep-typ: true` in the fr
 |---|---|
 | `typstyle` | Formatter (`cargo install typstyle --locked`, at `~/.cargo/bin/typstyle`). `--check` to validate, `-i`/`--inplace` to rewrite |
 | `typst` | Compiler (`/snap/bin/typst`). `typst compile <file>.typ` (smoke test), `typst watch` (live recompile). No `lint`/`check` subcommand exists. Snap-confined: it only reads paths under `$HOME`, so compile a smoke test in the project dir, not in `/tmp` |
-| `tinymist` | Language server, bundled inside the Positron extension `myriad-dreamin.tinymist` (LSP, preview, completion, the linter, formatting via typstyle). Editor-only; not a CLI gate step |
+| `tinymist` | Language server, bundled inside the Positron extension `myriad-dreamin.tinymist` (LSP, preview, completion, the linter, formatting via typstyle). `tinymist lint <file>.typ` runs that linter from the shell, at a path carrying the extension version; no gate step |
 ```
 
-There is no standalone Typst linter CLI: diagnostics live in `tinymist`, which surfaces them in-editor (config `tinymist.lint.enabled`).
-The gate below therefore has no report-only lint step, unlike `rules/r.md` / `rules/rust.md`.
+No Typst linter sits on `PATH`, though one exists: the bundled tinymist binary carries a `lint` subcommand, which takes the same `--root` and `--font-path` as its compiler and exits non-zero on a diagnostic.
+Its path carries the extension version (`~/.positron/extensions/myriad-dreamin.tinymist-<version>-linux-x64/out/tinymist`), so it moves at every update, which is why the gate below has no lint step where `rules/r.md` and `rules/rust.md` have one.
+A project that wants the step resolves the binary itself; `~/admin/pro-cv` does, in its `.claude/DESIGN-TYPST-LAYOUT.md`.
 
 ## Mandatory pipeline after every create/edit of a `.typ`
 
@@ -67,7 +68,8 @@ The dotfiles repo's own root `prek.toml` has no typstyle hook by design: that re
 
 Positron uses Open VSX; the `myriad-dreamin.tinymist` extension is published there and bundles its own server binary (no separate install, no `serverPath` config).
 The legacy `nvarner.typst-lsp` and `typst-preview` are deprecated and folded into tinymist; never install them alongside it (two LSPs for one language conflict).
-Settings live in the active Positron profile (`tinymist.lint.enabled: true`, `tinymist.formatterPrintWidth: 100`, plus a `[typst]` `formatOnSave` block). No `tinymist.formatterMode` key is set: typstyle is the extension's own declared default.
+Settings live in the active Positron profile (`tinymist.lint.enabled: true`, `tinymist.formatterPrintWidth: 100`, plus a `[typst]` block holding `formatOnSave` and `editor.wordWrap: "off"`). No `tinymist.formatterMode` key is set: typstyle is the extension's own declared default.
+The wordWrap key overrides the extension rather than restating a default: tinymist ships `"[typst][typst-code]": { "editor.wordWrap": "on" }` in the `configurationDefaults` of its `package.json`, so a `.typ` soft-wraps like prose until a user-level setting turns it off, unlike every other code language here.
 
 ## References
 
