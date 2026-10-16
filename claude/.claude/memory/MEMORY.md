@@ -46,6 +46,7 @@
 - reference_todo_sync.md: The `todo-sync` command aggregating TODO.md items across projects
 - reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores `.Rbuildignore`: root `*.md` become pages, vignettes articles
 - reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` breaks in `extra.scss`
+- reference_pkgdown_build_site_leaves_dead_pages.md: `build_site()` never deletes a dead page; `clean_site()` first
 - reference_claude_code_marketplace_mechanics.md: Plugin install vs cache, `extraKnownMarketplaces`, a moved `directory` source
 - reference_plugin_skill_env_vars.md: `${CLAUDE_PLUGIN_ROOT}` renders `//`; `${CLAUDE_SKILL_DIR}` empty in skill Bash
 - reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
