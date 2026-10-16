@@ -75,7 +75,7 @@ When a design note describes how a file written in the session works, compare th
 
 This check covers all of the repository's tracking, not only `WRITES`: the action that carries out a to-do item often writes nothing in the file that lists it. It may have been done in a session without `/commit`, without any write (a measurement, a run, a review), or by the user outside any session.
 
-**Live passages only.** A live passage states what remains to be done: a status line, "Next", "Blockers", "Étape suivante", "Prochaine action", "Reste à faire", "Points ouverts", a list of steps, the entries of a `DEFERRED.md`. A section that records an event (a decision, a pass, a measurement, a log, a report, an approved design) or that the file declares superseded is an archive: never flag it, even if what it planned has been done since. A date in the heading does not make a section an archive ("Next, in the order agreed on …" stays live).
+**Live passages only.** A live passage states what remains to be done: a status line, "Next", "Blockers", "Open points", "Étape suivante", "Prochaine action", "Reste à faire", "Points ouverts", a list of steps, the entries of a `DEFERRED.md`. A section that records an event (a decision, a pass, a measurement, a log, a report, an approved design) or that the file declares superseded is an archive: never flag it, even if what it planned has been done since. A date in the heading does not make a section an archive ("Next, in the order agreed on …" stays live).
 Do not read whole files. Locate the candidates, then read only the passages that match:
 
 ```bash
