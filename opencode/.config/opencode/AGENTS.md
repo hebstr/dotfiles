@@ -40,10 +40,11 @@ Read a file from it when a rule below points to it, and not before.
 - Never run a git command that writes, except `git add`, `git rm`, `git mv` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick, revert, clean, pull, am, update-ref, fast-import, replay, filter-branch, bisect, send-pack.
   The user runs those.
   Nor `git config core.hooksPath`, which disarms the prek hooks for every later commit, nor the forms that overwrite working tree files: `git apply -R`, `git checkout-index -f`, `git read-tree -u`.
-- When a commit makes sense, propose it as one `bash` block holding the `git add` of the paths `git status` shows, then `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
+- When a commit makes sense, propose it as one `bash` block opening on `cd <project> && `, then the `git add` of the paths `git status` shows and `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
+  The prefix because a `cd` persists from one call to the next: an unprefixed block stages and commits wherever the shell was left, the nested `.claude` repository included.
   Never `git add -A`.
   When every task of the session is done, give that block unasked, instead of asking whether to.
-- Right after showing that block, run it exactly as shown, in one shell call, starting with `git` or with the single prefix `cd <project>/.claude &&` that the bullet below prescribes (never `git -C`, `bash -c` or any other form).
+- Right after showing that block, run it exactly as shown, in one shell call, opening on the single prefix `cd <project> &&` or `cd <project>/.claude &&` that the bullets prescribe (never `git -C`, `bash -c` or any other form).
   The permission prompt is where the user confirms it, and their answer there is the only authorization; a "yes" in the conversation is not one.
   If they refuse, or the call fails (a prek hook rewriting a file included), stop and report; never retry it another way.
 - A project's `.claude/` is a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
