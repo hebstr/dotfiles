@@ -186,6 +186,7 @@
   "[typst]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "myriad-dreamin.tinymist",
+    "editor.wordWrap": "off",
   },
   "tinymist.lint.enabled": true,
   "tinymist.formatterPrintWidth": 100,
