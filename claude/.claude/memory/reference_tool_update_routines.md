@@ -1,11 +1,13 @@
 ---
 name: Tool update routines (devtools-update vs cargo install-update vs uv tool upgrade vs uv python upgrade)
-description: Four disjoint update mechanisms on the user's machine; do not conflate them when adding/auditing a tool, and how `uv python upgrade` reaches the uv tool venvs (read `pyvenv.cfg`, never `readlink -f`)
+description: Four disjoint update mechanisms on the user's machine, and the separate `agent-skills` route a third-party agent skill takes instead of all four; do not conflate them when adding/auditing a tool, and how `uv python upgrade` reaches the uv tool venvs (read `pyvenv.cfg`, never `readlink -f`)
 metadata:
   type: reference
 ---
 
 The user has four separate update routines, three for tools and one for the interpreter the uv tools run on. Match the routine to how the thing is installed; never add a tool to the wrong one.
+
+These four cover binaries only. A third-party *agent skill* installed from GitHub takes none of them: it goes through the `skills` CLI and the lock of the `agents` stow package, and updates through the `agent-skills` module of `sys-update`. The install form, the two-target rule that keeps the CLI in symlink mode, and the rejected alternatives are in `~/dotfiles/.claude/DESIGN-AGENT-SKILLS.md`. Read that note before proposing any other shape for a third-party skill: on 2026-10-16 its absence from this memory produced a recommendation to clone the repository by hand, which the note had already rejected.
 
 The per-routine inventories, the `GGSQL_SKIP_GENERATE=1` the `cargo` module needs (run `cargo install-update -a` by hand the same way, never bare), and why `uv-python` is a module apart from `uv-tools` are in `~/dotfiles/claude/.claude/rules/install.md` § "One entry point: `sys-update`" and § "Covered is not current", the fuller record in `~/dotfiles/_meta/notes/environment-archive.md` § "Keeping the toolchain current". What that section does not say:
 

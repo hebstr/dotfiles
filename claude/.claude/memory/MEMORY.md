@@ -56,7 +56,7 @@
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments become callouts
 - reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy since PR 9897, thinking, SWA
-- reference_tool_update_routines.md: The four disjoint tool-update mechanisms here, and how `uv python upgrade` reaches tool venvs
+- reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Positron's per-profile extensions.json beats the global one; orphan folders stay
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
