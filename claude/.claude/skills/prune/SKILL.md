@@ -34,8 +34,10 @@ Two exceptions, both narrow.
 A motif the list in `PRUNE-OBSERVATIONS.md` does not already hold is appended there, that file being the single central corpus whatever repository the pass ran in.
 And a dotfiles pass updates the row it touched in that file's table, never the other rows: the `Lines` column is the reading taken when a row was last read and it moves with every session.
 
-Outside dotfiles the pass writes nothing beyond the commit: no per-project corpus, no table, no `Pass` column.
-`git log` answers whether a note has been passed before.
+The pass creates no per-project corpus, and where one already exists that corpus is the holder and governs the record's shape.
+`R-hebstr/.claude/PRUNE-OBSERVATIONS.md`, opened 2026-10-04, is the one instance: 113 lines carrying a corpus table with a `Pass` column, an order decision that diverges from the dotfiles precedent on purpose, three-class per-pass records and a `Rejected ways` section.
+The price above was measured on a 208 KB register, so it bounds that register and not a project one of a hundred lines: a pass there updates its row and appends its record in the shape the file already uses.
+Where no such corpus exists, `git log` answers whether a note has been passed and the pass adds no file.
 
 ## Before step 1: check the note was not just passed
 
