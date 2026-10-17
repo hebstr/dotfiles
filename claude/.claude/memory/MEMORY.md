@@ -98,7 +98,7 @@
 - feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
 - feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
 - feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
-- feedback_review_severity_personal.md: Personal and internal packages, and the already-compromised-host rejection
+- feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_md_nesrine.md: Calibrating reviews of the md-nesrine render journal
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French-language statistical reports (.qmd)
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
