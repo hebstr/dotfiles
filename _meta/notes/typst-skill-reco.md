@@ -15,7 +15,7 @@ Three questions whose answers can diverge:
 
 Done means one answer per question, a revisit trigger that can be recognised when it lands, and a revert path.
 
-Out of scope: the `typst-review` reviewer skill that would sit on top, which gets its own `/design` pass; and any change to how Quarto renders Typst here.
+Out of scope: the `typst-review` reviewer skill that would sit on top, which got its own `/design` pass the same day and whose decision is in `~/dotfiles/.claude/DESIGN-TYPST-REVIEW.md`; and any change to how Quarto renders Typst here.
 
 ## The tool
 
@@ -189,4 +189,4 @@ Claude Code discovered the skill without a restart, as the base-directory reason
 - The quality of the API index itself, as opposed to the prose, was not measured: no query was run through `search-api.py`, the pass having read the scripts rather than executed them. The first real lookups after the install are what will show whether the index answers better than `typst eval`.
 - Whether the model would have got those 11 verified facts right without the skill was not measured, so the gain the content represents over no skill at all is unquantified.
 - The two agent definitions, `agents/typst-verify.md` and `agents/typst-package-qa.md`, were read for size only.
-- `typst-review`, the reviewer skill the brief defers, is untouched by this verdict. What it would need, a Quarto-aware reading of a rendered artifact, is precisely what this candidate lacks.
+- `typst-review`, the reviewer skill the brief defers, is untouched by this verdict. What it would need, a Quarto-aware reading of a rendered artifact, is precisely what this candidate lacks. Designed on 2026-10-17 in `~/dotfiles/.claude/DESIGN-TYPST-REVIEW.md`, which keeps the two agent definitions out of its own scope for the reason recorded there: `agents/typst-verify.md` is not a `SKILL.md`, so no reviewer scan can select it.
