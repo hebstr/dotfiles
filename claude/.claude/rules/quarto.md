@@ -121,7 +121,7 @@ Do not reconstruct Quarto feature syntax from memory (callouts, cross-references
 | `-M KEY:VALUE` | Override a metadata value |
 | `--cache` | Enable execution caching (`--no-cache` disables it; `--cache-refresh` forces a refresh of an existing cache) |
 | `--output -` | Write rendered output to stdout |
-| `--output-dir DIR` | Write output to a directory (input/project-relative) |
+| `--output-dir DIR` | Write output to a directory (input/project-relative). Destructive beside the source: Quarto renders the artifact next to the `.qmd` and then moves it, so a pre-existing file of that name there is overwritten and carried away. It also appends `/.quarto/` and `**/*.quarto_ipynb` to a tracked `.gitignore`, which a bare render does not (both measured 2026-10-17 on 1.10.19) |
 ```
 
 **quarto check**

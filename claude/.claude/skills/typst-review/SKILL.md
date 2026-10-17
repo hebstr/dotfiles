@@ -109,8 +109,12 @@ That is a side effect in the user's tree, so it is bounded by four rules, and al
 2. **Never overwrite an existing path.** Always pass `typst compile` an explicit output path inside the render directory, since a bare `typst compile x.typ` writes `x.pdf` next to the source.
    `~/admin/pro-cv/cv.pdf` is the case this protects: it exists on disk and a render would replace the user's copy.
    Point `quarto render --output-dir` at a subdirectory of the render directory that does not yet exist, and let Quarto create it: its own `--no-clean` flag documents that it cleans the output directory before rendering.
+   That flag guards the output directory and not the source directory, so `--output-dir` is itself destructive for the artifact beside the `.qmd`: Quarto renders there and then **moves** the file, which overwrites a pre-existing artifact of the same name and carries it away, leaving the output directory holding the fresh render rather than the user's copy (measured 2026-10-17 on quarto 1.10.19, destroying `~/admin/pro-cv/cv.pdf`, which `/*.pdf` in `.gitignore` keeps out of git).
+   So before such a render, copy any existing artifact of the name Quarto would write into the render directory, restore it by its exact path once the render is done and before rule 4 removes anything, and name both moves in the report.
    Before a `-M keep-typ:true` render, test whether the `.typ` Quarto would generate beside the `.qmd` already exists; if it does, skip that step and report it as not run.
 3. **List every path you created in the report**, including the ones Quarto created.
+   A render also writes outside the paths it creates: `quarto render --output-dir` appends its own entries to a tracked `.gitignore`, `/.quarto/` and `**/*.quarto_ipynb`, whichever are missing (measured 2026-10-17 on quarto 1.10.19, where a bare render wrote nothing and a second `--output-dir` render was idempotent).
+   So run `git status --porcelain` after each render, revert by its inverse edit any tracked file the render modified, and name it in the report.
 4. **Remove them before returning.** `rm -r` the render directory by its exact path, and remove a generated `.typ` by its exact path.
    Never `rm -r` a path you did not create in this pass.
    Name in the report anything that could not be removed, with the error.
