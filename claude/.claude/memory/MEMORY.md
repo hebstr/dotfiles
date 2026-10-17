@@ -29,6 +29,7 @@
 - project_sas_acquisition_deferred.md: Getting SAS on Ubuntu: no free local path left, researched 2026-10-06, deferred
 - project_gortex_evaluation.md: gortex rejected 2026-10-07: no edges from .qmd chunks, no R LSP; don't redo it
 - project_git_guard_scope_evaluation.md: sparse-checkout and submodule update stay outside the guard; measured 2026-10-07
+- project_typst_skill_evaluation.md: lucifer1004/claude-skill-typst adopted 2026-10-17; the three grounds against it, don't redo
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
