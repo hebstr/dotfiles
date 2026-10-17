@@ -83,7 +83,7 @@
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
 - reference_quarto_r_env_var.md: `QUARTO_R` beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
-- reference_bash_tool_pitfalls.md: Bash tool traps: `find` is bfs, `pkill -f` self-matches, `rg -h` is help, no TTY for sudo
+- reference_bash_tool_pitfalls.md: Bash traps: `find` is bfs, `pkill -f` self-kills, `rg -h` is help, `wc` order, no sudo TTY
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`

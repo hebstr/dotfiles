@@ -1,6 +1,6 @@
 ---
 name: Pitfalls of the Bash tool shell on this machine
-description: "Traps met in Claude's own Bash tool session: find resolves to bfs (names starting with '-' become options), pkill -f matches the tool's own command line and kills the shell, rg -h is help not no-filename, sudo cannot prompt and the '!' prompt prefix has no TTY, bundled rm -rf commands get declined"
+description: "Traps met in Claude's own Bash tool session: find resolves to bfs (names starting with '-' become options), pkill -f matches the tool's own command line and kills the shell, rg -h is help not no-filename, wc prints its counts in a fixed order so -c -m reads chars-then-bytes, sudo cannot prompt and the '!' prompt prefix has no TTY, bundled rm -rf commands get declined"
 metadata:
   type: reference
 ---
@@ -11,6 +11,7 @@ Observed 2026-09-13; each one cost a failed or misleading command before it was 
 - **`pkill -f <pattern>` kills the tool's own shell.** The Bash tool runs the whole command string through `bash -c`, so the pattern also matches that shell's command line; the call dies with exit 144 mid-script. The `[r]egex` trick does not help because the literal string appears in the command text. Kill by process name (`pgrep -x chrome`) or by a captured PID. The same self-match makes `pgrep -f positron` report a running editor that is not there: check `ps -eo comm=` instead.
 - **`rg -h` prints ripgrep's help.** For "no filename", use `--no-filename`; the misuse returns help text that looks like empty results.
 - **sudo cannot run from the session.** `sudo -n true` fails (password required), and the `! <command>` prompt prefix has no terminal either: `sudo: a terminal is required to read the password`. A `sudo -v` in another terminal does not carry over: sudoers caches credentials per terminal under `timestamp_type=tty`, and with no terminal it falls back to the parent process (`man sudoers`, sudo 1.9.15p5), which differs for every tool call. Hand sudo commands to the user for their own terminal, grouped, and verify the effect afterwards from the session.
+- **`wc` prints its counts in a fixed order, whatever order the flags are given in**: newlines, words, characters, bytes, max-line-length. So `wc -c -m` answers chars-then-bytes, not bytes-then-chars, and `wc -c -m -l` answers lines-then-chars-then-bytes. Reading such output in column order silently swaps the two counts, and on accented text they sit close enough that the arithmetic still looks right: a −3.2 % and a −1.2 % derived from a swapped pair are both correct and both attached to the wrong label (met 2026-10-17 sizing a French-to-English migration, caught only by re-running `wc -c` alone). Ask for one count per call whenever two readings of the same text are close.
 - **Keep destructive commands separate.** A long command that bundles `rm -rf` of several paths with a test run was declined at the permission prompt as a whole, discarding the test. Put each deletion in its own call, scoped to exactly the paths meant.
 
 See also [[feedback_shell_grep_pipefail]] for failure propagation inside scripts.
