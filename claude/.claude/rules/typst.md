@@ -18,9 +18,14 @@ To inspect the generated Typst from a Quarto doc, set `keep-typ: true` in the fr
 | Tool | Role |
 |---|---|
 | `typstyle` | Formatter (`cargo install typstyle --locked`, at `~/.cargo/bin/typstyle`). `--check` to validate, `-i`/`--inplace` to rewrite |
-| `typst` | Compiler (`/snap/bin/typst`). `typst compile <file>.typ` (smoke test), `typst watch` (live recompile). No `lint`/`check` subcommand exists. Snap-confined: it only reads paths under `$HOME`, so compile a smoke test in the project dir, not in `/tmp` |
+| `typst` | Compiler (`/snap/bin/typst`). `typst compile <file>.typ` (smoke test), `typst watch` (live recompile). No `lint`/`check` subcommand exists. Snap-confined, see below |
 | `tinymist` | Language server, bundled inside the Positron extension `myriad-dreamin.tinymist` (LSP, preview, completion, the linter, formatting via typstyle). `tinymist lint <file>.typ` runs that linter from the shell, at a path carrying the extension version; no gate step |
 ```
+
+The snap sees non-hidden paths under `$HOME` and nothing else, which is narrower than "under `$HOME`" and reports two different errors.
+Measured 2026-10-17 on 0.15.1: a file in a hidden directory (`~/.cache/x/a.typ`, and so a scratch dir under a project's `.claude/`) fails with `error: failed to load file (access denied)`, while a hidden file in a visible directory (`visible/.b.typ`) compiles.
+A path under `/tmp` fails with `error: input file not found`, because the snap gets its own private `/tmp`, so the message names the wrong cause.
+Compile a smoke test in the project directory, and never in an agent scratchpad.
 
 No Typst linter sits on `PATH`, though one exists: the bundled tinymist binary carries a `lint` subcommand, which takes the same `--root` and `--font-path` as its compiler and exits non-zero on a diagnostic.
 Its path carries the extension version (`~/.positron/extensions/myriad-dreamin.tinymist-<version>-linux-x64/out/tinymist`), so it moves at every update, which is why the gate below has no lint step where `rules/r.md` and `rules/rust.md` have one.
