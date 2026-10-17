@@ -119,6 +119,7 @@
 - feedback_review_severity_litrev_mcp.md: Calibrating reviews of the litrev-mcp server
 - feedback_review_severity_eds_avc.md: Calibrating reviews of eds-avc's inference orchestrator and its R log parser
 - feedback_review_severity_heuristic_code.md: Stop rule for adversarial reviews of heuristic code (parsers, scans, classifiers)
+- feedback_review_severity_typst_documents.md: Calibrating reviews of Typst sources and their PDF: five measured non-defects
 - feedback_litrev_pipeline_patterns.md: Recurring scoping decisions on `/litrev` runs
 - feedback_verify_quarto_theming.md: After a Quarto SCSS, CSS or theme edit, inspect the compiled CSS, not a screenshot
 - feedback_quarto_render_disabled_chapter.md: Rendering a chapter commented out of `chapters:` can uncomment it in `_quarto.yml`
