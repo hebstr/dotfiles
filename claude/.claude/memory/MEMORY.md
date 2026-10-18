@@ -84,6 +84,8 @@
 - reference_quarto_r_env_var.md: `QUARTO_R` beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
 - reference_bash_tool_pitfalls.md: Bash traps: `find` is bfs, `pkill -f` self-kills, `rg -h` is help, `wc` order, no sudo TTY
+- reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
+- reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
