@@ -40,7 +40,7 @@ Install: bat:amd64 (0.24.0-1build1)
 
 The executable is `batcat` on Ubuntu, reached as `bat` through the alias in `bash/.bashrc`.
 
-Link the ble.sh init file `bash/.blerc`, which carries the faces of the color scheme aligned on Positron (design in the reco note, section "Color scheme aligned on the Positron token colors"). Stowing the `bash` package is idempotent, so the step replays.
+Link the ble.sh init file `bash/.blerc`, which carries the faces of the color scheme aligned on Positron, except the blue and the green, taken from the prompt (design in the reco note, section "Color scheme aligned on the Positron token colors"). Stowing the `bash` package is idempotent, so the step replays.
 
 ```bash
 cd ~/dotfiles && stow --no-folding bash && readlink -e ~/.blerc

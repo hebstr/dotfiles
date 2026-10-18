@@ -9,12 +9,12 @@ blehook ATTACH!=__blerc_ls_colors
 ### SYNTAX ------------------------------------------------------------------
 
 ble-face -s syntax_default none
-ble-face -s syntax_command fg=#90e1ff
-ble-face -s syntax_function_name fg=#90e1ff,bold
-ble-face -s syntax_quoted fg=#c5ff93
-ble-face -s syntax_quotation fg=#c5ff93,bold
-ble-face -s syntax_document fg=#c5ff93
-ble-face -s syntax_document_begin fg=#c5ff93,bold
+ble-face -s syntax_command fg=#3b8eea
+ble-face -s syntax_function_name fg=#3b8eea,bold
+ble-face -s syntax_quoted fg=#23d18b
+ble-face -s syntax_quotation fg=#23d18b,bold
+ble-face -s syntax_document fg=#23d18b
+ble-face -s syntax_document_begin fg=#23d18b,bold
 ble-face -s syntax_comment fg=#888888
 ble-face -s syntax_varname fg=#ffffff
 ble-face -s syntax_param_expansion fg=#ffffff
@@ -28,12 +28,12 @@ ble-face -s syntax_error fg=#ff5370,bold
 
 ### COMMANDS ----------------------------------------------------------------
 
-ble-face -s command_builtin fg=#90e1ff
-ble-face -s command_builtin_dot fg=#90e1ff,bold
-ble-face -s command_alias fg=#90e1ff
-ble-face -s command_function fg=#90e1ff
-ble-face -s command_file fg=#90e1ff
-ble-face -s command_directory fg=#78ccf0,underline
+ble-face -s command_builtin fg=#3b8eea
+ble-face -s command_builtin_dot fg=#3b8eea,bold
+ble-face -s command_alias fg=#3b8eea
+ble-face -s command_function fg=#3b8eea
+ble-face -s command_file fg=#3b8eea
+ble-face -s command_directory fg=#3b8eea,underline
 ble-face -s command_keyword fg=#d08aff
 ble-face -s command_jobs fg=#ff5370,bold
 
