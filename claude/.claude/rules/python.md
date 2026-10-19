@@ -144,10 +144,11 @@ Scope: `.py` and `.pyi` only. On a `.ipynb` this compiles the JSON envelope rath
 
 Streamlit apps follow the same `ruff` gate as any Python file; there is no Streamlit-specific linter, and the gate does not run the app. For a manual smoke check, `streamlit run app.py` launches the dev server, but it stays in the foreground serving until interrupted, so it is not exit-code-testable: run it optionally while iterating, never as part of the automated gate.
 
-`streamlit.testing.v1.AppTest` is the exit-code-testable substitute, and the only way to prove an app still starts after a dependency bump: `AppTest.from_file(path).run()` executes the script headlessly, and `at.exception` collects what it raised. Two traps:
+`streamlit.testing.v1.AppTest` is the exit-code-testable substitute, and the only way to prove an app still starts after a dependency bump: `AppTest.from_file(path).run()` executes the script headlessly, and `at.exception` collects what it raised. Three traps:
 
 - **`AppTest` does not add the script's directory to `sys.path`**, unlike `streamlit run`. An app importing a sibling package (`from lib.foo import bar`) raises `ModuleNotFoundError` under `AppTest` until that directory is inserted by hand. Installed packages are immune, which is one more reason to package shared app code rather than import it by adjacency.
 - It does not re-execute interaction code inside `st.dialog` after a rerun (streamlit#9786), and is incompatible with `st.fragment` (streamlit#9242), both open upstream. Keep the logic those wrap in plain functions, tested separately, and let the decorated shell hold display only.
+- **It refuses to interact with a disabled widget**, `_assert_can_interact` raising `AppTestError("Cannot update a disabled <type> widget")` on any `proto.disabled`. Every helper routes through it, `click()`, `check()`, `select()` and `input()` all being one-line wrappers over `set_value`, which is where the guard sits. So a handler guarded twice, by `disabled=not can_save` on the widget and by an `if not can_save: return` inside it, has that second guard unreachable from a test: the only path to it is the click the harness refuses. Assert the observable property instead, `widget.proto.disabled` beside the file or the state left untouched, and never drop the `disabled=` to make the handler reachable, which would offer the user a widget that does nothing. Read in the installed 1.66.0.
 
 ## Standalone scripts: PEP 723 inline metadata
 
