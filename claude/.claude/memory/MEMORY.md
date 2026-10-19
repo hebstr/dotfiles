@@ -7,6 +7,8 @@
 ## Project
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
 - project_ju_tp2_receiveonly.md: ju-TP2 (WSL) never writes to `~/dotfiles` or `~/.claude`: Syncthing receive-only
+- project_ju_tp2_gpu_smoke_test.md: ju-TP2 carries an RTX A3000 12 GB and llama.cpp: dev and smoke test only
+- project_syncthing_ju_tp2_link.md: Syncthing ju-TP/ju-TP2 needs a static address so ju-TP2 dials out; inbound is firewalled
 - project_claude_dir_local_only_repo.md: a project's `.claude` in a nested remote-less repo, local to ju-TP (2026-09-30)
 - project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
@@ -19,7 +21,7 @@
 - project_arity_evaluation.md: Arity tested against air + jarl (2026-09-10), not adopted; measurements done, don't redo
 - project_edstr_vignettes_pkgdown_articles.md: edstr vignettes use plain quarto html; the hebstr-doc theme was rolled back
 - project_md_nesrine_render_pitfalls.md: md-nesrine render pitfalls: `stats::filter` masking, dropped labels, commented chunks run
-- project_edscrib_annotation_package.md: eds-avc's annotation socle `edscrib`: where the tracker is, what step 6 still owes
+- project_edscrib_annotation_package.md: edscrib dormant 2026-10-19; eds-avc rebuilds annot/ on eds-prise
 - project_yaml_gate_deferred.md: dotfiles YAML gate deferred (2026-07-30); the reco is written up, don't redo it
 - project_hebstr_add_note_migration.md: hebstr `add_note()` is gtsummary-only, before `tbl_format()`; one call site in ipl-sca
 - project_ordo_typst_template.md: `~/admin/pro-ordo` Typst prescription letterhead: blank and filled modes, open print check
@@ -38,6 +40,7 @@
 - reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
 - reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on a lazy duckdb table never completes; use `semi_join`
 - reference_dbplyr_null_semantics.md: SQL NULLs silently change a dplyr pipeline's counts; `coalesce()`, verify on the artifact
+- reference_edstr_extract_row_order.md: edstr sorts extract output by (group, id); a re-extract never reshuffles annotation rows
 - reference_streamlit_altair_charts.md: Altair in Streamlit: height/padding traps, legends ignoring the theme, one shared tooltip
 - reference_streamlit_dataframe_styler.md: st.dataframe keeps only 3 Styler properties; no CSS reaches the canvas grid's rows
 - reference_snds_variable_traps.md: SNDS declaration traps: ALD, `IR_IMB_R`, CIP, C2S, AME, FDep, 2015, DCIR/PMSI overlap
@@ -99,6 +102,7 @@
 - feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input, never on natural language
 - feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
 - feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
+- feedback_slash_command_in_pasted_prompt.md: A `/name` heading a pasted prompt fires nothing; ask the user to type it
 - feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_md_nesrine.md: Calibrating reviews of the md-nesrine render journal
