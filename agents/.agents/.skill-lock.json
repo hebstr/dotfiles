@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/j178/prek.git",
       "skillPath": "skills/prek/SKILL.md",
-      "skillFolderHash": "ca83daee9929f98002c2b147b13a22ed38a24071",
+      "skillFolderHash": "426fcf46c5fb613c211de618e95e3a81380091c8",
       "installedAt": "2026-09-18T10:28:52.261Z",
-      "updatedAt": "2026-10-09T20:21:23.564Z"
+      "updatedAt": "2026-10-18T20:27:41.862Z"
     },
     "typst": {
       "source": "lucifer1004/claude-skill-typst",
