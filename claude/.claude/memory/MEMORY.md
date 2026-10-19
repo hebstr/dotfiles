@@ -8,7 +8,7 @@
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
 - project_ju_tp2_receiveonly.md: ju-TP2 (WSL) never writes to `~/dotfiles` or `~/.claude`: Syncthing receive-only
 - project_ju_tp2_gpu_smoke_test.md: ju-TP2 carries an RTX A3000 12 GB and llama.cpp: dev and smoke test only
-- project_syncthing_ju_tp2_link.md: Syncthing ju-TP/ju-TP2 needs a static address so ju-TP2 dials out; inbound is firewalled
+- project_syncthing_ju_tp2_link.md: Syncthing ju-TP/ju-TP2: the Hyper-V inbound rule and the restart that fixed it
 - project_claude_dir_local_only_repo.md: a project's `.claude` in a nested remote-less repo, local to ju-TP (2026-09-30)
 - project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
@@ -21,7 +21,7 @@
 - project_arity_evaluation.md: Arity tested against air + jarl (2026-09-10), not adopted; measurements done, don't redo
 - project_edstr_vignettes_pkgdown_articles.md: edstr vignettes use plain quarto html; the hebstr-doc theme was rolled back
 - project_md_nesrine_render_pitfalls.md: md-nesrine render pitfalls: `stats::filter` masking, dropped labels, commented chunks run
-- project_edscrib_annotation_package.md: edscrib dormant 2026-10-19; eds-avc rebuilds annot/ on eds-prise
+- project_edscrib_annotation_package.md: edscrib dormant 2026-10-19; eds-avc rebuilt annot/ on a local core/
 - project_yaml_gate_deferred.md: dotfiles YAML gate deferred (2026-07-30); the reco is written up, don't redo it
 - project_hebstr_add_note_migration.md: hebstr `add_note()` is gtsummary-only, before `tbl_format()`; one call site in ipl-sca
 - project_ordo_typst_template.md: `~/admin/pro-ordo` Typst prescription letterhead: blank and filled modes, open print check
@@ -59,10 +59,10 @@
 - reference_git_html_id_filter.md: The `html-id` clean filter on committed HTML: `stow git`, `.gitattributes`, `--renormalize`
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments become callouts
-- reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy since PR 9897, thinking, SWA
+- reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy PR 9897, thinking, SWA, `--hf-repo` cache
 - reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
-- reference_positron_extension_registries.md: Positron's per-profile extensions.json beats the global one; orphan folders stay
+- reference_positron_extension_registries.md: The per-profile extensions.json beats the global one; a VSIX reinstall breaks it
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_table_column_width_layout.md: gt/flextable widths: percent grid, px total, PNG clipping, Word grid and indent floor
@@ -86,7 +86,7 @@
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
 - reference_quarto_r_env_var.md: `QUARTO_R` beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
-- reference_bash_tool_pitfalls.md: Bash traps: `find` is bfs, `pkill -f` self-kills, `rg -h` is help, `wc` order, no sudo TTY
+- reference_bash_tool_pitfalls.md: Bash tool traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh | head`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
 
