@@ -89,6 +89,7 @@
 - reference_bash_tool_pitfalls.md: Bash tool traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh | head`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
+- reference_edstr_extract_chunk_budget.md: Chunk sizing: 15,000 docs proxy characters; columns the lever; moving into edstr
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
@@ -105,8 +106,7 @@
 - feedback_slash_command_in_pasted_prompt.md: A `/name` heading a pasted prompt fires nothing; ask the user to type it
 - feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
-- feedback_review_severity_md_nesrine.md: Calibrating reviews of the md-nesrine render journal
-- feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French-language statistical reports (.qmd)
+- feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French statistical reports and md-nesrine's render journal
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
 - feedback_review_severity_hebstr_doc.md: Calibrating reviews of the quarto-hebstr-doc extension (filetree.lua and its tests)
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING

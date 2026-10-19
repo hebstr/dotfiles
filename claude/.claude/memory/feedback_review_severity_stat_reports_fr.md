@@ -1,11 +1,12 @@
 ---
 name: Review severity for French statistical reports
-description: "Calibrate review severity for French-language statistical reports (Quarto .qmd, md-nesrine and sibling services): do not flag established untranslated English statistical terms, and verify claims against executed code before filing them"
+description: "Calibrate review severity for French-language statistical reports (Quarto .qmd, md-nesrine and sibling services) and for md-nesrine's render journal (lib/log_helpers.R, logs/render.jsonl, auto_build() in lib/out_helpers.R): do not flag established untranslated English statistical terms, verify claims against executed code before filing them, and name a missing field's reader before filing it"
 metadata:
   type: feedback
 ---
 
 In the user's French statistical reports (`md-nesrine` and sibling `hebstr` service projects), the review patterns below are wasted effort.
+Supplements [[feedback_review_severity_personal]].
 
 **Do not flag untranslated English statistical terms as register inconsistencies.** `hazard ratio`, `odds ratio`, `at baseline` are established usage in French medical writing and have no equivalent in circulation. A French gloss appearing elsewhere in the same document (e.g. `rapport du nombre moyen de cures` for `IRR`) is not an inconsistency: each term follows the vocabulary of its own table, which is the stronger consistency constraint. Check the rendered table footnotes before concluding a register mismatch exists.
 
@@ -15,9 +16,17 @@ In the user's French statistical reports (`md-nesrine` and sibling `hebstr` serv
 
 **A sentence must carry what the caption, the heading and the table do not.** Announcing sentences before descriptive tables are worth adding only where the denominator differs from the analysed population or a restriction applies; elsewhere the user calls them obvious and removes them, along with verbless fragments that merely restate the caption. The same rule settles the prose/table split: fixed-horizon survival rates live in the table, and the prose carries the median with its CI and the hazard ratio, which the table lacks. SAMPL asks that those rates be *indicated*, not indicated in prose, so a table satisfies it. Do not file such duplication as a missing item.
 
+Two further shapes are wasted effort on the render journal of `~/Documents/services/md-nesrine`, committed in v5.3.2.
+
+**Do not ask for a journal line on a failed render.** The journal is one line per pass of a render that completed. `withCallingHandlers()` in `auto_build()` does not muffle warnings, so they and the terminating error already reach the render output the author redirects to a file; a failure line would record SVG hashes of a half-rewritten `output/` as if coherent, which corrupts the cross-render comparison the `svg` field exists for. `.claude/NOTE-LOGS.md` applies the same stance elsewhere ("un défaut doit faire échouer le rendu, pas produire une ligne de journal").
+
+**Do not ask for a field identifying the commit that holds a render's outputs.** `logs/render.jsonl` is tracked, append-only and committed with the outputs it describes, so `git blame logs/render.jsonl` already maps each line to that commit (verified 2026-09-17: both lines of the validation render point at `fd327f8`, v5.3.2).
+
 **Why:** the user is the biostatistician; analysis code is theirs to write and defend. A review finding that is wrong on the statistics costs more than one that is missing, because it forces them to re-derive a result they already know.
+On the journal, both refusals were filed as Required/Suggestion on 2026-09-17 and rejected with L1 and L2 concurring on the first: the mechanism each describes is real, the consumer is absent.
 
 **How to apply:**
 - Before filing any finding about a test, family, or estimator, run it and read the output. `Rscript` sourcing `setup.R` plus the relevant `scripts/*.R` takes a couple of minutes and settles the question.
+- Before filing a missing-field or missing-line finding on the journal, name who reads it and check whether git, the redirected render log or an existing field already answers. A hypothetical representation drift (`rlang::hash()` on tibbles) was also measured absent the same day: `gs` and `local` reads hash identically on all three tabs.
 - Check the project's own `.claude/` notes (`MODEL_GLM.md`, `NOTE-RAPPORT-STAT.md`, `CONTINUE.md`) before filing: documented decisions and known-open questions live there, and several findings are already tracked.
 - A Methods section states the plan a priori. Naming which variable dropped out of a model after seeing the data belongs in Results or a table footnote, never in Methods. See [[project_md_nesrine_render_pitfalls]] for the project's other constraints.
