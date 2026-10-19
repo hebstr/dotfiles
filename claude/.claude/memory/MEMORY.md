@@ -89,7 +89,7 @@
 - reference_bash_tool_pitfalls.md: Bash tool traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh | head`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
-- reference_edstr_extract_chunk_budget.md: Chunk sizing: 15,000 docs proxy characters; columns the lever; edstr owns it
+- reference_edstr_extract_chunk_budget.md: Chunk sizing: characters, not docs; columns the lever; soft bound; edstr owns it
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
