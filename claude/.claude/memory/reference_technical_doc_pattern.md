@@ -1,13 +1,15 @@
 ---
 name: "Per-script technical documentation: reusable document plan"
-description: Pattern for a per-script technical doc (hebstr-doc Quarto, `{{< filetree >}}` + `{{< script >}}`), where comments leave the code and become titled callouts; carries the section plan, the CSS block and the traps
+description: Pattern for a per-script technical doc (hebstr-doc Quarto, `{{< filetree >}}` + `{{< script >}}`), where comments leave the code and become titled callouts; dormant by user decision since 2026-09-08, never proposed without naming that; carries the section plan, the CSS block and the traps
 metadata:
   type: reference
 ---
 
 Pattern established in `eds-prise` on 2026-08-23, when 271 lines of comment left 13 R scripts for a single document. Its perimeter has since grown past R: 37 files as of 2026-08-25, including nine Python modules, a Streamlit entry point and a shell launcher.
-Reuse it whenever a project wants its scripts documented outside the code.
 The project record, with its measurements and its scope decisions, stays in that project's `.claude/DESIGN-TECHNIQUE.md`.
+
+**Do not propose it to a project without naming its dormancy first.** `eds-prise` put it en veille on 2026-09-08 by user decision, "le document devenait trop long et trop détaillé, et le plan systématique décrit ici montrait ses limites": `technique.qmd` moved to `.claude/archive/technique.qmd`, renders no more there, and the archive had drifted by 2026-09-09, its `export_docx()` section asserting two facts the single-source change reversed. What the pattern teaches about callouts, separators and the CSS still holds; what it no longer carries is the recommendation to adopt it.
+Where the prose of one script or one subsystem is at stake rather than a whole pipeline's, the cheaper shape is a note in the project's own `.claude/`: `eds-avc` took that route on 2026-10-19 for its Streamlit entrypoint, one section per symbol in `.claude/NOTE-ANNOT-APP.md` beside its two other `NOTE-*.md`, and the drift guard is a `rg` checking that every section name still resolves in the file, `refs-lint.py` testing none of them (it wants a cue word before the quoted span).
 
 ## What it is
 

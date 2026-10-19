@@ -58,7 +58,7 @@
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
 - reference_git_html_id_filter.md: The `html-id` clean filter on committed HTML: `stow git`, `.gitattributes`, `--renormalize`
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
-- reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc (`filetree` + `script`): comments become callouts
+- reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc: the plan, and why it is dormant since 2026-09-08
 - reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy PR 9897, thinking, SWA, `--hf-repo` cache
 - reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
