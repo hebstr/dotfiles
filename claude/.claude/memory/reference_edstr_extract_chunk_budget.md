@@ -1,6 +1,6 @@
 ---
 name: reference_edstr_extract_chunk_budget
-description: Sizing an edstr extraction chunk, the budget being characters and columns rather than a document count and a soft bound whose overshoot warning misstates its cause, and what calling edstr_extract(chunk =) needs since the mechanism moved into the package
+description: Sizing an edstr extraction chunk, the budget being characters and columns rather than a document count and a soft bound whose boundary overshoot is silent by design, and what calling edstr_extract(chunk =) needs since the mechanism moved into the package
 metadata:
   type: reference
 ---
@@ -18,7 +18,8 @@ The memory model behind it, measured in `eds-prise/.claude/DESIGN-CORPUS.md` on 
 
 **`chunk` is a soft bound: the planner splits on `ceiling(cumsum(doc) / chunk)`, so a chunk exceeds the budget by at most the group straddling its boundary.**
 Measured 2026-10-19 on ciclo, two of eight chunks over 15,000 (15,233 and 15,015) with no group above 641 documents over 3,073 groups.
-edstr warns about the overshoot and names a group larger than the budget as the cause, which is the other way it happens and not this one; read the group-size distribution before believing the message, and the model's factor-2 margin absorbs an overshoot of one group.
+That overshoot is silent since 2026-10-19 and the factor-2 margin absorbs it: the operator has no lever on it, so edstr warns only on a group larger than the budget itself, which forms a chunk of its own that no budget bounds, and the plan alert reads "of about" rather than "at most".
+Until that fix the warning fired on the chunk total while naming the oversized group as the cause, so it fired on ciclo and on prise (once for a single document over, no group above 29 of 49,434) with a cause neither corpus exercised, and that false cause reached `crpv-ciclo/.claude/PLAN.md`, step P.
 
 Two traps that raise nothing. `ngram_max` is not where the peak lives: reading and filtering the parquet is about 73 percent of it, so dropping to unigrams saves under 10 percent. And a per-chunk `BETWEEN` on a group column only reads one range while the clean parquet stays sorted by that column; a lost sort makes every child read the whole corpus in silence, which `edstr_extract(chunk = )` now warns about from the per-group `file_row_number` range.
 
