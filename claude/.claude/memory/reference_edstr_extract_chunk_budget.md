@@ -14,7 +14,7 @@ Re-derive the value, by `avg(length(<text column>))` on the clean parquet, only 
 
 The memory model behind it, measured in `eds-prise/.claude/DESIGN-CORPUS.md` on a 15 GB machine with three columns and `ngram_max = 3`: 0.27 GB per 1,000 documents plus a 1.4 GB base, linear to within 0.25 GB over 15,000 to 30,000 documents, with the feasibility wall near 30,000 to 35,000. Chunking is the condition of execution rather than an optimisation.
 
-**The column count is the second lever and it is the brutal one.** Three columns and eleven are indistinguishable, about 5.8 GB per chunk; the 23-column composed table reaches 8.6 GB. So hand the extractor its keys and its text, and rejoin the metadata after the recombination, which is what `.decore()` does in `eds-prise`.
+**The column count is the second lever and it is the brutal one.** Three columns and eleven are indistinguishable, about 5.8 GB per chunk; the 23-column composed table reaches 8.6 GB. So hand the extractor its keys and its text, and rejoin the metadata after the recombination, which is what the package's combine does from the clean parquet's own schema.
 
 **`chunk` is a soft bound: the planner splits on `ceiling(cumsum(doc) / chunk)`, so a chunk exceeds the budget by at most the group straddling its boundary.**
 Measured 2026-10-19 on ciclo, two of eight chunks over 15,000 (15,233 and 15,015) with no group above 641 documents over 3,073 groups.
@@ -24,8 +24,9 @@ Until that fix the warning fired on the chunk total while naming the oversized g
 Two traps that raise nothing. `ngram_max` is not where the peak lives: reading and filtering the parquet is about 73 percent of it, so dropping to unigrams saves under 10 percent. And a per-chunk `BETWEEN` on a group column only reads one range while the clean parquet stays sorted by that column; a lost sort makes every child read the whole corpus in silence, which `edstr_extract(chunk = )` now warns about from the per-group `file_row_number` range.
 
 **The mechanism lives in edstr since 2026-10-19**, as `edstr_extract(chunk = )`: it owns the plan, the `callr` children, the recombination, the global `summary`, the three output files, the partition assertions and the removal of the per-chunk directories, and `chunk = TRUE` takes the 15,000 default.
-No project hand-rolls a chunked run any more: `crpv-ciclo` is migrated, and `eds-prise`'s `extract/prise_extract-run.R` is the last site.
-Its migration needs three things, none of them automatic: `id = "id_doc"` passed explicitly, since the `(id, group, text)` projection leaves nothing to auto-detect from; `chunk_sort = "sej_date_entree"` for the date order its `.decore()` applies; and a check that the clean parquet carries the same metadata columns as `extract_data_import()`, which is where that helper reads them today.
+No project hand-rolls a chunked run any more: `crpv-ciclo` is migrated and `eds-prise` followed on 2026-10-22, its `extract/prise_extract-run.R` falling from 188 lines to 29.
+That migration needed three things, none of them automatic: `id = "id_doc"` passed explicitly, since the `(id, group, text)` projection leaves nothing to auto-detect from; `chunk_sort = "sej_date_entree"` for the date order its `.decore()` applied; and a check that the clean parquet carries the same metadata columns as `extract_data_import()`, which the combine reads them from. The third held, and the whole migration came out content-neutral: the recombined extract was equal to the hand-rolled one on all 35 columns, `n` and `extract` included, only the column order moving.
+**One trap to expect on any relaunch**: `edstr_overwrite = FALSE` reloads the recombined RDS as soon as it exists, and reuses the chunk files under it, so relaunching means moving the output directory aside first. Raising the flag is not the way out, `edstr_import()` going back to the database under it.
 Design record, the eight assertions and the measurements: `~/Documents/packages/R-edstr/.claude/CHUNK.md`. The decision and its rejected alternatives: `crpv-ciclo/.claude/PLAN.md`, step P.
 
 Related: [[reference_nanoparquet_col_select]], [[feedback_benchmark_power_state]].
