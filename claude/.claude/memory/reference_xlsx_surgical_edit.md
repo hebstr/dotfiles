@@ -13,6 +13,6 @@ Cell text lives in `xl/sharedStrings.xml` as `<si>` entries, which `xl/worksheet
 2. Replace inside that one member, then rewrite the zip copying every `ZipInfo` with its own `compress_type`, so the other members stay byte-identical. Assert that afterwards.
 3. Read the file back (`readxl`, `openpyxl`) and check the row and column counts plus the changed cells.
 
-Measured on `snds/prise_snds-source.xlsx` of eds-prise, 2026-10-07, replacing four hard hyphens of `CIM-10` with `U+2011`: ten of the eleven members came back byte-identical and the styling survived.
+Measured on `docs/snds/prise_snds-source.xlsx` of eds-prise (`snds/` until the move of 2026-10-21), 2026-10-07, replacing four hard hyphens of `CIM-10` with `U+2011`: ten of the eleven members came back byte-identical and the styling survived.
 
 Keep the file under git before editing, which is the real safety net. See [[project_word_render_control]] for reading the result on the real Word, and [[reference_table_column_width_layout]] for why a token broken across lines matters in a Word table.
