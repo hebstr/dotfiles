@@ -11,6 +11,8 @@ A rendered HTML output carries ids that change on every render: `gt` draws a ran
 
 **The setup is split in two halves on purpose**, the driver stowed and the `.gitattributes` versioned per repository because that is the half naming which files are deliverables; `_meta/profiles/gitattributes` carries the line a new project declares.
 
+**The path anchoring of that line buys nothing, measured 2026-10-21 in eds-prise**, which declares `*.html filter=html-id` since then while the profile still carries `output/**/*.html`. What keeps the filter off a hand-written file is the driver's own anchoring, its three regexes matching only generated shapes (`<div id="[a-z]{10}" style="padding-left` for gt, `htmlwidget-` plus 16 or more hex, `"dataKey":"` plus 32), so it came back byte-identical on the one tracked HTML outside that project's output trees, a vendored Quarto extension file, same blob sha through `git hash-object -w --path`. The cost of the narrow form is upkeep: it has to be edited every time an output tree moves. The cost of the broad form is that an ignored rendered document enters the pattern, so a deliberate `git add -f` on one stores it renumbered.
+
 
 The same per-repo file routes `*.docx`, `*.pptx`, `*.xlsx` and `*.png` to a `diff=out-textconv` driver since 2026-09-13.
 
