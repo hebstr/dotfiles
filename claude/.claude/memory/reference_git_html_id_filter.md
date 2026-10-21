@@ -1,6 +1,6 @@
 ---
 name: reference_git_html_id_filter
-description: The `html-id` git clean filter that renumbers gt and reactable random ids and the reactable `dataKey` in committed HTML outputs: its driver lives in dotfiles so `stow git` is the whole setup, the per-repo half says which files are deliverables, a global attributes file was rejected, and a commit after a render fails in prek's unstaged-changes stash until the outputs are re-staged with `git add --renormalize`
+description: The `html-id` git clean filter that renumbers gt and reactable random ids and the reactable `dataKey` in committed HTML outputs: its driver lives in dotfiles so `stow git` is the whole setup, the per-repo half says which files are deliverables, a global attributes file was rejected, and a commit after a render fails in prek's unstaged-changes stash until the outputs are re-staged with `git add --renormalize`, while that same stash quietly reverts an unstaged binary output (docx, png, xlsx) to its committed content
 metadata:
   type: reference
 ---
@@ -22,5 +22,8 @@ Restoring that patch fails on the lines the filter renumbers (`patch failed: out
 The commit fails identically with `git commit -- <paths>` and with a plain `git commit`, whether `git diff-files --quiet` is clean or not.
 What works: `git add --renormalize <output dir>` first, so no unstaged change is left to stash, and the commit then takes the refreshed outputs along; the other way out is `git checkout -- <output dir>`, which drops the render.
 A hook name in that failure message is not evidence against the hook: run it alone on the commit's files before reading it as the culprit.
+
+**The same stash reverts an unstaged binary output instead of failing** (measured 2026-10-21, eds-prise). Thirteen `output/**/*.docx` sat dirty from earlier renders, none of them staged; a commit staging one `.R` file printed `Temporarily saving them to …/patches/<ts>.patch` then `Restored unstaged changes`, exited 0, and left those thirteen byte-identical to `HEAD`, carrying the commit's own mtime, verified by `git hash-object <f>` against `git rev-parse HEAD:<f>`.
+So the text case fails loudly and the binary case succeeds quietly: a dirty `.docx`, `.png` or `.xlsx` left out of the commit comes back at its committed content, and a render whose only difference is envelope metadata is then indistinguishable from one that changed the artifact. Stage the binaries you mean to keep, and never read a clean `git status` after such a commit as proof the outputs were up to date.
 
 Related: [[reference_pandoc_312_data_uri]] for the other reason a committed widget's HTML can change under you.
