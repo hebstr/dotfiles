@@ -95,7 +95,7 @@
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
 - feedback_gtsummary_stacked_blocks.md: Stacked gtsummary blocks: `add_variable_group_header()` before `tbl_stack()`
 - feedback_probe_must_test_the_deciding_form.md: A measurement ruling an option out must exercise its strongest form
-- feedback_commit_sequence_add_all.md: `git add .`, the peer sweep both ways, a dirty file left to the user
+- feedback_commit_sequence_add_all.md: `git add .`, explicit paths in shared trees, the peer sweep, a dirty file to the user
 - feedback_r_environment.md: rv not renv (no install.packages), `system2` over `system`, how an rv project activates
 - feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret; test presence with `[ -n "$VAR" ]`
 - feedback_benchmark_power_state.md: This machine is ~2x slower on battery: check the power state, pair the runs
