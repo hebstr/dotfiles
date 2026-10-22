@@ -63,8 +63,8 @@ remove_apt_repo() {
   return 0
 }
 
-# No checksums are published, so TLS to GitHub is the integrity boundary, as
-# in duckdb-update.
+# No checksums are published, and the asset digest the API computes is not
+# checked here, so TLS to GitHub is the integrity boundary.
 do_upgrade() {
   local version="$1" arch="$2" debs=()
   RIG_TMP=$(mktemp -d)

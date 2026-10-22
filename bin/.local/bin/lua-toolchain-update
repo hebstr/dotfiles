@@ -3,7 +3,8 @@ set -Eeuo pipefail
 
 # Installs/updates the two binaries backing the Lua lint/format gate (rules/lua.md)
 # to the latest GitHub release, user-local under ~/.local. Neither publishes
-# release checksums, so TLS to GitHub is the integrity boundary (as in duckdb-update).
+# release checksums, and the asset digest the API computes is not checked here,
+# so TLS to GitHub is the integrity boundary.
 
 BIN_DIR="${HOME}/.local/bin"
 SHARE_DIR="${HOME}/.local/share"
