@@ -71,7 +71,7 @@
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
 - reference_gtsummary_notes_and_labels.md: gtsummary: `add_variable_group_header()` last, `easy_label()` coerces logicals
-- reference_quarto_lua_shortcodes.md: Quarto Lua shortcode traps: empty Inlines, YAML scalars, named pipes, embedded loading
+- reference_quarto_lua_shortcodes.md: Quarto Lua traps: empty Inlines, YAML scalars, named pipes, embedding, LuaLS casts
 - reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in a `{=typst}` block: no arrays, a missing key prints into the PDF
 - reference_word_embedded_fonts_blocked.md: Recipients' Word refuses embedded fonts; design around the fallback list
 - reference_xlsx_surgical_edit.md: Edit a hand-styled .xlsx through sharedStrings.xml; a library rewrite flattens it
