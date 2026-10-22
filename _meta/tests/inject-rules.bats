@@ -207,10 +207,10 @@ field() {
 @test "denies a new memory file once the index is over the line ceiling" {
   STORE="$WORK/dotfiles/claude/.claude/memory"
   mkdir -p "$STORE"
-  seq 151 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
+  seq 161 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
   run_hook "$(read_call Write "$STORE/feedback_new.md")"
   [ "$(field permissionDecision)" = deny ]
-  [[ $(field permissionDecisionReason) == *"at 151 lines, over the 150-line ceiling"* ]]
+  [[ $(field permissionDecisionReason) == *"at 161 lines, over the 160-line ceiling"* ]]
   [[ $(field permissionDecisionReason) == *"admission test"* ]]
   [[ $(field additionalContext) == *BODY-memory* ]]
 }
@@ -218,7 +218,7 @@ field() {
 @test "leaves the prune path open over the ceiling, and passes at it" {
   STORE="$WORK/dotfiles/claude/.claude/memory"
   mkdir -p "$STORE"
-  seq 151 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
+  seq 161 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
   printf 'body\n' >"$STORE/feedback_old.md"
   for p in MEMORY.md feedback_old.md; do
     rm -f "$RUNTIME"/claude-code-rules-*
@@ -228,7 +228,7 @@ field() {
       return 1
     }
   done
-  seq 150 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
+  seq 160 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
   rm -f "$RUNTIME"/claude-code-rules-*
   run_hook "$(read_call Write "$STORE/feedback_new.md")"
   [ -z "$(field permissionDecision)" ]

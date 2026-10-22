@@ -15,7 +15,7 @@ rules_dir=${CLAUDE_RULES_DIR:-$HOME/.claude/rules}
 marker="${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}${agent:+-$agent}"
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-code"
 cap=9500
-index_line_cap=150
+index_line_cap=160
 
 decision=""
 reason=""
