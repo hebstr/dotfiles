@@ -40,6 +40,7 @@
 - reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
 - reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on a lazy duckdb table never completes; use `semi_join`
 - reference_dbplyr_null_semantics.md: SQL NULLs silently change a dplyr pipeline's counts; `coalesce()`, verify on the artifact
+- reference_duckdb_storage_version_split.md: the v2.0.0 CLI writes a format R 1.5.6 cannot open; the `v` prefix
 - reference_edstr_extract_row_order.md: edstr sorts extract output by (group, id); a re-extract never reshuffles annotation rows
 - reference_streamlit_altair_charts.md: Altair in Streamlit: height/padding traps, legends ignoring the theme, one shared tooltip
 - reference_streamlit_dataframe_styler.md: st.dataframe keeps only 3 Styler properties; no CSS reaches the canvas grid's rows
