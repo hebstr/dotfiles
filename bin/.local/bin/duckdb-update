@@ -48,7 +48,7 @@ esac
 TMP=$(mktemp -d)
 cleanup() {
   rc=$?
-  rm -rf "$TMP"
+  rm -rf "$TMP" || true
   exit "$rc"
 }
 trap cleanup EXIT
@@ -88,7 +88,13 @@ if [ -e "$DEST" ] || [ -L "$DEST" ]; then
   fi
 fi
 
-mv "${TMP}/duckdb" "$DEST"
+mv "${TMP}/duckdb" "$DEST" || {
+  echo "Cannot install the new binary at ${DEST}: aborting" >&2
+  if [ "$BACKUP" != "" ]; then
+    mv "$BACKUP" "$DEST" && echo "Previous binary restored from ${BACKUP}" >&2
+  fi
+  exit 1
+}
 
 if [ "$BACKUP" != "" ]; then
   find "${DEST%/*}" -maxdepth 1 -type f -name 'duckdb.bak-*' \

@@ -130,6 +130,50 @@ EOF
   chmod +x "${STUBS}/sudo"
 }
 
+# mv refuses the move that installs the new binary, keyed on a source outside
+# the install directory, so the backup and the restore moves still run.
+_stub_failing_install_mv() {
+  cat >"${STUBS}/mv" <<'EOF'
+#!/usr/bin/env bash
+src=""
+dst=""
+for arg in "$@"; do
+    case "$arg" in
+    -*) ;;
+    *)
+        if [ "$src" = "" ]; then
+            src="$arg"
+        else
+            dst="$arg"
+        fi
+        ;;
+    esac
+done
+if [ "$dst" = "${DEST}" ]; then
+    case "$src" in
+    "${BIN_DIR}"/*) ;;
+    *) exit 1 ;;
+    esac
+fi
+exec /usr/bin/mv "$@"
+EOF
+  chmod +x "${STUBS}/mv"
+}
+
+# rm refuses the work directory, which is what the cleanup trap removes.
+_stub_failing_tmp_rm() {
+  cat >"${STUBS}/rm" <<'EOF'
+#!/usr/bin/env bash
+for arg in "$@"; do
+    case "$arg" in
+    "${TMPDIR}"/*) exit 1 ;;
+    esac
+done
+exec /usr/bin/rm "$@"
+EOF
+  chmod +x "${STUBS}/rm"
+}
+
 # ─── setup / teardown ───────────────────────────────────────────────────────
 
 setup() {
@@ -391,6 +435,33 @@ teardown() {
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Cannot remove ${DEST}: manual intervention required"* ]]
+}
+
+@test "restores the backup when the new binary cannot be moved into place" {
+  printf 'old binary\n' >"${DEST}"
+  _stub_failing_install_mv
+  run bash "${SCRIPT}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Cannot install the new binary at ${DEST}: aborting"* ]]
+  [[ "$output" == *"Previous binary restored from"* ]]
+  [ "$(cat "${DEST}")" = "old binary" ]
+  [ "$(find "${BIN_DIR}" -name 'duckdb.bak-*' | wc -l)" -eq 0 ]
+}
+
+@test "aborts with nothing to restore when the first install cannot be moved into place" {
+  _stub_failing_install_mv
+  run bash "${SCRIPT}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Cannot install the new binary at ${DEST}: aborting"* ]]
+  [[ "$output" != *"restored"* ]]
+  [ ! -e "${DEST}" ]
+}
+
+@test "keeps a successful install's exit status when the work directory survives" {
+  _stub_failing_tmp_rm
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [ -x "${DEST}" ]
 }
 
 # ─── final report ───────────────────────────────────────────────────────────
