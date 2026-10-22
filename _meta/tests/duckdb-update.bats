@@ -17,20 +17,26 @@ FAKE_STAMP="20260912-101500"
 # runtime, so a test only overrides the variable it cares about.
 #
 #   GH_TAG           tag returned by `gh api --jq '.tag_name // ""'`
+#   GH_DIGEST        digest returned for the release-assets query
 #   GH_EXIT          exit code of the gh stub
 #   UNAME_ARCH       string returned by `uname -m`
 #   DUCKDB_VERSION   raw `duckdb --version` line of the installed binary
 #   CURL_EXIT        exit code of the curl stub
-#   GUNZIP_MODE      good | broken (whether the extracted binary runs)
+#   CURL_PAYLOAD     bytes the curl stub writes, whose sha256 GH_DIGEST carries
+#   TAR_MODE         good | broken (whether the extracted binary runs)
 #
 # Side effects land in $STATE: curl-args, gh-args.
 
 _create_stubs() {
+  # gh ─ answers the tag query and the per-asset digest query separately
   cat >"${STUBS}/gh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"${STATE}/gh-args"
 [ "${GH_EXIT:-0}" -eq 0 ] || exit "${GH_EXIT}"
-printf '%s\n' "${GH_TAG}"
+case "$*" in
+*releases/latest*) printf '%s\n' "${GH_TAG}" ;;
+*releases/tags/*) printf '%s\n' "${GH_DIGEST}" ;;
+esac
 EOF
 
   cat >"${STUBS}/uname" <<'EOF'
@@ -55,27 +61,35 @@ for arg in "$@"; do
     [ "$arg" = "-o" ] && next_o=1
 done
 [ "${CURL_EXIT:-0}" -eq 0 ] || exit "${CURL_EXIT}"
-[ -n "$output_file" ] && printf 'gzipped payload\n' >"$output_file"
+[ -n "$output_file" ] && printf '%s\n' "${CURL_PAYLOAD}" >"$output_file"
 exit 0
 EOF
 
-  # gunzip ─ emits the extracted binary on stdout, working or not
-  cat >"${STUBS}/gunzip" <<'EOF'
+  # tar ─ writes the extracted binary into the -C directory, working or not
+  cat >"${STUBS}/tar" <<'EOF'
 #!/usr/bin/env bash
-case "${GUNZIP_MODE:-good}" in
+[ "${TAR_EXIT:-0}" -eq 0 ] || exit "${TAR_EXIT}"
+dest="."
+next_c=0
+for arg in "$@"; do
+    [ "$next_c" = 1 ] && { dest="$arg"; next_c=0; continue; }
+    [ "$arg" = "-C" ] && next_c=1
+done
+case "${TAR_MODE:-good}" in
     good)
-        cat <<'BIN'
+        cat >"${dest}/duckdb" <<'BIN'
 #!/usr/bin/env bash
 printf '%s\n' "${INSTALLED_VERSION}"
 BIN
         ;;
     broken)
-        cat <<'BIN'
+        cat >"${dest}/duckdb" <<'BIN'
 #!/usr/bin/env bash
 exit 1
 BIN
         ;;
 esac
+chmod +x "${dest}/duckdb"
 EOF
 
   # date ─ frozen, so a backup file name is assertable
@@ -136,7 +150,10 @@ setup() {
   export DUCKDB_VERSION="${FAKE_CURRENT} 1a2b3c4d5e"
   export INSTALLED_VERSION="${FAKE_LATEST} 9f8e7d6c5b"
   export CURL_EXIT=0
-  export GUNZIP_MODE=good
+  export CURL_PAYLOAD='tarball payload'
+  GH_DIGEST="sha256:$(printf '%s\n' "${CURL_PAYLOAD}" | sha256sum | cut -d' ' -f1)"
+  export GH_DIGEST
+  export TAR_MODE=good
   export FROZEN_STAMP="${FAKE_STAMP}"
 
   _create_stubs
@@ -204,14 +221,14 @@ teardown() {
 @test "downloads the amd64 artifact on x86_64" {
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [[ "$(cat "${STATE}/curl-args")" == *"duckdb_cli-linux-amd64.gz"* ]]
+  [[ "$(cat "${STATE}/curl-args")" == *"duckdb-cli-linux-amd64.tar.gz"* ]]
 }
 
 @test "downloads the arm64 artifact on aarch64" {
   export UNAME_ARCH=aarch64
   run bash "${SCRIPT}"
   [ "$status" -eq 0 ]
-  [[ "$(cat "${STATE}/curl-args")" == *"duckdb_cli-linux-arm64.gz"* ]]
+  [[ "$(cat "${STATE}/curl-args")" == *"duckdb-cli-linux-arm64.tar.gz"* ]]
 }
 
 # ─── up-to-date check ───────────────────────────────────────────────────────
@@ -254,15 +271,38 @@ teardown() {
   [ ! -e "${DEST}" ]
 }
 
+@test "verifies the artifact against the digest published for it" {
+  run bash "${SCRIPT}"
+  [ "$status" -eq 0 ]
+  [[ "$(cat "${STATE}/gh-args")" == *"repos/duckdb/duckdb/releases/tags/${FAKE_LATEST}"* ]]
+}
+
+@test "exits 1 when no digest is published for the artifact" {
+  export GH_DIGEST=""
+  run bash "${SCRIPT}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"No sha256 digest published for"* ]]
+  [ ! -f "${STATE}/curl-args" ]
+}
+
+@test "exits 1 without installing when the download does not match the digest" {
+  GH_DIGEST="sha256:$(printf 'other payload\n' | sha256sum | cut -d' ' -f1)"
+  export GH_DIGEST
+  run bash "${SCRIPT}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Checksum mismatch"* ]]
+  [ ! -e "${DEST}" ]
+}
+
 @test "exits 1 when the extracted binary fails to execute" {
-  export GUNZIP_MODE=broken
+  export TAR_MODE=broken
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Extracted binary fails to execute"* ]]
 }
 
 @test "leaves an existing install untouched when the extracted binary is broken" {
-  export GUNZIP_MODE=broken
+  export TAR_MODE=broken
   printf 'old binary\n' >"${DEST}"
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
@@ -283,7 +323,7 @@ teardown() {
 }
 
 @test "removes its temporary directory when it aborts" {
-  export GUNZIP_MODE=broken
+  export TAR_MODE=broken
   run bash "${SCRIPT}"
   [ "$status" -eq 1 ]
   [ -z "$(ls -A "${TMPDIR}")" ]

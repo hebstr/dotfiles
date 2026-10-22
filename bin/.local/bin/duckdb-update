@@ -6,7 +6,6 @@ command -v gh >/dev/null 2>&1 || {
   exit 1
 }
 
-VER=$(gh api repos/duckdb/duckdb/releases/latest --jq '.tag_name // ""')
 case "$(uname -m)" in
 x86_64) ARCH=amd64 ;;
 aarch64) ARCH=arm64 ;;
@@ -15,6 +14,8 @@ aarch64) ARCH=arm64 ;;
   exit 1
   ;;
 esac
+
+VER=$(gh api repos/duckdb/duckdb/releases/latest --jq '.tag_name // ""')
 
 if [ "$VER" = "" ] || [ "$VER" = "null" ]; then
   echo "Failed to resolve latest DuckDB version from GitHub API" >&2
@@ -30,9 +31,20 @@ if [ "$CURRENT" = "$VER" ]; then
   exit 0
 fi
 
-ARTIFACT="duckdb_cli-linux-${ARCH}.gz"
+export ARTIFACT="duckdb-cli-linux-${ARCH}.tar.gz"
 BASE_URL="https://github.com/duckdb/duckdb/releases/download/${VER}"
 DEST="${HOME}/.local/bin/duckdb"
+
+DIGEST=$(gh api "repos/duckdb/duckdb/releases/tags/${VER}" \
+  --jq '.assets[] | select(.name == env.ARTIFACT) | .digest // ""')
+case "$DIGEST" in
+sha256:*) ;;
+*)
+  echo "No sha256 digest published for ${ARTIFACT} in ${VER}: aborting" >&2
+  exit 1
+  ;;
+esac
+
 TMP=$(mktemp -d)
 cleanup() {
   rc=$?
@@ -42,11 +54,16 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Downloading DuckDB ${VER}..."
-# DuckDB does not publish checksums; TLS to GitHub is the integrity boundary.
 curl -fL --progress-bar -o "${TMP}/${ARTIFACT}" "${BASE_URL}/${ARTIFACT}"
 
+echo "Verifying the download..."
+(cd "$TMP" && printf '%s  %s\n' "${DIGEST#sha256:}" "$ARTIFACT" | sha256sum -c --status) || {
+  echo "Checksum mismatch for ${ARTIFACT}: aborting" >&2
+  exit 1
+}
+
 echo "Extracting..."
-gunzip -c "${TMP}/${ARTIFACT}" >"${TMP}/duckdb"
+tar -xzf "${TMP}/${ARTIFACT}" -C "$TMP" duckdb
 chmod +x "${TMP}/duckdb"
 
 echo "Verifying binary..."
