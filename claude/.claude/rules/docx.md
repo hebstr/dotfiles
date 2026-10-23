@@ -45,6 +45,7 @@ The profile in step 3 has to be fresh per invocation rather than merely non-defa
 - **A table of contents rasterizes empty**, because headless conversion does not run Word's field update. Read a heading with nothing under it as a field waiting for Word, not as a missing table of contents.
 - **Quarto emits a second `w:pPr` inside paragraphs it restyles**, one per figure and table caption, from its own filters. LibreOffice renders through it and Word opens it; do not chase it as a local defect.
 - **Both readers return a reply as a standalone comment.** Word keeps threading outside `word/comments.xml`: `word/commentsExtended.xml` gives each reply a `w15:paraIdParent` pointing at the `w14:paraId` of the last paragraph of the comment it answers, the last one for comments of several paragraphs too. `officer::docx_comments()` and `pandoc --track-changes=all` both drop the parent. Thread through `commentsExtended.xml`, which the `/review-comments` skill's `scripts/skeleton.py` does.
+- **A reviewer's tracked text edits come out of two conversions of the one file**, `--track-changes=reject` against `--track-changes=accept`, blind to a formatting-only revision and to an untracked overwrite. Carrying them into the source is the `/review-prose` skill.
 - **A reviewer's reference number belongs to the render they read.** A numeric citation style numbers references at render time, by order of first citation, so a "reference 8" in a comment resolves on the bibliography of the reviewed docx, never by counting citations in the source, which any later edit can reorder.
 
 A caption sitting alone at the foot of a page is usually pagination, not a lost figure: an inline image taller than the remaining space moves whole to the next page. Confirm on the following page before reporting anything.
@@ -71,11 +72,9 @@ print(len(bad), "cell(s) not ending on w:p")
 
 The shape that produces it is a table nested as the last thing in a cell: Quarto wraps every cross-referenced float in a one-cell table, and a `flextable` or a `gt` table arrives from knitr as a raw `{=openxml}` block ending on `</w:tbl>`. The fix belongs to whatever emits the raw block, an empty paragraph appended to its text; a Pandoc `Para` carrying no inline is dropped before the writer sees it, so it cannot be inserted at AST level.
 
-Two neighbouring breaches are non-blocking, since Word opens both: a paragraph carrying two `w:pPr`, and a `w:pStyle` referring to a style the reference doc does not define.
-
 ## What nothing on this machine settles
 
-Fidelity to Word itself. No installed tool renders a docx the way Word does, and the divergence is documented, active and version-dependent rather than a fixed set of known gaps; Pandoc's contribution guide holds its own maintainers to a Word pass.
+Fidelity to Word itself. No installed tool renders a docx the way Word does, and the divergence is documented, active and version-dependent rather than a fixed set of known gaps.
 Before a docx template or a docx output is declared finished, say plainly that a pass on a real Word install is owed, rather than presenting a LibreOffice render as the check.
 Three substitute routes are measured and closed in the note, ONLYOFFICE by either delivery, Word for the web and `pandoc --pdf-engine=typst`: propose none of them, and no trial to compare them.
 
