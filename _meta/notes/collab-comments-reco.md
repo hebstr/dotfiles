@@ -165,6 +165,19 @@ The six survivors are `135470a6` (line 54), `5ab9605e` (line 67), `048af7ed` (li
 
 **One measurement the reading did not predict: pandoc writes no `w:initials`**, so each balloon reads `Commented [1]:` where one the reviewer wrote herself reads `Commented [GV1]:`. Her name stays in `w:author` and surfaces in the review pane and on hover. The usage warning above, that nothing distinguishes a re-emitted comment from an original, is therefore too strong for the balloon label and right everywhere else.
 
+### The export's refusal is a self-imposed shortcut, and lifting half of it is one line
+
+Probe of 2026-10-24, run after the gate and reverted the same hour. It settles what the gate's seven skips cost to recover, and it opens a route the reading did not weigh.
+
+Neither OOXML nor pandoc forces the refusal: pandoc places a comment span wherever an inline goes. Two shortcuts in the filter produce it, and the source names them, `rendered_block_texts()` carrying the comment "This is counting only: the separate rewrite pass remains limited to top-level simple blocks."
+
+- `add_docx_comments()` walks `doc.blocks` with `ipairs` and never recurses, so no block inside a list, a Div or a table is ever rewritten.
+- `inline_text()` returns `nil` on the first inline that is not `Str`, `Space`, `SoftBreak` or `LineBreak`, so a single `Cite`, `Strong`, `Link` or `Code` disqualifies the paragraph that holds it.
+
+**Measured on the first shortcut alone**: replacing that loop with `doc:walk` over `Para`, `Plain` and `Header` takes the render from 7 skips to 4 and the delivered docx from 6 to 9 `w:comment`, the three marker kinds agreeing on nine ids, zero cell failing to end on `w:p`, exit 0 on both formats. The three recovered are two bullet items and an ordered-list continuation. The four left are the two paragraphs holding a citation and the two wholly bold ones, which need the second shortcut lifted: map inline offsets and split a `Str` at the boundary instead of refusing the block.
+
+The patch was reverted and the vendored file is byte-identical to `2dc18c0` in `eds-prise`. What it costs, against hand-written store entries that must be re-derived whenever the prose moves: owning a patch over a vendored upstream with one author, which breaks the `quarto update collab-comments` route of the updater section above. Neither route touches the eleven that never reached the store, three of which (the subtitle, the two on a PNG in a table cell, the one on an inline R value) have no body block to anchor to at all.
+
 ## Decision
 
 **1. Adopt, both halves, for this delivery.** The route works, the arithmetic is 13 mechanical and 10 by hand and 1 impossible, and no alternative reproduces itself at the next render: the register answers a different question, and manual docx surgery would have to be redone every time the user re-renders, which is precisely what he asked to stop doing. Ten store entries written once, in a versioned JSON, against a document that will be re-rendered several times, is the cheaper side of that trade by a wide margin.
