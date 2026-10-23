@@ -1,14 +1,15 @@
 ---
 name: Quarto custom format resolves to its base at render time
-description: A custom Quarto format (e.g. `hebstr-doc-docx`) resolves to its base format before knitr starts, so `knitr::pandoc_to()`/`is_html_output()` discriminate from the setup chunk; and `--to <custom-format>` renders a document that does not declare it
+description: A custom Quarto format (e.g. `hebstr-doc-docx`) resolves to its base format before knitr starts, so `knitr::pandoc_to()`/`is_html_output()` discriminate from the setup chunk and a Lua filter's `FORMAT`/`quarto.doc.is_format()` sees the base name; and `--to <custom-format>` renders a document that does not declare it
 metadata:
   type: reference
 ---
 
 Measured 2026-09-09 on Quarto 1.10.18 with the `hebstr-doc` extension, on the real custom formats rather than on generic `format: html` / `format: docx` (the distinction is the actual risk).
 
-Two behaviours, both load-bearing for a single-source multi-format document:
+Three behaviours, all load-bearing for a single-source multi-format document:
 
+- **A Lua filter sees the base format too**, measured 2026-10-23 on Quarto 1.10.19: under `format: hebstr-doc-docx`, `FORMAT` is `docx` and `quarto.doc.is_format('docx')` is true, as `is_format('html')` is under `hebstr-doc-html`. Quarto's `pandoc/datadir/_format.lua` reduces `is_format('docx')` to `FORMAT == "docx"` with no pattern tolerance, so a third-party filter branching on the base format works unchanged on a derived one (worked case: the `collab-comments` docx branch, [[project_collab_comments_evaluation]]).
 - **The custom format resolves to its base before knitr starts.** `quarto render doc.qmd --to hebstr-doc-html` gives `knitr::pandoc_to() == "html"` and `is_html_output() == TRUE`; `--to hebstr-doc-docx` gives `"docx"` and `FALSE`. Available from the `setup` chunk onward, so one document can branch on the render target in R rather than duplicating itself or doubling every output into `::: {.content-visible when-format=}` blocks (which also makes two blocks fight over the same crossref anchor).
 - **`--to <custom-format>` works on a document that does not declare it.** The YAML can keep the routine format alone (`hebstr-doc-html`), and the second one is a command-line argument. A plain `quarto render doc.qmd` then still produces only the routine output instead of every declared format.
 
