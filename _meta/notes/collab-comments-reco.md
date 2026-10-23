@@ -135,6 +135,36 @@ What it does write:
 
 The project's own gates are already clear of it: `prose-lint` and `panache-format` both exclude `^_extensions/` in `prek.toml`, `check-added-large-files --maxkb=1500` sits far above a 24-entry store, `metadata-only` never sees the docx deliverable (`.gitignore` excludes `docs/*/*.docx`), and the `html-id` clean filter has nothing to bite on, the installed subtree carrying no HTML. `check-yaml` will read the extension's `_extension.yml`, which parses.
 
+### Gate, run 2026-10-24: Word accepts the package, and the prediction of 11 skips was wrong in both directions
+
+Render taken 2026-10-23 at 23:54, Word pass 2026-10-24 at 00:01, on the corpus above and nothing else.
+
+**The import wrote 13 store entries, not 24.** `.comments/collab-comments.json` holds exactly the 13 mechanically mappable points, all carrying `filePath: "docs/csi/csi.qmd"`. The 11 others never reached the store, so the render could not skip them: the predicted count of 11 skip lines measured a store this import never produced.
+
+**The render logged 7 skips, and 6 of the 24 points carry, not 13.** `quarto render docs/csi/csi.qmd` exits 0 on both formats, with no `[WARNING]`, no `[ERROR]`, no `Could not fetch resource` and no `Could not convert image`. All seven skips carry one single reason of the six, `selection occurs only in unsupported rendered structure`, and each one is a block shape rather than a string problem:
+
+```
+| id | source line | block the selection lands in |
+| -- | ----------- | ---------------------------- |
+| `ff5b7303` | 51 | `Para` spanning lines 47-52, which carries the citation `@villatte2020` |
+| `92c720d6` | 92 | `Para` spanning lines 91-94, which carries the citation `@has2023_snds` |
+| `e2cb8393` | 101 | item of a `BulletList` |
+| `4e385c3f` | 104 | item of a `BulletList` |
+| `b23f3d50` | 108 | item of a `BulletList`, and wholly `Strong` |
+| `cdc19946` | 130 | continuation paragraph of an `OrderedList` item |
+| `3799fd76` | 188 | top-level `Para`, wholly `Strong` |
+```
+
+The six survivors are `135470a6` (line 54), `5ab9605e` (line 67), `048af7ed` (line 216, a `Header`), `bc99b6d3` (line 276, a `Header`), `39eb5e1b` (line 473) and `c96de565` (line 490): a top-level `Para` holding nothing but `Str`, `Space` and `SoftBreak`, or a `Header`. That is block mappability, which the pass left unmeasured and said could only lower the count. It did, by seven.
+
+**None of the seven is repairable by resizing its selection**, and that is the finding that bears on the `/design` pass. `rewrite_block()` refuses the block, not the span, so a citation anywhere in the paragraph, a list item at any depth and a wholly bold paragraph are each fatal to every selection inside them. The ten points the pass called relocatable were sorted on uniqueness and line containment alone; each now has to clear block shape as well, and where it cannot, the point moves to a neighbouring supported block or leaves the docx, as comment 1 already does.
+
+**Structural pass, `rules/docx.md`, on `docs/csi/2026-10-03_prise_csi.docx`**: zero cells failing to end on `w:p`, 21 `w:tbl`, 5 media parts, one `w:footerReference`, zero unresolved `?@`. `word/comments.xml` is present, declared in `[Content_Types].xml` and related from `word/_rels/document.xml.rels`; it holds 6 `w:comment`, and the id sets of `commentRangeStart`, `commentRangeEnd` and `commentReference` are equal to each other and to those six. No `word/commentsExtended.xml`, as predicted. Author `GAUTHIER Victoria` on all six, with her original timestamps. `git diff --numstat` over `output/`, `docs/snds/output/` and `docs/timeline/output/` returns no HTML line.
+
+**Word opens the package and anchors every comment, so the adoption stands.** `word-render --capture` on `ju-TP2`, Word 16.0.20430, 39 pages all brought back, every declared family installed. No repair prompt, and the table of contents field updated, so Word parsed the document fully rather than degrading it. The six balloons sit on pages 5, 5, 12, 14, 23 and 24, each connected to its exact stored span, including the two that start mid-word (`binaison de branches.` and `notation de référence...`), which Word highlights from the stored offset and not from the word boundary. The kill condition is cleared.
+
+**One measurement the reading did not predict: pandoc writes no `w:initials`**, so each balloon reads `Commented [1]:` where one the reviewer wrote herself reads `Commented [GV1]:`. Her name stays in `w:author` and surfaces in the review pane and on hover. The usage warning above, that nothing distinguishes a re-emitted comment from an original, is therefore too strong for the balloon label and right everywhere else.
+
 ## Decision
 
 **1. Adopt, both halves, for this delivery.** The route works, the arithmetic is 13 mechanical and 10 by hand and 1 impossible, and no alternative reproduces itself at the next render: the register answers a different question, and manual docx surgery would have to be redone every time the user re-renders, which is precisely what he asked to stop doing. Ten store entries written once, in a versioned JSON, against a document that will be re-rendered several times, is the cheaper side of that trade by a wide margin.
@@ -143,13 +173,13 @@ The project's own gates are already clear of it: `prose-lint` and `panache-forma
 
 **3. The editor half is adopted for the re-anchoring first, the import second.** Installing it for the import alone would be a close call, the import covering 13 of 24. Installing it to keep a hand-repaired store anchored under a document the user is still rewriting is not close.
 
-**One kill condition the reading cannot settle**: a real Word must open the package. Comments are new parts, and Word refuses a malformed part outright where LibreOffice converts it (`rules/docx.md`). The gate below tests it and nothing else can.
+**One kill condition the reading cannot settle**: a real Word must open the package. Comments are new parts, and Word refuses a malformed part outright where LibreOffice converts it (`rules/docx.md`). The gate below tests it and nothing else can. **Run 2026-10-24, and cleared**: see "Gate, run 2026-10-24" above.
 
 ### Revisit trigger
 
 Three, each recognisable when it lands.
 
-- **Overturns the adoption**: Word on `ju-TP2` refuses the commented package, or opens it with the comments detached from their ranges. That is the gate's verdict, not a future event.
+- **Overturned the adoption, had it fired**: Word on `ju-TP2` refusing the commented package, or opening it with the comments detached from their ranges. The gate of 2026-10-24 ran it and neither happened, so this one is spent rather than pending.
 - **Retires the ten hand-written entries**: an upstream docx branch that falls back to the stored `contextBefore` / `contextAfter`, which the store already carries and the export ignores, instead of requiring a literal single-line source slice. Watch `selected_source_text()`.
 - **Retires the flattening**: an upstream export that writes `word/commentsExtended.xml`, which would give the reviewer a threaded conversation back.
 
@@ -214,8 +244,8 @@ A skip count above 11 is the block-mappability constraint showing up, not a fail
 
 ## What stays uncovered
 
-- **Block mappability against the 13.** `inline_text()` excludes a whole paragraph for one bold run, link, crossref, citation or inline code, and 38 of 687 lines carry one. The count can only fall, and the gate's skip lines measure it exactly. The md-nesrine figure of 95 % of prose words mappable was measured on another document and does not transfer.
-- **Word's own acceptance of the package.** Nothing on this machine settles it.
+- **Block mappability against the 13: closed by the gate of 2026-10-24.** Seven of the 13 fall, and what the filter refuses is the block rather than the span. The md-nesrine figure of 95 % of prose words mappable was measured on another document and does not transfer.
+- **Word's own acceptance of the package: closed by the gate of 2026-10-24.** Word 16.0.20430 opens it and anchors all six.
 - **Comment 1.** It has no anchorable target, and where it goes instead is the user's call.
 - **The reviewer's text edits.** This tool never carries them; `/review-prose` did, at `c461e9c`.
 - **The HTML export and the preview bridge.** Out of the question asked, and the md-nesrine bench already measured both.
