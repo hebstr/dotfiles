@@ -33,7 +33,7 @@
 - project_git_guard_scope_evaluation.md: sparse-checkout and submodule update stay outside the guard; measured 2026-10-07
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
-- project_collab_comments_evaluation.md: collab-comments adopted 2026-10-23: the Word comment round trip into csi.qmd
+- project_collab_comments_evaluation.md: collab-comments adopted and gated: 6 of 24 Word comments round-trip into csi.qmd
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
@@ -84,6 +84,7 @@
 - reference_better_bibtex_export_control.md: What a Better BibTeX export can emit: honoured prefs, `skipFields`, override files
 - reference_quarto_extension_install_resolution.md: `quarto add owner/repo` installs main even with `@latest`; only `@<tag>` pins
 - reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` loses metadata and `output-dir`, yet gets renamed
+- reference_quarto_page_title_fallback.md: An empty or absent `title:` sends the filename into a page's `<title>`
 - reference_quarto_include_path_resolution.md: `{{< include >}}` resolves against the includer; no root form, standalone only
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
