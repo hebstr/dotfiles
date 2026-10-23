@@ -126,9 +126,9 @@ What it does write:
 ```
 | Half | Writes | Managed how |
 | ---- | ------ | ----------- |
-| Editor | `~/.positron/extensions/michaellydeamore.collab-comments-1.1.0/` plus one entry in that directory's registry | Machine-local, neither stowed nor Syncthing-replicated: only `_meta/profiles/*.code-profile` are versioned |
+| Editor | `~/.positron/extensions/michaellydeamore.collab-comments-1.1.0-universal/` plus one entry in the active profile's registry, `~/.config/Positron/User/profiles/-eb36ac2/extensions.json` for `hebstr-positron` | Machine-local, neither stowed nor Syncthing-replicated: only `_meta/profiles/*.code-profile` are versioned |
 | Editor | Two settings of its own, `commentTracker.defaultAuthor` and `commentTracker.scrollSyncPanel` | Neither is needed here |
-| Quarto | `_extensions/collab-comments/`, four files | Committed by design, as `_extensions/hebstr` already is (95 tracked files) |
+| Quarto | `_extensions/MikeLydeamore/collab-comments/`, four files: `quarto add` nests by owner, as it does for `_extensions/hebstr/hebstr-doc` | Committed by design, as `_extensions/hebstr` already is (95 tracked files) |
 | Document | `filters: [collab-comments]` and a `collab-comments:` block in the YAML of `csi.qmd` | A `/design` pass |
 | Project | `.comments/collab-comments.json` at the project root | A `/design` pass, gitignore line included |
 ```
