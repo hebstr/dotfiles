@@ -37,7 +37,7 @@ So `quarto add MikeLydeamore/collab-comments@v1.1.0` pins exactly today's `main`
 
 Registry, OpenVSX API on 2026-10-23: `MichaelLydeamore.collab-comments` 1.1.0, published 2026-09-07T07:21:51Z, 1331 downloads, `engines.vscode ^1.85.0`, `license` null in the registry metadata where the repository carries MIT. Note the publisher namespace is `MichaelLydeamore` while the forge owner is `MikeLydeamore`: the two install commands do not share a name.
 
-The Quarto half is `_extensions/collab-comments/`, four files, 47.3 KB, `quarto-required: ">=1.4.0"`, and its `_extension.yml` declares `version: 0.1.0`, not 1.1.0.
+The Quarto half installs as `_extensions/MikeLydeamore/collab-comments/`, `quarto add` nesting by owner, four files, 47.3 KB, `quarto-required: ">=1.4.0"`, and its `_extension.yml` declares `version: 0.1.0`, not 1.1.0.
 
 The risk profile of the 2026-09-07 bench is unchanged: one author, no milestone, no published plan, a feature committed six weeks ago and silent since. What offsets it is unchanged too: the store is documented JSON, versionable, and nothing is captive.
 
@@ -186,6 +186,10 @@ The patch was reverted and the vendored file is byte-identical to `2dc18c0` in `
 
 **3. The editor half is adopted for the re-anchoring first, the import second.** Installing it for the import alone would be a close call, the import covering 13 of 24. Installing it to keep a hand-repaired store anchored under a document the user is still rewriting is not close.
 
+**4. The fork, decided by the user on 2026-10-24, after the gate.** The docx branch alone is forked into `quarto-hebstr-doc`, patched there and reviewed there; the editor half stays upstream, a patch to it recovering only 6 of the 11 never-imported points (4 ambiguous selections, 2 spanning source lines), each of which a hand-written store entry also recovers, against a machine-local VSIX no repository of the user's versions. This overturns item 1 on its cost side and not the adoption: the patch is owned, with the loss of the `quarto update collab-comments` route of the updater section below. Three stairs, the first measured and reverted the same day: `doc:walk` over `Para`, `Plain` and `Header` instead of the `ipairs` over `doc.blocks` takes the render from 7 skips to 4 and the docx from 6 to 9 `w:comment`; recursion into formatting containers (`Strong`, `Emph`, `Link`, `Span`, `Quoted`) carries the two wholly bold paragraphs, where every inline is still pure text; atomic inlines (`Cite`, `Code`, `Math`, `Image`) as opaque runs that are never split carry the two holding a citation, for 13 of the 13 imported. **The ceiling is 20 of 24**, four points having no body block at any stair: the subtitle (metadata), the span whose headings were removed on 2026-10-03, and the two aiming at a PNG inside a flextable cell, which pandoc emits as a `RawBlock` of openxml; the last two can be re-aimed at the table caption, which is a `Para`.
+
+**One defect the second stair has to fix, measured on pandoc 3.10 on 2026-10-24.** The filter keeps two text views and its own comment claims they agree ("this must agree with rewrite_block's literal scan above"): counting uses `pandoc.utils.stringify`, which renders a `SoftBreak` as a space, where rewriting uses `inline_text`, which renders it as `\n`. With one sentence per source line, every paragraph of that document carries `SoftBreak`, so the counting offsets and the rewrite offsets diverge. It is unreachable while `selected_source_text()` refuses a selection crossing a source line, no stored literal ever holding `\n`, and it stops being unreachable as soon as the rewrite view widens: the two views must become one function, or counting validates an occurrence that rewriting places elsewhere.
+
 **One kill condition the reading cannot settle**: a real Word must open the package. Comments are new parts, and Word refuses a malformed part outright where LibreOffice converts it (`rules/docx.md`). The gate below tests it and nothing else can. **Run 2026-10-24, and cleared**: see "Gate, run 2026-10-24" above.
 
 ### Revisit trigger
@@ -200,7 +204,7 @@ Three, each recognisable when it lands.
 
 ```sh
 # Quarto half and store, in the project
-rm -rf /home/julien/Documents/des/eds/eds-prise/_extensions/collab-comments
+rm -rf /home/julien/Documents/des/eds/eds-prise/_extensions/MikeLydeamore
 rm -rf /home/julien/Documents/des/eds/eds-prise/.comments
 git -C /home/julien/Documents/des/eds/eds-prise checkout -- docs/csi/csi.qmd
 
@@ -226,6 +230,7 @@ The Quarto half is per-project and pinned on purpose: `quarto update collab-comm
 - **`quarto list extensions` reports 0.1.0** for a `v1.1.0` install, the extension's own manifest declaring that version.
 - **Re-exported comments carry the reviewer's name and her original timestamps**, so nothing in the Word she receives distinguishes a comment the filter re-emitted from one she wrote herself. That is the point of the delivery, and it means a round trip can duplicate a point if the store ever holds two entries for it.
 - **Replies are flattened in both directions**: the import ignores Word threading, the export writes one read-only transcript per thread with `—— Reply · author · timestamp ——` separators. She will not get a conversation back.
+- **The editor half can corrupt the store it is kept for re-anchoring.** Measured on `eds-prise` on 2026-10-24, between a validated store of twenty entries and the next read: six of the twenty took a `trackedChanges` entry of author `julien` whose `previousText` was the stored selection and whose `newText` was the whole document, and a range of line 0 to the last line, taking the file from 20 KB to 1.33 MB. The fourteen others were untouched and the six share neither a shape nor a position; the document had been reformatted by panache in the same minute, no line moving. Nothing in the render catches it, the filter reporting only a selection that no longer matches the source, and the delivered balloon would carry the whole document as its transcript. So a store is verified against the source before any render that ships and before any commit, and the hazard disappears once the document is closed in the editor or the extension disabled, re-anchoring by hand being the fallback the filter's own diagnosis makes cheap.
 
 ## The contained-trial gate
 
