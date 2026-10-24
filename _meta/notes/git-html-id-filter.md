@@ -113,7 +113,8 @@ It replaces the `documentHash` of every comment with sixty-four zeros. The `coll
 The field is a cache token, not anchor data, which is what makes the placeholder harmless: the extension trusts the stored range only when the hash matches, and otherwise re-anchors on `selectedText` plus the surrounding context, which returns `exact` on an unchanged document.
 Same no-`smudge` consequence as the prototype below: only a clone or a `checkout` surfaces the placeholder, and there it costs one recompute when the file is next opened.
 Reasoning, measurements and the rejected alternatives are in that project's `CLAUDE.md`, section « Les filtres `clean` du dépôt ».
-**It has no suite of its own**: `_meta/tests/clean-comment-hash.bats` does not exist, so nothing pins the one form its regex matches, sixty-four lowercase hex after the key. The `bats-tests` hook already fires on `git/.config/git/`, so the suite would join an existing gate rather than need one. The brief is written and the user takes it in a session rooted here; the open condition is that file's absence.
+`_meta/tests/clean-comment-hash.bats` pins the one form its regex matches, sixty-four lowercase hex after the key: the substitution and its constant, idempotence, a multi-entry store whose differing hashes collapse to the same value, the surrounding fields surviving byte for byte, and the forms left alone (uppercase, sixty-three or sixty-five characters, a `sha256:` prefix).
+Like the sibling suite it catches an edit of the script that breaks those forms, never a change of digest upstream, and it runs under the `bats-tests` hook, which already fires on `git/.config/git/`.
 
 ## Settled elsewhere: the same churn on the OOXML artifacts
 
