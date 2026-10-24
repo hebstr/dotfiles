@@ -13,12 +13,12 @@ The footprint is four manifests, all tooling, no workspace and no JS application
 - `bin/.local/bin/css-toolchain-update`: wraps `npm install --save-exact`; 69 lines across three bats files cite `npm`, including a full `npm` stub in `css-toolchain-update.bats`
 - `sys-update` and `sys-cleanup`: `npm update -g`, `npm cache verify`
 - `~/.npmrc` (machine-local, never stowed): `prefix=~/.npm-global`, `allow-scripts=opencode-ai`; one global package, `opencode-ai`
-- `quarto-hebstr-doc`: repo-local install, `npm ci` in `render.yml`, two prek hooks on `node_modules/.bin/`
+- `quarto-hebstr-doc`: repo-local install, `npm ci` in `render.yml`, two prek hooks on `node_modules/.bin/`, pins bumped by a monthly Dependabot `npm` group (see `rules/css.md`, "Commit gate (prek)")
 
 Four measurements that decide it:
 
-- **The disk gain is marginal.** pnpm dedups by hardlink across projects, and the two toolchain trees (30 MB each) are not on the same versions, so only part of the transitive set would link. The large posts are elsewhere: 1.4 GB in `~/.npm/_cacache` and 410 MB of global package.
-- **The strictness gain is already acquired.** `stylelint-config-recommended-scss` declares `stylelint-scss` and `postcss-scss` as real `dependencies`, and `postcss` is a dependency of `stylelint` itself. None of the 112 packages npm hoists to the gate's root is reached by phantom resolution, so pnpm's isolated layout would find nothing.
+- **The disk gain is marginal.** pnpm dedups by hardlink across projects, and the only duplication here is two toolchain trees of about 30 MB, which is therefore the ceiling. Measured on 2026-10-24 they sat on different versions, so only part of the transitive set would have linked; `b772d84` of `quarto-hebstr-doc` aligned them to the gate's pins the same day, which reaches that ceiling and goes no further. The large posts are elsewhere: 1.4 GB in `~/.npm/_cacache` and 410 MB of global package.
+- **The strictness gain is already acquired.** `stylelint-config-recommended-scss` declares `stylelint-scss` and `postcss-scss` as real `dependencies`, and `postcss` is a dependency of `stylelint` itself. None of the 123 packages npm hoists to the gate's root (112 top-level entries, six of them scope directories) is reached by phantom resolution, so pnpm's isolated layout would find nothing.
 - **npm 12 ships both transferable arguments.** npm 12.2.1 (2026-10-15, `node ^22.22.2 || ^24.15.0 || >=26.0.0`) documents `install-strategy=linked` ("install in node_modules/.store, link in place, unhoisted") and recommends it to catch phantom dependencies, and npm 12.0.0 blocks dependency lifecycle scripts by default behind an `allowScripts` policy.
 - **The premise is population-dependent.** Stack Overflow Developer Survey 2025, n = 24,473: npm 56.8%, Yarn 21.1%, pnpm 13.4%. State of JS 2025 monorepo tools: pnpm 3,940 responses against npm Workspaces 2,129. pnpm leads among monorepo users and trails badly in the general population; this footprint is the second case.
 
