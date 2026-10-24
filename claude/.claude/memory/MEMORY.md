@@ -14,7 +14,7 @@
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
 - project_quarto_custom_crossref_float.md: hebstr-doc's `anx` crossref type: annex labels, caption keys, the redeclaration trap
 - project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file
-- project_qmd_format_hook.md: panache on .qmd/.md: prek gate, excludes, the `smart` toggle, splitter defects
+- project_qmd_format_hook.md: panache on .qmd/.md: prek gate, excludes, the `smart` and lint-rule toggles, splitter defects
 - project_shellharden_dotfiles_normalized.md: dotfiles `$VAR` style is shellharden output: never revert or flag it
 - project_litrev_separate_from_hebstr.md: litrev stays out of the hebstr marketplace (2026-04-26); don't re-propose the merge
 - project_autoresearch_skill_deferred.md: `uditgoenka/autoresearch` not adopted (2026-09-11); analysis done, don't redo
