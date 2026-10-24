@@ -172,7 +172,7 @@ That reopens the manual decision of "What it does not do" above, and reinstates 
 The decision is `[filter "out-meta"]` in `git/.gitconfig`, whose program is `git/.config/git/clean-out-meta.py`, attached per project by anchored patterns in that project's `.gitattributes`.
 Git normalises the package on its way into the index, so a re-render that moved nothing else produces a blob identical to the stored one: no hunk, nothing staged, no command to type.
 The precedent is `[filter "html-id"]` and the three-step shape `comment-hash` and `positron-theme` both follow (`git-html-id-filter.md`, "Step 2: the driver"), down to declaring no `smudge` and no `required`.
-The second half is not taken: no project declares `filter=out-meta`, the line sitting in `_meta/profiles/gitattributes` alone, so the filter runs on nothing yet and every count below is of the files the pattern would reach (`rg -uu -l --glob '.gitattributes' 'filter=out-meta' ~/Documents ~/admin ~/dotfiles` answers nothing, 2026-10-24, where the same search without the value finds the five that arm the sibling filters; the glob is what keeps the condition checkable, every note quoting the string being a hit without it).
+The second half is taken in one project: eds-prise declared the four lines on 2026-10-25, so the filter runs there and nowhere else, and every count below that speaks of what the pattern would reach counts files no filter runs on outside it (`rg -uu -l --glob '.gitattributes' 'filter=out-meta' ~/Documents ~/admin ~/dotfiles` answers `eds-prise/.gitattributes` alone, 2026-10-25; the glob is what keeps the condition checkable, every note quoting the string being a hit without it).
 
 Measured the same day over every tracked binary of eds-prise, md-nesrine and eds-avc, each paired with a simulated re-render that moves every field the writers were measured to move: 112 of 112 pairs collapse to the same bytes, 0 differ, the three `.pptx` of eds-avc among them at 111, 71 and 147 members preserved.
 A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 tracked binaries, of which the anchored attribute reaches the 43 that sit under an `output/` tree.
@@ -242,7 +242,8 @@ LibreOffice settles nothing on Word fidelity (`rules/docx.md`, "What nothing on 
 Attempted 2026-10-24 and refused before reaching Word, the interactive session being locked, then run on 2026-10-25: Word 16.0.20430 opened a cleaned `tbl-branche.docx`, its three stamps pinned and every ZIP entry at the 1980 epoch, counted one page and laid the table out whole with no repair dialog and no error banner.
 The pinned form is therefore accepted by the real Word, and the different literal this decision held in reserve against a refusal is not needed.
 Each adopting project then owes one `git add --renormalize` over its binary trees, as `html-id` already required, plus the attribute lines themselves.
-Until that happens the filter is inert everywhere, and the state to check is that no `.gitattributes` under `~/Documents` carries `filter=out-meta`: the entry in `git/.gitconfig` and the program beside it change nothing on their own.
+eds-prise took them on 2026-10-25, its `git add --renormalize .` moving 16 docx of the 43 binaries its anchors reach and leaving the 27 PNG byte-identical, none of them carrying a `tIME`.
+Everywhere else the filter stays inert, and the state to check is which `.gitattributes` under `~/Documents` carries `filter=out-meta`: the entry in `git/.gitconfig` and the program beside it change nothing on their own.
 
 ### Ways rejected
 
