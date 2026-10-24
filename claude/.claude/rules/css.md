@@ -78,10 +78,11 @@ At `~/.local/share/css-gate/stylelint.config.mjs`, extending `stylelint-config-s
 |---|---|
 | `comment-whitespace-inside: null` | Quarto region markers, above |
 | `selector-class-pattern` widened to camelCase | Pandoc emits `.sourceCode` and `.numberSource`, which cannot be renamed. The pattern stays strict on everything else rather than disabling the rule |
-| `at-rule-disallowed-list: ["import"]` | Sass `@import` is deprecated since Dart Sass 1.80.0 and removed in 3.0.0. A Quarto render swallows the compiler's deprecation warning, so the gate is the only signal. Use `@use` |
+| `at-rule-disallowed-list: ["import"]` | Sass `@import` is deprecated since Dart Sass 1.80.0 and removed in 3.0.0. A Quarto render swallows the compiler's deprecation warning, so the gate is the only signal. `@use` replaces it in ordinary SCSS, and is its own hazard inside a Quarto theme layer: Quarto concatenates user layers without deduplicating, so a consumer whose own stylesheet loads the same module fails the render on a duplicate namespace. A theme file therefore declares neither, which is why `quarto-hebstr-doc` bans both |
 ```
 
 Legacy Sass color functions need no rule of their own: `scss/no-global-function-names`, active in the preset, already reports `lighten`, `darken`, `transparentize`, `adjust-hue`, `map-get` and `nth` with the exact module replacement to use.
+Inside a Quarto theme layer that replacement is a dead end: it needs a `@use "sass:color"` or `@use "sass:list"` that the row above rules out, so restructure to avoid the legacy function rather than swapping it (`quarto-hebstr-doc` unpacks `$callout-types` by `@each` destructuring instead of reaching for `list.nth()`).
 
 Known gap: legacy `/` division, deprecated in favor of `math.div()`, is caught by no rule in this gate, and a Quarto render does not surface the compiler warning either. It has to be caught by review.
 
@@ -136,6 +137,19 @@ The alternative, an `extends` pointing at an absolute path into `~/.local/share/
 This does not belong in `_meta/profiles/prek.toml`: unlike `typstyle` or `stylua`, whose hooks come from pinned upstream repos that provision the binary themselves, a CSS hook seeded into a new project would depend on a config and an npm install that project does not have.
 The only CSS the `~/dotfiles` repo tracks is a vendored Obsidian theme, never hand-authored, so its own `prek.toml` carries no such hook either.
 Wired so far: `quarto-hebstr-doc` (repo-local install, `npm ci` step in `render.yml`).
+
+A wired repo pins its own copies and tracks upstream on its own schedule, so it and the gate routinely sit on different versions: `css-toolchain-update` bumps the gate on demand, while `quarto-hebstr-doc` is bumped by a monthly Dependabot `npm` group with a seven-day cooldown (`.github/dependabot.yml`, group `css-gate`).
+A lag of up to a month is that schedule working rather than a defect, and no check is missing.
+To align a repo sooner, bump it by hand from its root and run its own gate over everything:
+
+```sh
+npm install --save-exact --save-dev --no-fund --no-audit prettier@<version> stylelint@<version>
+prek run --all-files
+```
+
+Done that way on 2026-10-24 (prettier 3.9.9 to 3.9.10, stylelint 17.15.0 to 17.16.0, both hooks clean and the 112 Lua tests passing).
+Check `gh pr list --state open` first: a hand bump and a pending Dependabot PR on the same group conflict.
+A wired repo's own `stylelint.config.mjs` is not interchangeable with the shared one, only the version pins track: `quarto-hebstr-doc` additionally bans `@use`, for the reason in the `at-rule-disallowed-list` row of "Shared config" above.
 
 Edit-time coverage has none of these constraints: the `format-on-edit` hook runs under bash, where `$HOME` expands, so it uses the shared config directly and needs nothing per project.
 
