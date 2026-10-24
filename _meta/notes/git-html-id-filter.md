@@ -180,7 +180,7 @@ Neither reaches a `textconv` driver, which rewrites nothing and only feeds `git 
 **Reversed on 2026-10-24**, the user having asked for the restore to be automated: the clean filter is back as `out-meta`, and the two reservations above are answered rather than dismissed.
 The first is answered by measurement, 109 of 109 tracked binaries of three projects collapsing to the same bytes across a re-render.
 The second is answered by pinning each stamp to a fixed valid value instead of emptying it, which keeps the declared types the first prototype broke; the `2017-02-28` creation date of the `officer` template still flattens, and loses nothing about the document it dates.
-The decision, the division of labour with the diff driver and the one pass still owed on the real Word are in `git-out-textconv.md`, section "A clean filter keeps the noise out of the index".
+The decision, the division of labour with the diff driver and the pass on the real Word, run and accepted on 2026-10-25, are in `git-out-textconv.md`, section "A clean filter keeps the noise out of the index"; what that pass leaves open is each project's attribute lines and the questions only a licensed Word answers.
 
 The point left unverified here is answered, and the answer is yes: `officer` varies more than `core.xml`.
 `word/fontTable.xml` and the four `word/fonts/font*.odttf` move on every write, `officer::docx_embed_font()` drawing a fresh `w:fontKey` GUID that ODTTF obfuscation XORs into the first 32 bytes of each subset.

@@ -192,9 +192,10 @@ PNG payloads are never re-encoded either: a PNG loses its `tIME` chunk and keeps
 So no rendering engine can read the cleaned package differently from the raw one: on that report the only members that move are `docProps/core.xml`, `docProps/app.xml` and that one dropped chunk.
 The standalone `*.png` route normalises nothing on the current corpus: none of the 139 PNG sitting under an `output/` tree the pattern would match carries a `tIME` chunk or a byte past `IEND`, so a `git add --renormalize` that touches no PNG blob is the expected reading rather than a sign the filter failed (measured 2026-10-24).
 
-### What the first pass through the real Word still owes
+### What a licensed Word still owes
 
-Three questions no tool on this machine settles, each about an Office save rather than a render, and none of them reached by the measurements above (`/audit:walkthrough`, 2026-10-24).
+Three questions no tool reachable from here settles, each about an Office save rather than a render, and none of them reached by the measurements above (`/audit:walkthrough`, 2026-10-24).
+The 2026-10-25 pass does not reach them either, and cannot: the Word of ju-TP2 is unlicensed, so it lays out and paginates but writes no file, which is what `word-render` reports on every capture and what [[project_word_render_control]] records; no save can be performed there to measure.
 `cp:revision` and `cp:lastModifiedBy` are not pinned, and 27 of the 28 tracked outputs the pattern would reach carry `9` and `julien`, the 28th carrying no `cp:revision` element at all, each inherited verbatim from the reference docx and stable across renders, so the filter's own goal is unaffected: the case for pinning them rests on whether a Word open-and-save that changed no content moves them while bringing the rest of the package back identical, and if it does not, the pin buys nothing.
 `docProps/thumbnail.jpeg` and `ppt/printerSettings/printerSettings1.bin` pass through byte for byte, neither occurs in any of the 28 files the pattern would reach, and whether Office rewrites them on such a save is unestablished.
 Blanking `cp:lastModifiedBy` for privacy was weighed and declined: a reviewer's Word round trip puts the same name in the `w:author` of `word/comments.xml`, which is content the filter must not touch.
@@ -234,12 +235,12 @@ The last case is what makes the two programs safe to keep separate: they share o
 Cases one and two are dormant guards rather than current needs: measured 2026-10-24, no tracked docx of eds-prise or md-nesrine embeds a font subset (0 of 16 and 0 of 14), so nothing exercises the font branch today.
 The `.pptx` line of the template is not dormant: eds-avc tracks three decks, and they sit under `docs/slides/` rather than in a render tree, so the anchored patterns do not reach them and that project owes a line of its own.
 
-### Open: adoption waits on one pass through the real Word
+### Open: each adopting project owes its attribute lines
 
 The stored bytes now change, which is what the `out-textconv` route was built to avoid, and with no `smudge` a `checkout` writes the rebuilt package into the worktree.
-LibreOffice settles nothing on Word fidelity (`rules/docx.md`, "What nothing on this machine settles"), so adoption waits on `word-render --capture` opening a cleaned docx on ju-TP2 without a repair dialog.
-Attempted 2026-10-24 and refused before reaching Word, the interactive session being locked; only the user can unlock that station.
-If Word rejects the pinned form, the fallback inside this decision is a different literal, and the fallback outside it is the hook repairing itself, rejected below.
+LibreOffice settles nothing on Word fidelity (`rules/docx.md`, "What nothing on this machine settles"), so adoption waited on `word-render --capture` opening a cleaned docx on ju-TP2 without a repair dialog.
+Attempted 2026-10-24 and refused before reaching Word, the interactive session being locked, then run on 2026-10-25: Word 16.0.20430 opened a cleaned `tbl-branche.docx`, its three stamps pinned and every ZIP entry at the 1980 epoch, counted one page and laid the table out whole with no repair dialog and no error banner.
+The pinned form is therefore accepted by the real Word, and the different literal this decision held in reserve against a refusal is not needed.
 Each adopting project then owes one `git add --renormalize` over its binary trees, as `html-id` already required, plus the attribute lines themselves.
 Until that happens the filter is inert everywhere, and the state to check is that no `.gitattributes` under `~/Documents` carries `filter=out-meta`: the entry in `git/.gitconfig` and the program beside it change nothing on their own.
 
