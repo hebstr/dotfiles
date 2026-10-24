@@ -242,6 +242,8 @@ LibreOffice settles nothing on Word fidelity (`rules/docx.md`, "What nothing on 
 Attempted 2026-10-24 and refused before reaching Word, the interactive session being locked, then run on 2026-10-25: Word 16.0.20430 opened a cleaned `tbl-branche.docx`, its three stamps pinned and every ZIP entry at the 1980 epoch, counted one page and laid the table out whole with no repair dialog and no error banner.
 The pinned form is therefore accepted by the real Word, and the different literal this decision held in reserve against a refusal is not needed.
 Each adopting project then owes one `git add --renormalize` over its binary trees, as `html-id` already required, plus the attribute lines themselves.
+**That first renormalise does not pass the `metadata-only` hook**, which reads the staged blobs through the diff driver and sees outputs differing in write metadata alone, the very shape it exists to refuse: it cannot tell a normalisation migration from a noise re-render, so the one commit that arms a project runs under `SKIP=metadata-only` (measured on eds-prise, 2026-10-25, sixteen docx listed and the hook pointing at `metadata-only --restore`, which would have undone the staging).
+Every later commit passes it untouched, the noise no longer reaching the index at all.
 eds-prise took them on 2026-10-25, its `git add --renormalize .` moving 16 docx of the 43 binaries its anchors reach and leaving the 27 PNG byte-identical, none of them carrying a `tIME`.
 Everywhere else the filter stays inert, and the state to check is which `.gitattributes` under `~/Documents` carries `filter=out-meta`: the entry in `git/.gitconfig` and the program beside it change nothing on their own.
 
