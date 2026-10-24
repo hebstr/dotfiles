@@ -41,6 +41,7 @@
 - reference_zotero_metadata_acquisition.md: Zotero 10 PMID/PMCID native fields, NLM abbreviations only from the PubMed translator
 - reference_syncthing_ghost_records.md: Finding which device holds a stale record of an ignored path; the phones' `.stignore`
 - reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
+- reference_warp_scholar_split_tunnel.md: Scholar 403s through WARP: the excluded host plus the Firefox TRR exclusion
 - reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on a lazy duckdb table never completes; use `semi_join`
 - reference_dbplyr_null_semantics.md: SQL NULLs silently change a dplyr pipeline's counts; `coalesce()`, verify on the artifact
 - reference_duckdb_storage_version_split.md: the v2.0.0 CLI writes a format R 1.5.6 cannot open; the `v` prefix

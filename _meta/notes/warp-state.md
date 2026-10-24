@@ -102,6 +102,24 @@ Nuance de fond : l'IPv6 géolocalise à Lille, donc WARP ne déplace pas, il cho
 L'adresse réelle est masquée aux sites visités, la ville reste inférable, et Cloudflare connaît l'origine.
 Pour un besoin d'anonymat plutôt que de chiffrement du transport, WARP n'est pas l'outil.
 
+## Google Scholar refuse la sortie WARP
+
+*2026-10-24*
+
+Mesuré : `scholar.google.com` répond 403 « We're sorry... automated queries » à travers le tunnel, quel que soit le navigateur et quelle que soit la requête, pendant que `www.google.com/search` répond 200 par la même sortie.
+C'est donc une politique propre à Scholar contre les plages Cloudflare, pas un blocage Google général.
+Tunnel coupé, la même requête passe en 200 par l'adresse du forfait mobile.
+
+Correctif posé : `warp-cli --accept-tos add-excluded-host scholar.google.com`, inscrit dans `/var/lib/cloudflare-warp/settings.json` et donc persistant au redémarrage.
+
+**L'exclusion par hôte porte sur les IP que le résolveur de WARP a rendues**, pas sur le nom.
+Elle suit la rotation sans entretien (`64.233.184.x` puis `142.250.110.x` le même jour, 200 dans les deux cas), mais une application qui résout ailleurs obtient d'autres IP, qui restent tunnelisées : `142.251.14.99`, réponse de dnsforge pour le même nom, donnait 403 tunnel actif.
+D'où le volet Firefox dans `dns-dnsforge-firefox.md` : le DoH du navigateur court-circuite ce mécanisme.
+
+`scholar.l.google.com` ne publie pas d'AAAA, donc rien à exclure côté IPv6.
+
+Voie écartée : `add-excluded-route 142.250.0.0/15` fonctionne quel que soit le résolveur (mesuré 200 sur l'IP dnsforge), mais sort du tunnel toute la bordure Google, services tiers compris, et les plages seraient à entretenir à la main.
+
 ## Diagnostic
 
 ~~~bash

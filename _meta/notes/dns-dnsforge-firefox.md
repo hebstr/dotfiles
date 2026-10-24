@@ -80,6 +80,7 @@ Prefs ajoutées au `user.js` du profil :
 user_pref("network.trr.mode", 3);
 user_pref("network.trr.uri", "https://clean.dnsforge.de/dns-query");
 user_pref("network.trr.custom_uri", "https://clean.dnsforge.de/dns-query");
+user_pref("network.trr.excluded-domains", "annas-archive.org,r.nuage-sirh.fr,scholar.google.com");
 ~~~
 
 Profil Clean depuis le 2026-09-12, Normal auparavant.
@@ -99,6 +100,17 @@ Fait pour les quatre, et vérifié durable : Firefox a réécrit `prefs.js` à l
 
 Contrepartie assumée du mode 3 : aucun repli. Si dnsforge devient injoignable, plus rien ne se résout dans Firefox, et l'attente peut durer trente secondes avant l'échec.
 Le retour au mode 2 ne coûte qu'une ligne, mais il rétablit l'absence totale de filtrage décrite plus bas.
+
+### Domaines rendus au résolveur système
+
+`network.trr.excluded-domains` sort un nom du DoH et le fait résoudre par le DNS système, donc par WARP ici, et cela vaut aussi en mode 3 : la liste est consultée avant le mode.
+`IsExcludedFromTRR_unlocked` compare la chaîne après chaque point, donc une entrée `google.com` couvrirait aussi les sous-domaines, là où `scholar.google.com` ne vaut que pour lui-même.
+
+Les deux premières entrées sont antérieures et viennent d'`about:config`.
+`scholar.google.com` a été ajouté le 2026-10-24 pour une raison différente du filtrage : Scholar refuse les plages de sortie de WARP, et l'exclusion de tunnel posée côté `warp-cli` ne connaît que les IP rendues par le résolveur de WARP.
+Tant que Firefox résolvait le nom chez dnsforge, il obtenait d'autres IP de la bordure Google, qui repartaient dans le tunnel et recevaient le 403. Mesures dans `warp-state.md`.
+
+Conséquence : la pref passe de `prefs.js` à `user.js`, donc elle est désormais réappliquée à chaque démarrage et un ajout fait dans `about:config` ne tiendra plus (voir « Piège du user.js » plus bas).
 
 ### Pourquoi le mode 2 ne filtre rien
 
@@ -195,7 +207,7 @@ Le changement ne prend pas effet à chaud.
 
 Les valeurs de `user.js` sont réappliquées à chaque démarrage de Firefox.
 Un changement fait dans l'interface ou dans `about:config` tient jusqu'à la fermeture, puis revient à la valeur du fichier.
-Pour piloter le réglage depuis l'interface, retirer du fichier dans le paquet ses trois lignes `network.trr`, puis relancer Firefox.
+Pour piloter le réglage depuis l'interface, retirer du fichier dans le paquet ses lignes `network.trr`, puis relancer Firefox.
 Les valeurs déjà écrites dans `prefs.js` restent en place, l'interface reprend la main à partir de là.
 Ne pas passer par `stow -D firefox` pour cela : cela retire le lien entier, donc aussi `browser.profiles.enabled` qui n'a rien à voir avec le DNS.
 
