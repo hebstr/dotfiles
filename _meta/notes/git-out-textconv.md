@@ -127,7 +127,8 @@ Plain text, no colour, no symbol.
 The trigger was a real commit on md-nesrine the same day: 14 files reported under 5 repeated headers, each followed by a `for` loop of at least 208 characters, its length with a single path.
 The repetition is prek's, not the script's: without `require_serial`, prek 0.5.3 splits filenames into batches of `max(4, ceil(n / CPU count))` (`Partitions::split` in `crates/prek/src/run.rs`) and runs the script once per batch, each invocation printing its own header and command.
 With `require_serial` the whole list goes to one invocation, ARG_MAX permitting, which is also how ruff-pre-commit declares its hooks.
-The flag belongs in `_meta/profiles/prek.toml` and in every project copy of the hook, md-nesrine's `prek.toml` being one that does not follow the scaffold.
+The flag belongs in `_meta/profiles/prek.toml` and in every project copy of the hook.
+Measured 2026-10-24, eds-prise's `prek.toml` is the only copy still without it, md-nesrine's having been aligned since: the condition to check is that `rg -c require_serial` answers on all five of eds-prise, md-nesrine, crpv-ciclo, crpv-aod and eds-avc.
 
 The shape follows clig.dev (read in full 2026-09-16): same-type errors grouped under one explanatory header, the most important information last, a suggested next command that stays short, as its own examples `chmod +w file.txt` and `git restore <file>...` do.
 The layout mirrors `sys-orphans`, which lists findings under a counted header and closes on the reminder that fixes are the user's to run.
@@ -221,6 +222,7 @@ LibreOffice settles nothing on Word fidelity (`rules/docx.md`, "What nothing on 
 Attempted 2026-10-24 and refused before reaching Word, the interactive session being locked; only the user can unlock that station.
 If Word rejects the pinned form, the fallback inside this decision is a different literal, and the fallback outside it is the hook repairing itself, rejected below.
 Each adopting project then owes one `git add --renormalize` over its binary trees, as `html-id` already required, plus the attribute lines themselves.
+Until that happens the filter is inert everywhere, and the state to check is that no `.gitattributes` under `~/Documents` carries `filter=out-meta`: the entry in `git/.gitconfig` and the program beside it change nothing on their own.
 
 ### Ways rejected
 
