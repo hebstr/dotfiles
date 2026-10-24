@@ -295,6 +295,8 @@
     "vignettes": "docs",
   },
 
+  "commentTracker.defaultAuthor": "ELICES-DIEZ Julien",
+
   // NETWORK -------------------------------------------------------------------
 
   "json.schemaDownload.enable": false,
@@ -769,4 +771,5 @@
   "workbench.editorAssociations": {
     "*.md": "default",
   },
+  "workbench.secondarySideBar.showLabels": false,
 }
