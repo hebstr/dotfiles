@@ -119,6 +119,7 @@ Same no-`smudge` consequence as the prototype below: only a clone or a `checkout
 Reasoning, measurements and the rejected alternatives are in that project's `CLAUDE.md`, section « Les filtres `clean` du dépôt ».
 `_meta/tests/clean-comment-hash.bats` pins the one form its regex matches, sixty-four lowercase hex after the key: the substitution and its constant, idempotence, a multi-entry store whose differing hashes collapse to the same value, the surrounding fields surviving byte for byte, and the forms left alone (uppercase, sixty-three or sixty-five characters, a `sha256:` prefix).
 Like the sibling suite it catches an edit of the script that breaks those forms, never a change of digest upstream, and it runs under the `bats-tests` hook, which already fires on `git/.config/git/`.
+That upstream half is checked by running the filter over the live store, which the hand-written fixtures cannot do: on 2026-10-24 its eighteen entries all carried a sixty-four lowercase hex digest, all eighteen came out zeroed, every other byte held (17,872 in and out) and a second pass changed nothing.
 
 ## Settled elsewhere: the same churn on the OOXML artifacts
 
