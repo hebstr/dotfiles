@@ -24,6 +24,45 @@ _store() {
   printf ']}\n'
 }
 
+_pretty_entry() {
+  printf '    {\n'
+  printf '      "id": "c%s",\n' "$1"
+  printf '      "author": "GAUTHIER Victoria",\n'
+  printf '      "timestamp": "2026-09-14T11:52:00.000Z",\n'
+  printf '      "text": "le plan peut \303\252tre am\303\251lior\303\251",\n'
+  printf '      "filePath": "docs/csi/csi.qmd",\n'
+  printf '      "range": {\n'
+  printf '        "start": {\n'
+  printf '          "line": 25,\n'
+  printf '          "character": 2\n'
+  printf '        },\n'
+  printf '        "end": {\n'
+  printf '          "line": 25,\n'
+  printf '          "character": 25\n'
+  printf '        }\n'
+  printf '      },\n'
+  printf '      "selectedText": "crit\303\250re d\342\200\231inclusion",\n'
+  printf '      "contextBefore": "avant",\n'
+  printf '      "contextAfter": "apr\303\250s",\n'
+  printf '      "documentHash": "%s",\n' "$2"
+  printf '      "replies": [],\n'
+  printf '      "trackedChanges": [],\n'
+  printf '      "resolved": false\n'
+  printf '    }'
+}
+
+_pretty_store() {
+  local i=0 sep='' hash
+  printf '{\n  "comments": [\n'
+  for hash in "$@"; do
+    i=$((i + 1))
+    printf '%s' "$sep"
+    _pretty_entry "$i" "$hash"
+    sep=$',\n'
+  done
+  printf '\n  ]\n}\n'
+}
+
 @test "the gitconfig driver points at this script inside the git package" {
   run -0 git config -f "$BATS_TEST_DIRNAME/../../git/.gitconfig" --get filter.comment-hash.clean
   # shellcheck disable=SC2088
@@ -45,6 +84,14 @@ _store() {
   [ "$output" = "$(_store "$ZEROS" "$ZEROS" "$ZEROS")" ]
 }
 
+@test "a pretty-printed store in the live shape is normalized byte for byte" {
+  _pretty_store "$HASH_A" "$HASH_B" >"$BATS_TEST_TMPDIR/in.json"
+  _pretty_store "$ZEROS" "$ZEROS" >"$BATS_TEST_TMPDIR/want.json"
+  "$SCRIPT" <"$BATS_TEST_TMPDIR/in.json" >"$BATS_TEST_TMPDIR/out.json" 2>"$BATS_TEST_TMPDIR/err"
+  cmp "$BATS_TEST_TMPDIR/want.json" "$BATS_TEST_TMPDIR/out.json"
+  [ ! -s "$BATS_TEST_TMPDIR/err" ]
+}
+
 @test "a second pass changes nothing" {
   _store "$HASH_A" "$HASH_B" >"$BATS_TEST_TMPDIR/in.json"
   "$SCRIPT" <"$BATS_TEST_TMPDIR/in.json" >"$BATS_TEST_TMPDIR/once.json"
@@ -53,7 +100,7 @@ _store() {
   cmp "$BATS_TEST_TMPDIR/once.json" "$BATS_TEST_TMPDIR/twice.json"
 }
 
-@test "nothing but the document hash changes" {
+@test "every key other than the document hash keeps its value" {
   _store "$HASH_A" "$HASH_B" >"$BATS_TEST_TMPDIR/in.json"
   "$SCRIPT" <"$BATS_TEST_TMPDIR/in.json" >"$BATS_TEST_TMPDIR/out.json"
   run -0 jq -e '.comments[0] | has("range") and has("selectedText") and has("contextBefore") and has("contextAfter") and has("trackedChanges")' "$BATS_TEST_TMPDIR/out.json"
