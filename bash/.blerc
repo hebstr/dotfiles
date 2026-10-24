@@ -1,15 +1,28 @@
 # shellcheck shell=bash
 ### FILENAMES ---------------------------------------------------------------
 
-__blerc_ls_colors() {
-  bleopt filename_ls_colors="$LS_COLORS"
-}
-blehook ATTACH!=__blerc_ls_colors
+bleopt filename_ls_colors=
+
+ble-face -s filename_directory none
+ble-face -s filename_directory_sticky none
+ble-face -s filename_link none
+ble-face -s filename_executable none
+ble-face -s filename_other none
+ble-face -s filename_socket none
+ble-face -s filename_pipe none
+ble-face -s filename_character none
+ble-face -s filename_block none
+ble-face -s filename_setuid none
+ble-face -s filename_setgid none
+ble-face -s filename_url none
+ble-face -s filename_ls_colors none
+ble-face -s filename_orphan fg=#ff5370
+ble-face -s filename_warning fg=#ff5370
 
 ### SYNTAX ------------------------------------------------------------------
 
 ble-face -s syntax_default none
-ble-face -s syntax_command fg=#3b8eea
+ble-face -s syntax_command fg=#3b8eea,bold
 ble-face -s syntax_function_name fg=#3b8eea,bold
 ble-face -s syntax_quoted fg=#23d18b
 ble-face -s syntax_quotation fg=#23d18b,bold
@@ -28,18 +41,18 @@ ble-face -s syntax_error fg=#ff5370,bold
 
 ### COMMANDS ----------------------------------------------------------------
 
-ble-face -s command_builtin fg=#3b8eea
+ble-face -s command_builtin fg=#3b8eea,bold
 ble-face -s command_builtin_dot fg=#3b8eea,bold
-ble-face -s command_alias fg=#3b8eea
-ble-face -s command_function fg=#3b8eea
-ble-face -s command_file fg=#3b8eea
-ble-face -s command_directory fg=#3b8eea,underline
-ble-face -s command_keyword fg=#d08aff
+ble-face -s command_alias fg=#3b8eea,bold
+ble-face -s command_function fg=#3b8eea,bold
+ble-face -s command_file fg=#3b8eea,bold
+ble-face -s command_directory fg=#3b8eea,bold
+ble-face -s command_keyword fg=#d08aff,bold
 ble-face -s command_jobs fg=#ff5370,bold
 
 ### ARGUMENTS AND VARIABLES -------------------------------------------------
 
-ble-face -s argument_option fg=#ffbc6a
+ble-face -s argument_option fg=#ffa13d,bold
 ble-face -s varname_array fg=#ffffff
 ble-face -s varname_expr fg=#ffffff
 ble-face -s varname_export fg=#ffffff,bold
