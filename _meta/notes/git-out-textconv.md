@@ -116,12 +116,12 @@ The tell is a diff limited to one element under `### docProps/`; the fix is one 
 ## What it does not do
 
 It does not reduce the weight of the repository: a commit still stores the full new blob.
-It makes the decision possible, restoring the noise instead of committing it, and the decision stays manual.
-The `metadata-only` prek hook (`bin/.local/bin/prek-metadata-only`, declared in `_meta/profiles/prek.toml`) enforces it at commit: a staged, modified binary with an empty patch body fails the commit and the hook points to `prek-metadata-only --restore`, while restoring stayed the user's act until 2026-10-24, when the user asked for that step to be automated: see "The manual restore is reopened, 2026-10-24" below.
+It makes the decision possible, restoring the noise instead of committing it, and that decision was manual until 2026-10-24.
+The `metadata-only` prek hook (`bin/.local/bin/metadata-only`, declared in `_meta/profiles/prek.toml`) enforces it at commit: a staged, modified binary with an empty patch body fails the commit and the hook points to `metadata-only --restore`, while restoring stayed the user's act until 2026-10-24, when the `out-meta` clean filter took the common case: see "A clean filter keeps the noise out of the index" below.
 
 ## The hook's failure message prints once and ends on a short command
 
-Decided and implemented 2026-09-16: the hook runs with `require_serial = true`, prints one header counting the files, the file list, and ends on `prek-metadata-only --restore`, a mode that recomputes the noise set and applies the restore-or-unstage split when it runs.
+Decided and implemented 2026-09-16: the hook runs with `require_serial = true`, prints one header counting the files, the file list, and ends on `metadata-only --restore`, a mode that recomputes the noise set and applies the restore-or-unstage split when it runs.
 Plain text, no colour, no symbol.
 
 The trigger was a real commit on md-nesrine the same day: 14 files reported under 5 repeated headers, each followed by a `for` loop of at least 208 characters, its length with a single path.
@@ -134,7 +134,7 @@ The layout mirrors `sys-orphans`, which lists findings under a counted header an
 
 ### Why a recomputing mode rather than a printed command
 
-The restore is conditional per file: a working copy re-rendered after staging is only unstaged, never overwritten, and `_meta/tests/prek-metadata-only.bats` pins that with a render made between the hook's message and the `--restore` run.
+The restore is conditional per file: a working copy re-rendered after staging is only unstaged, never overwritten, and `_meta/tests/metadata-only.bats` pins that with a render made between the hook's message and the `--restore` run.
 A printed command can only keep that guarantee by carrying the condition, which is what made the loop unreadable.
 `--restore` keeps it by deciding at execution time, and costs a second mode in the script with its own tests.
 
@@ -163,9 +163,74 @@ The 3, 3, 3, 4, 1 grouping, which does not match batches of 4 on 12 CPUs, is clo
 The check after implementation is a single header on md-nesrine's next metadata-only commit.
 The grouping explained itself on the first run of the new message, 2026-09-16, before md-nesrine's `prek.toml` carried the flag: 17 matching staged files, 16 modified and 1 added, split 4, 4, 4, 4, 1, and the three files that pass (two content changes and the added one) fell one in each of the first, second and third batches, hence 3, 3, 3, 4, 1 listed.
 
-## The manual restore is reopened, 2026-10-24
+## A clean filter keeps the noise out of the index
 
-The user asked for the `--restore` step to be automated, so "restoring stays the user's act" is no longer settled.
-Measured on eds-prise the same day: 13 of 13 modified tracked outputs were pure write-metadata noise, a re-rendered docx differed from its `HEAD` blob in `docProps/core.xml` alone, none of the 16 tracked docx embeds an ODTTF font subset, and a `clean` filter prototype made all 56 tracked binaries byte-identical between blob and worktree.
-`post-index-change` is ruled out as an automation point: it fires on a no-op `git add` and on `git status`, and a hook that writes the index re-fires itself, git applying no reentrancy guard.
-The decision is framed by `/design` from `~/dotfiles/.claude/PROMPT.md`, which also carries the user's decision to rename the script `metadata-only`, dropping the `prek-` prefix a prek hook does not earn.
+Decided 2026-10-24, on the user's request to automate the `--restore` step.
+That reopens the manual decision of "What it does not do" above, and reinstates a shape rejected on 2026-09-12 for want of the measurements below (`git-html-id-filter.md`, "Settled elsewhere: the same churn on the OOXML artifacts").
+
+The decision is `[filter "out-meta"]` in `git/.gitconfig`, whose program is `git/.config/git/clean-out-meta.py`, attached per project by anchored patterns in that project's `.gitattributes`.
+Git normalises the package on its way into the index, so a re-render that moved nothing else produces a blob identical to the stored one: no hunk, nothing staged, no command to type.
+The precedent is `[filter "html-id"]` and the three-step shape `comment-hash` and `positron-theme` both follow (`git-html-id-filter.md`, "Step 2: the driver"), down to declaring no `smudge` and no `required`.
+
+Measured the same day over every tracked binary of eds-prise, md-nesrine and eds-avc, each paired with a simulated re-render that moves every field the writers were measured to move: 112 of 112 pairs collapse to the same bytes, 0 differ, the three `.pptx` of eds-avc among them at 111, 71 and 147 members preserved.
+A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 tracked binaries, of which the anchored attribute reaches the 43 that sit under an `output/` tree.
+`_meta/tests/clean-out-meta.bats` pins the contract in 23 tests, and six mutations of the program each fail between one and four of them.
+
+### The volatile value is pinned rather than emptied, because the package declares its types
+
+`dcterms:created` and `dcterms:modified` carry `xsi:type="dcterms:W3CDTF"` and `TotalTime` holds an integer, so an empty element breaks the type the package declares, and Word enforces the content model by refusing to open a file rather than by degrading it (`rules/docx.md`, "Structural validity, which a render never tests").
+Stability is the whole requirement and any fixed value gives it, so the three are pinned to `1980-01-01T00:00:00Z`, `1980-01-01T00:00:00Z` and `0`, and the ZIP entry dates to the 1980 epoch the format floors at.
+The `out-textconv` driver empties the same three, which costs it nothing: it renders text and stores no bytes.
+
+### The filter normalises strictly less than the driver beside it
+
+The `w:fontKey` GUID and the 32-byte ODTTF obfuscation header are left alone, since blanking the key without re-keying the payload it XORs produces a file Word refuses.
+PNG payloads are never re-encoded either: a PNG loses its `tIME` chunk and keeps every other one byte for byte, verified on `word/media/rId36.png` of md-nesrine's report, whose three IDAT chunks come through identical at 74 352 bytes.
+So no rendering engine can read the cleaned package differently from the raw one: on that report the only members that move are `docProps/core.xml`, `docProps/app.xml` and that one dropped chunk.
+
+### The fallback is a passthrough, since here the output is what git stores
+
+Anything that is neither a ZIP nor a PNG, and anything that fails to parse, is written through byte for byte at exit 0.
+Where the driver may fall back on a digest, a mangled output here destroys content git has no way to recover.
+The archive comment and each member's `compress_type`, `external_attr`, `internal_attr` and `create_system` are preserved; trailing bytes past the central directory are dropped, which a valid package never carries.
+
+### The attribute is anchored, where the driver's globs are broad
+
+A clean filter rewrites bytes and earns its narrow scope, as "Setup" above already says of the contrast with `html-id`.
+`_meta/profiles/gitattributes` carries four `**/output/**/*` lines, which reach a render tree at any depth and leave hand-authored sources out by construction.
+Verified 2026-10-24 against the real layouts: `output/tbl-a/t.docx`, `docs/snds/output/tbl-b/t.png` and `docs/timeline/output/timeline.docx` route through the filter, while eds-prise's three hand-edited workbooks (`collect/`, `docs/snds/dict-snds-source.xlsx`, `docs/timeline/2026-09-29_prise_timeline.xlsx`), its `.streamlit/shots/` captures and md-nesrine's dated deliverable in `docs/` stay out.
+A deliverable outside a render tree takes its own line in that project, the way `html-id` carries `*_rapport-stat.html` beside its `output/**` glob.
+
+### The hook stays the backstop for what the filter cannot reach
+
+Four cases, and the hook's behaviour is unchanged on all of them:
+
+- a fresh `w:fontKey` with its ODTTF header, which the filter must not touch;
+- a PNG whose encoder recompressed or whose IDAT split moved, which the filter must not re-encode;
+- a path the project routed through the diff driver without the filter attribute, or one outside the anchor;
+- a stamped element present in one of the two lists and missing from the other.
+
+The last case is what makes the two programs safe to keep separate: they share only the volatile element names and the `tIME` chunk, and the hook fails the commit precisely when they disagree.
+Cases one and two are dormant guards rather than current needs: measured 2026-10-24, no tracked docx of eds-prise or md-nesrine embeds a font subset (0 of 16 and 0 of 14), so nothing exercises the font branch today.
+The `.pptx` line of the template is not dormant: eds-avc tracks three decks, and they sit under `docs/slides/` rather than in a render tree, so the anchored patterns do not reach them and that project owes a line of its own.
+
+### Open: adoption waits on one pass through the real Word
+
+The stored bytes now change, which is what the `out-textconv` route was built to avoid, and with no `smudge` a `checkout` writes the rebuilt package into the worktree.
+LibreOffice settles nothing on Word fidelity (`rules/docx.md`, "What nothing on this machine settles"), so adoption waits on `word-render --capture` opening a cleaned docx on ju-TP2 without a repair dialog.
+Attempted 2026-10-24 and refused before reaching Word, the interactive session being locked; only the user can unlock that station.
+If Word rejects the pinned form, the fallback inside this decision is a different literal, and the fallback outside it is the hook repairing itself, rejected below.
+Each adopting project then owes one `git add --renormalize` over its binary trees, as `html-id` already required, plus the attribute lines themselves.
+
+### Ways rejected
+
+- **The hook repairing itself**, running the restore instead of printing it and then failing as prek expects: it keeps the stored bytes untouched, but the noise still reaches the index and the commit still fails once per re-render, so the round trip the user asked to remove survives. Exiting 0 after restoring would drop content under `git commit -a` or `git commit -- <paths>`, where git builds a temporary index, which is why pre-commit and prek fail rather than exit 0.
+- **Normalising at the writer**: `hebstr::easy_out()` funnels `ggsave`, `openxlsx2::wb_save` and officer (read 2026-10-24 in its `R/easy_out.R`), so one pass there would make the file stable at birth with no git machinery at all. It covers nothing Quarto renders, so the report docx and any pptx keep churning, and it puts the pinned date in the file handed to a human reader rather than only in the index.
+- **A `post-index-change` hook**: it fires on a no-op `git add` and on `git status`, and a hook that writes the index re-fires itself, git applying no reentrancy guard, measured at 6 fires with a counter to stop it.
+- **Doing nothing**: the driver and the hook detect the noise and leave one command per re-render, which is the cost the request names.
+
+### Ways to lose it in silence
+
+- A change in zlib's or CPython's deflate output. The filter recompresses at level 6 on both sides, so the comparison holds within one toolchain and every stored blob moves at once when that toolchain does, costing one `git add --renormalize` per project. Nothing pins it today.
+- A machine where the `git` package is not stowed: git warns and stores the raw file, the same failure `html-id` carries.
+- A writer stamping an in-body element absent from the pinned list. The tell is a diff limited to one element under `### docProps/` on a file the filter already covers; the fix is one entry in `VOLATILE_ELEMENTS` of `clean-out-meta.py` and the matching one in the driver.
