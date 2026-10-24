@@ -353,6 +353,14 @@ print(zipfile.ZipFile(sys.argv[1]).comment.decode())' "$BATS_TEST_TMPDIR/out.doc
   cmp "$BATS_TEST_TMPDIR/broken.png" "$BATS_TEST_TMPDIR/out.png"
 }
 
+@test "a PNG truncated inside a chunk header passes through byte for byte" {
+  local src
+  src=$(_png in.png)
+  head -c 35 "$src" >"$BATS_TEST_TMPDIR/stub.png"
+  _clean "$BATS_TEST_TMPDIR/stub.png" "$BATS_TEST_TMPDIR/out.png"
+  cmp "$BATS_TEST_TMPDIR/stub.png" "$BATS_TEST_TMPDIR/out.png"
+}
+
 @test "a package holding a member that is not XML under an .xml name passes it through" {
   python3 - "$BATS_TEST_TMPDIR/odd.docx" <<'EOF'
 import sys
@@ -367,6 +375,73 @@ EOF
 import sys, zipfile
 a = zipfile.ZipFile(sys.argv[1]).read("word/settings.xml")
 b = zipfile.ZipFile(sys.argv[2]).read("word/settings.xml")
+print(a == b)' "$BATS_TEST_TMPDIR/odd.docx" "$BATS_TEST_TMPDIR/out.docx"
+  [ "$output" = True ]
+}
+
+@test "a package whose members cannot be decompressed passes through byte for byte" {
+  python3 - "$BATS_TEST_TMPDIR" <<'EOF'
+import io
+import struct
+import sys
+import zipfile
+from pathlib import Path
+
+buffer = io.BytesIO()
+with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as package:
+    package.writestr("docProps/core.xml", "<cp:coreProperties/>")
+    package.writestr("word/document.xml", "<w:document/>" * 50)
+stored = buffer.getvalue()
+
+
+def patch(blob, magic, offset, value):
+    out = bytearray(blob)
+    position = 0
+    while True:
+        position = out.find(magic, position)
+        if position < 0:
+            return bytes(out)
+        struct.pack_into("<H", out, position + offset, value)
+        position += 4
+
+
+def methods(blob, value):
+    return patch(patch(blob, b"PK\x03\x04", 8, value), b"PK\x01\x02", 10, value)
+
+
+def encrypted(blob):
+    return patch(patch(blob, b"PK\x03\x04", 6, 1), b"PK\x01\x02", 8, 1)
+
+
+out = Path(sys.argv[1])
+(out / "deflate.docx").write_bytes(methods(stored, 8))
+(out / "method99.docx").write_bytes(methods(stored, 99))
+(out / "encrypted.docx").write_bytes(encrypted(stored))
+EOF
+  local name
+  for name in deflate method99 encrypted; do
+    _clean "$BATS_TEST_TMPDIR/$name.docx" "$BATS_TEST_TMPDIR/$name.out"
+    cmp "$BATS_TEST_TMPDIR/$name.docx" "$BATS_TEST_TMPDIR/$name.out"
+  done
+}
+
+@test "a package holding a member that is not a PNG under an .png name passes it through" {
+  python3 - "$BATS_TEST_TMPDIR/odd.docx" <<'EOF'
+import struct
+import sys
+import zipfile
+
+payload = b"\xff\xd8\xff\xe0JFIF" + struct.pack(">I", 8) + b"junk" + b"ABCDEFGH" + b"\x00\x01\x02\x03"
+
+with zipfile.ZipFile(sys.argv[1], "w") as package:
+    package.writestr("docProps/core.xml", "<cp:coreProperties/>")
+    package.writestr("word/media/x.png", payload)
+EOF
+  _clean "$BATS_TEST_TMPDIR/odd.docx" "$BATS_TEST_TMPDIR/out.docx"
+  run -0 python3 -c '
+import sys, zipfile
+a = zipfile.ZipFile(sys.argv[1]).read("word/media/x.png")
+b = zipfile.ZipFile(sys.argv[2]).read("word/media/x.png")
 print(a == b)' "$BATS_TEST_TMPDIR/odd.docx" "$BATS_TEST_TMPDIR/out.docx"
   [ "$output" = True ]
 }

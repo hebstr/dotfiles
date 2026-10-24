@@ -175,7 +175,8 @@ The precedent is `[filter "html-id"]` and the three-step shape `comment-hash` an
 
 Measured the same day over every tracked binary of eds-prise, md-nesrine and eds-avc, each paired with a simulated re-render that moves every field the writers were measured to move: 112 of 112 pairs collapse to the same bytes, 0 differ, the three `.pptx` of eds-avc among them at 111, 71 and 147 members preserved.
 A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 tracked binaries, of which the anchored attribute reaches the 43 that sit under an `output/` tree.
-`_meta/tests/clean-out-meta.bats` pins the contract in 23 tests, and six mutations of the program each fail between one and four of them.
+`_meta/tests/clean-out-meta.bats` pins the contract in 26 tests, and six mutations of the program each fail between one and four of them, measured on the 23 the suite carried before 2026-10-24.
+Three of those tests came out of the `/audit:walkthrough` pass of 2026-10-24, which then measured every class of the handler's exception tuple to be pinned by exactly one test, dropping `NotImplementedError` excepted: that mutation fails nothing, `RuntimeError` already covering it by inheritance.
 
 ### The volatile value is pinned rather than emptied, because the package declares its types
 
@@ -188,11 +189,28 @@ The `out-textconv` driver empties the same three, which costs it nothing: it ren
 The `w:fontKey` GUID and the 32-byte ODTTF obfuscation header are left alone, since blanking the key without re-keying the payload it XORs produces a file Word refuses.
 PNG payloads are never re-encoded either: a PNG loses its `tIME` chunk and keeps every other one byte for byte, verified on `word/media/rId36.png` of md-nesrine's report, whose three IDAT chunks come through identical at 74 352 bytes.
 So no rendering engine can read the cleaned package differently from the raw one: on that report the only members that move are `docProps/core.xml`, `docProps/app.xml` and that one dropped chunk.
+The standalone `*.png` route normalises nothing on the current corpus: none of the 139 PNG sitting under a routed `output/` tree carries a `tIME` chunk or a byte past `IEND`, so a `git add --renormalize` that touches no PNG blob is the expected reading rather than a sign the filter failed (measured 2026-10-24).
+
+### What the first pass through the real Word still owes
+
+Three questions no tool on this machine settles, each about an Office save rather than a render, and none of them reached by the measurements above (`/audit:walkthrough`, 2026-10-24).
+`cp:revision` and `cp:lastModifiedBy` are not pinned, and every tracked output carries `9` and `julien`, inherited verbatim from the reference docx and stable across renders, so the filter's own goal is unaffected: the case for pinning them rests on whether a Word open-and-save that changed no content moves them while bringing the rest of the package back identical, and if it does not, the pin buys nothing.
+`docProps/thumbnail.jpeg` and `ppt/printerSettings/printerSettings1.bin` pass through byte for byte, neither occurs in any of the 28 files the attribute currently routes, and whether Office rewrites them on such a save is unestablished.
+Blanking `cp:lastModifiedBy` for privacy was weighed and declined: a reviewer's Word round trip puts the same name in the `w:author` of `word/comments.xml`, which is content the filter must not touch.
+
+### The stored blob carries the deflate implementation
+
+Every member is recompressed at level 6, so identical input bytes yield identical output only under an identical deflate.
+The exposure is narrower than it reads: the uv-managed CPython bundles zlib statically, so the system library is not a factor, and the two builds present here, zlib 1.3 under the system `python3` and 1.3.2 under the shebang's 3.14.8, produce byte-identical output on a 16 kB docx, a 34 kB xlsx and a 1.9 MB pptx of 147 members (measured 2026-10-24).
+A patch bump is therefore not the trigger, a materially different implementation such as zlib-ng is, and it would rewrite every stored blob at once.
+Copying the original compressed bytes for the members left unchanged has no public `zipfile` API and would mean hand-writing local headers, so the property is recorded rather than engineered around.
 
 ### The fallback is a passthrough, since here the output is what git stores
 
-Anything that is neither a ZIP nor a PNG, and anything that fails to parse, is written through byte for byte at exit 0.
+Anything that is neither a ZIP nor a PNG, and anything that fails to parse in one of the six ways a malformed input produces, is written through byte for byte at exit 0.
 Where the driver may fall back on a digest, a mangled output here destroys content git has no way to recover.
+The handler names those six classes, `zipfile.BadZipFile`, `zlib.error`, `struct.error`, `ValueError`, `NotImplementedError` and `RuntimeError`, rather than catching `Exception`, and the difference is the diagnostic: git reads a non-zero exit as a no-op passthru (`gitattributes(5)`, "a filter driver that exits with a non-zero status, is not an error but makes the filter a no-op passthru"), `out-meta` declares no `required`, and the write to stdout sits outside the `try`, so a programming error that propagates stores the original bytes exactly as a blanket handler would while leaving a trace rather than a binary that re-diffs on every render with no clue why.
+A member reaches `png_bytes` on its suffix and its magic together, since that function opens its output on a literal PNG signature: on the suffix alone, a non-PNG member named `*.png` whose chunk walk lands exactly on EOF came back with its first eight bytes replaced, at exit 0 and with git storing the result (measured 2026-10-24).
 The archive comment and each member's `compress_type`, `external_attr`, `internal_attr` and `create_system` are preserved; trailing bytes past the central directory are dropped, which a valid package never carries.
 
 ### The attribute is anchored, where the driver's globs are broad

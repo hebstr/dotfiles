@@ -27,6 +27,7 @@ import re
 import struct
 import sys
 import zipfile
+import zlib
 
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 ZIP_MAGIC = b"PK\x03\x04"
@@ -81,7 +82,7 @@ def png_bytes(blob: bytes) -> bytes:
 def member_bytes(name: str, blob: bytes) -> bytes:
     if name.endswith((".xml", ".rels")):
         return xml_bytes(blob)
-    if name.endswith(".png"):
+    if name.endswith(".png") and blob.startswith(PNG_MAGIC):
         return png_bytes(blob)
 
     return blob
@@ -117,7 +118,14 @@ def main() -> int:
             cleaned = png_bytes(blob)
         else:
             cleaned = blob
-    except Exception:
+    except (
+        NotImplementedError,
+        RuntimeError,
+        ValueError,
+        struct.error,
+        zipfile.BadZipFile,
+        zlib.error,
+    ):
         cleaned = blob
 
     sys.stdout.buffer.write(cleaned)
