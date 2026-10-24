@@ -43,6 +43,8 @@
 	conflictstyle = zdiff3
 [diff "out-textconv"]
 	textconv = ~/.config/git/out-textconv.py
+[filter "comment-hash"]
+	clean = ~/.config/git/clean-comment-hash
 [filter "html-id"]
 	clean = ~/.config/git/clean-html-id
 [filter "positron-theme"]
