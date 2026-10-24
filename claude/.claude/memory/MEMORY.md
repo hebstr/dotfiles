@@ -34,6 +34,7 @@
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
 - project_collab_comments_evaluation.md: collab-comments forked into hebstr-doc: 23 of 24 Word comments reach csi.qmd
+- project_pnpm_evaluation.md: pnpm rejected 2026-10-24: no gain on this footprint, npm 12 ships both args
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
@@ -86,6 +87,7 @@
 - reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` loses metadata and `output-dir`, yet gets renamed
 - reference_quarto_page_title_fallback.md: An empty or absent `title:` sends the filename into a page's `<title>`
 - reference_quarto_include_path_resolution.md: `{{< include >}}` resolves against the includer; no root form, standalone only
+- reference_panache_citation_diagnostics.md: panache reads `bibliography:` from the document's folder, not via `resource-path`
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
 - reference_quarto_r_env_var.md: `QUARTO_R` beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"
@@ -94,6 +96,7 @@
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
 - reference_edstr_extract_chunk_budget.md: Chunk sizing: characters, not docs; columns the lever; soft bound; edstr owns it
+- reference_collab_comments_highlight_color.md: collab-comments' highlight is a bundle literal; the blue patch dies on update
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
