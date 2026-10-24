@@ -274,8 +274,6 @@
   "errorLens.delay": 500,
   "errorLens.padding": "0px",
 
-  "projectManager.git.baseFolders": ["/home/julien/Documents"],
-
   "material-icon-theme.files.associations": {
     ".Rprofile": "r",
     ".Renviron": "r",
