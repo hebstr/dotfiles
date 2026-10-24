@@ -60,7 +60,7 @@
 - reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
 - reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
-- reference_git_html_id_filter.md: `html-id` clean filter, and prek's stash: `--renormalize`, reverted binaries
+- reference_git_html_id_filter.md: `html-id` and `comment-hash` clean filters, prek's stash, `--renormalize`, binaries
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc: the plan, and why it is dormant since 2026-09-08
 - reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy PR 9897, thinking, SWA, `--hf-repo` cache

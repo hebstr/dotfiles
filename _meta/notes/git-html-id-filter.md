@@ -106,6 +106,14 @@ Idempotence is worth one check as well, two passes over the same file yielding t
 - A `gt` or `htmlwidgets` upgrade changing the identifier length, or the shape of the div the program anchors on. `_meta/tests/clean-html-id.bats` pins the forms described above, so it catches an edit of the script that breaks them, never an upstream change: its fixtures are written by hand, and only a fresh render run through the filter shows that the forms still hold.
 - A machine where the `git` package is not stowed: git then stores the raw file without warning. That was the standing failure until the driver moved into the package on 2026-09-12, and it is what closed it.
 
+## Built elsewhere on this montage: the comment store's document hash
+
+A second `clean` filter, `comment-hash`, follows the three steps above since 2026-10-24, in eds-prise only: a perl driver in `~/.config/git/`, a `filter.comment-hash.clean` entry in `~/.gitconfig`, and `.comments/collab-comments.json filter=comment-hash` in the project's own `.gitattributes`, anchored on that one file rather than on a glob.
+It replaces the `documentHash` of every comment with sixty-four zeros. The `collab-comments` extension rewrites that field on every keystroke in the reviewed document, through `onDidChangeTextDocument` and a 500 ms debounced save, so the store churns with no comment activity: 18 hunks and 25/138 lines on the day's diff, against 5 hunks and 7/120 once normalized.
+The field is a cache token, not anchor data, which is what makes the placeholder harmless: the extension trusts the stored range only when the hash matches, and otherwise re-anchors on `selectedText` plus the surrounding context, which returns `exact` on an unchanged document.
+Same no-`smudge` consequence as the prototype below: only a clone or a `checkout` surfaces the placeholder, and there it costs one recompute when the file is next opened.
+Reasoning, measurements and the rejected alternatives are in that project's `CLAUDE.md`, section « Les filtres `clean` du dépôt ».
+
 ## Settled elsewhere: the same churn on the OOXML artifacts
 
 Diagnosed on md-nesrine 2026-09-02, and settled on 2026-09-12 by a `textconv` diff driver rather than by the clean filter this section prototypes.
