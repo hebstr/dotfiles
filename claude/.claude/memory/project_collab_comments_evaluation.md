@@ -1,6 +1,6 @@
 ---
 name: collab-comments evaluation (eds-prise, 2026-10-23), gate run 2026-10-24
-description: collab-comments adopted for eds-prise, gate passed and the docx filter forked into quarto-hebstr-doc on 2026-10-24, carrying a reviewer's Word comments back into a Quarto docx: 23 of 24 points carry, 13 from the fork's three stairs and 10 from hand-written store entries, three of them sharing one table caption, what still kills an anchor, how the editor half corrupted six entries, Word's acceptance, the silent skip on stderr, and why the `/review-comments` register is never rebuilt from the store
+description: collab-comments adopted for eds-prise, gate passed and the docx filter forked into quarto-hebstr-doc on 2026-10-24, carrying a reviewer's Word comments back into a Quarto docx: 23 of 24 points carry, 13 from the fork's three stairs and 10 from hand-written store entries, three of them sharing one table caption, what still kills an anchor, how the editor half corrupted six entries, Word's acceptance, the silent skip on stderr, why the `/review-comments` register is never rebuilt from the store, and that it carries no Word tracked changes, so it never replaces `/review-prose`
 metadata:
   type: project
 ---
