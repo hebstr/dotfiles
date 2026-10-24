@@ -67,7 +67,7 @@
 - reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy PR 9897, thinking, SWA, `--hf-repo` cache
 - reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
-- reference_positron_extension_registries.md: The per-profile extensions.json beats the global one; a VSIX reinstall breaks it
+- reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_table_column_width_layout.md: gt/flextable widths: percent grid, px total, PNG clipping, Word grid and indent floor
