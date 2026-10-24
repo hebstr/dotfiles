@@ -1,4 +1,8 @@
 output/**/*.html filter=html-id
+**/output/**/*.docx filter=out-meta
+**/output/**/*.pptx filter=out-meta
+**/output/**/*.xlsx filter=out-meta
+**/output/**/*.png filter=out-meta
 *.docx diff=out-textconv
 *.pptx diff=out-textconv
 *.xlsx diff=out-textconv

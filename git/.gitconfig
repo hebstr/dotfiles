@@ -47,5 +47,7 @@
 	clean = ~/.config/git/clean-comment-hash
 [filter "html-id"]
 	clean = ~/.config/git/clean-html-id
+[filter "out-meta"]
+	clean = ~/.config/git/clean-out-meta.py
 [filter "positron-theme"]
 	clean = ~/.config/git/clean-positron-theme
