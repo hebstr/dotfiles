@@ -7,7 +7,8 @@ The remedy is a `textconv` diff driver, `out-textconv`, which renders the file a
 It reads only: stored bytes are untouched, unlike the `html-id` clean filter beside it (`git-html-id-filter.md`), which is what makes it safe on a deliverable Word refuses at the slightest OOXML breach.
 An empty diff then means the content did not move, and that is the whole signal.
 
-Applied to md-nesrine on 2026-09-12. `_meta/profiles/gitattributes` carries the four lines a next project needs.
+Applied to md-nesrine on 2026-09-12.
+`_meta/profiles/gitattributes` carries the four lines a next project needs.
 
 ## What moves on every write, and what the driver does with it
 
@@ -24,7 +25,8 @@ Applied to md-nesrine on 2026-09-12. `_meta/profiles/gitattributes` carries the 
 ```
 
 Each is neutralised rather than dropped, the `tIME` chunk excepted since it carries nothing but the time, so a real change in the same part stays visible: a font subset that actually moves, a `w:altName` alternative, a document title.
-The PNG digest reads the scanlines before unfiltering, so the same pixels under another filter byte still read as a change: measured 2026-09-12 on a 2-pixel image, None against Sub. One encoder is deterministic, so that shows only when the encoder or its filter strategy moves.
+The PNG digest reads the scanlines before unfiltering, so the same pixels under another filter byte still read as a change: measured 2026-09-12 on a 2-pixel image, None against Sub.
+One encoder is deterministic, so that shows only when the encoder or its filter strategy moves.
 XML members are emitted one line per tag, so a diff lands on the element that moved rather than on a single 60 000-character line.
 Members are walked in sorted order, which makes the output independent of the order the writer happened to use.
 Anything that is neither a ZIP nor a PNG, and anything that fails to parse, falls back to a digest and exits 0: a driver has no right to break `git diff`.
@@ -67,10 +69,12 @@ git -c diff.out-textconv.textconv='pandoc -t plain' diff -- <file>
 
 The driver and its program both ship in the `git` stow package, so `stow git` is the whole setup on a new machine:
 
-```
+```ini
 [diff "out-textconv"]
-	textconv = ~/.config/git/out-textconv.py
+    textconv = ~/.config/git/out-textconv.py
 ```
+
+The real line in `git/.gitconfig` is tab-indented, where the excerpt shows four spaces: panache rewrites a tab inside a fence whatever its language tag, re-measured on 3.17.0 on 2026-10-24, so the excerpt cannot carry the tab and the divergence is not a defect of the note.
 
 The program sits at `git/.config/git/out-textconv.py`, beside the config that calls it, rather than on the PATH: git is its only caller, and git runs the value through `sh`, which expands the `~`.
 It carries a `.py` extension so that `pyrefly check` and the editor recognise it as Python: both skip an extensionless file, whatever its shebang says.
@@ -113,7 +117,7 @@ The tell is a diff limited to one element under `### docProps/`; the fix is one 
 
 It does not reduce the weight of the repository: a commit still stores the full new blob.
 It makes the decision possible, restoring the noise instead of committing it, and the decision stays manual.
-The `metadata-only` prek hook (`bin/.local/bin/prek-metadata-only`, declared in `_meta/profiles/prek.toml`) enforces it at commit: a staged, modified binary with an empty patch body fails the commit and the hook points to `prek-metadata-only --restore`, while restoring stays the user's act.
+The `metadata-only` prek hook (`bin/.local/bin/prek-metadata-only`, declared in `_meta/profiles/prek.toml`) enforces it at commit: a staged, modified binary with an empty patch body fails the commit and the hook points to `prek-metadata-only --restore`, while restoring stayed the user's act until 2026-10-24, when the user asked for that step to be automated: see "The manual restore is reopened, 2026-10-24" below.
 
 ## The hook's failure message prints once and ends on a short command
 
@@ -137,8 +141,10 @@ A printed command can only keep that guarantee by carrying the condition, which 
 ### Ways rejected
 
 - Reformatting around the existing loop: the loop stays a compound shell construct to read before running, the exact complaint.
-- Splitting the files at hook time into `git restore -s@ -SW -- <paths>` for clean working copies and `git restore --staged -- <paths>` for the others: two plain commands, but a snapshot, so a render landing between message and paste is overwritten by the first. It drops the guarantee the bats test pins.
-- Installing a CLI-design agent skill: none is installed and none is official; `kergoth/dotfiles` `cli-design` fits shell tools best and `citypaul/.dotfiles` `cli-design` is the deepest, but clig.dev alone covers one hook message. Worth revisiting if more CLI tools get written.
+- Splitting the files at hook time into `git restore -s@ -SW -- <paths>` for clean working copies and `git restore --staged -- <paths>` for the others: two plain commands, but a snapshot, so a render landing between message and paste is overwritten by the first.
+  It drops the guarantee the bats test pins.
+- Installing a CLI-design agent skill: none is installed and none is official; `kergoth/dotfiles` `cli-design` fits shell tools best and `citypaul/.dotfiles` `cli-design` is the deepest, but clig.dev alone covers one hook message.
+  Worth revisiting if more CLI tools get written.
 
 ### `--restore` acts on a property, so drift since the message is harmless
 
@@ -156,3 +162,10 @@ The second is the load-bearing one, since it guarantees drift never destroys con
 The 3, 3, 3, 4, 1 grouping, which does not match batches of 4 on 12 CPUs, is closed without investigation: `require_serial` leaves one invocation and makes the discrepancy moot, and a `prek run -vvv` on md-nesrine would cost an index manipulation on a live project to explain a behaviour about to disappear.
 The check after implementation is a single header on md-nesrine's next metadata-only commit.
 The grouping explained itself on the first run of the new message, 2026-09-16, before md-nesrine's `prek.toml` carried the flag: 17 matching staged files, 16 modified and 1 added, split 4, 4, 4, 4, 1, and the three files that pass (two content changes and the added one) fell one in each of the first, second and third batches, hence 3, 3, 3, 4, 1 listed.
+
+## The manual restore is reopened, 2026-10-24
+
+The user asked for the `--restore` step to be automated, so "restoring stays the user's act" is no longer settled.
+Measured on eds-prise the same day: 13 of 13 modified tracked outputs were pure write-metadata noise, a re-rendered docx differed from its `HEAD` blob in `docProps/core.xml` alone, none of the 16 tracked docx embeds an ODTTF font subset, and a `clean` filter prototype made all 56 tracked binaries byte-identical between blob and worktree.
+`post-index-change` is ruled out as an automation point: it fires on a no-op `git add` and on `git status`, and a hook that writes the index re-fires itself, git applying no reentrancy guard.
+The decision is framed by `/design` from `~/dotfiles/.claude/PROMPT.md`, which also carries the user's decision to rename the script `metadata-only`, dropping the `prek-` prefix a prek hook does not earn.
