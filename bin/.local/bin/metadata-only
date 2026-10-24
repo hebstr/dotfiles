@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# prek-metadata-only: the metadata-only prek hook, refusing a commit whose staged binary outputs changed
-# only in write metadata.
+# metadata-only: refuse a commit whose staged binary outputs changed only in write
+# metadata.
 #
 # Hook mode takes the filenames prek passes and keeps those staged as modified.
 # A file whose `git diff --cached` patch comes out empty through the out-textconv
@@ -23,7 +23,7 @@ set -euo pipefail
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "usage: prek-metadata-only <file>... | prek-metadata-only --restore" >&2
+  echo "usage: metadata-only <file>... | metadata-only --restore" >&2
   exit 2
 }
 
@@ -109,6 +109,6 @@ fi
   printf '%s changed only in write metadata (timestamps, IDs), not in content:\n\n' "$subject"
   printf '  %s\n' "${noise[@]}"
   printf '\nTo drop these rewrites (a file re-rendered since staging is only unstaged):\n\n'
-  printf '  prek-metadata-only --restore\n'
+  printf '  metadata-only --restore\n'
 } >&2
 exit 1

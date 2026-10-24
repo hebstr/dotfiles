@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
 # shellcheck disable=SC2030,SC2031
-# Tests for bin/.local/bin/prek-metadata-only
+# Tests for bin/.local/bin/metadata-only
 
 bats_require_minimum_version 1.5.0
 
-SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/prek-metadata-only"
+SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/metadata-only"
 DRIVER="${BATS_TEST_DIRNAME}/../../git/.config/git/out-textconv.py"
 
 # Each test runs in a fresh repository under a git config of its own, so neither
@@ -253,7 +253,7 @@ _commit() {
 
 To drop these rewrites (a file re-rendered since staging is only unstaged):
 
-  prek-metadata-only --restore" ]
+  metadata-only --restore" ]
 }
 
 @test "failure message: singular header for one file" {
