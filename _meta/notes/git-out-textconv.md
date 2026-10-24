@@ -172,6 +172,7 @@ That reopens the manual decision of "What it does not do" above, and reinstates 
 The decision is `[filter "out-meta"]` in `git/.gitconfig`, whose program is `git/.config/git/clean-out-meta.py`, attached per project by anchored patterns in that project's `.gitattributes`.
 Git normalises the package on its way into the index, so a re-render that moved nothing else produces a blob identical to the stored one: no hunk, nothing staged, no command to type.
 The precedent is `[filter "html-id"]` and the three-step shape `comment-hash` and `positron-theme` both follow (`git-html-id-filter.md`, "Step 2: the driver"), down to declaring no `smudge` and no `required`.
+The second half is not taken: no project declares `filter=out-meta`, the line sitting in `_meta/profiles/gitattributes` alone, so the filter runs on nothing yet and every count below is of the files the pattern would reach (`rg -uu -l --glob '.gitattributes' 'filter=out-meta' ~/Documents ~/admin ~/dotfiles` answers nothing, 2026-10-24, where the same search without the value finds the five that arm the sibling filters; the glob is what keeps the condition checkable, every note quoting the string being a hit without it).
 
 Measured the same day over every tracked binary of eds-prise, md-nesrine and eds-avc, each paired with a simulated re-render that moves every field the writers were measured to move: 112 of 112 pairs collapse to the same bytes, 0 differ, the three `.pptx` of eds-avc among them at 111, 71 and 147 members preserved.
 A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 tracked binaries, of which the anchored attribute reaches the 43 that sit under an `output/` tree.
@@ -189,13 +190,13 @@ The `out-textconv` driver empties the same three, which costs it nothing: it ren
 The `w:fontKey` GUID and the 32-byte ODTTF obfuscation header are left alone, since blanking the key without re-keying the payload it XORs produces a file Word refuses.
 PNG payloads are never re-encoded either: a PNG loses its `tIME` chunk and keeps every other one byte for byte, verified on `word/media/rId36.png` of md-nesrine's report, whose three IDAT chunks come through identical at 74 352 bytes.
 So no rendering engine can read the cleaned package differently from the raw one: on that report the only members that move are `docProps/core.xml`, `docProps/app.xml` and that one dropped chunk.
-The standalone `*.png` route normalises nothing on the current corpus: none of the 139 PNG sitting under a routed `output/` tree carries a `tIME` chunk or a byte past `IEND`, so a `git add --renormalize` that touches no PNG blob is the expected reading rather than a sign the filter failed (measured 2026-10-24).
+The standalone `*.png` route normalises nothing on the current corpus: none of the 139 PNG sitting under an `output/` tree the pattern would match carries a `tIME` chunk or a byte past `IEND`, so a `git add --renormalize` that touches no PNG blob is the expected reading rather than a sign the filter failed (measured 2026-10-24).
 
 ### What the first pass through the real Word still owes
 
 Three questions no tool on this machine settles, each about an Office save rather than a render, and none of them reached by the measurements above (`/audit:walkthrough`, 2026-10-24).
-`cp:revision` and `cp:lastModifiedBy` are not pinned, and every tracked output carries `9` and `julien`, inherited verbatim from the reference docx and stable across renders, so the filter's own goal is unaffected: the case for pinning them rests on whether a Word open-and-save that changed no content moves them while bringing the rest of the package back identical, and if it does not, the pin buys nothing.
-`docProps/thumbnail.jpeg` and `ppt/printerSettings/printerSettings1.bin` pass through byte for byte, neither occurs in any of the 28 files the attribute currently routes, and whether Office rewrites them on such a save is unestablished.
+`cp:revision` and `cp:lastModifiedBy` are not pinned, and 27 of the 28 tracked outputs the pattern would reach carry `9` and `julien`, the 28th carrying no `cp:revision` element at all, each inherited verbatim from the reference docx and stable across renders, so the filter's own goal is unaffected: the case for pinning them rests on whether a Word open-and-save that changed no content moves them while bringing the rest of the package back identical, and if it does not, the pin buys nothing.
+`docProps/thumbnail.jpeg` and `ppt/printerSettings/printerSettings1.bin` pass through byte for byte, neither occurs in any of the 28 files the pattern would reach, and whether Office rewrites them on such a save is unestablished.
 Blanking `cp:lastModifiedBy` for privacy was weighed and declined: a reviewer's Word round trip puts the same name in the `w:author` of `word/comments.xml`, which is content the filter must not touch.
 
 ### The stored blob carries the deflate implementation
