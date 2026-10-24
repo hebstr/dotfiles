@@ -69,6 +69,10 @@ A third rule, added 2026-10-03, numbers the `reactable` `dataKey`, `dk1` upward,
 It is anchored on `"dataKey":"`, 32 hex and the closing quote, because the reactable script text also holds the bare word `dataKey`.
 Adding it re-filters every widget blob already committed, so the first `git add --renormalize` after the change stages them all once.
 
+Both Perl drivers of the montage are gated by the prek hook `perl-syntax` (`perl -c`) and by their bats suites, and by nothing else: `perltidy` and `perlcritic` are not installed and no `rules/perl.md` exists.
+The condition `environment-archive.md` set on 2026-09-22 for writing one, a second Perl file in the tree, was met on 2026-10-24 and declined the same day: the two drivers total 38 lines, regex substitutions over a slurped file and nothing else, so a rules file would prescribe two absent tools for a footprint the hook and the suites already cover.
+What reopens it is a Perl file that is not a one-regex git filter, or `perltidy` and `perlcritic` installed for another reason.
+
 ## Step 3: renormalize the index
 
 ```bash
