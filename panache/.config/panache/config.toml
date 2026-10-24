@@ -19,6 +19,9 @@ math-delimiter-style = "preserve"
 r = "air"
 python = "ruff"
 
+[lint]
+ignore = ["space-before-punctuation"]
+
 [linters]
 r = "jarl"
 python = "ruff"
