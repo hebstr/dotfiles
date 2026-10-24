@@ -44,6 +44,7 @@ The risk profile of the 2026-09-07 bench is unchanged: one author, no milestone,
 ## Protocol
 
 Corpus: the real delivery, chosen before the tool was identified. `docs/review/2026-09-29_prise_review-manuscrit.docx`, 4.9 MB, 26 comments by one author of which 2 are replies, so 24 points; `docs/csi/csi.qmd`, 687 lines; the render `docs/csi/2026-10-03_prise_csi.docx`; the register `docs/review/2026-09-15_prise_review-notes.md`, 24 decisions.
+The two review files are those paths throughout this note, which records the pass of 2026-10-23: the user moved them on 2026-10-24 to `docs/csi/review/2026-09-29_prise_csi_review.docx` and `docs/csi/review/2026-09-15_prise_csi_review.md`, which is where they are read now.
 
 The anchor arithmetic against that corpus was measured on 2026-10-23 before this pass and is recorded in `eds-prise/.claude/DESIGN-INDEX.md`. This pass does not re-measure it: it reads the implementation at `v1.1.0` and verifies the facts the arithmetic rests on.
 
@@ -199,6 +200,17 @@ Three, each recognisable when it lands.
 - **Overturned the adoption, had it fired**: Word on `ju-TP2` refusing the commented package, or opening it with the comments detached from their ranges. The gate of 2026-10-24 ran it and neither happened, so this one is spent rather than pending.
 - **Retires the ten hand-written entries**: an upstream docx branch that falls back to the stored `contextBefore` / `contextAfter`, which the store already carries and the export ignores, instead of requiring a literal single-line source slice. Watch `selected_source_text()`.
 - **Retires the flattening**: an upstream export that writes `word/commentsExtended.xml`, which would give the reviewer a threaded conversation back.
+- **Opens the store as a side-input to `/review-comments`**: a second reviewed docx landing on a document whose store already exists. The next delivery comes back carrying the re-emitted comments under the reviewer's own name and original timestamps, so the store is the only key that tells an old point from a new one, and its maintained ranges would pre-resolve the register's extract-matching stage. Until that docx exists there is nothing to consume it.
+
+### Rejected on 2026-10-24: the register is never rebuilt from the store
+
+Asked by the user, whose reading was that a stable store retires `scripts/skeleton.py`: `/review-comments` would read `.comments/collab-comments.json` instead of `word/comments.xml`. Rejected, and the second premise offered, that the skill runs only once every comment is in the store including the hand-written entries, does not save it.
+
+What decides it is the measurement of the stored spans, not their count. Three entries of `eds-prise` (register ranks 22, 23 and 24) carry `'Caractéristiques des patients r'`, `'etenus par les d'` and `'codées, par branche'`, three contiguous mid-word fragments of one table caption, while the comments ask why table 6 follows table 5, what "séjours retenus par patient" means, and where the upset plot's counts are; the text two of them aim at lives in `scripts/tbl_branche.R` and `fig_branche.R` and never in the source. Rank 1 carries `'Présentation de l’étude'` for a comment on the whole Methods plan, its subtitle target being metadata. So four of the 24 points hold a localisation that is a delivery artefact, and a register built on it would record three comments as bearing on fragments of one caption.
+
+This is premise-independent, and the stronger premise makes it worse: a store is completed *by* relocating spans onto blocks that can carry a balloon. Three further facts hold: the store's two reply threads (ranks 10 and 20) were written by hand from the register, the import filing none, so the skill's one irreplaceable service would read a hand transcription; the store is the sole input, so a corrupted entry of the kind measured the same day would pass for the reviewer's own target; and no project but `eds-prise` holds a store, so the docx path stays for a global skill and a store branch is added surface rather than a simplification.
+
+Two objections of the first answer do fall under the stronger premise and are withdrawn: the skill assigns its own ranks, so store ids rewritten at each import are harmless, and the prerequisite is paid anyway by a user who builds the store first.
 
 ### Revert path
 
@@ -250,7 +262,7 @@ quarto add MikeLydeamore/collab-comments@v1.1.0        # pinned, never @latest
 #     docx-comments: true
 #     show-resolved: false
 # Positron command palette: Collab Comments: Import Comments from Word…
-#   -> docs/review/2026-09-29_prise_review-manuscrit.docx
+#   -> docs/csi/review/2026-09-29_prise_csi_review.docx
 quarto render docs/csi/csi.qmd 2>&1 | tee /tmp/csi-render.log
 grep -c 'skipped Word comment' /tmp/csi-render.log    # expected: 11, one per unmapped point
 grep 'skipped Word comment' /tmp/csi-render.log       # and their reasons, against the prediction
