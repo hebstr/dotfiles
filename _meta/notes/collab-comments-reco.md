@@ -263,7 +263,7 @@ A skip count above 11 is the block-mappability constraint showing up, not a fail
 ## What stays uncovered
 
 - **Block mappability against the 13: closed by the gate of 2026-10-24.** Seven of the 13 fall, and what the filter refuses is the block rather than the span. The md-nesrine figure of 95 % of prose words mappable was measured on another document and does not transfer.
-- **Word's own acceptance of the package: closed by the gate of 2026-10-24.** Word 16.0.20430 opens it and anchors all six. Re-measured the same day on the twenty-entry store: twenty balloons over 39 pages, numbered 1 to 20 with no gap, **a float caption among them**, anchored on the caption text with Quarto's `Table N.` prefix outside the highlight; detail in `eds-prise/.claude/DESIGN-INDEX.md`, « Word carries the twenty ».
+- **Word's own acceptance of the package: closed by the gate of 2026-10-24.** Word 16.0.20430 opens it and anchors all six. Re-measured the same day on the twenty-entry store: twenty balloons over 39 pages, numbered 1 to 20 with no gap, **a float caption among them**, anchored on the caption text with Quarto's `Table N.` prefix outside the highlight; and again on a twenty-two-entry store, where **one caption carries three balloons** on three disjoint spans, two of them contiguous. Detail in `eds-prise/.claude/DESIGN-INDEX.md`, « Word carries the twenty » and « The caption carries three balloons ».
 - **Comment 1.** It has no anchorable target, and where it goes instead is the user's call.
 - **The reviewer's text edits.** This tool never carries them; `/review-prose` did, at `c461e9c`.
 - **The HTML export and the preview bridge.** Out of the question asked, and the md-nesrine bench already measured both.
