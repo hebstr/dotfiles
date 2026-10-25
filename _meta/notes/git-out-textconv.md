@@ -185,6 +185,9 @@ The filter normalises on the way into the index and never on disk, and the raw r
 Measured 2026-10-25 on eds-prise: `output/tbl-concept/tbl-concept.docx` went from 14 572 to 14 571 bytes between two renders, and `git status` listed every re-rendered docx as modified while `git diff`, `git diff --cached` and `git hash-object -w --path` against `HEAD:<f>` all three returned identity.
 `git update-index --refresh` does not clear the mark, answering `needs update` on the size mismatch; only a `git add` over the output trees re-runs the filter, refreshes the stat cache and stages nothing.
 So "no hunk, nothing staged, no command to type" above is about the index alone: what tells a real output change from write-metadata noise is `git diff`, never `git status`, and prek's stash is unaffected either way, reading git's own diff rather than the bytes.
+That residual noise reaches the commit skill: `writes.sh` appends every `git status --porcelain` entry to the `WRITES` list without reading the status code, so a re-render puts the sixteen docx in front of the verifier.
+Filtering them there is rejected, 2026-10-25: a filter keyed on `git diff` returning identity would also drop the untracked `??` entries, which appear in no diff and are what the list exists to surface, so it would owe a discrimination on the status code plus one `git` call per entry.
+The noise costs tokens in the verifier pass rather than correctness, since the `git add` over the output trees stages nothing, so that command stays the remedy and the question reopens only if a real closure shows the verifier derailed by the sixteen.
 
 ### The volatile value is pinned rather than emptied, because the package declares its types
 
