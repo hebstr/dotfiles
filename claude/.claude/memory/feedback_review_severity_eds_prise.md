@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-`~/Documents/des/eds/eds-prise` is a personal epidemiological analysis project (PRISE, shoulder pathology care pathways, CHU de Lille EDS): `setup.R`, `scripts/_common.R` (shared preparation), one script per output, `collect/`, and the `annot/` Streamlit app. Not a package, not production.
+`~/Documents/des/eds/eds-prise` is a personal epidemiological analysis project (PRISE, shoulder pathology care pathways, CHU de Lille EDS): `setup.R`, a root `_common.R` (what more than one document tree declares, since 2026-10-25), `scripts/_common.R` (shared preparation of the `scripts/` outputs), one script per output, `collect/`, and the `annot/` Streamlit app. Not a package, not production.
 Domain context lives in the project's own store (`~/Documents/des/eds/eds-prise/.claude/memory/project_prise.md`, `project_codes.md`); the general personal-project calibration in [[feedback_review_severity_personal]].
 Its former technical document `technique.qmd` has been archived to `.claude/archive/technique.qmd` since 2026-09-08 (project `CLAUDE.md`, "Commentaires et documentation technique"): read it there, but cite code and guards, not its callouts.
 
