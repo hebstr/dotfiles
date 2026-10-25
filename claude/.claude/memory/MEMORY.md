@@ -70,7 +70,7 @@
 - reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
-- reference_table_column_width_layout.md: gt/flextable widths: percent grid, px total, PNG clipping, Word grid and indent floor
+- reference_table_column_width_layout.md: gt/flextable widths, Word grid and indent floor, PNG clipping, multi-panel float cut
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
