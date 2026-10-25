@@ -75,10 +75,10 @@
 - reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
 - reference_gtsummary_notes_and_labels.md: gtsummary: `add_variable_group_header()` last, `easy_label()` coerces logicals
-- reference_quarto_lua_shortcodes.md: Quarto Lua traps: empty Inlines, YAML scalars, named pipes, embedding, LuaLS casts
+- reference_quarto_lua_shortcodes.md: Quarto Lua traps: empty Inlines, YAML scalars, pipes, embedding, casts, layout keys
 - reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in a `{=typst}` block: no arrays, a missing key prints into the PDF
 - reference_word_embedded_fonts_blocked.md: Recipients' Word refuses embedded fonts; design around the fallback list
-- reference_xlsx_surgical_edit.md: Edit a hand-styled .xlsx through sharedStrings.xml; a library rewrite flattens it
+- reference_xlsx_surgical_edit.md: Hand-styled .xlsx: sharedStrings surgery to change a cell, openxlsx2 to append a sheet
 - reference_quarto_extension_format_knitr.md: A Quarto extension can scope `knitr: opts_chunk:` per format; svglite vs cairo
 - reference_quarto_custom_format_render_target.md: `knitr::pandoc_to()` tells HTML from docx; `--to` renders an undeclared format
 - reference_pandoc_312_data_uri.md: pandoc 3.12 leaves `#` unescaped in data URIs, truncating self-contained widget CSS
