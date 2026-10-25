@@ -179,6 +179,13 @@ A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 track
 `_meta/tests/clean-out-meta.bats` pins the contract in 26 tests, and six mutations of the program each fail between one and four of them, measured on the 23 the suite carried before 2026-10-24.
 Three of those tests came out of the `/audit:walkthrough` pass of 2026-10-24, which then measured every class of the handler's exception tuple to be pinned by exactly one test, dropping `NotImplementedError` excepted: that mutation fails nothing, `RuntimeError` already covering it by inheritance.
 
+### The index goes quiet, `git status` does not
+
+The filter normalises on the way into the index and never on disk, and the raw render is not byte-stable, so the cached stat keeps diverging.
+Measured 2026-10-25 on eds-prise: `output/tbl-concept/tbl-concept.docx` went from 14 572 to 14 571 bytes between two renders, and `git status` listed every re-rendered docx as modified while `git diff`, `git diff --cached` and `git hash-object -w --path` against `HEAD:<f>` all three returned identity.
+`git update-index --refresh` does not clear the mark, answering `needs update` on the size mismatch; only a `git add` over the output trees re-runs the filter, refreshes the stat cache and stages nothing.
+So "no hunk, nothing staged, no command to type" above is about the index alone: what tells a real output change from write-metadata noise is `git diff`, never `git status`, and prek's stash is unaffected either way, reading git's own diff rather than the bytes.
+
 ### The volatile value is pinned rather than emptied, because the package declares its types
 
 `dcterms:created` and `dcterms:modified` carry `xsi:type="dcterms:W3CDTF"` and `TotalTime` holds an integer, so an empty element breaks the type the package declares, and Word enforces the content model by refusing to open a file rather than by degrading it (`rules/docx.md`, "Structural validity, which a render never tests").
