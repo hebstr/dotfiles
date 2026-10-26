@@ -17,24 +17,18 @@
 - project_qmd_format_hook.md: panache on .qmd/.md: prek gate, excludes, the `smart` and lint-rule toggles, splitter defects
 - project_shellharden_dotfiles_normalized.md: dotfiles `$VAR` style is shellharden output: never revert or flag it
 - project_litrev_plugin_status.md: litrev paused 2026-10-26 and what serves instead; stays out of hebstr (2026-04-26)
-- project_autoresearch_skill_deferred.md: `uditgoenka/autoresearch` not adopted (2026-09-11); analysis done, don't redo
-- project_arity_evaluation.md: Arity tested against air + jarl (2026-09-10), not adopted; measurements done, don't redo
+- project_closed_tool_evaluations.md: Closed verdicts: arity, autoresearch, gortex, pnpm, SAS, git-guard scope, YAML gate
 - project_edstr_vignettes_pkgdown_articles.md: edstr vignettes use plain quarto html; the hebstr-doc theme was rolled back
 - project_md_nesrine_render_pitfalls.md: md-nesrine render pitfalls: `stats::filter` masking, dropped labels, commented chunks run
 - project_edscrib_annotation_package.md: edscrib dormant 2026-10-19; eds-avc rebuilt annot/ on a local core/
-- project_yaml_gate_deferred.md: dotfiles YAML gate deferred (2026-07-30); the reco is written up, don't redo it
 - project_hebstr_add_note_migration.md: hebstr `add_note()` is gtsummary-only, before `tbl_format()`; one call site in ipl-sca
 - project_ordo_typst_template.md: `~/admin/pro-ordo` Typst prescription letterhead: blank and filled modes, open print check
 - project_ue5_horror_game.md: Solo UE5 horror game (2026-08-19): where the pipeline note and the project folder live
 - project_transcription_local_cpu.md: Meeting transcription: the `transcribe` driver, its throughputs, uv traps, Handy dictation
 - project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
-- project_sas_acquisition_deferred.md: Getting SAS on Ubuntu: no free local path left, researched 2026-10-06, deferred
-- project_gortex_evaluation.md: gortex rejected 2026-10-07: no edges from .qmd chunks, no R LSP; don't redo it
-- project_git_guard_scope_evaluation.md: sparse-checkout and submodule update stay outside the guard; measured 2026-10-07
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
 - project_collab_comments_evaluation.md: collab-comments in csi.qmd: the fork, the unique literal, the apostrophe
-- project_pnpm_evaluation.md: pnpm rejected 2026-10-24: no gain on this footprint, npm 12 ships both args
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts

@@ -223,5 +223,5 @@ Ce qui resterait exploitable sans toucher au formateur : `arity lint --select` r
 
 Binaire laissé dans `~/.local/bin/arity` pour suivre le projet ; `rm ~/.local/bin/arity && rm -rf ~/.cache/arity` revient en arrière. Le projet a trois mois de releases (v0.2.0 le 2026-06-12, v0.23.0 le 2026-09-07), un auteur unique qui est celui de panache déjà en service ici, et une cadence hebdomadaire. À revoir sur deux déclencheurs précis : un équivalent de `persistent-line-breaks`, ou une exception rlang dans `comparison-negation`. Ni l'un ni l'autre n'est annoncé.
 
-Décision consignée dans `~/.claude/memory/project_arity_evaluation.md`.
+Décision consignée dans `~/.claude/memory/project_closed_tool_evaluations.md`, section « arity ».
 
