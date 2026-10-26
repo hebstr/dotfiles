@@ -50,12 +50,12 @@
 - reference_streamlit_dataframe_styler.md: st.dataframe keeps only 3 Styler properties; no CSS reaches the canvas grid's rows
 - reference_snds_variable_traps.md: SNDS declaration traps: ALD, `IR_IMB_R`, CIP, C2S, AME, FDep, 2015, DCIR/PMSI overlap
 - reference_r_check_separable_model_tests.md: A model test can pass `devtools::test()` and fail `R CMD check` on separable data
+- reference_gha_r_devel_tmpfs.md: R-devel CI: the 26.04 tmpfs `/tmp`, `TMPDIR=$RUNNER_TEMP`, no P3M devel binary
 - reference_claude_code_best_practices.md: Local Claude Code facts: transcripts, hooks, auto mode, injection and memory-store caps
 - reference_opus_cyber_classifier_review.md: `cyber` classifier cuts security-control review on Opus; run the reviewer on Sonnet
 - reference_todo_sync.md: The `todo-sync` command aggregating TODO.md items across projects
-- reference_pkgdown_ignores_rbuildignore.md: pkgdown ignores `.Rbuildignore`: root `*.md` become pages, vignettes articles
+- reference_pkgdown_site_contents.md: What reaches a pkgdown site and stays on it: root `*.md`, vignettes, dead pages
 - reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` breaks in `extra.scss`
-- reference_pkgdown_build_site_leaves_dead_pages.md: `build_site()` never deletes a dead page; `clean_site()` first
 - reference_claude_code_marketplace_mechanics.md: Plugin install vs cache, `extraKnownMarketplaces`, a moved `directory` source
 - reference_plugin_skill_env_vars.md: `${CLAUDE_PLUGIN_ROOT}` renders `//`; `${CLAUDE_SKILL_DIR}` empty in skill Bash
 - reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
