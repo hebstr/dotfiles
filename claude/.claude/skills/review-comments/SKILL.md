@@ -54,14 +54,20 @@ One point per turn, in order, the entries set aside passed over in silence.
 
 The turn presents the transcribed comment, then three things.
 
-1. **Reformulation et contexte.** Restate what the reviewer is asking for without reusing their wording, and give what supports or contradicts it. Read before asserting: the section the comment points at, the passages tied to it, the project's design notes, and the reference cited when the comment calls it into question, in the PDF itself as `rules/pdf.md` prescribes.
+1. **Reformulation et contexte.** Restate what the reviewer is asking for without reusing their wording, and give what supports or contradicts it. Read before asserting, and read the layer that decides the point rather than the prose alone: the section the comment points at and the passages tied to it, the declaration file and the code that implements the behaviour under discussion, the tracking note that owns the decision, and the reference cited when the comment calls it into question, in the PDF itself as `rules/pdf.md` prescribes.
+   A claim taken from a design note or from an earlier pass is re-derived against the current state before it reaches the reviewer: a path, a file name, a count and a note's own content all rot, and what goes out is the current one or nothing.
 2. **Proposition.** A reply to the reviewer, written in their tone: short and informal if theirs is, and matching their form of address (in French, tutoiement for tutoiement). It states what will be done, not how.
+   It is settled rather than accommodating: it may contradict what the reviewer suggests, or what an earlier pass recorded, and it then names the measurement that moved it. A concession no measurement supports is worth nothing to them.
+   It names what the report into the source owes: where the change lands, what has to move with it, and the duplication it must not create, that last one being what a document already says three times by the time a reviewer asks for a summary.
 3. **The decision question**: approve the proposal, as it stands or amended, skip the point, or defer it.
 
-When a comment admits two readings that lead to different replies, set both out, one proposal per reading, and ask the user which reading holds.
+When a comment admits two readings that lead to different replies, set both out, one proposal per reading, and ask the user which reading holds before spending measurement on either.
 
-The entry is written only once the decision is made, in the same response as the next turn or on its own: reformulation, proposal and decision.
+The entry is written only once the decision is made, in the same response as the next turn or on its own: reformulation, proposal, decision, then the proposal's measurement lines.
+Those lines sit after the decision, outside the text addressed to the reviewer, and carry what the point was settled on, with the date, and its residual debt when it has one, a reference search and a bounded verification being named apart. They belong in the register rather than in the conversation because the report into the source happens outside the pass, sometimes weeks later, with the conversation gone.
+A proposal settled except for one piece says which piece, and that piece alone waits.
 A skipped point is the exception and takes its decision line alone, its reformulation and proposal lines deleted rather than filled: only a decision is carried into the source, so the rest is cost. What was measured for that point stays in the conversation, where it is read once.
+A register whose points were already answered by an earlier and shallower pass takes the settled one in a field of its own, under the decision, and never rewrites the recorded proposal: that proposal is the trace of the user's own arbitration, and a register in a directory git ignores has no `git show` to recover it from. The new field's label must not collide with the `**Réponse**` the script writes for a reviewer's reply, which the tally and every `rg` would otherwise conflate.
 The register's head matter is what the script wrote, and a pass adds no narrative to it, a second pass over the same document being legible from the entries themselves.
 Decision vocabulary, carried by the entry's `**Décision** :` line: « proposition validée », whether the proposal was kept as it stood or amended, « sauté en revue », noting what the user will handle themselves when they say so, « reporté », with the place the task is recorded in.
 
@@ -95,6 +101,7 @@ No editing of the authored source.
 No handling of tracked changes unless asked for.
 No entry deleted and none renumbered.
 No proposal written before reading what it commits to, and no proposals drafted ahead for several points.
+No recorded proposal of an earlier pass rewritten.
 No entry written before its decision.
 
 ## What "done" means
@@ -102,6 +109,7 @@ No entry written before its decision.
 - The skeleton comes from the script, its summary is reported to the user, and the extracts not found or ambiguous are settled.
 - The linked comments are recorded before the triage.
 - Every entry carries a decision or stays explicitly « à prendre » because the user stopped.
+- Every entry carrying a proposal carries its measurement lines too, with the date, and its residual debt when it has one.
 - No entry is deleted, and the numbering is the one from stage 1.
 - `rg '^»'` returns zero and the prose linter passes.
 - The tally is counted on the file and recorded in the project's tracking files.
