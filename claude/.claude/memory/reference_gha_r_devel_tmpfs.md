@@ -18,4 +18,6 @@ Three facts that together break an `R-CMD-check` `devel` job on GitHub-hosted ru
   run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
 ```
 
-A job-level `env: TMPDIR: ${{ runner.temp }}` does not work: the `runner` context reaches `jobs.<id>.steps.<id>.env` and not `jobs.<id>.env`, so the expression is rejected. A job that takes P3M binaries alone (`release`, `oldrel`) compiles nothing and needs none of this.
+A job-level `env: TMPDIR: ${{ runner.temp }}` does not work: the `runner` context reaches `jobs.<id>.steps.<id>.env` and not `jobs.<id>.env`, so the expression is rejected.
+
+**Verified on `hebstr/edstr` run `40382373055`, 2026-10-26**: all three jobs green, `devel` in 87 min on `Cache not found` with duckdb 2.0.0 built from source (`[bld][cmp]`, 8.31 MB) and installed, `Status: OK`, against the 3.6 s install failure the same build hit before the fix. `release` took 54 min on a restored cache and `oldrel` 4 min. The step sits in the matrix job, so every job of the run carried `TMPDIR`: this run says nothing about whether a binary-only job needs it, and the cheap posture is to set it for the whole matrix rather than to reason about which job compiles.
