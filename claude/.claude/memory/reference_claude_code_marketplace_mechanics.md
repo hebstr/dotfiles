@@ -20,7 +20,7 @@ Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by
 **3. `plugin install` is skippable for `directory` source, with a behavioral consequence**
 - For `directory` source: if no install has been run (no cache entry), Claude Code falls back to reading live from the path declared in `marketplace.json`. Restart alone is enough to load the plugin. Which mode a given plugin sits in is decided per-plugin by the cache check below, never assumed.
 - For `github`/`git` source: install is required. Without cache, there's no on-disk content to load.
-- **Trap**: the litrev memory `project_litrev_separate_from_hebstr.md` and the operational behavior of "directory source = lecture live" only holds when no install has been run. As soon as someone runs `plugin install <plugin>@<directory-marketplace>`, the cache is populated and live edits become invisible until `plugin update` is run. Treat directory source as "live until first install, then cached like github."
+- **Trap**: the litrev memory `project_litrev_plugin_status.md` and the operational behavior of "directory source = lecture live" only holds when no install has been run. As soon as someone runs `plugin install <plugin>@<directory-marketplace>`, the cache is populated and live edits become invisible until `plugin update` is run. Treat directory source as "live until first install, then cached like github."
 
 **Operational decision tree for `directory`-source marketplaces:**
 - Want live edits to take effect on restart with no extra commands? Don't run `plugin install`. Just declare the marketplace + enabled plugin and restart.
