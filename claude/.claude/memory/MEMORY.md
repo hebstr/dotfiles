@@ -33,7 +33,7 @@
 - project_git_guard_scope_evaluation.md: sparse-checkout and submodule update stay outside the guard; measured 2026-10-07
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
-- project_collab_comments_evaluation.md: collab-comments forked into hebstr-doc: 23 of 24 Word comments reach csi.qmd
+- project_collab_comments_evaluation.md: collab-comments in csi.qmd: the fork, and a moved source line kills every anchor
 - project_pnpm_evaluation.md: pnpm rejected 2026-10-24: no gain on this footprint, npm 12 ships both args
 
 ## Reference
