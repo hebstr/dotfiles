@@ -35,7 +35,7 @@ Never copy a comment out by hand: `officer::docx_comments()` and `pandoc --track
 
 The script's summary gives the count of comments, of points, of replies, of points with no anchor, of points anchored outside the document body and its notes (header, footer) and, with `--source`, of extracts not found or ambiguous.
 It also flags a file with no `word/commentsExtended.xml`, where replies cannot be filed and each one counts as a point: tell the user before the triage.
-Every extract not found or ambiguous is settled by reading the source, in the entry's `**Localisation**` line, whose parenthesised status left by the script is replaced by the result: a short extract is completed with the sentence containing it, an extract that cannot be found is placed by its section and says so.
+Every extract not found or ambiguous is settled by reading the source, in the entry's location line, whose parenthesised status left by the script is replaced by the result: a short extract is completed with the sentence containing it, an extract that cannot be found is placed by its section and says so.
 
 Then record the linked comments, by number, in the register's section for them, and present them to the user: a link bears on what the user will set aside.
 
@@ -44,7 +44,7 @@ The numbering is fixed at this stage and never moves again.
 ## Stage 2, the triage
 
 The user reads the register and names in the conversation the entries not worth a turn.
-Each one takes, in place, `**Décision** : écartée au tri, AAAA-MM-JJ.` dated to the session, and its reformulation and proposal lines keep their « à établir ».
+Each one takes, in place, a decision line reading set aside at triage and dated to the session in ISO 8601 form, in the wording the script laid out, and its restatement and proposal lines keep the placeholder the script wrote.
 
 Never delete an entry and never renumber: the links, the cross-references between points and the tally all hold by the numbers, and a comment set aside may call for a reply later.
 
@@ -52,11 +52,11 @@ Never delete an entry and never renumber: the links, the cross-references betwee
 
 One point per turn, in order, the entries set aside passed over in silence.
 
-The turn presents the transcribed comment, then three things.
+The turn presents the transcribed comment, then three things, whose names below are this file's English ones for the register's own labels: the script writes those labels, and any skeleton entry shows them in this order.
 
-1. **Reformulation et contexte.** Restate what the reviewer is asking for without reusing their wording, and give what supports or contradicts it. Read before asserting, and read the layer that decides the point rather than the prose alone: the section the comment points at and the passages tied to it, the declaration file and the code that implements the behaviour under discussion, the tracking note that owns the decision, and the reference cited when the comment calls it into question, in the PDF itself as `rules/pdf.md` prescribes.
+1. **Restatement and context.** Restate what the reviewer is asking for without reusing their wording, and give what supports or contradicts it. Read before asserting, and read the layer that decides the point rather than the prose alone: the section the comment points at and the passages tied to it, the declaration file and the code that implements the behaviour under discussion, the tracking note that owns the decision, and the reference cited when the comment calls it into question, in the PDF itself as `rules/pdf.md` prescribes.
    A claim taken from a design note or from an earlier pass is re-derived against the current state before it reaches the reviewer: a path, a file name, a count and a note's own content all rot, and what goes out is the current one or nothing.
-2. **Proposition.** A reply to the reviewer, written in their tone: short and informal if theirs is, and matching their form of address (in French, tutoiement for tutoiement). It states what will be done, not how.
+2. **Proposal.** A reply to the reviewer, written in their tone: short and informal if theirs is, and matching their form of address, informal for informal. It states what will be done, not how.
    It is settled rather than accommodating: it may contradict what the reviewer suggests, or what an earlier pass recorded, and it then names the measurement that moved it. A concession no measurement supports is worth nothing to them.
    It names what the report into the source owes: where the change lands, what has to move with it, and the duplication it must not create, that last one being what a document already says three times by the time a reviewer asks for a summary.
 3. **The decision question**: approve the proposal, as it stands or amended, skip the point, or defer it.
@@ -67,11 +67,11 @@ The entry is written only once the decision is made, in the same response as the
 Those lines sit after the decision, outside the text addressed to the reviewer, and carry what the point was settled on, with the date, and its residual debt when it has one, a reference search and a bounded verification being named apart. They belong in the register rather than in the conversation because the report into the source happens outside the pass, sometimes weeks later, with the conversation gone.
 A proposal settled except for one piece says which piece, and that piece alone waits.
 A skipped point is the exception and takes its decision line alone, its reformulation and proposal lines deleted rather than filled: only a decision is carried into the source, so the rest is cost. What was measured for that point stays in the conversation, where it is read once.
-A register whose points were already answered by an earlier and shallower pass takes the settled one in a field of its own, under the decision, and never rewrites the recorded proposal: that proposal is the trace of the user's own arbitration, and a register in a directory git ignores has no `git show` to recover it from. The new field's label must not collide with the `**Réponse**` the script writes for a reviewer's reply, which the tally and every `rg` would otherwise conflate.
+A register whose points were already answered by an earlier and shallower pass takes the settled one in a field of its own, under the decision, and never rewrites the recorded proposal: that proposal is the trace of the user's own arbitration, and a register in a directory git ignores has no `git show` to recover it from. The new field's label must not collide with the one `skeleton.py` writes for a reviewer's reply, which the tally and every `rg` would otherwise conflate.
 The register's head matter is what the script wrote, and a pass adds no narrative to it, a second pass over the same document being legible from the entries themselves.
-Decision vocabulary, carried by the entry's `**Décision** :` line: « proposition validée », whether the proposal was kept as it stood or amended, « sauté en revue », noting what the user will handle themselves when they say so, « reporté », with the place the task is recorded in.
+Decision vocabulary, carried by the entry's decision line in the wording the script laid out, which the register's head matter lists and which an existing entry or the script itself gives back when that head matter was pruned: proposal approved, whether the proposal was kept as it stood or amended; skipped in review, noting what the user will handle themselves when they say so; deferred, with the place the task is recorded in.
 
-A deferral that calls for work of its own, a reference search for instance, is recorded as a specification in the design note of the chantier it belongs to, the one the project's `CLAUDE.md` or its plan's table names: what is already covered and verified, the questions to investigate, the bounds.
+A deferral that calls for work of its own, a reference search for instance, is recorded as a specification in the design note of the workstream it belongs to, the one the project's `CLAUDE.md` or its plan's table names: what is already covered and verified, the questions to investigate, the bounds.
 
 ## Verification
 
@@ -82,8 +82,8 @@ A deferral that calls for work of its own, a reference search for instance, is r
 
 ## Writing traps
 
-The machine's Markdown formatter breaks a « » quotation after sentence-final punctuation and leaves a lone « » » at the head of a line: write the quoted extract with no final period, question mark or colon.
-After every write, `rg '^»' <register>` must return zero.
+The machine's Markdown formatter breaks a guillemet quotation, `«` and `»`, after sentence-final punctuation, and leaves the closing glyph alone at the head of a line: write the quoted extract with no final period, question mark or colon.
+After every write, `rg '^»' <register>` must return zero, the glyph being what the check greps.
 
 Re-read the entry's region from disk before every `Edit`: the formatter rewrites the file between turns.
 
@@ -91,7 +91,7 @@ Re-read the entry's region from disk before every `Edit`: the formatter rewrites
 
 The user stops wherever they want, and the list does not have to be exhausted.
 
-The tally is counted on the register rather than from memory, with `rg` over the decision lines, on the wording they carry: « proposition validée », « sauté en revue », « reporté », « écartée au tri », and what is still « à prendre ».
+The tally is counted on the register rather than from memory, with `rg` over the decision lines, on the exact strings the register itself carries, the four verdicts and the open placeholder: they are read off the head matter `skeleton.py` lays out, or off the script when that head matter was pruned, and never retyped from this file, whose names for them are English while the register's are not.
 The machine's prose linter is run over the register.
 The tally goes into the tracking files the project's `CLAUDE.md` names, along with the open points: decisions still to carry into the source, deferrals recorded, points skipped.
 
@@ -108,7 +108,7 @@ No entry written before its decision.
 
 - The skeleton comes from the script, its summary is reported to the user, and the extracts not found or ambiguous are settled.
 - The linked comments are recorded before the triage.
-- Every entry carries a decision or stays explicitly « à prendre » because the user stopped.
+- Every entry carries a decision or stays explicitly open, in the script's own placeholder, because the user stopped.
 - Every entry carrying a proposal carries its measurement lines too, with the date, and its residual debt when it has one.
 - No entry is deleted, and the numbering is the one from stage 1.
 - `rg '^»'` returns zero and the prose linter passes.
