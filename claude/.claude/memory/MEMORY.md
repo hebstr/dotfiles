@@ -110,7 +110,7 @@
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French statistical reports and md-nesrine's render journal
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
-- feedback_review_severity_hebstr_doc.md: Calibrating reviews of quarto-hebstr-doc (filetree, docx-caption, collab-comments)
+- feedback_review_severity_hebstr_doc.md: Calibrating reviews of quarto-hebstr-doc (filetree, docx, comment threading)
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING
 - feedback_bats_comment_carve_out.md: Why the bats comment debt is won't-fix; don't re-measure the 41 suites
 - feedback_review_severity_bats_tests.md: Calibrating reviews of bats tests for personal shell tooling; measure a remedy first
