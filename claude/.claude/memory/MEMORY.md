@@ -32,7 +32,7 @@
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
-- reference_zotero_metadata_acquisition.md: Zotero 10 PMID/PMCID native fields, NLM abbreviations only from the PubMed translator
+- reference_zotero_metadata_acquisition.md: Which route fills which field; .nbib lands PMID natively; one id kind per paste
 - reference_syncthing_ghost_records.md: Finding which device holds a stale record of an ignored path; the phones' `.stignore`
 - reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
 - reference_warp_scholar_split_tunnel.md: Scholar 403s through WARP: the excluded host plus the Firefox TRR exclusion
