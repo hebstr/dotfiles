@@ -85,7 +85,7 @@
 - reference_panache_citation_diagnostics.md: panache reads `bibliography:` from the document's folder, not via `resource-path`
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
-- reference_quarto_r_env_var.md: `QUARTO_R` beats `PATH`: an `rv` project pinned to another R dies on "knitr is not available"
+- reference_quarto_r_env_var.md: `QUARTO_R`/`QUARTO_PYTHON` injected by the Positron extension: stale values, their two failure modes
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
 - reference_bash_tool_pitfalls.md: Bash tool traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh | head`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`

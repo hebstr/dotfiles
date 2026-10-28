@@ -1,6 +1,6 @@
 ---
 name: QUARTO_R overrides PATH and defeats rv version pins
-description: Quarto resolves R through the exported QUARTO_R, not PATH, so an rv project pinned to another r_version silently enters safe mode and the render fails on "knitr is not available" rather than on the version mismatch
+description: Quarto resolves R through the exported QUARTO_R, not PATH, so an rv project pinned to another r_version silently enters safe mode and the render fails on "knitr is not available" rather than on the version mismatch; QUARTO_PYTHON comes from the same source and goes stale the same way
 metadata:
   type: reference
 ---
@@ -24,5 +24,20 @@ Whether `rig default <version>` moves Quarto depends on the value: with `QUARTO_
 `rig list` shows which versions are installed.
 
 The durable question this leaves open, unresolved as of 2026-09-22: a set `QUARTO_R` makes every `rv` pin inoperative under Quarto, silently degrading instead of failing on the version. Either the variable goes and Quarto follows `PATH`, or each pinned project needs the per-command override above.
+
+## The source of both variables, and the QUARTO_PYTHON twin
+
+Neither variable comes from a file: the Positron Quarto extension injects both into the integrated terminal's environment, `QUARTO_PYTHON` from the Python extension's selected interpreter and `QUARTO_R` beside it (measured 2026-10-28 on `quarto.quarto-1.139.0-universal/out/main.js`, which carries both names; its changelog line "Resolve full path when setting QUARTO_PYTHON from Python extension config" says the value is a resolved path, not the `.venv/bin/python` link).
+A terminal captures the value at creation, so a long-lived Positron window keeps pointing at an interpreter `uv python upgrade` has since removed. `rg` over `~/.config`, `~/dotfiles`, `~/.config/Positron` and `~/.positron` finds the name only inside that extension bundle.
+
+A stale `QUARTO_PYTHON` stays silent until something in the render needs Python, and a `post-render` entry whose path ends in `.py` is enough:
+
+```
+WARN: Specified QUARTO_PYTHON '<path>' does not exist
+WARN: No python binary found in specified QUARTO_PYTHON location '<path>'
+```
+
+Quarto then falls back to `/usr/bin/python3` and runs the script anyway, so the warning is cosmetic as long as the script is stdlib-only; it is not a defect of whatever extension introduced the `.py` entry. Measured 2026-10-28 on quarto 1.10.19, with a throwaway project: an `.R` post-render entry under the same stale value prints no warning at all, a `.py` one prints both and still runs.
+The remedy is a fresh terminal or a window reload, or `QUARTO_PYTHON=.venv/bin/python quarto render` for the one command.
 
 Related: [[feedback_review_severity_shell_installers]] (threat model on the multi-user servers)
