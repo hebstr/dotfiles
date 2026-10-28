@@ -82,6 +82,7 @@
 - reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` loses metadata and `output-dir`, yet gets renamed
 - reference_quarto_page_title_fallback.md: An empty or absent `title:` sends the filename into a page's `<title>`
 - reference_quarto_include_path_resolution.md: `{{< include >}}` resolves against the includer; no root form, standalone only
+- reference_quarto_heading_demotion_numbering.md: One demotion level is free, two numbers `0.1`; `shift-heading-level-by` misses
 - reference_panache_citation_diagnostics.md: panache reads `bibliography:` from the document's folder, not via `resource-path`
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
