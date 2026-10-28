@@ -7,9 +7,10 @@
 
 Every write of an OOXML package or of a PNG stamps metadata no content change
 touches: the package creation and modification timestamps, the editing time, the
-ZIP entry dates and the PNG `tIME` chunk. Each is pinned to a fixed valid value
-rather than emptied, so the package keeps the types it declares, and a re-render
-that changed nothing else produces a blob identical to the stored one.
+account the write came from, the ZIP entry dates and the PNG `tIME` chunk. Each
+is pinned to a fixed value its own type accepts rather than dropped, so the
+package keeps the types it declares, and a re-render that changed nothing else
+produces a blob identical to the stored one, whichever account rendered it.
 
 It normalises strictly less than the `out-textconv` diff driver beside it. The
 `w:fontKey` GUID and the ODTTF obfuscation header it XORs into each font subset
@@ -38,6 +39,7 @@ VOLATILE_ELEMENTS = (
     (b"dcterms:created", W3CDTF_EPOCH),
     (b"dcterms:modified", W3CDTF_EPOCH),
     (b"TotalTime", b"0"),
+    (b"cp:lastModifiedBy", b""),
 )
 STAMPS = tuple(
     (

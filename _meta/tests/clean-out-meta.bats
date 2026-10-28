@@ -65,11 +65,13 @@ _pkg() {
   local path="${BATS_TEST_TMPDIR}/$name"
   local stamp=2026-10-24T16:00:00Z key=AAA header=x payload=PAYLOAD
   local body="Age median" total=42 mtime=2020 second=1 pixel=10 stored=0
+  local author=julien
   shift
 
   while (($#)); do
     case $1 in
     --stamp) stamp=$2 ;;
+    --author) author=$2 ;;
     --key) key=$2 ;;
     --header) header=$2 ;;
     --payload) payload=$2 ;;
@@ -88,7 +90,8 @@ _pkg() {
   media=$(_png "media-$name.png" --second "$second" --pixel "$pixel")
 
   STAMP="$stamp" KEY="$key" HEADER="$header" PAYLOAD="$payload" BODY="$body" \
-    TOTAL="$total" MTIME="$mtime" MEDIA="$media" STORED="$stored" python3 - "$path" <<'EOF'
+    TOTAL="$total" MTIME="$mtime" MEDIA="$media" STORED="$stored" AUTHOR="$author" \
+    python3 - "$path" <<'EOF'
 import os
 import sys
 import zipfile
@@ -107,6 +110,7 @@ members = {
         "<dc:title>report</dc:title>"
         f'<dcterms:created xsi:type="dcterms:W3CDTF">{stamp}</dcterms:created>'
         f'<dcterms:modified xsi:type="dcterms:W3CDTF">{stamp}</dcterms:modified>'
+        f"<cp:lastModifiedBy>{env['AUTHOR']}</cp:lastModifiedBy>"
         "</cp:coreProperties>"
     ).encode(),
     "docProps/app.xml": (
@@ -201,6 +205,13 @@ while position < len(blob):
   [[ "$output" == *"<TotalTime>0</TotalTime>"* ]]
 }
 
+@test "the write account is pinned to an empty author" {
+  _clean "$(_pkg in.docx --author edjulien)" "$BATS_TEST_TMPDIR/out.docx"
+  run -0 _member "$BATS_TEST_TMPDIR/out.docx" docProps/core.xml
+  [[ "$output" == *"<cp:lastModifiedBy></cp:lastModifiedBy>"* ]]
+  [[ "$output" != *edjulien* ]]
+}
+
 @test "every ZIP entry date is pinned to the 1980 epoch" {
   _clean "$(_pkg in.docx --mtime 2024)" "$BATS_TEST_TMPDIR/out.docx"
   run -0 _dates "$BATS_TEST_TMPDIR/out.docx"
@@ -209,9 +220,11 @@ while position < len(blob):
 }
 
 @test "two writes differing only in write metadata come out byte-identical" {
-  _clean "$(_pkg a.docx --stamp 2026-10-24T16:00:00Z --mtime 2024 --total 42 --second 1)" \
+  _clean \
+    "$(_pkg a.docx --stamp 2026-10-24T16:00:00Z --mtime 2024 --total 42 --second 1 --author julien)" \
     "$BATS_TEST_TMPDIR/a.out"
-  _clean "$(_pkg b.docx --stamp 2026-10-25T09:30:00Z --mtime 2026 --total 99 --second 7)" \
+  _clean \
+    "$(_pkg b.docx --stamp 2026-10-25T09:30:00Z --mtime 2026 --total 99 --second 7 --author edjulien)" \
     "$BATS_TEST_TMPDIR/b.out"
   cmp "$BATS_TEST_TMPDIR/a.out" "$BATS_TEST_TMPDIR/b.out"
 }

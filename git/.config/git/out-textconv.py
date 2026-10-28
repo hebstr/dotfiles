@@ -6,12 +6,12 @@
 """out-textconv: render a binary output as stable text, as a git textconv driver.
 
 Every write of an OOXML package or of a cropped PNG regenerates metadata no
-content change touches: the package modification timestamp, the ODTTF
-obfuscation key and the 32-byte header it XORs into each embedded font subset,
-and the PNG `tIME` chunk. Each is neutralised rather than dropped, the `tIME`
-chunk excepted since it carries nothing but the time, so a real change in the
-same part stays visible: a font subset that actually moves, an alternative font
-name, a title.
+content change touches: the package modification timestamp, the account the
+write came from, the ODTTF obfuscation key and the 32-byte header it XORs into
+each embedded font subset, and the PNG `tIME` chunk. Each is neutralised rather
+than dropped, the `tIME` chunk excepted since it carries nothing but the time,
+so a real change in the same part stays visible: a font subset that actually
+moves, an alternative font name, a title.
 
 Stored bytes are never touched. The driver only feeds `git diff`, `git show`
 and `git log -p`, which is what keeps it safe on a deliverable Word refuses at
@@ -30,7 +30,7 @@ from pathlib import Path
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 ZIP_MAGIC = b"PK\x03\x04"
 OBFUSCATION_HEADER = 32
-VOLATILE_ELEMENTS = ("dcterms:created", "dcterms:modified", "TotalTime")
+VOLATILE_ELEMENTS = ("dcterms:created", "dcterms:modified", "TotalTime", "cp:lastModifiedBy")
 FONT_KEY = re.compile(r'w:fontKey="\{[0-9A-Fa-f-]+\}"')
 USAGE = "usage: out-textconv <file>"
 

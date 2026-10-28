@@ -17,6 +17,7 @@ Applied to md-nesrine on 2026-09-12.
 | ------------------------------------------ | ---------------------------------------- | ----------------------------------------- |
 | `dcterms:modified`, `dcterms:created`      | every OOXML package                      | element content emptied                   |
 | `TotalTime`                                | `docProps/app.xml`                       | element content emptied                   |
+| `cp:lastModifiedBy`                        | every OOXML package                      | element content emptied                   |
 | `w:fontKey` GUID                           | `word/fontTable.xml`                     | attribute value emptied                   |
 | ODTTF obfuscation header, 32 bytes         | `word/fonts/font*.odttf`                 | digest of the payload past byte 32        |
 | PNG `tIME` chunk                           | standalone PNG and PNG members           | chunk dropped                             |
@@ -90,7 +91,7 @@ Then the diff itself, on md-nesrine, 2026-09-12:
 - the same driver on the real v4.2.5 to v4.2.6 change: 439 lines, all in `docs/<date>_rapport-stat.docx`, the template moving from `chazard_modele_these_medecine_2022.dotx` to `template.dotx`, hebstr from 0.18.1 to 0.18.2, and every figure extent widening.
 - the twelve other docx of that commit: 0 lines, so they were already noise in history.
 
-`bats _meta/tests/out-textconv.bats` covers the classification itself, 28 tests in 7,6 s: one per noise source of the table above, the font key and its obfuscation header sharing one and PNG recompression or IDAT splitting having none, a body change, a font subset payload and an embedded PNG pixel still visible, the output shape, a PNG trailer neutralised and still visible, the six fallbacks and the two usage errors.
+`bats _meta/tests/out-textconv.bats` covers the classification itself, 29 tests in 7,6 s on battery: one per noise source of the table above, the font key and its obfuscation header sharing one and PNG recompression or IDAT splitting having none, a body change, a font subset payload and an embedded PNG pixel still visible, the output shape, a PNG trailer neutralised and still visible, the six fallbacks and the two usage errors.
 The comparison helpers assert both renderings non-empty, since a driver that crashes on both sides renders identically and a bare `diff` of two empty streams reports agreement.
 Six mutations were run against the suite to check it tests what it claims, measured on 2026-09-12 against the 28 tests: dropping the embedded-PNG branch, dropping `dcterms:created`, dropping the member sort and zeroing the obfuscation offset each fail exactly one test, dropping the one-line-per-tag split fails two, since the title assertion reads the split as well, and a driver replaced by `exit 0` fails all 28.
 
@@ -176,7 +177,7 @@ The second half is taken in one project: eds-prise declared the four lines on 20
 
 Measured the same day over every tracked binary of eds-prise, md-nesrine and eds-avc, each paired with a simulated re-render that moves every field the writers were measured to move: 112 of 112 pairs collapse to the same bytes, 0 differ, the three `.pptx` of eds-avc among them at 111, 71 and 147 members preserved.
 A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 tracked binaries, of which the anchored attribute reaches the 43 that sit under an `output/` tree.
-`_meta/tests/clean-out-meta.bats` pins the contract in 26 tests, and six mutations of the program each fail between one and four of them, measured on the 23 the suite carried before 2026-10-24.
+`_meta/tests/clean-out-meta.bats` pins the contract in 27 tests, and six mutations of the program each fail between one and four of them, measured on the 23 the suite carried before 2026-10-24.
 Three of those tests came out of the `/audit:walkthrough` pass of 2026-10-24, which then measured every class of the handler's exception tuple to be pinned by exactly one test, dropping `NotImplementedError` excepted: that mutation fails nothing, `RuntimeError` already covering it by inheritance.
 
 ### The index goes quiet, `git status` does not
@@ -189,11 +190,17 @@ That residual noise reaches the commit skill: `writes.sh` appends every `git sta
 Filtering them there is rejected, 2026-10-25: a filter keyed on `git diff` returning identity would also drop the untracked `??` entries, which appear in no diff and are what the list exists to surface, so it would owe a discrimination on the status code plus one `git` call per entry.
 The noise costs tokens in the verifier pass rather than correctness, since the `git add` over the output trees stages nothing, so that command stays the remedy and the question reopens only if a real closure shows the verifier derailed by the sixteen.
 
-### The volatile value is pinned rather than emptied, because the package declares its types
+### The volatile value is pinned to what its own type accepts, because the package declares them
 
 `dcterms:created` and `dcterms:modified` carry `xsi:type="dcterms:W3CDTF"` and `TotalTime` holds an integer, so an empty element breaks the type the package declares, and Word enforces the content model by refusing to open a file rather than by degrading it (`rules/docx.md`, "Structural validity, which a render never tests").
-Stability is the whole requirement and any fixed value gives it, so the three are pinned to `1980-01-01T00:00:00Z`, `1980-01-01T00:00:00Z` and `0`, and the ZIP entry dates to the 1980 epoch the format floors at.
-The `out-textconv` driver empties the same three, which costs it nothing: it renders text and stores no bytes.
+Stability is the whole requirement and any fixed value gives it, so those three are pinned to `1980-01-01T00:00:00Z`, `1980-01-01T00:00:00Z` and `0`, and the ZIP entry dates to the 1980 epoch the format floors at.
+`cp:lastModifiedBy`, added to both tuples on 2026-10-28, declares no type and holds a plain string, so the empty element is itself a value the package accepts and the pin is `""`.
+The `out-textconv` driver empties the same four, which costs it nothing: it renders text and stores no bytes.
+
+`dc:creator` stays out of both tuples, decided on a measurement rather than by symmetry with the author field (2026-10-28, over the tracked `docx`, `xlsx` and `pptx` of eds-prise, md-nesrine and eds-avc).
+All 27 files the filter reaches carry an empty one, so the filter would pin nothing.
+The driver's broad globs do reach 13 non-empty ones, and 6 of those are a person's name or Word's `Author` placeholder rather than an account a writer stamped, `GAUTHIER Victoria` on eds-prise's timeline workbook and on an eds-avc deck, `Elices-Diez J, Geay C., Ficheur G., Theis D.` on an eds-avc abstract: blanking it would hide content on exactly the hand-authored files the filter was anchored away from.
+The churn case is openxlsx2, which stamps the account into `dc:creator` as well as into `cp:lastModifiedBy`; none of the files it wrote is routed to the filter, so the remedy there is a `creator` argument at write time rather than a blind spot in the driver.
 
 ### The filter normalises strictly less than the driver beside it
 
@@ -204,11 +211,16 @@ The standalone `*.png` route normalises nothing on the current corpus: none of t
 
 ### What a licensed Word still owes
 
-Three questions no tool reachable from here settles, each about an Office save rather than a render, and none of them reached by the measurements above (`/audit:walkthrough`, 2026-10-24).
+Two questions no tool reachable from here settles, each about an Office save rather than a render, and neither reached by the measurements above (`/audit:walkthrough`, 2026-10-24).
 The 2026-10-25 pass does not reach them either, and cannot: the Word of ju-TP2 is unlicensed, so it lays out and paginates but writes no file, which is what `word-render` reports on every capture and what [[project_word_render_control]] records; no save can be performed there to measure.
-`cp:revision` and `cp:lastModifiedBy` are not pinned, and 27 of the 28 tracked outputs the pattern would reach carry `9` and `julien`, the 28th carrying no `cp:revision` element at all, each inherited verbatim from the reference docx and stable across renders, so the filter's own goal is unaffected: the case for pinning them rests on whether a Word open-and-save that changed no content moves them while bringing the rest of the package back identical, and if it does not, the pin buys nothing.
+`cp:revision` is not pinned, and 27 of the 28 tracked outputs the pattern would reach carry `9`, the 28th carrying no `cp:revision` element at all.
+That `9` is inherited verbatim and stable across renders rather than counted per write: `officer`'s own `template/template.docx` carries `<cp:revision>9</cp:revision>` (measured 2026-10-28), so the filter's own goal is unaffected, and the case for pinning it rests on whether a Word open-and-save that changed no content moves it while bringing the rest of the package back identical.
+If it does not, the pin buys nothing.
 `docProps/thumbnail.jpeg` and `ppt/printerSettings/printerSettings1.bin` pass through byte for byte, neither occurs in any of the 28 files the pattern would reach, and whether Office rewrites them on such a save is unestablished.
-Blanking `cp:lastModifiedBy` for privacy was weighed and declined: a reviewer's Word round trip puts the same name in the `w:author` of `word/comments.xml`, which is content the filter must not touch.
+
+`cp:lastModifiedBy` left this list on 2026-10-28, and the measurement that moved it concerns the render, not an Office save: the same template carries `David Gohel` while no output does, because `officer`'s `print.rdocx` assigns `Sys.getenv("USER")` to the field on every write.
+The value is therefore the Unix account of whoever rendered, which is why the 27 outputs carrying `julien` all restage as `edjulien` on the CHU machine, one changed line each, and it is pinned in both tuples rather than waiting on a licensed Word.
+Blanking it for privacy had been weighed and declined, a reviewer's Word round trip putting the same name in the `w:author` of `word/comments.xml`, which is content the filter must not touch: that ground is untouched, the pin happening for stability despite it rather than against it.
 
 ### The stored blob carries the deflate implementation
 
@@ -255,6 +267,7 @@ Each adopting project then owes one `git add --renormalize` over its binary tree
 **That first renormalise does not pass the `metadata-only` hook**, which reads the staged blobs through the diff driver and sees outputs differing in write metadata alone, the very shape it exists to refuse: it cannot tell a normalisation migration from a noise re-render, so the one commit that arms a project runs under `SKIP=metadata-only` (measured on eds-prise, 2026-10-25, sixteen docx listed and the hook pointing at `metadata-only --restore`, which would have undone the staging).
 Every later commit passes it untouched, the noise no longer reaching the index at all.
 eds-prise took them on 2026-10-25, its `git add --renormalize .` moving 16 docx of the 43 binaries its anchors reach and leaving the 27 PNG byte-identical, none of them carrying a `tIME`.
+Growing the pinned set reopens that renormalise for every project already armed, under `SKIP=metadata-only` for the same reason: adding `cp:lastModifiedBy` restaged the 27 docx eds-prise now tracks under its four anchors, for an empty textconv patch across all 27 since the driver blanks the field as well (2026-10-28).
 Everywhere else the filter stays inert, and the state to check is which `.gitattributes` under `~/Documents` carries `filter=out-meta`: the entry in `git/.gitconfig` and the program beside it change nothing on their own.
 
 ### Ways rejected

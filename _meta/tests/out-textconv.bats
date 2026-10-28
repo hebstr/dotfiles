@@ -62,11 +62,13 @@ _pkg() {
   local path="${BATS_TEST_TMPDIR}/$name"
   local stamp=2026-09-12T16:00:00Z key=AAA header=x payload=PAYLOAD
   local body="Age median" total=42 mtime=2020 second=1 pixel=10
+  local author=julien
   shift
 
   while (($#)); do
     case $1 in
     --stamp) stamp=$2 ;;
+    --author) author=$2 ;;
     --key) key=$2 ;;
     --header) header=$2 ;;
     --payload) payload=$2 ;;
@@ -84,7 +86,8 @@ _pkg() {
   media=$(_png "media-$name.png" --second "$second" --pixel "$pixel")
 
   STAMP="$stamp" KEY="$key" HEADER="$header" PAYLOAD="$payload" BODY="$body" \
-    TOTAL="$total" MTIME="$mtime" MEDIA="$media" python3 - "$path" <<'EOF'
+    TOTAL="$total" MTIME="$mtime" MEDIA="$media" AUTHOR="$author" \
+    python3 - "$path" <<'EOF'
 import os
 import sys
 import zipfile
@@ -103,6 +106,7 @@ members = {
         "<dc:title>report</dc:title>"
         f'<dcterms:created xsi:type="dcterms:W3CDTF">{stamp}</dcterms:created>'
         f'<dcterms:modified xsi:type="dcterms:W3CDTF">{stamp}</dcterms:modified>'
+        f"<cp:lastModifiedBy>{env['AUTHOR']}</cp:lastModifiedBy>"
         "</cp:coreProperties>"
     ).encode(),
     "docProps/app.xml": (
@@ -175,6 +179,10 @@ _differ() {
 
 @test "package: a TotalTime in app.xml reads identical" {
   _same "$(_pkg a.docx --total 42)" "$(_pkg b.docx --total 1337)"
+}
+
+@test "package: the write account in core.xml reads identical" {
+  _same "$(_pkg a.docx --author julien)" "$(_pkg b.docx --author edjulien)"
 }
 
 @test "package: a fresh font key and its obfuscation header read identical" {
