@@ -63,6 +63,7 @@
 - reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
+- reference_positron_open_html_externally.md: Explorer click to Firefox: a customEditor plus editorAssociations; xdg-open works
 - reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_table_column_width_layout.md: gt/flextable widths, Word grid and indent floor, PNG clipping, multi-panel float cut
@@ -150,7 +151,6 @@
 - feedback_browser_layout_probe.md: Inspect a rendered layout yourself in headless chromium; Streamlit needs CDP and a sleep
 - feedback_personal_working_files.md: The write-gate on NOTES.md, TODO.md and CALENDRIER.md: reading is free, writing never
 - feedback_user_deletions_are_decisions.md: Items gone from the user's own data are their pruning: report, never restore
-- feedback_xdg_open.md: xdg-open on `file://` silently fails in Positron; use `python3 -m http.server`
 - feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
 - feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap
 - feedback_edit_tool_unicode_escape.md: A four-hex-digit `\u` escape in a tool parameter lands decoded; in R use `\u{a0}`
