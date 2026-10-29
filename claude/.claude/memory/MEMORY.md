@@ -28,7 +28,7 @@
 - project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
-- project_collab_comments_evaluation.md: collab-comments in csi.qmd: the fork, the literal, apostrophe, threading, includes
+- project_collab_comments_evaluation.md: collab-comments on csi.qmd + snds-plan: fork, literal, threading, refs
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
@@ -42,7 +42,7 @@
 - reference_edstr_extract_row_order.md: edstr sorts extract output by (group, id); a re-extract never reshuffles annotation rows
 - reference_streamlit_altair_charts.md: Altair in Streamlit: height/padding traps, legends ignoring the theme, one shared tooltip
 - reference_streamlit_dataframe_styler.md: st.dataframe keeps only 3 Styler properties; no CSS reaches the canvas grid's rows
-- reference_snds_variable_traps.md: SNDS declaration traps: ALD, `IR_IMB_R`, CIP, C2S, AME, FDep, 2015, DCIR/PMSI overlap
+- reference_snds_variable_traps.md: SNDS traps: ALD, IR_IMB_R, CIP, C2S, AME, FDep, 2015, DCIR/PMSI, CNAM support URLs
 - reference_r_check_separable_model_tests.md: A model test can pass `devtools::test()` and fail `R CMD check` on separable data
 - reference_gha_r_devel_tmpfs.md: R-devel CI: the 26.04 tmpfs `/tmp`, `TMPDIR=$RUNNER_TEMP`, no P3M devel binary
 - reference_claude_code_best_practices.md: Local Claude Code facts: transcripts, hooks, auto mode, injection and memory-store caps
