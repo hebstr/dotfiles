@@ -107,7 +107,7 @@
 - feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input, never on natural language
 - feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
 - feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
-- feedback_slash_command_in_pasted_prompt.md: A `/name` heading a pasted prompt fires nothing; ask the user to type it
+- feedback_slash_command_in_pasted_prompt.md: A `/name` in a paste fires nothing; one absent from the list exists
 - feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French statistical reports and md-nesrine's render journal
@@ -138,7 +138,7 @@
 - feedback_fr_to_en_translation.md: Claude-facing content into English: migration keeps fidelity, a Claude draft is re-authored
 - feedback_verify_after_install.md: Smoke-test a new tool, hook or integration end-to-end before calling it done
 - feedback_shell_grep_pipefail.md: Shapes that fail or lie under `set -Eeuo pipefail` (mid-pipeline grep, `&&` lists, `jq -e`)
-- feedback_rg_misses_gitignored_trackers.md: Hidden and ignored paths vanish from `rg`: trackers read clean, `-u` is not `-uu`
+- feedback_rg_misses_gitignored_trackers.md: Ignored paths vanish from `rg` and `fdfind`: `-u` is not `-uu`, `-H` not `-u`
 - feedback_git_clean_tree_hides_ignored.md: `git status --porcelain` omits ignored files, so a clean-tree guard misses one
 - feedback_line_number_cross_refs.md: Cite by name, not by line number; and when a drifted reference stays as record
 - feedback_concision.md: Cut research narrative from notes and replies: record what binds future work
