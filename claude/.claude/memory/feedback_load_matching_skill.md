@@ -20,6 +20,10 @@ The user asked whether the skill had been invoked. Loading it afterwards surface
 
 The same pass over the other 20 suites found one more uncovered branch, in the `sweep-stale-consolidate-locks` hook, and a mutation test proved the six pre-existing cases all survived a broken guard.
 
+It recurred on 2026-10-29, same repository and same skill, on the six prune tests of `_meta/tests/sys-update.bats`: written, gated and committed before the skill was loaded, and surfaced again by the user asking whether it had been.
+The prek `shellcheck` hook caught the one defect the skill states outright (`run !` for a negative assertion, with its `bats_require_minimum_version 1.5.0`), which is why the first commit failed; loading the skill afterwards added the failure-path test the hook could not see.
+The bats case is mechanized since that date: `inject-rules.sh` denies the session's first `Edit`, `Write` or `MultiEdit` on a `*.bats` path, its message naming the skill to call. Nothing else is, so the rule below still carries every other artifact type.
+
 ## How to apply
 
 - Check the available-skills list against the artifact about to be produced, before producing it. Tests, prose, diagrams, artifacts and reviews all have skills that carry checklists no neighbouring file encodes.

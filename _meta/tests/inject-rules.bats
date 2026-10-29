@@ -64,6 +64,27 @@ field() {
   [ -z "$output" ]
 }
 
+@test "denies the first write to a bats suite and names the skill to load" {
+  run_hook "$(read_call Write "$WORK/t.bats")"
+  [ "$status" -eq 0 ]
+  [ "$(field permissionDecision)" = deny ]
+  [[ $(field permissionDecisionReason) == *bats-testing-patterns* ]]
+  [ -z "$(field additionalContext)" ]
+}
+
+@test "lets a later write to a bats suite through" {
+  run_hook "$(read_call Write "$WORK/t.bats")"
+  run_hook "$(read_call Edit "$WORK/other.bats")"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "the bats deny leaves other file types alone" {
+  run_hook "$(read_call Write "$WORK/t.sh")"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
 @test "injects pdf.md without a decision on a poppler command" {
   run_hook "$(bash_call 'pdftotext -layout report.pdf -')"
   [ -z "$(field permissionDecision)" ]

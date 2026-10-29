@@ -26,6 +26,13 @@ injected() {
   [[ -f $marker ]] && grep -qxF -- "$1" "$marker"
 }
 
+seal() {
+  (
+    umask 077
+    printf '%s\n' "$1" >>"$marker"
+  ) 2>/dev/null || true
+}
+
 want() {
   local name
   for name in "$@"; do
@@ -149,6 +156,14 @@ Edit | Write | MultiEdit)
   esac
   case $file in
   */.claude/*.md | */CLAUDE.md | */AGENTS.md | */_meta/notes/*.md) want claude-files ;;
+  esac
+  case $file in
+  *.bats)
+    if ! injected bats-skill; then
+      seal bats-skill
+      decide deny "Call the Skill tool on bats-testing-patterns before writing this suite, then retry this edit: it carries the forms the suites here follow, among them run ! for a negative assertion with bats_require_minimum_version 1.5.0 at the top of the file, the stub and fixture patterns, and the rule that a failure path is covered and not only the happy one. For a file under claude/, the name is claude:bats-testing-patterns."
+    fi
+    ;;
   esac
   ;;
 Agent | Task)
