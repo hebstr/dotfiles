@@ -263,9 +263,12 @@ EOF
 
 # The prune reads the install directory `uv python dir` prints, so the stub
 # answers that one subcommand with a fixture directory and logs every argv.
+# Its optional argument is the exit code `python uninstall` answers with, so a
+# test can drive the prune's failure path.
 # Fixtures are built with real directories and real symlinks: the script
 # decides what to keep with `-ef`, which only a true symlink satisfies.
 _stub_uv_python_dir() {
+  local uninstall_code="${1:-0}"
   PYDIR="${STUBS}/pythons"
   mkdir -p "$PYDIR"
   cat >"${STUBS}/uv" <<EOF
@@ -273,6 +276,9 @@ _stub_uv_python_dir() {
 printf '%s\n' "\$*" >>"${STUBS}/uv.log"
 if [ "\$1 \$2" = "python dir" ]; then
   printf '%s\n' "${PYDIR}"
+fi
+if [ "\$1 \$2" = "python uninstall" ]; then
+  exit ${uninstall_code}
 fi
 exit 0
 EOF
@@ -329,6 +335,16 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" != *"stale pruned"* ]]
   run ! grep -q 'uninstall' "${STUBS}/uv.log"
+}
+
+@test "uv-python reports FAIL when the prune's uninstall fails" {
+  _stub_uv_python_dir 1
+  mkdir -p "${PYDIR}/cpython-3.14.9-linux-x86_64-gnu" "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" "${PYDIR}/cpython-3.14-linux-x86_64-gnu"
+  _run uv-python
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"uv-python"*"FAIL"* ]]
+  [[ "$output" != *"stale pruned"* ]]
 }
 
 @test "uv-python prune survives an install directory that does not exist" {
