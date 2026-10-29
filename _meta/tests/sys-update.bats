@@ -2,6 +2,8 @@
 # shellcheck disable=SC2030,SC2031
 # Tests for bin/.local/bin/sys-update
 
+bats_require_minimum_version 1.5.0
+
 SCRIPT="${BATS_TEST_DIRNAME}/../../bin/.local/bin/sys-update"
 
 # ─── stub factory ───────────────────────────────────────────────────────────
@@ -257,6 +259,85 @@ EOF
   python_pos="${output%%→ uv-python*}"
   tools_pos="${output%%→ uv-tools*}"
   [ "${#python_pos}" -lt "${#tools_pos}" ]
+}
+
+# The prune reads the install directory `uv python dir` prints, so the stub
+# answers that one subcommand with a fixture directory and logs every argv.
+# Fixtures are built with real directories and real symlinks: the script
+# decides what to keep with `-ef`, which only a true symlink satisfies.
+_stub_uv_python_dir() {
+  PYDIR="${STUBS}/pythons"
+  mkdir -p "$PYDIR"
+  cat >"${STUBS}/uv" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"${STUBS}/uv.log"
+if [ "\$1 \$2" = "python dir" ]; then
+  printf '%s\n' "${PYDIR}"
+fi
+exit 0
+EOF
+  chmod +x "${STUBS}/uv"
+}
+
+@test "uv-python prunes the patch its minor line no longer links to" {
+  _stub_uv_python_dir
+  mkdir -p "${PYDIR}/cpython-3.14.9-linux-x86_64-gnu" "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" "${PYDIR}/cpython-3.14-linux-x86_64-gnu"
+  _run uv-python
+  [ "$status" -eq 0 ]
+  grep -q '^python uninstall cpython-3.14.9-linux-x86_64-gnu$' "${STUBS}/uv.log"
+  [[ "$output" == *"uv-python"*"OK (1 stale pruned)"* ]]
+}
+
+@test "uv-python leaves a minor line uv never linked alone" {
+  _stub_uv_python_dir
+  mkdir -p "${PYDIR}/cpython-3.13.5-linux-x86_64-gnu"
+  _run uv-python
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"uv-python"*"OK"* ]]
+  [[ "$output" != *"stale pruned"* ]]
+  run ! grep -q 'uninstall' "${STUBS}/uv.log"
+}
+
+@test "uv-python prunes every minor line in one uninstall call" {
+  _stub_uv_python_dir
+  mkdir -p "${PYDIR}/cpython-3.13.5-linux-x86_64-gnu" "${PYDIR}/cpython-3.13.7-linux-x86_64-gnu" \
+    "${PYDIR}/cpython-3.14.9-linux-x86_64-gnu" "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.13.7-linux-x86_64-gnu" "${PYDIR}/cpython-3.13-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" "${PYDIR}/cpython-3.14-linux-x86_64-gnu"
+  _run uv-python
+  [ "$status" -eq 0 ]
+  grep -q '^python uninstall cpython-3.13.5-linux-x86_64-gnu cpython-3.14.9-linux-x86_64-gnu$' "${STUBS}/uv.log"
+  [[ "$output" == *"uv-python"*"OK (2 stale pruned)"* ]]
+}
+
+@test "uv-python keeps a free-threaded patch out of the default line's prune" {
+  _stub_uv_python_dir
+  mkdir -p "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" \
+    "${PYDIR}/cpython-3.14.9+freethreaded-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" "${PYDIR}/cpython-3.14-linux-x86_64-gnu"
+  _run uv-python
+  [ "$status" -eq 0 ]
+  run ! grep -q 'uninstall' "${STUBS}/uv.log"
+}
+
+@test "uv-python reports plain OK when the only patch is the linked one" {
+  _stub_uv_python_dir
+  mkdir -p "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" "${PYDIR}/cpython-3.14-linux-x86_64-gnu"
+  _run uv-python
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"stale pruned"* ]]
+  run ! grep -q 'uninstall' "${STUBS}/uv.log"
+}
+
+@test "uv-python prune survives an install directory that does not exist" {
+  _stub_uv_python_dir
+  rm -rf "$PYDIR"
+  _run uv-python
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"uv-python"*"OK"* ]]
+  run ! grep -q 'uninstall' "${STUBS}/uv.log"
 }
 
 @test "blesh module skips when ble.sh is not installed" {

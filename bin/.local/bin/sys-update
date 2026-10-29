@@ -172,14 +172,65 @@ update_devtools() {
   run_or_dry devtools-update --all && record devtools OK
 }
 
-# Distinct from uv-tools: `uv tool upgrade` updates packages inside the tool
-# venvs and never the interpreter they run on, which nothing else here tracks.
+PRUNED_PATCHES=0
+
+uv_python_line() {
+  local name="${1##*/}" impl rest ver platform variant=''
+  impl="${name%%-*}"
+  rest="${name#*-}"
+  ver="${rest%%-*}"
+  platform="${rest#*-}"
+  if [[ "$ver" == *+* ]]; then
+    variant="${ver#*+}"
+    ver="${ver%%+*}"
+  fi
+  printf '%s|%s|%s|%s' "$impl" "$ver" "$variant" "$platform"
+}
+
+prune_uv_python() {
+  local dir
+  dir="$(uv python dir)" || return
+  [[ -d "$dir" ]] || return 0
+
+  local -A lines=()
+  local links=() path name link impl ver variant platform
+  for path in "$dir"/*; do
+    [[ -L "$path" ]] || continue
+    lines["$(uv_python_line "$path")"]=1
+    links+=("$path")
+  done
+
+  local stale=()
+  for path in "$dir"/*; do
+    [[ -d "$path" && ! -L "$path" ]] || continue
+    for link in "${links[@]}"; do
+      [[ "$link" -ef "$path" ]] && continue 2
+    done
+    name="${path##*/}"
+    IFS='|' read -r impl ver variant platform <<<"$(uv_python_line "$name")"
+    [[ -n "${lines["${impl}|${ver%.*}|${variant}|${platform}"]:-}" ]] || continue
+    stale+=("$name")
+  done
+
+  if ((${#stale[@]} == 0)); then
+    return 0
+  fi
+  run_or_dry uv python uninstall "${stale[@]}" || return
+  PRUNED_PATCHES="${#stale[@]}"
+}
+
 update_uv_python() {
   if ! command -v uv >/dev/null 2>&1; then
     record uv-python "skipped (not found)"
     return
   fi
-  run_or_dry uv python upgrade && record uv-python OK
+  run_or_dry uv python upgrade || return
+  prune_uv_python || return
+  if ((PRUNED_PATCHES > 0)); then
+    record uv-python "OK (${PRUNED_PATCHES} stale pruned)"
+  else
+    record uv-python OK
+  fi
 }
 
 update_uv_tools() {

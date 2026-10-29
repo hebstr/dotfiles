@@ -83,7 +83,7 @@ With `~/.npm-global`, `npm update -g` only sees packages installed there, and ap
 
 The uv tools have no equivalent step, and the bootstrap above does not install them: `sys-update uv-tools` upgrades what is already present and installs nothing.
 `pyrefly` (the Python gate's type checker, also run by this repo's own commit hook), `sqlfluff[rs]` (the SQL gate), `showboat`, `ggsql-jupyter`, `yt-dlp` and, on a machine that serves local models, `huggingface-hub` each need a manual `uv tool install` on a fresh machine.
-The uv-managed Python interpreters behave the same way: `sys-update uv-python` moves them to the latest patch of each installed branch, so a fresh machine needs `uv python install` first.
+The uv-managed Python interpreters behave the same way: `sys-update uv-python` moves them to the latest patch of each installed branch, then prunes the patches that upgrade supersedes (`rules/install.md` § "Covered is not current"), so a fresh machine needs `uv python install` first.
 The gap is tracked in `.claude/DEFERRED.md`.
 
 [`prek`](https://github.com/j178/prek) runs the hooks (`prek install`, `prek run -a`).
