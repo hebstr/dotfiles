@@ -302,7 +302,7 @@
 
   // APPEARANCE ----------------------------------------------------------------
 
-  "workbench.colorTheme": "Material Night Eighties",
+  "workbench.colorTheme": "Tomorrow Night",
   "workbench.iconTheme": "material-icon-theme",
   "workbench.startupEditor": "none",
   "workbench.settings.editor": "json",
@@ -320,7 +320,7 @@
 
   "editor.semanticHighlighting.enabled": false,
   "editor.tokenColorCustomizations": {
-    "[Material Night Eighties]": {
+    "[Tomorrow Night]": {
       "textMateRules": [
         {
           "name": "Comment",
