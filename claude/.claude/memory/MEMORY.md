@@ -28,7 +28,7 @@
 - project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
-- project_collab_comments_evaluation.md: collab-comments on csi.qmd + plan-snds: fork, literal, threading, refs, filePath
+- project_collab_comments_evaluation.md: collab-comments on docs_csi-rapport + docs_plan_snds: fork, literal, refs, filePath
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
