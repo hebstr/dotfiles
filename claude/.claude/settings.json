@@ -78,18 +78,9 @@
       "Edit(~/.claude/plugins/marketplaces/**)",
       "Edit(~/.claude/plugins/cache/**)",
       "Edit(//**/NOTES.md)",
-      "Edit(//**/TODO.md)",
-      "Edit(//**/CALENDRIER.md)"
+      "Edit(//**/TODO.md)"
     ],
-    "ask": [
-      "Bash(git add*)",
-      "Bash(git commit*)",
-      "Bash(git rm*)",
-      "Bash(git mv*)",
-      "Bash(rm -rf*)",
-      "Bash(rm -fr*)",
-      "Bash(rm -r -f*)"
-    ],
+    "ask": ["Bash(git add*)", "Bash(git commit*)"],
     "defaultMode": "default"
   },
   "model": "claude-opus-5",
