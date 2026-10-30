@@ -356,6 +356,18 @@ EOF
   run ! grep -q 'uninstall' "${STUBS}/uv.log"
 }
 
+@test "--dry-run uv-python reports the prune in the conditional and uninstalls nothing" {
+  _stub_uv_python_dir
+  mkdir -p "${PYDIR}/cpython-3.14.9-linux-x86_64-gnu" "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu"
+  ln -s "${PYDIR}/cpython-3.14.10-linux-x86_64-gnu" "${PYDIR}/cpython-3.14-linux-x86_64-gnu"
+  _run --dry-run uv-python
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[dry-run] uv python uninstall cpython-3.14.9-linux-x86_64-gnu"* ]]
+  [[ "$output" == *"uv-python"*"OK (1 stale would be pruned)"* ]]
+  [[ "$output" != *"stale pruned)"* ]]
+  run ! grep -q 'python uninstall' "${STUBS}/uv.log"
+}
+
 @test "blesh module skips when ble.sh is not installed" {
   _run blesh
   [ "$status" -eq 0 ]

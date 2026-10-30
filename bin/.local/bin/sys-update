@@ -94,7 +94,6 @@ trap 'exit 130' INT
 
 update_apt() {
   local index_ok=1
-  # apt keeps a failed repository's previous index, so upgrading stays safe.
   run_or_dry sudo apt-get update -q --error-on=any || index_ok=0
   run_or_dry sudo apt-get full-upgrade -y || return
   if ((index_ok)); then
@@ -142,8 +141,6 @@ update_cargo() {
     record cargo "skipped (cargo-update not found)"
     return
   fi
-  # tree-sitter-ggsql's build script regenerates the parser unless this is set,
-  # which requires tree-sitter-cli; the published crate already ships src/parser.c
   run_or_dry env GGSQL_SKIP_GENERATE=1 cargo install-update -a && record cargo OK
 }
 
@@ -226,10 +223,12 @@ update_uv_python() {
   fi
   run_or_dry uv python upgrade || return
   prune_uv_python || return
-  if ((PRUNED_PATCHES > 0)); then
-    record uv-python "OK (${PRUNED_PATCHES} stale pruned)"
-  else
+  if ((PRUNED_PATCHES == 0)); then
     record uv-python OK
+  elif ((DRY_RUN)); then
+    record uv-python "OK (${PRUNED_PATCHES} stale would be pruned)"
+  else
+    record uv-python "OK (${PRUNED_PATCHES} stale pruned)"
   fi
 }
 
@@ -313,9 +312,6 @@ update_quarto() {
   run_or_dry quarto-update && record quarto OK
 }
 
-# The application updaters install the app when it is absent, so these modules
-# also require the app itself: stow bin puts the updaters on machines (WSL) that
-# must never get the desktop applications.
 update_positron() {
   if ! command -v positron-update >/dev/null 2>&1; then
     record positron "skipped (not found)"
