@@ -173,7 +173,7 @@ That reopens the manual decision of "What it does not do" above, and reinstates 
 The decision is `[filter "out-meta"]` in `git/.gitconfig`, whose program is `git/.config/git/clean-out-meta.py`, attached per project by anchored patterns in that project's `.gitattributes`.
 Git normalises the package on its way into the index, so a re-render that moved nothing else produces a blob identical to the stored one: no hunk, nothing staged, no command to type.
 The precedent is `[filter "html-id"]` and the three-step shape `comment-hash` and `positron-theme` both follow (`git-html-id-filter.md`, "Step 2: the driver"), down to declaring no `smudge` and no `required`.
-The second half is taken in one project: eds-prise declared the four lines on 2026-10-25, so the filter runs there and nowhere else, and every count below that speaks of what the pattern would reach counts files no filter runs on outside it (`rg -uu -l --glob '.gitattributes' 'filter=out-meta' ~/Documents ~/admin ~/dotfiles` answers `eds-prise/.gitattributes` alone, 2026-10-25; the glob is what keeps the condition checkable, every note quoting the string being a hit without it).
+The second half is taken in two projects: eds-prise declared the four lines on 2026-10-25, md-nesrine on 2026-10-30 with a fifth for the deliverables of its `docs/`, so the filter runs there and nowhere else, and every count below that speaks of what the pattern would reach counts files no filter runs on outside those two (`rg -uu -l --glob '.gitattributes' 'filter=out-meta' ~/Documents ~/admin ~/dotfiles` answers those two `.gitattributes` and no other, 2026-10-30; the glob is what keeps the condition checkable, every note quoting the string being a hit without it).
 
 Measured the same day over every tracked binary of eds-prise, md-nesrine and eds-avc, each paired with a simulated re-render that moves every field the writers were measured to move: 112 of 112 pairs collapse to the same bytes, 0 differ, the three `.pptx` of eds-avc among them at 111, 71 and 147 members preserved.
 A pass costs 79 ms per file on battery, so about 4,4 s over eds-prise's 56 tracked binaries, of which the anchored attribute reaches the 43 that sit under an `output/` tree.
@@ -242,7 +242,7 @@ The archive comment and each member's `compress_type`, `external_attr`, `interna
 A clean filter rewrites bytes and earns its narrow scope, as "Setup" above already says of the contrast with `html-id`.
 `_meta/profiles/gitattributes` carries four `**/output/**/*` lines, which reach a render tree at any depth and leave hand-authored sources out by construction.
 Verified 2026-10-24 against the real layouts: `output/tbl-a/t.docx`, `docs/snds/output/tbl-b/t.png` and `docs/timeline/output/timeline.docx` route through the filter, while eds-prise's three hand-edited workbooks (`collect/`, `docs/snds/dict-snds-source.xlsx`, `docs/timeline/2026-09-29_prise_timeline.xlsx`), its `.streamlit/shots/` captures and md-nesrine's dated deliverable in `docs/` stay out.
-A deliverable outside a render tree takes its own line in that project, the way `html-id` carries `*_rapport-stat.html` beside its `output/**` glob.
+A deliverable outside a render tree takes its own line in that project: md-nesrine added `docs/*.docx filter=out-meta` on 2026-10-30, safe there because its `output-dir` carries the rendered deliverables and nothing else, its post-render script deleting whatever else Quarto copies in.
 
 ### The hook stays the backstop for what the filter cannot reach
 
@@ -272,14 +272,22 @@ Everywhere else the filter stays inert, and the state to check is which `.gitatt
 
 ### Ways rejected
 
-- **The hook repairing itself**, running the restore instead of printing it and then failing as prek expects: it keeps the stored bytes untouched, but the noise still reaches the index and the commit still fails once per re-render, so the round trip the user asked to remove survives. Exiting 0 after restoring would drop content under `git commit -a` or `git commit -- <paths>`, where git builds a temporary index, which is why pre-commit and prek fail rather than exit 0.
-- **Normalising at the writer**: `hebstr::easy_out()` funnels `ggsave`, `openxlsx2::wb_save` and officer (read 2026-10-24 in its `R/easy_out.R`), so one pass there would make the file stable at birth with no git machinery at all. It covers nothing Quarto renders, so the report docx and any pptx keep churning, and it puts the pinned date in the file handed to a human reader rather than only in the index.
+- **The hook repairing itself**, running the restore instead of printing it and then failing as prek expects: it keeps the stored bytes untouched, but the noise still reaches the index and the commit still fails once per re-render, so the round trip the user asked to remove survives.
+  Exiting 0 after restoring would drop content under `git commit -a` or `git commit -- <paths>`, where git builds a temporary index, which is why pre-commit and prek fail rather than exit 0.
+- **Normalising at the writer**: `hebstr::easy_out()` funnels `ggsave`, `openxlsx2::wb_save` and officer (read 2026-10-24 in its `R/easy_out.R`), so one pass there would make the file stable at birth with no git machinery at all.
+  It covers nothing Quarto renders, so the report docx and any pptx keep churning, and it puts the pinned date in the file handed to a human reader rather than only in the index.
 - **A `post-index-change` hook**: it fires on a no-op `git add` and on `git status`, and a hook that writes the index re-fires itself, git applying no reentrancy guard, measured at 6 fires with a counter to stop it.
 - **Doing nothing**: the driver and the hook detect the noise and leave one command per re-render, which is the cost the request names.
 
 ### Ways to lose it in silence
 
-- A change in zlib's or CPython's deflate output. The filter recompresses at level 6 on both sides, so the comparison holds within one toolchain and every stored blob moves at once when that toolchain does, costing one `git add --renormalize` per project. Nothing pins it today.
+- A change in zlib's or CPython's deflate output.
+  The filter recompresses at level 6 on both sides, so the comparison holds within one toolchain and every stored blob moves at once when that toolchain does, costing one `git add --renormalize` per project.
+  Nothing pins it today.
 - A machine where the `git` package is not stowed: git warns and stores the raw file, the same failure `html-id` carries.
-- A writer stamping an in-body element absent from the pinned list. The tell is a diff limited to one element under `### docProps/` on a file the filter already covers; the fix is one entry in `VOLATILE_ELEMENTS` of `clean-out-meta.py` and the matching one in the driver.
-- A renormalise commit taken while prek stashes unstaged changes. Measured 2026-10-28 on eds-prise: `git diff --cached --name-only` showed the 27 docx the author pin restaged, prek's stash-and-restore round trip brought 5 of those index entries back to `HEAD` before git built the temporary index of `git commit -- <paths>`, and the commit took 22. The stat cache then reports those five as clean, so `git status` lists nothing and `git diff` returns identity on a migration that is half done. The tell is the commit's own file count against the count staged before it, the check is the author field of each stored blob, and the remedy is a second `git add --renormalize` over the same trees, which re-filters whatever the stat says.
+- A writer stamping an in-body element absent from the pinned list.
+  The tell is a diff limited to one element under `### docProps/` on a file the filter already covers; the fix is one entry in `VOLATILE_ELEMENTS` of `clean-out-meta.py` and the matching one in the driver.
+- A renormalise commit taken while prek stashes unstaged changes.
+  Measured 2026-10-28 on eds-prise: `git diff --cached --name-only` showed the 27 docx the author pin restaged, prek's stash-and-restore round trip brought 5 of those index entries back to `HEAD` before git built the temporary index of `git commit -- <paths>`, and the commit took 22.
+  The stat cache then reports those five as clean, so `git status` lists nothing and `git diff` returns identity on a migration that is half done.
+  The tell is the commit's own file count against the count staged before it, the check is the author field of each stored blob, and the remedy is a second `git add --renormalize` over the same trees, which re-filters whatever the stat says.
