@@ -28,7 +28,7 @@
 - project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
-- project_collab_comments_evaluation.md: collab-comments on docs_csi + docs_plan_snds: fork, literal, refs, filePath
+- project_collab_comments_evaluation.md: collab-comments on docs_csi + docs_plan_snds: two forks, literal, refs, filePath
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
@@ -155,3 +155,4 @@
 - feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap
 - feedback_edit_tool_unicode_escape.md: A four-hex-digit `\u` escape in a tool parameter lands decoded; in R use `\u{a0}`
 - feedback_note_restructure_guards.md: An empty Edit replacement at a line end eats the newline; verify a whole-file rewrite
+- feedback_review_severity_tracking_notes.md: No mechanical cap on a `.claude` note's growth; the prune pass covers it
