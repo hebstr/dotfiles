@@ -249,7 +249,9 @@ while [ \$i -lt ${cycles} ]; do
 done
 exit 4" >/dev/null 2>&1 || rc=$?
   case $rc in
-  0) ;;
+  0)
+    [ "$MODE" != "capture" ] || printf 'payload trace:\n%s\n' "$(job_trace)" >&2
+    ;;
   3)
     printf 'word-render: Word refused the document on %s:\n' "$REMOTE" >&2
     remote "cat $(q "${JOB_WSL}/error.txt")" 2>/dev/null | tr -d '\r' >&2 || true

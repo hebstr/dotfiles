@@ -156,6 +156,7 @@ case $script in
       printf 'png\n' >"${job}/page-${page}.png"
       captures=$((captures + 1))
     done
+    printf 'captured page 1 at 1280x720, scrolled 0 percent\r\ncaptured page 2 at 1280x720, scrolled 100 percent\r\n' >"${job}/trace"
   else
     pdf=$(sed -n 's/^pdf=//p' "${job}/request")
     printf '%%PDF-1.7 stub\n' >"${job}/${pdf}"
@@ -757,6 +758,19 @@ _run() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"no capture came back"* ]]
   run ! grep -q "wrote " <<<"$output"
+}
+
+@test "a successful capture hands back the payload trace with its scroll positions" {
+  _run --capture "$DOCX"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"payload trace:"* ]]
+  [[ "$output" == *"captured page 2 at 1280x720, scrolled 100 percent"* ]]
+}
+
+@test "a successful export leaves the payload trace out, the positions being a capture matter" {
+  _run "$DOCX"
+  [ "$status" -eq 0 ]
+  run ! grep -q 'payload trace:' <<<"$output"
 }
 
 @test "a document name with a space lands under that name in capture mode too" {
