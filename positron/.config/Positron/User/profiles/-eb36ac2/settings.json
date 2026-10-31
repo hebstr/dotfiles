@@ -769,6 +769,8 @@
   "workbench.editorAssociations": {
     "*.md": "default",
     "*.html": "open-with-system",
+    "*.docx": "open-with-system",
+    "*.xlsx": "open-with-system",
   },
   "workbench.externalBrowser": "firefox",
   "workbench.secondarySideBar.showLabels": false,
