@@ -22,6 +22,11 @@ if [ -d "$HOME/.local/bin" ]; then
 fi
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
+### ENVIRONMENT -------------------------------------------------------------
+if [ -x "$HOME/.local/bin/sudo-askpass" ]; then
+  export SUDO_ASKPASS="$HOME/.local/bin/sudo-askpass"
+fi
+
 ### INTERACTIVE BASH --------------------------------------------------------
 if [ "$BASH_VERSION" != "" ]; then
   if [ -f "$HOME/.bashrc" ]; then

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# sudo-askpass: read a password in a graphical dialog and print it on stdout.
+#
+# Wired through SUDO_ASKPASS (bash/.profile) and used by `sudo -A` when no
+# controlling terminal is available. Refuses without a display so a caller on
+# a headless machine fails instead of hanging.
+
+set -Eeuo pipefail
+
+if [[ -z ${DISPLAY:-} && -z ${WAYLAND_DISPLAY:-} ]]; then
+  printf 'sudo-askpass: no graphical display\n' >&2
+  exit 1
+fi
+
+if ! command -v zenity >/dev/null 2>&1; then
+  printf 'sudo-askpass: zenity not installed\n' >&2
+  exit 1
+fi
+
+zenity --password --modal --timeout=120 --title="${1:-Authentication required}"

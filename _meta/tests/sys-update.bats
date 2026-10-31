@@ -60,7 +60,9 @@ setup() {
 _run() {
   # Use $BASH (absolute path) so the script's interpreter never depends on
   # the restricted PATH that env applies.
-  run env PATH="$STUBS" HOME="${STUBS}/home" "$BASH" "$SCRIPT" "$@"
+  # SUDO_ASKPASS is cleared so sudo_prime()'s branch does not depend on the
+  # ambient environment of whoever runs the suite; the askpass test sets it.
+  run env -u SUDO_ASKPASS PATH="$STUBS" HOME="${STUBS}/home" "$BASH" "$SCRIPT" "$@"
 }
 
 teardown() {
@@ -581,6 +583,47 @@ EOF
   [ "$status" -eq 0 ]
   [ -f "${STUBS}/sudo.log" ]
   grep -q '^-v$' "${STUBS}/sudo.log"
+}
+
+@test "calls sudo -A -v when SUDO_ASKPASS is set and no controlling terminal exists" {
+  # setsid --wait puts the script in a new session with no controlling
+  # terminal, which is what makes sudo_prime() take the askpass branch; it
+  # propagates the script's exit status, where a bare setsid would not.
+  cat >"${STUBS}/sudo" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "${STUBS}/sudo.log"
+args=("\$@")
+[[ "\${args[0]}" == -A ]] && args=("\${args[@]:1}")
+case "\${args[0]}" in
+    -v) exit 0 ;;
+    *)  exec "\${args[@]}" ;;
+esac
+EOF
+  chmod +x "${STUBS}/sudo"
+  _stub_command apt-get
+  run setsid --wait env PATH="$STUBS" HOME="${STUBS}/home" \
+    SUDO_ASKPASS="${STUBS}/askpass" "$BASH" "$SCRIPT" apt
+  [ "$status" -eq 0 ]
+  [ -f "${STUBS}/sudo.log" ]
+  grep -q '^-A -v$' "${STUBS}/sudo.log"
+}
+
+@test "calls plain sudo -v when no controlling terminal exists and SUDO_ASKPASS is unset" {
+  cat >"${STUBS}/sudo" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "${STUBS}/sudo.log"
+case "\$1" in
+    -v) exit 0 ;;
+    *)  exec "\$@" ;;
+esac
+EOF
+  chmod +x "${STUBS}/sudo"
+  _stub_command apt-get
+  run setsid --wait env -u SUDO_ASKPASS PATH="$STUBS" HOME="${STUBS}/home" \
+    "$BASH" "$SCRIPT" apt
+  [ "$status" -eq 0 ]
+  grep -q '^-v$' "${STUBS}/sudo.log"
+  run ! grep -q -- '-A' "${STUBS}/sudo.log"
 }
 
 @test "does not call sudo -v when only non-sudo modules are selected" {

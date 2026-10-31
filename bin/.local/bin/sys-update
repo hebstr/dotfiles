@@ -368,6 +368,14 @@ update_syncthing() {
   run_or_dry syncthing-update && record syncthing OK
 }
 
+sudo_prime() {
+  if [[ -n ${SUDO_ASKPASS:-} ]] && ! : 2>/dev/null </dev/tty; then
+    sudo -A -v
+  else
+    sudo -v
+  fi
+}
+
 needs_sudo() {
   local modules=("$@")
   for m in "${modules[@]}"; do
@@ -429,7 +437,7 @@ main() {
   done
 
   if ! ((DRY_RUN)) && needs_sudo "${SELECTED_MODULES[@]}"; then
-    sudo -v
+    sudo_prime
   fi
 
   for m in "${SELECTED_MODULES[@]}"; do

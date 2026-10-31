@@ -15,6 +15,7 @@ A version or the presence of a tool is read from the machine (`command -v`, `--v
 - The `positron`, `anki`, `libreoffice` and `zotero` modules skip unless the application is on the PATH, since their updaters install it when absent; a first install calls `<app>-update` directly. `stow bin` puts those updaters on every machine, WSL included, and WSL must never get the desktop applications, so that guard is what keeps a module from installing one there. Neither `uv-python` nor `uv-tools` installs anything absent: a fresh machine needs its `uv python install` and `uv tool install` by hand.
 - `llama-update` is deliberately not a module: upstream builds land almost daily and an unattended one can break the opencode chain. It runs on the GPU host.
 - Positron extensions and Zotero plugins update inside their application, outside `sys-update`.
+- A `sudo` call from a context with no controlling terminal (the `!` prefix, a hook, a headless run) fails on `a terminal is required to read the password`. `sudo -A` reads it from `SUDO_ASKPASS`, which `bash/.profile` points at `bin/.local/bin/sudo-askpass` (a zenity dialog, refused without a display). `sys-update` picks the form itself in `sudo_prime`, so it needs nothing from the caller; any other `sudo` run that way takes `-A` explicitly. Design in `_meta/notes/sudo-askpass-setup.md`.
 
 ## Covered is not current
 
