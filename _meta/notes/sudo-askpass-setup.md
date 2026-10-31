@@ -17,7 +17,12 @@ exit=1 (1 = no active line)
 
 ## Three pieces, all stowable
 
-The helper goes into the `bin` package, the export into the `bash` package, and `sys-update` switches between the two forms of `sudo` depending on whether a controlling terminal exists. The helper refuses without a display, which keeps a machine with no graphical server (WSL, ju-TP2) from waiting on a window that will never come; `sys-update` then falls back to `sudo -v`, since the switch also requires `SUDO_ASKPASS` to be non-empty.
+The helper goes into the `bin` package, the export into the `bash` package, and `sys-update` switches between the two forms of `sudo` depending on whether a controlling terminal exists.
+The helper refuses without a display, which keeps a machine with no graphical server (WSL, ju-TP2) from waiting on a window that will never come.
+That refusal surfaces as a failed `sudo -A -v`, and `sys-update` aborts on it under `set -Eeuo pipefail`: no fallback to `sudo -v` runs there.
+`.profile` gates the export on `[ -x ]` and the helper is tracked at mode 100755, so `SUDO_ASKPASS` is non-empty on every machine the `bin` package is stowed on, display or none, and the switch takes `-A`.
+What the abort costs is the message rather than the outcome, a bare `sudo -v` failing in a terminal-less context as well.
+Gating the export on a display, rather than patching `sudo_prime`, is the lever the day a real fallback is wanted.
 
 ```bash
 cat bin/.local/bin/sudo-askpass
@@ -69,6 +74,9 @@ The test is `: </dev/tty`, not `[ -t 0 ]`: opening `/dev/tty` is what sudo attem
 
 Priming the credential cache covers the rest of the run: the `sudo apt-get` and `sudo snap refresh` calls inside the modules reuse the timestamp `sudo_prime` laid down, and each use refreshes it.
 
+`--modal` is kept as a redundant hint, not as a requirement: under zenity 4.0.1 the password dialog carries `_NET_WM_STATE_MODAL` whether or not the flag is passed, and `WM_TRANSIENT_FOR` is absent either way, so the window has no parent to be modal against (measured 2026-10-31 with `xprop`, both forms, reproduced).
+The bats case asserting the flag pins the call's shape, never a modality the dialog needs.
+
 ## Linking
 
 ```bash
@@ -102,6 +110,12 @@ SMOKE OK: credential cache primed without a TTY
 ~~~
 
 The window opens with the prompt sudo passes as its title (`[sudo] password for julien:`), zenity writes the password on its standard output and sudo reads it from there. Nothing keeps a copy: no file, no log, no session transcript.
+
+That last clause holds for this path and for no other: it is sudo reading the pipe that keeps the password out of everything.
+Run the helper directly and whatever holds the other end of its stdout keeps the password instead, in cleartext.
+A terminal keeps it in the scrollback, and an agent harness keeps it in its transcript: measured 2026-10-31, Claude Code's Bash tool hands the helper a pipe exactly as sudo does, then captures it into the session jsonl.
+No guard inside the helper reaches that case, `[ -t 1 ]` being false under both sudo and the harness, which leaves never invoking it by hand as the whole of the remedy.
+To check the dialog, run the `sudo -A -v` of this section rather than the helper.
 
 ## Scope
 
