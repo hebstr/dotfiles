@@ -59,6 +59,8 @@
     "terminal.ansiBrightMagenta": "#D08AFF",
     "terminal.ansiBrightCyan": "#A2FFF6",
     "terminal.ansiBrightWhite": "#FFFFFF",
+
+    "commentTracker.openCommentBackground": "#00b7e438",
   },
 
   // FILES ---------------------------------------------------------------------
