@@ -28,7 +28,7 @@
 - project_word_render_control.md: `word-render` driving the real Word on ju-TP2: `--capture`, unlicensed Office, locked or dark
 - project_typst_skill_evaluation.md: typst skill adopted 2026-10-17 and typst-review designed; don't redo either
 - project_deployment_context.md: site-alisp is internal for review calibration; netlify.toml defeats auto-detection
-- project_collab_comments_evaluation.md: collab-comments on docs_csi-rapport + docs_plan_snds: fork, literal, refs, filePath
+- project_collab_comments_evaluation.md: collab-comments on docs_csi + docs_plan_snds: fork, literal, refs, filePath
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
@@ -113,7 +113,7 @@
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French statistical reports and md-nesrine's render journal
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
-- feedback_review_severity_hebstr_doc.md: Calibrating reviews of quarto-hebstr-doc (shortcodes, docx, threading)
+- feedback_review_severity_hebstr_doc.md: Reviews of quarto-hebstr-doc (shortcodes, docx, threading, rebuild recipe, assertion probes)
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING
 - feedback_bats_comment_carve_out.md: Why the bats comment debt is won't-fix; don't re-measure the 41 suites
 - feedback_review_severity_bats_tests.md: Calibrating reviews of bats tests for personal shell tooling; measure a remedy first
