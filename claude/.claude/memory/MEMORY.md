@@ -94,7 +94,7 @@
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
 - reference_edstr_extract_chunk_budget.md: Chunk sizing: characters, not docs; columns the lever; soft bound; edstr owns it
-- reference_collab_comments_highlight_color.md: Highlight is a bundle literal; fork decided 2026-10-31, patch holds till it lands
+- reference_collab_comments_highlight_color.md: Highlight is a theme key of the hebstr fork; the two rgba values, the blue's source
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
