@@ -142,7 +142,6 @@ The installs are traced in `_meta/notes/terminal-highlighting-setup.md` per `rul
 - Mapping `.qmd` to bat's Markdown syntax, untested.
 - The Windows Terminal profile of `ju-TP2`, `_meta/profiles/wsl-terminal-ubuntu.json`, keeps its `#282828` background and `#ffffff` foreground: the scope decision of 2026-09-26 names GNOME Terminal and Positron only, and whether WSL follows is not decided.
 - Both choices recorded on 2026-09-26 were settled by the user the same day: the `"**/.*rc"` association narrowed to `**/.blerc`, and the terminal background under `Material Night Purple` restored by dropping `terminal.background` (see "Decisions" below). The user checked the integrated terminal under both themes the same day.
-- Coloring the `sys-update` summary, proposed on 2026-09-26 and awaiting the user's go, per "Proposed: `sys-update` colors its own summary" below.
 
 ## Command output coloring
 
@@ -164,12 +163,14 @@ The same probe shows a bat 0.24.0 quirk: `bat -p --paging=never` brings back the
 
 None gives syntax coloring of arbitrary output, and none knows `sys-update` without rules written for it.
 
-### Proposed: `sys-update` colors its own summary
+### `sys-update` colors its own summary, implemented 2026-10-31
 
-Not implemented as of 2026-09-26.
-`sys-update` emits no color today: the `→ <module>` header and the table printed by `print_summary` from the lines `record` builds are plain `printf`.
-The proposal mirrors `todo-sync`, whose colors are gated on `[ -t 1 ]` and an empty `NO_COLOR`: the module header in bold, and the STATUS column green for `OK`, red for a failure, grey for `skipped (…)`.
-Redirected output stays byte-identical, so `_meta/tests/sys-update.bats`, which runs without a terminal, sees no change.
+The color block sits beside `RESULTS` and gates on `[ -t 1 ]` together with an empty `NO_COLOR`, as `todo-sync` does: the `→ <module>` header in bold, and the STATUS field green for `OK`, red for a failure, grey for `skipped (…)`, picked in `record()`, which is where the status is known.
+Measured the day it landed under `script -qfec`: the header bold, `OK` green, and `skipped (cargo-update not found)` grey under a `PATH` holding no `cargo-install-update`.
+The `FAIL` arm has no producer reachable here: the four modules run under the terminal all reported `OK`, and `cargo-install-update`, `zotero`, `libreoffice` and ble.sh were each present, so that arm rests on the status literals rather than on a run.
+Every `record` call passes a status beginning with `OK`, `FAIL` or `skipped`, which is also why the first arm reads `OK*` and not `OK`, two modules reporting `OK (<n> stale pruned)` and falling through an exact match.
+Redirected output stays byte-identical, and the gate has a detector of its own since 2026-10-31 because it needed one: the ungated mutant, its condition replaced by `true`, passed all 62 cases of `_meta/tests/sys-update.bats` untouched, every assertion there being a substring match that an escape code survives.
+So "nothing carries an escape code when stdout is not a terminal" was added, it is the only case the mutant fails, and the suite reads 63.
 `grc` stays out unless the raw output of `df`, `ps`, `ping` or `mount` becomes a frequent read, which is not the `sys-update` case.
 
 ## Color scheme aligned on the Positron token colors

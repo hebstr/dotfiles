@@ -709,6 +709,12 @@ EOF
   [[ "$output" == *"MODULE"*"STATUS"* ]]
 }
 
+@test "nothing carries an escape code when stdout is not a terminal" {
+  _run --dry-run apt
+  [ "$status" -eq 0 ]
+  run ! grep -q $'\033' <<<"$output"
+}
+
 @test "summary lists each selected module" {
   _stub_command npm
   _run --dry-run apt npm
