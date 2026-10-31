@@ -30,7 +30,7 @@ EOF
 }
 
 _run() {
-  run env PATH="$STUBS" "$@" "$BASH" "$SCRIPT" "[sudo] password for julien:"
+  run env -u WAYLAND_DISPLAY PATH="$STUBS" "$@" "$BASH" "$SCRIPT" "[sudo] password for julien:"
 }
 
 # ─── happy path ─────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ EOF
   chmod +x "${STUBS}/zenity"
   _run DISPLAY=:0
   [ "$status" -eq 1 ]
-  [ -z "$output" ]
+  [ "$output" = "" ]
 }
 
 @test "propagates a timed-out dialog as a failure" {
@@ -103,12 +103,24 @@ EOF
   chmod +x "${STUBS}/zenity"
   _run DISPLAY=:0
   [ "$status" -eq 5 ]
-  [ -z "$output" ]
+  [ "$output" = "" ]
 }
+
+# The sandbox is what makes this test differential: the script is handed a
+# HOME, a TMPDIR and a working directory inside it, so a leak through any of
+# the three lands where the grep looks. The -d check keeps a grep error, which
+# `run !` would accept like a no-match, from satisfying the assertion.
 
 @test "writes the password to no file of its own" {
   _stub_zenity
-  _run DISPLAY=:0
+  local sandbox="${STUBS}/sandbox"
+  mkdir -p "${sandbox}/home" "${sandbox}/tmp" "${sandbox}/cwd"
+  cd "${sandbox}/cwd"
+  run env -u WAYLAND_DISPLAY PATH="$STUBS" DISPLAY=:0 \
+    HOME="${sandbox}/home" TMPDIR="${sandbox}/tmp" \
+    "$BASH" "$SCRIPT" "prompt"
   [ "$status" -eq 0 ]
-  run ! grep -rl 'hunter2' "$STUBS" --exclude=zenity
+  [ "$output" = "hunter2" ]
+  [ -d "$sandbox" ]
+  run ! grep -rl 'hunter2' "$sandbox"
 }
