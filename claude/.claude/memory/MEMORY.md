@@ -105,6 +105,7 @@
 - feedback_env_var_presence_check.md: `${VAR:-fallback}` prints the secret; test presence with `[ -n "$VAR" ]`
 - feedback_benchmark_power_state.md: This machine is ~2x slower on battery: check the power state, pair the runs
 - feedback_verify_before_claiming.md: Verify every factual claim with tools; never reason from absence, recompute the number
+- feedback_sourcing_follows_the_claim.md: Rewriting a sourced claim inherits its citation obligation
 - feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input, never on natural language
 - feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
 - feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
