@@ -55,6 +55,7 @@
 - reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
 - reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
+- reference_r_data_mask_shadows_local.md: A column shadows a same-named local later in the same tibble()/mutate() call
 - reference_git_html_id_filter.md: `html-id`, `comment-hash` and `out-meta`, prek's stash, `--renormalize`, binaries, status noise
 - reference_git_askpass_positron.md: Positron's GIT_ASKPASS sends an empty Basic auth: "Access denied" instead of a prompt
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
