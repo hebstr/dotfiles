@@ -69,7 +69,7 @@
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_table_column_width_layout.md: gt/flextable widths, Word grid and indent floor, PNG clipping, multi-panel float cut
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
-- reference_hebstr_outdec_locale_flag.md: hebstr's `options(OutDec)` locale flag breaks third-party numeric round-trips
+- reference_hebstr_outdec_locale_flag.md: OutDec as hebstr's locale flag breaks numeric round-trips and CSS units; sprintf()
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
 - reference_gtsummary_notes_and_labels.md: gtsummary: `add_variable_group_header()` last, `easy_label()` coerces logicals
 - reference_quarto_lua_shortcodes.md: Quarto Lua traps: empty Inlines, YAML scalars, pipes, embedding, casts, layout keys
