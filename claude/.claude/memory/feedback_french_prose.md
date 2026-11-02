@@ -28,6 +28,10 @@ When editing or producing French prose for the user, apply these decisions. Do n
 - Non-breaking space before `:`, `;`, `!`, `?`, `»`; after `«`.
 - Capitales accentuées obligatoires (État, École, À).
 - Quotation marks `« »` with non-breaking space inside, never `" "` in running French prose.
+  - **Overridden in `eds-prise`, where a quotation takes the straight `"`**: arbitrated by the user on 2026-08-28 for `index_eds.qmd`, recorded in that project's `.claude/DESIGN-INDEX.md`, and again on 2026-11-02 for the `collab-comments` store, whose 24 pairs were converted and committed at `ff2aa17`.
+  - Measured on 2026-11-02: `docs/csi/docs_csi.qmd` carries 98 straight quotes against 3 guillemets, and the annotator guide 74 against 0, split since that day's fragment cut into 40 in `docs/annot/docs_annot.qmd` and 34 in `docs/annot/docs_annot-chunk.qmd` (re-measured 2026-11-03, the 74 holding at `f2f5c37^`). A `/relire` or `/workflow:write` pass on that project never converts them back. Under `lang: fr` Pandoc's `smart` renders them `“ ”`, a consequence the user accepts.
+  - **The override reaches what an upstream referential publishes, 2026-11-02**: in `eds-prise` the SNDS schema workbook's labels are normalised at the read (`.df_field` of `docs/plan/snds/scripts/_common.R`), never overridden row by row, so a guillemet never reaches a published table.
+- **A cardinal number is written in digits, not spelled out, in `eds-prise`** (`6`, not `six`): directed by the user on 2026-11-02 against the FR convention of spelling out numbers under ten, and applied to `docs/plan/snds/docs_plan_snds.qmd` alone so far. Ordinals stay in letters (« une seconde étape », « la septième »), and so does pronominal « les deux » meaning *both*. Extending it to `docs_csi.qmd` (44 occurrences) and `docs_plan_eds.qmd` (25) is an open arbitration recorded in that project's `PLAN.md`.
 
 **Standing refusal:** only an essentials distillation lives always-on in `~/.claude/CLAUDE.md` under `## Prose hygiene`. Do not promote the full FR reference there; `/workflow:write` loads it on demand.
 
