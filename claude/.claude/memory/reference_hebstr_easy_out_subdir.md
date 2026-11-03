@@ -1,11 +1,11 @@
 ---
 name: hebstr easy_out writes per-output folders in kebab-case
-description: Breaking changes to hebstr::easy_out() at sha 97e8829 — per-output subfolder, kebab-case names, easy_out_map() removed, filename now required for unnamed objects — and what a project must do to catch up
+description: Breaking changes to hebstr::easy_out() at sha 97e8829 — per-output subfolder, kebab-case names, easy_out_map() removed, filename now required for unnamed objects — what a project must do to catch up, and how easy_out() pairs with out_qmd() across the HTML and Word branches
 metadata:
   type: reference
 ---
 
-`hebstr` sha `97e8829` (pulled 2026-08-31 by an unrelated `rv add`, since the dependency tracks branch `main`) changes `easy_out()` in four ways that hit every project on the stack.
+`hebstr` sha `97e8829` (pulled 2026-08-31 by an unrelated `rv add`, since the dependency tracks branch `main`) changes `easy_out()` in four ways that hit every project on the stack. The two sections on the Word branch and on `out_qmd()` are later behaviour of the same function, not part of that sha.
 
 **Per-output folder, kebab-case names.** `easy_out(fig_surv_strata)` now writes `output/fig-surv-strata/fig-surv-strata.svg` where it wrote `output/fig_surv_strata.svg`. The new `subdir` argument defaults to `TRUE`; pass a string to name the folder, or `FALSE` for the old flat layout. File names are kebab-case either way. The folder is derived before `suffix`, so variants of one output share it.
 
@@ -14,6 +14,10 @@ metadata:
 **`easy_out_map()` is removed**, folded into `easy_out()`: hand it a named list and it writes the elements one by one. `easy_out_map(plots, filename = "fig")` becomes `easy_out(plots, filename = "fig")`. A call to the removed function aborts the whole render, so this is the one to grep for first after a sync.
 
 **`filename` is now required when the object is not passed by name**, because the default deparsed the expression and named the folder after it. `easy_out(get_xlsx(checklist))` used to write `get-xlsx-checklist/`. A bare symbol still works.
+
+**Under a Word render `easy_out()` writes nothing**, `export` defaulting to `FALSE` when `options(hebstr.docx = TRUE)`: a table goes into the document instead of into a file of its own. `out_qmd()` publishes a table live on that branch, but a figure *always* through the file its script wrote, so a docx-only render on an emptied `output/` aborts on `knitr::include_graphics()`. A project whose figures must survive that render passes `export = TRUE` in each `fig_*.R` (measured 2026-11-03 on m2-dm3); a full `quarto render` hides the trap, the HTML pass having written the files first.
+
+**`out_qmd()` derives its path from the deparsed argument**, so the binding name must equal the `easy_out()` `filename`: `out_qmd(fig_uv$demo)` reads `output/fig-uv/fig-uv-demo.svg`, which `easy_out(fig_uv)` on a named list produces, and which `easy_out(x, filename = "fig_uv", suffix = "demo")` produces too when the panels need different sizes. A list built under one name and written under another filename silently points at nothing.
 
 **One limitation lifted**: the class guard now accepts `htmlwidget`, `flextable` and `hebstr_dict` alongside ggplot, ggmatrix, gt, gtsummary, wbWorkbook and grid grobs. Project docs asserting that `easy_out()` refuses a `reactable` are stale.
 
