@@ -46,13 +46,20 @@ else
     printf 'its output was:\n%s\n' "$help"
   fi
 fi
-for f in --reasoning --reasoning-effort --sleep-idle-seconds --offline --no-mmproj --jinja --hf-repo --ctx-size --parallel --alias; do
+for f in --reasoning --reasoning-effort --sleep-idle-seconds --offline --no-mmproj --jinja --hf-repo --ctx-size --parallel --alias -c -hf -ngl -np -m; do
   if printf '%s' "$help" | grep -qE -- "(^|[[:space:],])${f}([[:space:],=]|\$)"; then
     printf '%s present\n' "$f"
   else
     printf '%s not found\n' "$f"
   fi
 done
+
+printf '\n### raw help text, %d bytes\n' "${#help}"
+printf '%s\n' "$help"
+
+probe 'what the binary is' "file '$BIN'; ldd '$BIN' 2>&1 | head -20"
+probe 'the build bin directory' "ls -l '$(dirname "$BIN")' | head -20"
+probe 'shared libraries beside it' "ls -l '$(dirname "$(dirname "$BIN")")' | head -20"
 
 # Who runs the server, on which port
 
@@ -64,6 +71,16 @@ probe 'listening sockets' 'ss -ltnp 2>/dev/null || ss -ltn'
 port=$(pgrep -a llama-server 2>/dev/null | grep -oE -- '--port[ =]+[0-9]+' | grep -oE '[0-9]+' | head -n1 || true)
 PORT=${port:-8080}
 printf '\n### port in use\n%s (%s)\n' "$PORT" "$([ "$port" != "" ] && echo 'read from the process' || echo 'default, none found in any process')"
+
+printf '\n### candidate ports\n'
+taken=$(ss -ltn 2>/dev/null | grep -oE '[0-9]+ *$|:[0-9]+ ' | grep -oE '[0-9]+' | sort -u || true)
+for p in 8080 8090 8181 8282 8380 8480 8686 8787 8888 9080 9090 11435 18080; do
+  if printf '%s\n' "$taken" | grep -qx "$p"; then
+    printf '%s taken\n' "$p"
+  else
+    printf '%s free\n' "$p"
+  fi
+done
 
 # What the server serves
 
