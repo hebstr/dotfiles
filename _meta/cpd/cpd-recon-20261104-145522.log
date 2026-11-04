@@ -1,0 +1,374 @@
+# cpd recon, 2026-11-04T14:55:22+01:00
+
+### identity
+$ id; hostname
+uid=1004(edjulien) gid=1004(edjulien) groups=1004(edjulien),27(sudo),100(users),1009(llm),1028(crpv)
+cpd000001
+
+### kernel and resources
+$ uname -a; nproc; free -g | head -2
+Linux cpd000001 6.8.0-136-generic #136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+32
+               total        used        free      shared  buff/cache   available
+Mem:              93          23          17           0          53          69
+
+### nvidia driver
+$ nvidia-smi --query-gpu=index,name,memory.total,memory.used --format=csv
+index, name, memory.total [MiB], memory.used [MiB]
+0, Quadro RTX 6000, 24576 MiB, 1 MiB
+1, Quadro RTX 6000, 24576 MiB, 1 MiB
+2, Quadro RTX 6000, 24576 MiB, 1 MiB
+
+### binary presence
+$ ls -l '/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server'; test -x '/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server' && echo executable || echo 'NOT executable by this user'
+-rwxrwxr-x 1 dvtle dvtle 17920 Aug 14 14:55 /data2/llama_cpp_bin/llama.cpp/build/bin/llama-server
+executable
+
+### ownership of the build tree
+$ stat -c '%U:%G %a %n' '/data2/llama_cpp_bin/llama.cpp' '/data2/llama_cpp_bin/llama.cpp/build/bin' '/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server'
+dvtle:dvtle 775 /data2/llama_cpp_bin/llama.cpp
+dvtle:dvtle 775 /data2/llama_cpp_bin/llama.cpp/build/bin
+dvtle:dvtle 775 /data2/llama_cpp_bin/llama.cpp/build/bin/llama-server
+
+### version
+$ '/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server' --version 2>&1 | head -5
+version: 9286 (99d4026b1)
+built with GNU 13.3.0 for Linux x86_64
+
+### required options
+--reasoning present
+--reasoning-effort not found
+--sleep-idle-seconds present
+--offline not found
+--no-mmproj present
+--jinja present
+--hf-repo not found
+--ctx-size not found
+--parallel present
+--alias present
+
+### llama-server processes
+$ ps -o user=,pid=,etime=,args= -C llama-server | cut -c1-400
+
+### any llama process
+$ pgrep -af llama | cut -c1-400
+2371903 /usr/local/bin/ollama serve
+3009704 bash -c pgrep -af llama | cut -c1-400
+
+### systemd units
+$ systemctl list-units --all --no-pager | grep -i llama
+  ollama.service                                                                                                          loaded    active   running   Ollama Service
+
+### listening sockets
+$ ss -ltnp 2>/dev/null || ss -ltn
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                  
+LISTEN 0      151        127.0.0.1:3306       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9005       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9004       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9007       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9006       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9001       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9003       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9002       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9013       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9012       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9015       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9014       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9009       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9008       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9011       0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:9010       0.0.0.0:*                                            
+LISTEN 0      4096       127.0.0.1:10808      0.0.0.0:*                                            
+LISTEN 0      4096       127.0.0.1:11434      0.0.0.0:*                                            
+LISTEN 0      8          127.0.0.1:17511      0.0.0.0:*    users:(("ark",pid=2978286,fd=50))       
+LISTEN 0      128          0.0.0.0:44444      0.0.0.0:*                                            
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:33253      0.0.0.0:*                                            
+LISTEN 0      70         127.0.0.1:33060      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:33535      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:33685      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:33609      0.0.0.0:*                                            
+LISTEN 0      511        127.0.0.1:33925      0.0.0.0:*    users:(("MainThread",pid=2943218,fd=21))
+LISTEN 0      511        127.0.0.1:33799      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:34215      0.0.0.0:*                                            
+LISTEN 0      1024       127.0.0.1:34573      0.0.0.0:*    users:(("ark",pid=2978286,fd=51))       
+LISTEN 0      100        127.0.0.1:35177      0.0.0.0:*    users:(("ark",pid=2978286,fd=35))       
+LISTEN 0      128        127.0.0.1:35575      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:35689      0.0.0.0:*    users:(("ark",pid=2978286,fd=48))       
+LISTEN 0      100        127.0.0.1:36279      0.0.0.0:*    users:(("ark",pid=2978286,fd=34))       
+LISTEN 0      128        127.0.0.1:36405      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:36471      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:36715      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:37785      0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:37857      0.0.0.0:*    users:(("ark",pid=2978286,fd=20))       
+LISTEN 0      128        127.0.0.1:37713      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:38547      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:38447      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:38801      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:38695      0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:38919      0.0.0.0:*    users:(("ark",pid=2978286,fd=30))       
+LISTEN 0      511        127.0.0.1:40105      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:40023      0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:40353      0.0.0.0:*    users:(("ark",pid=2978286,fd=27))       
+LISTEN 0      128        127.0.0.1:40939      0.0.0.0:*    users:(("ark",pid=2978286,fd=63))       
+LISTEN 0      128        127.0.0.1:41125      0.0.0.0:*                                            
+LISTEN 0      511        127.0.0.1:41189      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:41311      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:41831      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:42015      0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:42517      0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:43831      0.0.0.0:*                                            
+LISTEN 0      511        127.0.0.1:44153      0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:44499      0.0.0.0:*                                            
+LISTEN 0      100        127.0.0.1:44659      0.0.0.0:*                                            
+LISTEN 0      511        127.0.0.1:45629      0.0.0.0:*                                            
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*                                            
+LISTEN 0      128        127.0.0.1:51995      0.0.0.0:*                                            
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*                                            
+LISTEN 0      4096         0.0.0.0:631        0.0.0.0:*                                            
+LISTEN 0      4096         0.0.0.0:8080       0.0.0.0:*                                            
+LISTEN 0      5            0.0.0.0:8000       0.0.0.0:*    users:(("python3",pid=1708605,fd=3))    
+LISTEN 0      128          0.0.0.0:10000      0.0.0.0:*                                            
+LISTEN 0      2048         0.0.0.0:8504       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8505       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8506       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8507       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8508       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8509       0.0.0.0:*                                            
+LISTEN 0      2048         0.0.0.0:8510       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8511       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8501       0.0.0.0:*                                            
+LISTEN 0      2048         0.0.0.0:8502       0.0.0.0:*                                            
+LISTEN 0      2048         0.0.0.0:8503       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8555       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8544       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8545       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8547       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8548       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8549       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8550       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8538       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8539       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8540       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8542       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8543       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8528       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8529       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8530       0.0.0.0:*                                            
+LISTEN 0      2048         0.0.0.0:8531       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8532       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8533       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8534       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8535       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8520       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8522       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8523       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8524       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8525       0.0.0.0:*                                            
+LISTEN 0      2048         0.0.0.0:8526       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8527       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8512       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8513       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8515       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8516       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8517       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8518       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8519       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8444       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:9000       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8996       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8999       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8979       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8744       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8799       0.0.0.0:*                                            
+LISTEN 0      4096         0.0.0.0:8787       0.0.0.0:*                                            
+LISTEN 0      128          0.0.0.0:8777       0.0.0.0:*                                            
+LISTEN 0      128             [::]:44444         [::]:*                                            
+LISTEN 0      4096            [::]:22            [::]:*                                            
+LISTEN 0      511                *:80               *:*                                            
+LISTEN 0      4096            [::]:631           [::]:*                                            
+LISTEN 0      2048               *:7324             *:*                                            
+LISTEN 0      2048               *:7325             *:*                                            
+LISTEN 0      4096            [::]:8080          [::]:*                                            
+LISTEN 0      128                *:6160             *:*                                            
+LISTEN 0      128                *:6162             *:*                                            
+LISTEN 0      128             [::]:10000         [::]:*                                            
+LISTEN 0      128             [::]:8505          [::]:*                                            
+LISTEN 0      128             [::]:8506          [::]:*                                            
+LISTEN 0      128             [::]:8507          [::]:*                                            
+LISTEN 0      128             [::]:8508          [::]:*                                            
+LISTEN 0      128             [::]:8509          [::]:*                                            
+LISTEN 0      128             [::]:8511          [::]:*                                            
+LISTEN 0      128             [::]:8501          [::]:*                                            
+LISTEN 0      128             [::]:8555          [::]:*                                            
+LISTEN 0      128             [::]:8544          [::]:*                                            
+LISTEN 0      128             [::]:8545          [::]:*                                            
+LISTEN 0      2048               *:8546             *:*    users:(("streamlit",pid=590414,fd=6))   
+LISTEN 0      128             [::]:8547          [::]:*                                            
+LISTEN 0      128             [::]:8548          [::]:*                                            
+LISTEN 0      128             [::]:8549          [::]:*                                            
+LISTEN 0      128             [::]:8550          [::]:*                                            
+LISTEN 0      2048               *:8536             *:*                                            
+LISTEN 0      2048               *:8537             *:*                                            
+LISTEN 0      128             [::]:8538          [::]:*                                            
+LISTEN 0      128             [::]:8539          [::]:*                                            
+LISTEN 0      128             [::]:8540          [::]:*                                            
+LISTEN 0      128             [::]:8542          [::]:*                                            
+LISTEN 0      128             [::]:8543          [::]:*                                            
+LISTEN 0      128             [::]:8528          [::]:*                                            
+LISTEN 0      128             [::]:8529          [::]:*                                            
+LISTEN 0      128             [::]:8530          [::]:*                                            
+LISTEN 0      128             [::]:8532          [::]:*                                            
+LISTEN 0      128             [::]:8533          [::]:*                                            
+LISTEN 0      128             [::]:8534          [::]:*                                            
+LISTEN 0      128             [::]:8535          [::]:*                                            
+LISTEN 0      128             [::]:8520          [::]:*                                            
+LISTEN 0      2048               *:8521             *:*    users:(("streamlit",pid=1686814,fd=7))  
+LISTEN 0      128             [::]:8522          [::]:*                                            
+LISTEN 0      128             [::]:8523          [::]:*                                            
+LISTEN 0      128             [::]:8524          [::]:*                                            
+LISTEN 0      128             [::]:8525          [::]:*                                            
+LISTEN 0      128             [::]:8527          [::]:*                                            
+LISTEN 0      128             [::]:8512          [::]:*                                            
+LISTEN 0      128             [::]:8513          [::]:*                                            
+LISTEN 0      2048               *:8514             *:*    users:(("streamlit",pid=1683150,fd=6))  
+LISTEN 0      128             [::]:8515          [::]:*                                            
+LISTEN 0      128             [::]:8516          [::]:*                                            
+LISTEN 0      128             [::]:8517          [::]:*                                            
+LISTEN 0      128             [::]:8518          [::]:*                                            
+LISTEN 0      128             [::]:8519          [::]:*                                            
+LISTEN 0      128             [::]:8444          [::]:*                                            
+LISTEN 0      128             [::]:9000          [::]:*                                            
+LISTEN 0      128             [::]:8996          [::]:*                                            
+LISTEN 0      128             [::]:8999          [::]:*                                            
+LISTEN 0      128             [::]:8979          [::]:*                                            
+LISTEN 0      128             [::]:8744          [::]:*                                            
+LISTEN 0      128             [::]:8799          [::]:*                                            
+LISTEN 0      128             [::]:8777          [::]:*                                            
+
+### port in use
+8080 (default, none found in any process)
+
+### health
+$ curl -s --max-time 10 'http://127.0.0.1:8080/health'
+
+### props
+$ curl -s --max-time 10 'http://127.0.0.1:8080/props' | head -c 4000
+
+### models
+$ curl -s --max-time 10 'http://127.0.0.1:8080/v1/models' | head -c 2000
+
+### vram now
+$ nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+0, 1 MiB
+1, 1 MiB
+2, 1 MiB
+
+### cache root
+$ stat -c '%U:%G %a %n' '/data2/llama.cpp' 2>&1; ls -l '/data2/llama.cpp' | head -20
+dvtle:dvtle 777 /data2/llama.cpp
+total 96
+drwxrwxr-x 5 dvtle    dvtle    4096 May 22 09:16 models--andrijdavid--Voxtral-Mini-4B-Realtime-2602-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Aug  7 10:14 models--ggml-org--Qwen2.5-Coder-3B-Instruct-Q8_0-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 May 22 13:47 models--ibm-granite--granite-speech-4.1-2b-GGUF
+drwxrwxrwx 5 dvtle    dvtle    4096 Apr  3  2026 models--unsloth--DeepSeek-R1-Distill-Qwen-32B-GGUF
+drwxrwxr-x 5 edjulien edjulien 4096 Sep 24 17:26 models--unsloth--gemma-3-27b-it-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Jun  4 15:01 models--unsloth--gemma-4-12b-it-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 May 20 14:20 models--unsloth--gemma-4-26B-A4B-it-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Apr 15  2026 models--unsloth--gemma-4-31B-it-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Aug  7 10:44 models--unsloth--GLM-4.7-Flash-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Apr 14  2026 models--unsloth--medgemma-27b-it-GGUF
+drwxrwxrwx 5 dvtle    dvtle    4096 Apr  3  2026 models--unsloth--Ministral-3-14B-Instruct-2512-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Jun  3 10:02 models--unsloth--Ministral-3-3B-Instruct-2512-GGUF
+drwxrwxr-x 5 sansel   sansel   4096 Jun 18 11:21 models--unsloth--Ministral-3-8B-Instruct-2512-GGUF
+drwxrwxrwx 5 dvtle    dvtle    4096 Apr  3  2026 models--unsloth--Mistral-Small-3.2-24B-Instruct-2506-GGUF
+drwxrwxr-x 5 edjulien edjulien 4096 Jul 28 18:34 models--unsloth--Qwen3-30B-A3B-Instruct-2507-GGUF
+drwxrwxr-x 5 edjulien edjulien 4096 Jul 28 18:28 models--unsloth--Qwen3.5-27B-GGUF
+drwxrwxr-x 5 edjulien edjulien 4096 Apr 23  2026 models--unsloth--Qwen3.6-27B-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Jun  3 10:18 models--unsloth--Qwen3.6-27B-MTP-GGUF
+drwxrwxr-x 5 dvtle    dvtle    4096 Apr 28  2026 models--unsloth--Qwen3.6-35B-A3B-GGUF
+
+### cached Qwen3.8 files
+$ ls -lL '/data2/llama.cpp/models--unsloth--Qwen3.8-27B-GGUF'/snapshots/*/ 2>&1 | head -30
+total 16987888
+-rw-rw-r-- 1 edjulien edjulien   931146432 Oct 22 13:38 mmproj-BF16.gguf
+-rw-rw-r-- 1 edjulien edjulien 16464440224 Oct 22 13:41 Qwen3.8-27B-UD-Q4_K_M.gguf
+
+### cache readable by others
+$ getfacl -p '/data2/llama.cpp' 2>&1 | head -20
+# file: /data2/llama.cpp
+# owner: dvtle
+# group: dvtle
+user::rwx
+group::rwx
+other::rwx
+
+
+### clone state
+$ git -C ~/dotfiles log -1 --format="%h %ad %s" --date=short; git -C ~/dotfiles status -sb | head -5
+8ebaa40 2026-11-04 feat(cpd): add the read-only recon probe run on the CHU host
+## main...origin/main
+
+### clone remote
+$ git -C ~/dotfiles remote -v
+origin	git@github.com:hebstr/dotfiles.git (fetch)
+origin	git@github.com:hebstr/dotfiles.git (push)
+
+### opencode config links
+$ for f in opencode.json AGENTS.md plugins/claude-hooks.ts; do readlink -e ~/.config/opencode/"$f" || echo "absent: $f"; done
+absent: opencode.json
+absent: AGENTS.md
+absent: plugins/claude-hooks.ts
+
+### opencode plugin dependency
+$ ls -d ~/.config/opencode/node_modules/@opencode-ai/plugin 2>&1
+ls: cannot access '/home/edjulien/.config/opencode/node_modules/@opencode-ai/plugin': No such file or directory
+[exit 2]
+
+### claude profile links
+$ for d in rules hooks memory skills; do readlink -e ~/.claude/"$d" || echo "absent: $d"; done; readlink -e ~/.agents/skills || echo "absent: .agents/skills"
+absent: rules
+absent: hooks
+absent: memory
+absent: skills
+absent: .agents/skills
+
+### managed opencode config
+$ ls -l /etc/opencode/ 2>&1
+ls: cannot access '/etc/opencode/': No such file or directory
+[exit 2]
+
+### tool inventory
+opencode     absent
+node         /usr/bin/node
+npm          /usr/bin/npm
+stow         /usr/bin/stow
+jq           /usr/bin/jq
+curl         /usr/bin/curl
+tar          /usr/bin/tar
+git          /usr/bin/git
+setfacl      /usr/bin/setfacl
+getfacl      /usr/bin/getfacl
+prose-lint   /home/edjulien/.local/bin/prose-lint
+panache      /home/edjulien/.cargo/bin/panache
+ruff         /usr/local/bin/ruff
+air          /usr/local/bin/air
+shellcheck   /usr/bin/shellcheck
+shfmt        /usr/bin/shfmt
+shellharden  /home/edjulien/.cargo/bin/shellharden
+python3      /usr/bin/python3
+uv           /usr/local/bin/uv
+
+### github
+$ curl -sI --max-time 15 https://github.com | head -1
+HTTP/2 200 
+
+### github release asset head
+$ curl -sI --max-time 15 -L https://github.com/anomalyco/opencode/releases/latest | head -1
+HTTP/2 302 
+
+### npm registry
+$ curl -sI --max-time 15 https://registry.npmjs.org | head -1
+HTTP/2 200 
+
+# end, 2026-11-04T14:55:26+01:00
