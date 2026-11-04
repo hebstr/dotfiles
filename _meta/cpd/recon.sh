@@ -41,13 +41,13 @@ else
   if [ "$help_status" -ne 0 ]; then
     printf 'the --help call exited %d, so every option below is UNDETERMINED, not absent\n' "$help_status"
     printf 'its output was:\n%s\n' "$help"
-  elif ! printf '%s' "$help" | grep -qE -- '(^|[[:space:],])--host([[:space:],=]|$)'; then
+  elif ! grep -qE -- '(^|[[:space:],])--host([[:space:],=]|$)' <<<"$help"; then
     printf 'no --host in the output, so this is not a help text: every option below is UNDETERMINED\n'
     printf 'its output was:\n%s\n' "$help"
   fi
 fi
 for f in --reasoning --reasoning-effort --sleep-idle-seconds --offline --no-mmproj --jinja --hf-repo --ctx-size --parallel --alias -c -hf -ngl -np -m; do
-  if printf '%s' "$help" | grep -qE -- "(^|[[:space:],])${f}([[:space:],=]|\$)"; then
+  if grep -qE -- "(^|[[:space:],])${f}([[:space:],=]|\$)" <<<"$help"; then
     printf '%s present\n' "$f"
   else
     printf '%s not found\n' "$f"
@@ -75,7 +75,7 @@ printf '\n### port in use\n%s (%s)\n' "$PORT" "$([ "$port" != "" ] && echo 'read
 printf '\n### candidate ports\n'
 taken=$(ss -ltn 2>/dev/null | grep -oE '[0-9]+ *$|:[0-9]+ ' | grep -oE '[0-9]+' | sort -u || true)
 for p in 8080 8090 8181 8282 8380 8480 8686 8787 8888 9080 9090 11435 18080; do
-  if printf '%s\n' "$taken" | grep -qx "$p"; then
+  if grep -qx "$p" <<<"$taken"; then
     printf '%s taken\n' "$p"
   else
     printf '%s free\n' "$p"
