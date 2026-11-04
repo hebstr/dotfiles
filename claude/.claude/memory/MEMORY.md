@@ -56,7 +56,7 @@
 - reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
 - reference_r_data_mask_shadows_local.md: A column shadows a same-named local later in the same tibble()/mutate() call
-- reference_git_html_id_filter.md: `html-id`, `comment-hash` and `out-meta`, prek's stash, `--renormalize`, binaries, status noise
+- reference_git_html_id_filter.md: `html-id`, `comment-hash`, `out-meta`, regex traps, silent loss, prek's stash, status noise
 - reference_git_askpass_positron.md: Positron's GIT_ASKPASS sends an empty Basic auth: "Access denied" instead of a prompt
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc: the plan, and why it is dormant since 2026-09-08
@@ -65,7 +65,7 @@
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
 - reference_positron_open_html_externally.md: Explorer click to Firefox, editorAssociations, xdg-open, the profiles.ini trap
-- reference_hebstr_easy_out_subdir.md: hebstr `easy_out()` at sha 97e8829: per-output subfolder, kebab-case, `easy_out_map()` gone
+- reference_hebstr_easy_out_subdir.md: easy_out() subdirs, kebab-case, easy_out_map() gone, the out_qmd() docx pairing
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_table_column_width_layout.md: gt/flextable widths, Word grid and indent floor, PNG clipping, multi-panel float cut
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe
@@ -137,7 +137,7 @@
 - feedback_litrev_pipeline_patterns.md: Recurring scoping decisions on `/litrev` runs
 - feedback_verify_quarto_theming.md: After a Quarto SCSS, CSS or theme edit, inspect the compiled CSS, not a screenshot
 - feedback_quarto_render_disabled_chapter.md: Rendering a chapter commented out of `chapters:` can uncomment it in `_quarto.yml`
-- feedback_french_prose.md: Authorities, anglicism policy, typography, register, EN/FR only, inclusive writing
+- feedback_french_prose.md: Authorities, anglicisms, typography, straight quotes in eds-prise, EN/FR only, inclusive writing
 - feedback_fr_to_en_translation.md: Claude-facing content into English: migration keeps fidelity, a Claude draft is re-authored
 - feedback_verify_after_install.md: Smoke-test a new tool, hook or integration end-to-end before calling it done
 - feedback_shell_grep_pipefail.md: Shapes that fail or lie under `set -Eeuo pipefail` (mid-pipeline grep, `&&` lists, `jq -e`)
