@@ -1,0 +1,43 @@
+# cpd trial checks, 2026-11-04T15:59:09+01:00, port 8090
+
+### health
+$ curl -s --max-time 30 'http://127.0.0.1:8090/health'
+{"status":"ok"}
+### vram while loaded
+$ nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+0, 186 MiB
+1, 186 MiB
+2, 186 MiB
+
+### props
+$ curl -s --max-time 30 'http://127.0.0.1:8090/props' | head -c 3000
+{"default_generation_settings":{"params":{"seed":4294967295,"temperature":0.699999988079071,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"top_k":20,"top_p":0.800000011920929,"min_p":0.0,"top_n_sigma":-1.0,"xtc_probability":0.0,"xtc_threshold":0.10000000149011612,"typical_p":1.0,"repeat_last_n":64,"repeat_penalty":1.0,"presence_penalty":1.5,"frequency_penalty":0.0,"dry_multiplier":0.0,"dry_base":1.75,"dry_allowed_length":2,"dry_penalty_last_n":-1,"mirostat":0,"mirostat_tau":5.0,"mirostat_eta":0.10000000149011612,"max_tokens":-1,"n_predict":-1,"n_keep":0,"n_discard":0,"ignore_eos":false,"stream":true,"n_probs":0,"min_keep":0,"chat_format":"Content-only","reasoning_format":"none","reasoning_in_content":false,"generation_prompt":"","samplers":["penalties","dry","top_n_sigma","top_k","typ_p","top_p","min_p","xtc","temperature"],"speculative.types":"none","timings_per_token":false,"post_sampling_probs":false,"backend_sampling":false,"lora":[]},"n_ctx":98304},"total_slots":1,"model_alias":"qwen3.8-27b","model_path":"/data2/llama.cpp/models--unsloth--Qwen3.8-27B-GGUF/snapshots/4ca720788d1e01f1bff70c033e0d0028fd02e502/Qwen3.8-27B-UD-Q4_K_M.gguf","modalities":{"vision":false,"audio":false},"media_marker":"<__media_rp6dHTmW2KzNg8lT7X1nMbYwwQmBkyJV__>","endpoint_slots":true,"endpoint_props":false,"endpoint_metrics":false,"ui":true,"ui_settings":{},"webui":true,"webui_settings":{},"chat_template":"{%- set image_count = namespace(value=0) %}\n{%- set video_count = namespace(value=0) %}\n{%- macro render_content(content, do_vision_count, is_system_content=false) %}\n    {%- if content is string %}\n        {{- content }}\n    {%- elif content is iterable and content is not mapping %}\n        {%- for item in content %}\n            {%- if 'image' in item or 'image_url' in item or item.type == 'image' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain images.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set image_count.value = image_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Picture ' ~ image_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|image_pad|><|vision_end|>' }}\n            {%- elif 'video' in item or item.type == 'video' %}\n                {%- if is_system_content %}\n                    {{- raise_exception('System message cannot contain videos.') }}\n                {%- endif %}\n                {%- if do_vision_count %}\n                    {%- set video_count.value = video_count.value + 1 %}\n                {%- endif %}\n                {%- if add_vision_id %}\n                    {{- 'Video ' ~ video_count.value ~ ': ' }}\n                {%- endif %}\n                {{- '<|vision_start|><|video_pad|><|vision_end|>' }}\n            {%- elif 'text' in item %}\n                {{- item.text }}\n            {%
+### plain reply, reasoning must be 0
+{"content":"ok","reasoning":0,"tokens":2}
+
+### tool call, finish_reason must be tool_calls
+{"finish_reason":"tool_calls","call":{"name":"get_weather","arguments":"{\"city\":\"Lille\"}"}}
+
+### waiting 75s without a request
+$ sleep 75
+
+### is_sleeping
+$ curl -s --max-time 30 'http://127.0.0.1:8090/props' | jq .is_sleeping
+true
+
+### vram while asleep
+$ nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+0, 188 MiB
+1, 188 MiB
+2, 188 MiB
+
+### reply after wake
+{"content":"ok"}
+
+### vram after wake
+$ nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+0, 7602 MiB
+1, 7814 MiB
+2, 8998 MiB
+
+# end, 2026-11-04T16:00:42+01:00
