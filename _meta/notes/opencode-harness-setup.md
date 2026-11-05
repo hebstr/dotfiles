@@ -114,8 +114,12 @@ jq -c "{model, instructions, permission: (.permission | keys), skills}" opencode
 ```
 
 ```output
-{"model":"ju-tp2/qwen3.5-9b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permission":["bash","external_directory","skill"],"skills":{"paths":["~/.local/share/opencode-claude-skills"]}}
+{"model":"cpd/qwen3.8-27b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permission":["bash","external_directory","skill"],"skills":{"paths":["~/.local/share/opencode-claude-skills"]}}
 ```
+
+The `model` and `provider` keys moved to `cpd` on 2026-11-04, when the cpd setup repointed this one tracked file rather than forking the package (`71ff1ec`, `d7b04c8`; rationale in `.claude/DESIGN-CPD.md`, "The user's harness comes from a clone of the public dotfiles").
+On `ju-TP` the consequence is that the declared `baseURL` is now port 8090 while `llama-session` forwards 8080 by default, and the declared model names a 27B the 9B service does not serve: a session here needs `LLAMA_PORT=8090`, and the `limit.context` of 65536 no longer describes the 9B.
+That is the open cost of the single-package decision, not a defect of the checks below.
 
 ```bash
 bats _meta/tests/opencode-skills-sync.bats _meta/tests/claude-hooks-plugin.bats _meta/tests/llama-session.bats _meta/tests/claude-plugins-update.bats >/dev/null && echo "suites pass"
