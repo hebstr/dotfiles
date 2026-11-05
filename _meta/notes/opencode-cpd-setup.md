@@ -1,13 +1,13 @@
 # opencode with a local llama-server on cpd000001
 
-As-built record and reproduction procedure, updated 2026-11-04.
+As-built record and reproduction procedure, built 2026-11-04 and updated 2026-11-05.
 The scope is the single user `edjulien`; the shared, multi-user variant is deferred.
 
 ## Current state
 
 - opencode 1.19.5 runs from `~/.opencode/bin/opencode`.
 - `~/.config/opencode/opencode.json` is a stow link to `~/dotfiles/opencode/.config/opencode/opencode.json`.
-- It declares the provider `cpd`, the model `cpd/qwen3.8-27b`, and the base URL `http://127.0.0.1:8090/v1`.
+- It declares the provider `cpd`, the model `cpd/qwen3.8-27b`, and the base URL `http://127.0.0.1:8090/v1`, alongside a `ju-tp2` provider kept declared and unused; see "Where the machine-specific keys live".
 - The model entry is named `unsloth/Qwen3.8-27B-GGUF`.
 - `llama-server` answers with the alias `qwen3.8-27b` and loads `Qwen3.8-27B-UD-Q4_K_M.gguf` from the cache in `/data2/llama.cpp`.
 - `llama-server.service` is disabled at boot and inactive by default.
@@ -19,6 +19,16 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 
 Verified on 2026-11-04: `/health` returns `ok`, a tool call completes with `finish_reason` set to `tool_calls`, a plain reply carries no reasoning, sleep and wake work with a 60 s idle trial, and `opencode run "Reply exactly: ok"` returns `ok` through the service.
 A one-GPU run with `CUDA_VISIBLE_DEVICES=0` and a 65536 context loaded with health `ok`, used 20062 MiB on GPU 0, kept GPUs 1 and 2 at 1 MiB, and freed the VRAM at exit.
+
+## Where the machine-specific keys live
+
+In the tracked `opencode.json`, which both machines stow, and that is a decision rather than an accident.
+
+It was questioned on 2026-11-05: one stowed file describing `cpd` leaves `ju-TP` with a `baseURL` on port 8090 and a model id naming a 27B its own 9B service does not serve, so the keys were to move to a managed `/etc/opencode/opencode.json`, the system directory opencode documents as highest in precedence.
+The user then stated that opencode will not be used against `ju-TP2` until further notice, which removes the second machine from the problem: there is nothing for `ju-TP` to point at, so one file naming `cpd` describes the only setup that runs.
+
+What the file therefore carries: `model` as `cpd/qwen3.8-27b`, the `cpd` provider with its port 8090 and its 65536 limit, and the `ju-tp2` provider kept declared and unused with its own 98304 limit, so the day `ju-TP2` comes back only `model` changes.
+The managed route stays the answer if both machines ever serve at once, and `/etc/opencode` is then written with those three keys alone; its one untested assumption is whether a managed `model` wins over the stowed one, which `opencode debug config` settles in a line.
 
 ## What opencode sends
 
@@ -38,6 +48,7 @@ The display name `unsloth/Qwen3.8-27B-GGUF` in the config is cosmetic.
   The measured 20062 MiB leaves about 4 GiB of headroom, while the original 98304 context spread over three cards used 24458 MiB in total.
 - Use port 8090 because 8080 is already taken.
 - Keep the managed `/etc/opencode` configuration and the system-wide binary out of scope until a second user needs them.
+  The managed file was reconsidered on 2026-11-05 as a way to stop one stowed file describing two machines, then left out again once opencode stopped being used against `ju-TP2`: see "Where the machine-specific keys live".
 
 ## Parameters and why
 
@@ -47,7 +58,7 @@ The display name `unsloth/Qwen3.8-27B-GGUF` in the config is cosmetic.
 - `--sleep-idle-seconds 1800` unloads the model after 30 minutes without a request; the next request reloads it.
   This still applies while the service is started, and `stop` is the way to free the process and its VRAM.
 - `CUDA_VISIBLE_DEVICES=0` restricts the process to the first card, leaving the other two free.
-- `--ctx-size 65536` matches the client limit declared in `opencode.json` and keeps the model within one card.
+- `--ctx-size 65536` keeps the model within one card, and matches the `cpd` provider's `limit.context` in `opencode.json`.
 - `--jinja`, `--no-mmproj` and `--offline` follow the validated trial.
   The cache already holds the GGUF, so `--offline` avoids a Hub call.
 
@@ -124,7 +135,8 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
 
 ## Deferred
 
-- Multi-user: install opencode in `/usr/local/bin`, add a provider in `/etc/opencode/opencode.json`, create the `llama` user, grant it read access to `/data2/llama.cpp`, and change the unit to `User=llama`.
+- Multi-user: install opencode in `/usr/local/bin`, add a provider in `/etc/opencode/opencode.json`, create the `llama` user, and change the unit to `User=llama`.
+  Reading `/data2/llama.cpp` needs no grant, the cache being mode 777 with `other::rwx`.
   Two simultaneous users would need more VRAM than one card provides, so revisit `CUDA_VISIBLE_DEVICES` and `--ctx-size` at that point.
 - Thinking A/B: install a build that supports `--reasoning-effort`, then replace `--reasoning off ${SAMPLING}` with `--reasoning on --reasoning-effort low --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0`.
 - Claude Code is not installed on cpd, so the plugin skills directory stays empty.
