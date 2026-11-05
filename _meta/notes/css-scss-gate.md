@@ -343,8 +343,35 @@ Trois effets de bord qu'il a fallu corriger dans ce dépôt, et qui se reproduir
   Ajouté aux `exclude`, et les deux nouveaux fichiers racine décrits.
 - `CONTRIBUTING.md` énumérait le jeu de hooks sans CSS/SCSS et ne mentionnait pas le `npm ci` préalable.
 
-`css-toolchain-update` est couvert par 33 tests dans `_meta/tests/css-toolchain-update.bats` : parsing d'arguments, préflight des trois dépendances, `package.json` absent, priorité de `CSS_GATE_DIR`, registre injoignable et versions dégénérées (`null`, chaîne vide), branche à jour, et branche périmée (épinglage `--save-exact`, invocation npm unique, `--check` sans install, paquet absent de l'arbre qui ne fait pas bouger son épinglage, échec npm propagé).
-Six tests ajoutés lors de la revue du 2026-07-26, un ancien remplacé (solde net de cinq) : accord du tableau `PACKAGES` avec les `devDependencies` du manifeste livré, emplacement réel de l'install, rapport final qui relit l'arbre au lieu de renvoyer la version demandée, manifeste d'arbre corrompu rapporté en drift plutôt qu'en crash `jq`, et les deux côtés de la condition qui n'émet le conseil `npm ci` que sur les chemins laissant l'arbre intact.
+Les cas couverts de `css-toolchain-update` sont énumérés par les titres `@test` de `_meta/tests/css-toolchain-update.bats`.
 
 La suite a été validée par mutation du script sur copies, via l'override `CSS_TOOLCHAIN_UPDATE` : perte de `--save-exact`, `--check` qui installe quand même, garde vide/null neutralisée, garde d'échec curl supprimée, repli `none` du manifeste corrompu retiré, condition du conseil `npm ci` rendue inconditionnelle.
 Chaque mutation ne fait tomber que les tests de son périmètre.
+Les tests de conflit de peer ajoutés le 2026-11-05 sont hors de cette validation : aucune des mutations ci-dessus ne vise la sonde, `--strict-peer-deps` ni la discrimination `ERESOLVE`.
+
+## Conflit de peer : un bump retenu n'est pas un gate cassé
+
+Les trois paquets épinglés ne sont pas trois axes indépendants, ce que le script supposait en résolvant le `latest` de chacun séparément : `stylelint-config-standard-scss` déclare un peer sur `stylelint`, via `stylelint-config-recommended-scss` et `stylelint-config-standard`.
+La variante SCSS de ces configs retarde d'un majeur sur la variante CSS, mesuré le 2026-11-05 quand `stylelint` 18.0.0 a fait sortir le module en 1 sur un `ERESOLVE` : `stylelint-config-standard` 41.0.0 acceptait déjà `stylelint ^18.0.0`, là où `stylelint-config-recommended-scss` plafonnait encore à `^17.0.0`.
+Le dernier de chaque paquet n'est donc pas toujours un ensemble installable, et l'attente se compte en semaines, pas en heures.
+
+Le piège n'est pas que npm refuse, c'est qu'il accepte.
+Par défaut npm satisfait un conflit de peer en imbriquant le sous-arbre fautif plutôt qu'en le rejetant.
+Rejeu du 2026-11-05 sur le `package-lock.json` d'avant le commit `1cbda89` : `npm install stylelint@18.0.0` sort en 0 sur `added 43 packages` et déplace toute la famille SCSS sous `node_modules/stylelint-config-standard-scss/node_modules/`, dont un `stylelint-config-standard` 40.0.0 au peer `stylelint ^17.0.0` satisfait structurellement, à un niveau où aucun stylelint 17 n'existe.
+Le `stylelint` 18 de la racine charge alors cette config, qui déclare une règle qu'il a supprimée, et chaque invocation sort en 2 sur `Unknown rule`.
+C'est la panne du 2026-11-04, et une sonde qui se borne à demander son avis à npm l'aurait laissée passer : depuis l'état courant npm refuse ce même couple, mais sa réponse dépend de l'état du lockfile dont il part.
+
+`--strict-peer-deps` est ce qui interdit cette imbrication, sur la sonde comme sur l'install, les deux devant poser la même question.
+Mesuré sur le rejeu : rc=1 et `npm error code ERESOLVE` sur le bump fautif, rc=0 sur un candidat valide, donc pas de faux positif.
+
+D'où le parti retenu : un ensemble que npm refuse sous ce drapeau est un bump retenu, l'épinglage ne bouge pas et la sortie reste 0.
+Le module de `sys-update` reste vert pendant que l'upstream rattrape, et la ligne `↑` continue d'afficher le bump en attente à chaque run, donc rien ne se perd en silence.
+Un échec npm d'une autre nature reste une erreur dure, trace relayée.
+
+Deux points que le code ne porte pas :
+
+- la discrimination se fait sur la chaîne `ERESOLVE` dans la sortie de npm, jamais sur son code de sortie, qui vaut 1 pour un conflit de peer comme pour un registre injoignable ;
+- la sonde `--dry-run` est rejouée candidat par candidat après un refus de l'ensemble, parce qu'un `prettier` périmé resterait sinon bloqué par un conflit qui ne le concerne pas. Les candidats qui passent seuls sont re-sondés ensemble avant l'install, le conflit pouvant n'apparaître qu'à plusieurs.
+
+Écartés : `--force` et `--legacy-peer-deps`, qui vont dans le sens inverse du drapeau retenu, et un épinglage par plage dans `package.json`, qui rendrait la dérive silencieuse alors que tout le paquet repose sur l'épinglage exact.
+Écartée aussi la lecture directe des `peerDependencies` du registre, piste notée le 2026-11-04 : `--strict-peer-deps` fait évaluer les mêmes contraintes par le semver de npm, peers transitifs compris, sans ajouter au script ni dépendance ni moteur de plages.
