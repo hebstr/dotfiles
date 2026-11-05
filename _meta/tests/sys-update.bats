@@ -694,7 +694,7 @@ EOF
   chmod +x "${STUBS}/apt-get"
   _stub_command snap
   _stub_command npm "touch '${STUBS}/npm.ran'"
-  run setsid env PATH="$STUBS" "$BASH" "$SCRIPT" snap apt npm
+  run setsid env -u SUDO_ASKPASS PATH="$STUBS" "$BASH" "$SCRIPT" snap apt npm
   [ "$status" -eq 130 ]
   [ ! -e "${STUBS}/npm.ran" ]
   summary="${output#*MODULE*STATUS}"
