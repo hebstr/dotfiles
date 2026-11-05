@@ -39,6 +39,22 @@
   "skills": {
     "paths": ["~/.local/share/opencode-claude-skills"]
   },
+  "watcher": {
+    "ignore": [
+      "**/.Rhistory",
+      "**/.Rproj.user",
+      "**/renv/library",
+      "**/renv/local",
+      "**/renv/sandbox",
+      "**/renv/staging",
+      "**/.quarto/**",
+      "**/_book/**",
+      "**/_site/**",
+      "**/_freeze/**",
+      "**/.venv/**",
+      "**/.ruff_cache/**"
+    ]
+  },
   "permission": {
     "bash": {
       "*": "ask",
