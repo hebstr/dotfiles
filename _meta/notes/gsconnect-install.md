@@ -64,7 +64,7 @@ flatpak --user list --app | grep -i extensionmanager
 Extension Manager	com.mattjakeman.ExtensionManager	0.6.5	stable
 ```
 
-## Étape 2 : Installer GSConnect (action utilisateur)
+## Étape 2 : Installer GSConnect (action utilisateur, fait, constaté le 2026-09-29)
 
 ~~~bash
 flatpak run com.mattjakeman.ExtensionManager
@@ -76,7 +76,7 @@ flatpak run com.mattjakeman.ExtensionManager
 4. L'extension s'active automatiquement ; toggle ON sinon dans l'onglet **Installed**
 5. Une icône GSConnect apparaît dans le top panel (à côté de l'horloge / des indicateurs)
 
-## Étape 3 : Re-pairing S89 (action utilisateur)
+## Étape 3 : Re-pairing S89 (action utilisateur, fait, constaté le 2026-09-29)
 
 Côté téléphone, ouvrir l'app **KDE Connect** (Android).
 L'ancien appareil bureau (kdeconnect) reste listé tant que le daemon tourne ; un nouveau périphérique correspondant à GSConnect apparaîtra à la découverte.
