@@ -348,6 +348,7 @@ Les cas couverts de `css-toolchain-update` sont énumérés par les titres `@tes
 La suite a été validée par mutation du script sur copies, via l'override `CSS_TOOLCHAIN_UPDATE` : perte de `--save-exact`, `--check` qui installe quand même, garde vide/null neutralisée, garde d'échec curl supprimée, repli `none` du manifeste corrompu retiré, condition du conseil `npm ci` rendue inconditionnelle.
 Chaque mutation ne fait tomber que les tests de son périmètre.
 Les tests de conflit de peer ajoutés le 2026-11-05 sont hors de cette validation : aucune des mutations ci-dessus ne vise la sonde, `--strict-peer-deps` ni la discrimination `ERESOLVE`.
+Hors validation aussi, les trois tests du 2026-11-06, « drift is still reported when every bump is held back », « a partial hold-back still suppresses the hint the install makes moot » et « every registry call is bounded by a timeout » : la mutation « condition du conseil `npm ci` rendue inconditionnelle » reste bien discriminante après le passage à `report_drift`, mais aucune ne vise ni le chemin de hold-back ni les drapeaux de timeout.
 
 ## Conflit de peer : un bump retenu n'est pas un gate cassé
 
@@ -363,6 +364,15 @@ C'est la panne du 2026-11-04, et une sonde qui se borne à demander son avis à 
 
 `--strict-peer-deps` est ce qui interdit cette imbrication, sur la sonde comme sur l'install, les deux devant poser la même question.
 Mesuré sur le rejeu : rc=1 et `npm error code ERESOLVE` sur le bump fautif, rc=0 sur un candidat valide, donc pas de faux positif.
+
+Ce dont la réponse de npm dépend, c'est d'un lockfile *différent*, pas d'un arbre dérivé : la dérive que le script mesure se lit dans `node_modules/`, et elle n'entre pas dans la résolution.
+Mesure du 2026-11-06, npm 11.19.1, quatre copies du gate sondées avec la commande de `probe_set` : arbre intact, `node_modules/` retiré, `node_modules/` dérivé par un `stylelint` 15.0.0 planté, et `package-lock.json` retiré, les quatre rendent `rc=1` plus `ERESOLVE` sur `stylelint@18.0.0` et `rc=0` sur `prettier@3.9.10`.
+Seule la ligne de décompte `added/removed/changed` varie, que le script ne lit pas : il ne lit que le code de sortie et la présence de `ERESOLVE`.
+Le tableau `drifted` ne peut donc pas biaiser une retenue, et les deux axes que le préambule de la suite nomme sous `Two distinct version axes` restent bien séparés.
+
+Deux décisions prises le 2026-11-06, à la suite du walkthrough du script.
+Le conseil `npm ci` est désormais émis par `report_drift` sur tout chemin qui rend la main sans réifier l'arbre, le hold-back intégral inclus, là où sa garde ne couvrait que « rien de périmé » et `--check` : l'invariant visé a toujours été « les chemins qui retournent sans toucher à l'arbre », et le hold-back en est un.
+L'appel au registre de `latest_version` porte `--connect-timeout 10 --max-time 120 --retry 2`, la forme maison de `rv-update` et `devtools-update`, sans quoi un registre qui traîne suspend aussi le `sys-update` qui appelle le module.
 
 D'où le parti retenu : un ensemble que npm refuse sous ce drapeau est un bump retenu, l'épinglage ne bouge pas et la sortie reste 0.
 Le module de `sys-update` reste vert pendant que l'upstream rattrape, et la ligne `↑` continue d'afficher le bump en attente à chaque run, donc rien ne se perd en silence.

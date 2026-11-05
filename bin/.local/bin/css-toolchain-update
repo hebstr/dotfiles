@@ -45,7 +45,7 @@ installed_version() {
 }
 
 latest_version() {
-  curl -fsSL "https://registry.npmjs.org/$1/latest" | jq -r '.version'
+  curl -fsSL --connect-timeout 10 --max-time 120 --retry 2 "https://registry.npmjs.org/$1/latest" | jq -r '.version'
 }
 
 PROBE_OUT=""
@@ -117,9 +117,14 @@ main() {
 
   # `npm install <pkg>` reifies the whole tree from package.json, so the restore
   # hint is only actionable on the paths that return without touching it.
-  if [[ ${#drifted[@]} -gt 0 ]] && { [[ ${#outdated[@]} -eq 0 ]] || ((CHECK_ONLY)); }; then
+  report_drift() {
+    [[ ${#drifted[@]} -gt 0 ]] || return 0
     echo "css-toolchain-update: tree does not match the pin: ${drifted[*]}" >&2
     echo "css-toolchain-update: restore it with 'npm --prefix ${GATE_DIR} ci'" >&2
+  }
+
+  if [[ ${#outdated[@]} -eq 0 ]] || ((CHECK_ONLY)); then
+    report_drift
   fi
 
   if [[ ${#outdated[@]} -eq 0 ]]; then
@@ -175,7 +180,10 @@ main() {
     echo "css-toolchain-update: held back by a peer conflict: ${held[*]}" >&2
     echo "css-toolchain-update: their pins stay put until the upstream peers catch up" >&2
 
-    ((${#installable[@]} > 0)) || return 0
+    ((${#installable[@]} > 0)) || {
+      report_drift
+      return 0
+    }
     outdated=("${installable[@]}")
   fi
 

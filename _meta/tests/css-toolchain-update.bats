@@ -236,6 +236,12 @@ teardown() {
   [ ! -s "$NPM_LOG" ]
 }
 
+@test "every registry call is bounded by a timeout" {
+  run bash "$SCRIPT" --check
+  [ "$status" -eq 0 ]
+  [ "$(grep -c -- '--connect-timeout 10 --max-time 120' "$CURL_LOG")" -eq 3 ]
+}
+
 @test "unexpected argument exits 2 and prints usage" {
   run bash "$SCRIPT" stylelint
   [ "$status" -eq 2 ]
@@ -593,6 +599,31 @@ _restricted_path_run() {
   [[ "$output" == *"stylelint@17.15.0"* ]]
   [[ "$output" == *"prettier@4.0.0"* ]]
   [ ! -s "$NPM_LOG" ]
+}
+
+@test "drift is still reported when every bump is held back" {
+  rm -rf "${GATE_DIR}/node_modules"
+  export LATEST_STYLELINT=17.15.0
+  export LATEST_PRETTIER=4.0.0
+  export ERESOLVE_WHEN="stylelint@17.15.0 prettier@4.0.0"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"held back by a peer conflict"* ]]
+  [[ "$output" == *"does not match the pin"* ]]
+  [[ "$output" == *"npm --prefix ${GATE_DIR} ci"* ]]
+  [ ! -s "$NPM_LOG" ]
+}
+
+@test "a partial hold-back still suppresses the hint the install makes moot" {
+  rm -rf "${GATE_DIR}/node_modules"
+  export LATEST_STYLELINT=17.15.0
+  export LATEST_PRETTIER=4.0.0
+  export ERESOLVE_WHEN=stylelint@17.15.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"held back by a peer conflict: stylelint@17.15.0"* ]]
+  [[ "$output" != *"does not match the pin"* ]]
+  [[ "$output" == *"commit package.json"* ]]
 }
 
 @test "a probe failure that is not a peer conflict is a hard error" {
