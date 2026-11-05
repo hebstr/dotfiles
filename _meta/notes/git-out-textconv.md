@@ -195,6 +195,7 @@ The noise costs tokens in the verifier pass rather than correctness, since the `
 `dcterms:created` and `dcterms:modified` carry `xsi:type="dcterms:W3CDTF"` and `TotalTime` holds an integer, so an empty element breaks the type the package declares, and Word enforces the content model by refusing to open a file rather than by degrading it (`rules/docx.md`, "Structural validity, which a render never tests").
 Stability is the whole requirement and any fixed value gives it, so those three are pinned to `1980-01-01T00:00:00Z`, `1980-01-01T00:00:00Z` and `0`, and the ZIP entry dates to the 1980 epoch the format floors at.
 `cp:lastModifiedBy`, added to both tuples on 2026-10-28, declares no type and holds a plain string, so the empty element is itself a value the package accepts and the pin is `""`.
+That pin was measured on a patched copy of the program before it landed: two copies of eds-prise's `docs/csi/output/tbl-source/tbl-source.docx` differing by that field and by the write timestamps came out on one sha256, where the program as shipped left them distinct.
 The `out-textconv` driver empties the same four, which costs it nothing: it renders text and stores no bytes.
 
 `dc:creator` stays out of both tuples, decided on a measurement rather than by symmetry with the author field (2026-10-28, over the tracked `docx`, `xlsx` and `pptx` of eds-prise, md-nesrine and eds-avc).
@@ -277,6 +278,7 @@ Everywhere else the filter stays inert, and the state to check is which `.gitatt
 - **Normalising at the writer**: `hebstr::easy_out()` funnels `ggsave`, `openxlsx2::wb_save` and officer (read 2026-10-24 in its `R/easy_out.R`), so one pass there would make the file stable at birth with no git machinery at all.
   It covers nothing Quarto renders, so the report docx and any pptx keep churning, and it puts the pinned date in the file handed to a human reader rather than only in the index.
 - **A `post-index-change` hook**: it fires on a no-op `git add` and on `git status`, and a hook that writes the index re-fires itself, git applying no reentrancy guard, measured at 6 fires with a counter to stop it.
+- **Pinning `USER` in the R session** rather than in the two filters, which is where the stamp is read: it would lie about the variable for everything else the session runs, it would cover `officer` alone and leave `openxlsx2` stamping the account into `dc:creator` beside it, and it would lodge a remedy for git noise in a project's R socle, where nothing else of the kind lives.
 - **Doing nothing**: the driver and the hook detect the noise and leave one command per re-render, which is the cost the request names.
 
 ### Ways to lose it in silence
