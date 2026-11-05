@@ -2,6 +2,8 @@
 # shellcheck disable=SC2030,SC2031
 # Tests for bin/.local/bin/css-toolchain-update
 
+bats_require_minimum_version 1.5.0
+
 SCRIPT="${CSS_TOOLCHAIN_UPDATE:-$BATS_TEST_DIRNAME/../../bin/.local/bin/css-toolchain-update}"
 
 # ─── stub factory ───────────────────────────────────────────────────────────
@@ -15,7 +17,14 @@ SCRIPT="${CSS_TOOLCHAIN_UPDATE:-$BATS_TEST_DIRNAME/../../bin/.local/bin/css-tool
 #   VERSION_LITERAL    when set, every package resolves to this raw JSON value
 #                      instead of a version string (`null`, `""`)
 #   NPM_EXIT           exit code of the npm stub
-#   NPM_LOG            file the npm stub appends its argv to
+#   NPM_LOG            file the npm stub appends its argv to (installs only)
+#   DRY_LOG            file the npm stub appends its argv to (--dry-run probes)
+#   ERESOLVE_WHEN      space-separated pkg@version specs; the stub answers with
+#                      npm's ERESOLVE error when argv holds all of them, so one
+#                      spec simulates a candidate rejected on its own and two
+#                      simulate a pair that conflicts only together
+#   FAIL_WHEN          same matching rule, answered with a non-ERESOLVE failure
+#                      (simulates npm failing for an unrelated reason)
 #   CURL_LOG           file the curl stub appends its argv to
 #
 #   PIN_PRETTIER       version pinned in package.json devDependencies
@@ -56,9 +65,50 @@ EOF
   # asserted rather than inherited: a script that stops aiming npm at the gate
   # directory would otherwise write node_modules into the caller's cwd, and
   # `**/node_modules/` being gitignored makes that pollution invisible.
+  # A `--dry-run` argv is the script's resolution probe rather than an install:
+  # it logs to ${DRY_LOG} and writes no manifest, so the assertions counting
+  # installs in ${NPM_LOG} keep their meaning.
   cat >"${STUBS}/npm" <<'EOF'
 #!/usr/bin/env bash
-printf '%s\n' "$*" >>"${NPM_LOG}"
+dry=0
+for a in "$@"; do
+    [ "$a" = "--dry-run" ] && dry=1
+done
+if [ "$dry" = 1 ]; then
+    printf '%s\n' "$*" >>"${DRY_LOG}"
+else
+    printf '%s\n' "$*" >>"${NPM_LOG}"
+fi
+if [ -n "${ERESOLVE_WHEN:-}" ]; then
+    read -ra wants <<<"${ERESOLVE_WHEN}"
+    all=1
+    for want in "${wants[@]}"; do
+        found=0
+        for a in "$@"; do
+            [ "$a" = "$want" ] && found=1
+        done
+        [ "$found" = 1 ] || all=0
+    done
+    if [ "$all" = 1 ]; then
+        printf 'npm error code ERESOLVE\nnpm error ERESOLVE unable to resolve dependency tree\n' >&2
+        exit 1
+    fi
+fi
+if [ -n "${FAIL_WHEN:-}" ]; then
+    read -ra wants <<<"${FAIL_WHEN}"
+    all=1
+    for want in "${wants[@]}"; do
+        found=0
+        for a in "$@"; do
+            [ "$a" = "$want" ] && found=1
+        done
+        [ "$found" = 1 ] || all=0
+    done
+    if [ "$all" = 1 ]; then
+        printf 'npm error code ENOTFOUND\nnpm error network request failed\n' >&2
+        exit 1
+    fi
+fi
 [ "${NPM_EXIT:-0}" != 0 ] && exit "${NPM_EXIT}"
 target="${PWD}"
 prev=""
@@ -73,6 +123,7 @@ if [ "$target" != "${CSS_GATE_DIR}" ]; then
     printf 'npm stub: refusing to write outside the gate dir (target=%s)\n' "$target" >&2
     exit 1
 fi
+[ "$dry" = 1 ] && exit 0
 for a in "$@"; do
     case "$a" in
         -*|install) continue ;;
@@ -119,8 +170,10 @@ setup() {
   mkdir -p "$GATE_DIR"
 
   export NPM_LOG="${STUBS}/npm.log"
+  export DRY_LOG="${STUBS}/npm-dry.log"
   export CURL_LOG="${STUBS}/curl.log"
   : >"$NPM_LOG"
+  : >"$DRY_LOG"
   : >"$CURL_LOG"
 
   export LATEST_PRETTIER=3.9.6
@@ -456,4 +509,120 @@ _restricted_path_run() {
   run bash "$SCRIPT"
   [ "$status" -ne 0 ]
   [[ "$output" != *"commit package.json"* ]]
+}
+
+# ─── peer conflicts ─────────────────────────────────────────────────────────
+# The three packages are coupled by peer ranges (the scss configs declare one on
+# stylelint), so the newest version of each is not always an installable set.
+# npm answers ERESOLVE, which is a held-back bump rather than a broken gate: the
+# pin must survive it, the exit must stay 0, and an unrelated candidate in the
+# same run must still go through.
+
+@test "the install is preceded by a dry-run probe of the candidate set" {
+  export LATEST_STYLELINT=17.15.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$(cat "$DRY_LOG")" == *"--dry-run"* ]]
+  [[ "$(cat "$DRY_LOG")" == *"stylelint@17.15.0"* ]]
+  [ "$(wc -l <"$NPM_LOG")" -eq 1 ]
+  [[ "$(cat "$NPM_LOG")" != *"--dry-run"* ]]
+}
+
+# Without it npm satisfies a peer conflict by nesting the conflicting subtree
+# instead of refusing, which is how the pin reached an unusable version on
+# 2026-11-04. Both calls must ask the same question, so the flag is asserted on
+# the probe and on the install.
+@test "the probe and the install both forbid a nested peer resolution" {
+  export LATEST_STYLELINT=17.15.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$(cat "$DRY_LOG")" == *"--strict-peer-deps"* ]]
+  [[ "$(cat "$NPM_LOG")" == *"--strict-peer-deps"* ]]
+}
+
+@test "a candidate rejected on its own is held back and nothing is installed" {
+  export LATEST_STYLELINT=18.0.0
+  export ERESOLVE_WHEN=stylelint@18.0.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"↑ stylelint 17.14.1 → 18.0.0"* ]]
+  [[ "$output" == *"held back by a peer conflict: stylelint@18.0.0"* ]]
+  [[ "$output" == *"pins stay put"* ]]
+  [ ! -s "$NPM_LOG" ]
+  [[ "$output" != *"commit package.json"* ]]
+}
+
+@test "a held-back candidate leaves the committed pin untouched" {
+  export LATEST_STYLELINT=18.0.0
+  export ERESOLVE_WHEN=stylelint@18.0.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  run jq -r '.devDependencies.stylelint' "${GATE_DIR}/package.json"
+  [ "$output" = "17.14.1" ]
+}
+
+@test "the ERESOLVE trace is not dumped when the bump is merely held back" {
+  export LATEST_STYLELINT=18.0.0
+  export ERESOLVE_WHEN=stylelint@18.0.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"npm error"* ]]
+}
+
+@test "an independent candidate still installs when another is held back" {
+  export LATEST_STYLELINT=18.0.0
+  export LATEST_PRETTIER=3.10.0
+  export ERESOLVE_WHEN=stylelint@18.0.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"held back by a peer conflict: stylelint@18.0.0"* ]]
+  [ "$(wc -l <"$NPM_LOG")" -eq 1 ]
+  [[ "$(cat "$NPM_LOG")" == *"prettier@3.10.0"* ]]
+  [[ "$(cat "$NPM_LOG")" != *"stylelint@18.0.0"* ]]
+  [[ "$output" == *"✓ prettier 3.10.0"* ]]
+  [[ "$output" == *"commit package.json"* ]]
+}
+
+@test "a pair that conflicts only together holds both back" {
+  export LATEST_STYLELINT=17.15.0
+  export LATEST_PRETTIER=4.0.0
+  export ERESOLVE_WHEN="stylelint@17.15.0 prettier@4.0.0"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"held back by a peer conflict"* ]]
+  [[ "$output" == *"stylelint@17.15.0"* ]]
+  [[ "$output" == *"prettier@4.0.0"* ]]
+  [ ! -s "$NPM_LOG" ]
+}
+
+@test "a probe failure that is not a peer conflict is a hard error" {
+  export LATEST_STYLELINT=17.15.0
+  export NPM_EXIT=7
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"npm refused the candidate set, nothing installed"* ]]
+  [[ "$output" != *"held back by a peer conflict"* ]]
+  run ! grep -q -- '--save-exact' "$NPM_LOG"
+}
+
+@test "a non-ERESOLVE failure while narrowing is an error, not a held-back bump" {
+  export LATEST_STYLELINT=18.0.0
+  export LATEST_PRETTIER=3.10.0
+  export ERESOLVE_WHEN=stylelint@18.0.0
+  export FAIL_WHEN=prettier@3.10.0
+  run bash "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"npm refused prettier@3.10.0, nothing installed"* ]]
+  [[ "$output" != *"held back by a peer conflict"* ]]
+  [ ! -s "$NPM_LOG" ]
+}
+
+@test "--check never probes npm at all" {
+  export LATEST_STYLELINT=18.0.0
+  export ERESOLVE_WHEN=stylelint@18.0.0
+  run bash "$SCRIPT" --check
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"1 update(s) available, none installed"* ]]
+  [ ! -s "$NPM_LOG" ]
+  [ ! -s "$DRY_LOG" ]
 }

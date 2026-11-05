@@ -48,6 +48,14 @@ latest_version() {
   curl -fsSL "https://registry.npmjs.org/$1/latest" | jq -r '.version'
 }
 
+PROBE_OUT=""
+
+probe_set() {
+  PROBE_OUT=$(cd "$GATE_DIR" && npm install --dry-run --strict-peer-deps --save-exact --save-dev --no-fund --no-audit "$@" 2>&1) && return 0
+  [[ "$PROBE_OUT" == *ERESOLVE* ]] && return 3
+  return 1
+}
+
 main() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -124,7 +132,54 @@ main() {
     return 0
   fi
 
-  (cd "$GATE_DIR" && npm install --save-exact --save-dev --no-fund --no-audit "${outdated[@]}")
+  local probe_status=0 candidate held=() installable=()
+  probe_set "${outdated[@]}" || probe_status=$?
+
+  probe_refused() {
+    printf '%s\n' "$PROBE_OUT" >&2
+    echo "css-toolchain-update: npm refused ${1}, nothing installed" >&2
+  }
+
+  if ((probe_status == 1)); then
+    probe_refused "the candidate set"
+    return 1
+  fi
+
+  if ((probe_status == 3)); then
+    for candidate in "${outdated[@]}"; do
+      probe_status=0
+      probe_set "$candidate" || probe_status=$?
+      case "$probe_status" in
+      0) installable+=("$candidate") ;;
+      3) held+=("$candidate") ;;
+      *)
+        probe_refused "$candidate"
+        return 1
+        ;;
+      esac
+    done
+
+    if ((${#installable[@]} > 1)); then
+      probe_status=0
+      probe_set "${installable[@]}" || probe_status=$?
+      if ((probe_status == 1)); then
+        probe_refused "the narrowed candidate set"
+        return 1
+      fi
+      ((probe_status == 0)) || {
+        held=("${outdated[@]}")
+        installable=()
+      }
+    fi
+
+    echo "css-toolchain-update: held back by a peer conflict: ${held[*]}" >&2
+    echo "css-toolchain-update: their pins stay put until the upstream peers catch up" >&2
+
+    ((${#installable[@]} > 0)) || return 0
+    outdated=("${installable[@]}")
+  fi
+
+  (cd "$GATE_DIR" && npm install --strict-peer-deps --save-exact --save-dev --no-fund --no-audit "${outdated[@]}")
 
   for pkg in "${PACKAGES[@]}"; do
     printf '✓ %s %s\n' "$pkg" "$(installed_version "$pkg")"
