@@ -37,11 +37,12 @@ TOOL='{"messages":[{"role":"user","content":"Quel temps fait-il a Lille ?"}],"to
 
 printf '# cpd trial checks, %s, port %s\n' "$(date -Is)" "$PORT"
 probe 'health' "curl -s --max-time 30 '${BASE}/health'"
-probe 'vram while loaded' 'nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
+probe 'vram before any request, so possibly already asleep' 'nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
 probe 'props' "curl -s --max-time 30 '${BASE}/props' | head -c 3000"
 
 ask 'plain reply, reasoning must be 0' "$PLAIN" \
   '{content: .choices[0].message.content, reasoning: (.choices[0].message.reasoning_content // "" | length), tokens: .usage.completion_tokens}'
+probe 'vram while loaded, read after that request' 'nvidia-smi --query-gpu=index,memory.used --format=csv,noheader'
 ask 'tool call, finish_reason must be tool_calls' "$TOOL" \
   '.choices[0] | {finish_reason, call: .message.tool_calls[0].function}'
 
