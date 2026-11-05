@@ -91,7 +91,7 @@
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
 - reference_quarto_r_env_var.md: `QUARTO_R`/`QUARTO_PYTHON` injected by the Positron extension: stale values, their two failure modes
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
-- reference_bash_tool_pitfalls.md: Bash tool traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh | head`
+- reference_bash_tool_pitfalls.md: Traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh|head`, `gh watch`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
 - reference_edstr_extract_chunk_budget.md: Chunk sizing: characters, not docs; columns the lever; soft bound; edstr owns it
