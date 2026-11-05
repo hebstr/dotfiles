@@ -51,3 +51,5 @@
 	clean = ~/.config/git/clean-out-meta.py
 [filter "positron-theme"]
 	clean = ~/.config/git/clean-positron-theme
+[safe]
+	directory = /data2/llama_cpp_bin/llama.cpp

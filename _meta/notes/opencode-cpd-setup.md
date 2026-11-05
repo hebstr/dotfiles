@@ -145,5 +145,5 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
 
 - b9286 logs `--cache-idle-slots requires --kv-unified, disabling`.
   The trial still verified sleep and wake, so the flag is left out; add `--kv-unified` only if keeping the prompt cache across idle periods matters.
-- The binary and its shared libraries belong to another user under `/data2`; removing or rebuilding that tree breaks the service.
+- The binary and its shared libraries belong to another user under `/data2`; removing or rebuilding that tree breaks the service. `git/.gitconfig` carries `[safe] directory = /data2/llama_cpp_bin/llama.cpp` (added 2026-11-05) so git accepts the foreign-owned tree without a dubious-ownership refusal.
 - `--offline` logs a missing `unsloth_Qwen3.8-27B-GGUF_preset.ini` and continues; the model still loads from the cache.
