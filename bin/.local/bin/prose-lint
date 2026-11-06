@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# prose-lint: mechanical anti-AI-slop checks for .md / .qmd files.
+# prose-lint: mechanical checks for .md / .qmd files, in two rule families with
+# two scopes. [em-dash] and [en-dash] are anti-AI-slop rules on user-facing
+# prose; [live-count] is a staleness rule on Claude-facing text. A file in
+# neither scope is skipped whole.
 #
-# Rules from ~/.claude/CLAUDE.md (Prose hygiene + Communication sections):
+# Dash rules, from ~/.claude/CLAUDE.md (Prose hygiene + Communication sections):
 #   - no em dashes in prose (rhetorical use); typographic em dashes in
 #     markdown table cells and markdown headers are exempt
 #   - en dashes flagged outside numeric ranges (token–token between
@@ -9,6 +12,16 @@
 #   - table rows (lines starting with |) and markdown headers (lines
 #     starting with #) are exempt from em/en dash checks: em/en dashes
 #     in those contexts are typographic separators, not rhetorical prose
+#
+# [live-count], from ~/.claude/rules/claude-files.md (Content): a present-tense
+# copula or possession verb (is, are, has, have, holds, hold, carries, carry)
+# immediately followed by a cardinal number and a plural repository-artefact
+# noun (lines, files, tests, bytes, cases: not a unit of data, where counting
+# is the user's domain), which is a repository count asserted as current.
+# A line carrying an ISO date is
+# exempt, a dated figure being a measurement rather than a live claim; so is a
+# line carrying the ignore marker. Table rows and headers are checked. Past
+# tense is out of the pattern for the same reason the ISO date is.
 #
 # Semantic checks (ritual openers, rhetorical self-questions, negative
 # parallelism) are context-dependent and noisy to verify mechanically;
@@ -22,16 +35,18 @@
 # document a forbidden pattern verbatim). Tilde fences (~~~) and 4-space
 # indented code blocks are NOT recognized.
 #
-# Files under any `.claude/memory/` path are skipped entirely: memory files
-# are Claude-facing instructions, not user-facing prose, so the rhetorical
-# dash rules do not apply. Other `.claude/` files (CLAUDE.md, rules/) are
-# still checked.
+# Dash scope: every .md / .qmd except any `.claude/memory/` path and the
+# working/backlog basenames (case-sensitive, any depth) PLAN.md, DEFERRED.md,
+# CONTEXT.md, MEMORY.md (Claude operational state), TODO.md and CALENDRIER.md
+# (the user's own scratchpads, which Claude may read but never write). Those are
+# Claude-facing instructions, not user-facing prose. Other `.claude/` files
+# (CLAUDE.md, rules/) are still checked. Case-sensitivity matters: `CONTEXT.md`
+# is skipped but `context.md` (skill documentation) is still checked.
 #
-# Working/backlog files are skipped by basename (case-sensitive, any depth):
-# PLAN.md, DEFERRED.md, CONTEXT.md, MEMORY.md (Claude operational state),
-# TODO.md and CALENDRIER.md (the user's own scratchpads, which Claude may read
-# but never write). Case-sensitivity matters: `CONTEXT.md` is skipped but
-# `context.md` (skill documentation) is still checked.
+# Live-count scope, the agent-facing corpus: any `.claude/` path, any
+# `_meta/notes/` path, a CLAUDE.md or AGENTS.md anywhere, and the PLAN.md,
+# DEFERRED.md, CONTEXT.md, MEMORY.md basenames anywhere. TODO.md and
+# CALENDRIER.md stay out of both: no fix the rule asks for may be written there.
 
 set -Eeuo pipefail
 
@@ -42,8 +57,30 @@ fi
 
 violations=0
 
+rule_flags() {
+  dash=1
+  count=0
+  case "$1" in
+  */.claude/* | .claude/* | */_meta/notes/* | _meta/notes/*) count=1 ;;
+  esac
+  case "$1" in
+  */.claude/memory/* | .claude/memory/*) dash=0 ;;
+  esac
+  case "${1##*/}" in
+  CLAUDE.md | AGENTS.md) count=1 ;;
+  PLAN.md | DEFERRED.md | CONTEXT.md | MEMORY.md)
+    dash=0
+    count=1
+    ;;
+  TODO.md | CALENDRIER.md)
+    dash=0
+    count=0
+    ;;
+  esac
+}
+
 check_file() {
-  awk '
+  awk -v dash="$2" -v count="$3" '
     fence && /^ ? ? ?`+[ \t]*$/ {
       run = $0
       gsub(/[ \t]/, "", run)
@@ -64,6 +101,13 @@ check_file() {
     /<!-- prose-lint:ignore -->/ { next }
     {
       gsub(/`[^`]*`/, "")
+      if (count) {
+        t = $0
+        gsub(/\302\240|\342\200\257/, " ", t)
+        if (t !~ /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/ && t ~ /(^|[^[:alnum:]_])(is|are|has|have|holds|hold|carries|carry)[ ]+[0-9]+((,|\.| )[0-9][0-9][0-9])*[ ]+(lines|files|tests|bytes|characters|words|tokens|entries|notes|sections|rules|suites|cases|commits|items|steps|skills|hooks|scripts)([^[:alnum:]_]|$)/)
+          printf "%s:%d: [live-count] repository count asserted as current (rules/claude-files.md: Content): re-derive it with a command, date it as a measurement, or drop the figure\n", FILENAME, NR
+      }
+      if (!dash) next
       if ($0 ~ /^[ \t]*(\||#)/) next
       if (index($0, "—"))
         printf "%s:%d: [em-dash] em dash in prose (CLAUDE.md: Prose hygiene)\n", FILENAME, NR
@@ -81,25 +125,18 @@ for f in "$@"; do
     exit 2
   fi
   case "$f" in
-  */.claude/memory/* | .claude/memory/*)
-    echo "prose-lint: skipping (.claude/memory is Claude-facing, not user prose): $f" >&2
-    continue
-    ;;
-  esac
-  case "${f##*/}" in
-  PLAN.md | DEFERRED.md | CONTEXT.md | MEMORY.md | TODO.md | CALENDRIER.md)
-    echo "prose-lint: skipping (working/backlog file, exempt from prose hygiene): $f" >&2
-    continue
-    ;;
-  esac
-  case "$f" in
   *.md | *.qmd) ;;
   *)
     echo "prose-lint: skipping (not .md/.qmd): $f" >&2
     continue
     ;;
   esac
-  report=$(check_file "$f")
+  rule_flags "$f"
+  if [ "$dash" -eq 0 ] && [ "$count" -eq 0 ]; then
+    echo "prose-lint: skipping (the user's own scratchpad, in no rule's scope): $f" >&2
+    continue
+  fi
+  report=$(check_file "$f" "$dash" "$count")
   [ "$report" != "" ] || continue
   printf '%s\n' "$report"
   mapfile -t lines <<<"$report"

@@ -42,7 +42,7 @@ Only modify code directly related to the task. Directly related includes the cas
 - A missing tool (`command -v` fails) is skipped and named, the rest running in sequence. When the missing tool is the final validating linter (shell's `shellcheck`, Python's confirming `ruff check`), the gate cannot pass: report the task as unvalidated, not done. A tool that runs but validates nothing counts as missing: a bare `pyrefly check` on a file no pyrefly config governs reports `0 errors` under the fallback `basic` preset, and `rules/python.md` carries the invocation that avoids it.
 - The auto-fixers and formatters rewrite tracked files in place: that mutation is part of the gate, not a git operation. Opt-in logic-rewriting fixers outside the default gate (`cargo clippy --fix`) are excluded. If a rewrite produces an unwanted diff, surface it and let the user revert it.
 - If the user pushes back ("skip the gate", "I'll lint myself"), comply and say that the discipline is bypassed at their request.
-- Markdown and Quarto prose has no gate of this kind: the `prose-lint-pretool.sh` hook checks the dash rules on `.md` and `.qmd` edits, and `/workflow:write` is the deeper polish.
+- Markdown and Quarto prose has no gate of this kind: the `prose-lint-pretool.sh` hook checks the dash rules on a user-facing `.md` or `.qmd` edit, and the `[live-count]` rule on the lines an edit adds to an agent-facing one; `/workflow:write` is the deeper polish.
 
 ## Before writing a helper
 

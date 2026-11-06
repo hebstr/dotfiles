@@ -145,7 +145,7 @@
 - feedback_git_clean_tree_hides_ignored.md: `git status --porcelain` omits ignored files, so a clean-tree guard misses one
 - feedback_line_number_cross_refs.md: Cite by name, not by line number; and when a drifted reference stays as record
 - feedback_concision.md: Cut research narrative from notes and replies: record what binds future work
-- feedback_prose-lint-write.md: prose-lint scope, typographic vs rhetorical dashes, when to run /workflow:write
+- feedback_prose-lint-write.md: prose-lint's two rule scopes, typographic vs rhetorical dashes, /workflow:write
 - feedback_proposed_text_copy_paste.md: Draft text for the user's document flush left, never in a blockquote
 - feedback_no_bulk_regex_for_contextual_skills.md: Never swap a contextual editing skill for a bulk regex pass
 - feedback_audit_walkthrough.md: `/audit:walkthrough` and `/audit:blindspot`: weigh by evidence, unverified is not fake

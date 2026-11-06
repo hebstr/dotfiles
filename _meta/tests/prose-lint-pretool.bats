@@ -186,18 +186,22 @@ assert_blocked() {
   assert_not_linted
 }
 
-# ─── the .claude/ skip ──────────────────────────────────────────────────────
+# ─── the .claude/ dash exemption ────────────────────────────────────────────
+#
+# Since [live-count] took the inverse scope, every path reaches prose-lint and the
+# exemption is a filter on its report: a dash finding is dropped, a live-count one
+# is kept. So these tests assert the verdict, not that the tool stayed unrun.
 
-@test "exempts a project .claude note" {
+@test "drops the dash findings of a project .claude note" {
   f=$(fixture "projet/.claude/PLAN.md")
 
   run_write "$f"
 
   assert_passed
-  assert_not_linted
+  assert_linted
 }
 
-@test "exempts a project .claude design note whatever its kind" {
+@test "drops them in a project .claude design note whatever its kind" {
   for rel in projet/.claude/DESIGN-LUA.md projet/.claude/DESIGN-OPENCODE-HARNESS.md; do
     f=$(fixture "$rel")
 
@@ -207,34 +211,28 @@ assert_blocked() {
       printf 'non-zero exit on: %s\n' "$rel" >&2
       return 1
     }
-    assert_not_linted || {
-      printf 'leaked on: %s\n' "$rel" >&2
-      return 1
-    }
   done
 }
 
-@test "exempts a nested project .claude note" {
+@test "drops them in a nested project .claude note" {
   f=$(fixture "projet/pkg/.claude/notes/design.md")
 
   run_write "$f"
 
   assert_passed
-  assert_not_linted
 }
 
 # dotfiles carries two .claude trees: its own project notes at the root, exempt like
 # any project's, and the stowed global config under claude/, which stays linted.
-@test "exempts the dotfiles project .claude tree" {
+@test "drops them in the dotfiles project .claude tree" {
   f=$(fixture "dotfiles/.claude/DEFERRED.md")
 
   run_write "$f"
 
   assert_passed
-  assert_not_linted
 }
 
-@test "exempts a -context.md wherever it sits" {
+@test "drops them in a -context.md wherever it sits" {
   for rel in sweep-context.md projet/docs/audit-context.md; do
     f=$(fixture "$rel")
 
@@ -242,10 +240,6 @@ assert_blocked() {
 
     assert_passed || {
       printf 'non-zero exit on: %s\n' "$rel" >&2
-      return 1
-    }
-    assert_not_linted || {
-      printf 'leaked on: %s\n' "$rel" >&2
       return 1
     }
   done
@@ -307,6 +301,71 @@ assert_blocked() {
 
   assert_linted
   assert_blocked "$f"
+}
+
+# ─── [live-count]: the inverse scope, on the lines a write adds ─────────────
+
+@test "blocks a live count the write adds to a project .claude note" {
+  use_real_prose_lint
+  f=$(fixture "projet/.claude/DESIGN-X.md" "$(printf 'Line one.\nLine two.\n')")
+
+  run_hook "$(edit_payload "$f" "Line two." "The suite has 42 tests.")"
+
+  assert_blocked "$f"
+  [[ $stderr == *"[live-count]"* ]]
+}
+
+@test "leaves a live count the write does not touch alone" {
+  use_real_prose_lint
+  f=$(fixture "projet/.claude/DESIGN-X.md" \
+    "$(printf 'The suite has 42 tests.\nLine two.\n')")
+
+  run_hook "$(edit_payload "$f" "Line two." "Line two, edited.")"
+
+  assert_passed
+}
+
+@test "blocks a live count the write adds to the stowed global config" {
+  use_real_prose_lint
+  f=$(fixture "dotfiles/claude/.claude/rules/x.md" "$(printf 'Line one.\nLine two.\n')")
+
+  run_hook "$(edit_payload "$f" "Line two." "The corpus carries 1,105 lines.")"
+
+  assert_blocked "$f"
+  [[ $stderr == *"[live-count]"* ]]
+}
+
+# The added-lines scope is the count rule's alone: a dash finding anywhere in the
+# reconstructed file still blocks, which is what refuses an edit beside one.
+@test "still reports a dash finding on a line the write does not touch" {
+  use_real_prose_lint
+  f=$(fixture "dotfiles/claude/.claude/rules/x.md" \
+    "$(printf 'A line with an em dash — in it.\nLine two.\n')")
+
+  run_hook "$(edit_payload "$f" "Line two." "Line two, edited.")"
+
+  assert_blocked "$f"
+  [[ $stderr == *"[em-dash]"* ]]
+}
+
+@test "a Write of a new file counts every line as added" {
+  use_real_prose_lint
+  f=$(unwritten "projet/.claude/DESIGN-X.md")
+
+  run_write "$f" "$(printf 'Line one.\nThe suite has 42 tests.\n')"
+
+  assert_blocked "$f"
+  [[ $stderr == *"[live-count]"* ]]
+}
+
+@test "no block and no empty message when every finding is filtered out" {
+  use_real_prose_lint
+  f=$(fixture "projet/.claude/DESIGN-X.md" \
+    "$(printf 'An em dash — here.\nThe suite has 42 tests.\nLine three.\n')")
+
+  run_hook "$(edit_payload "$f" "Line three." "Line three, edited.")"
+
+  assert_passed
 }
 
 # ─── the temp mirror ────────────────────────────────────────────────────────

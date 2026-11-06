@@ -123,7 +123,7 @@ Read on 2026-10-10: fourteen hooks across seven events (`SessionStart`, `UserPro
 A candidate claiming a `PreToolUse` deny posture, as gortex does to refuse file reads its graph would serve, collides with the occupied events rather than adding to them.
 
 Permanent MCP tool surface, when the candidate ships a server: every tool description is loaded in every session for the life of the install.
-The local reference point is `litrev-mcp`, whose sixteen tools carry 15,975 characters of docstrings.
+The local reference point is `litrev-mcp`, whose sixteen tools carry 15,975 characters of docstrings. <!-- prose-lint:ignore -->
 
 Then ask what reverts.
 Gortex has a project-level `clean` and no machine-level uninstall, which is a cost paid at install time and not recoverable later.

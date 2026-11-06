@@ -253,7 +253,7 @@ _fixture() {
   [[ "$output" != *"skipping"* ]]
 }
 
-@test ".claude/memory file: skipped despite em dash, exit 0" {
+@test ".claude/memory file: em dash unflagged, exit 0" {
   local dir f
   dir="${BATS_TEST_TMPDIR}/.claude/memory"
   mkdir -p "$dir"
@@ -261,7 +261,7 @@ _fixture() {
   printf '%s' "This memory has an em dash — and stays unflagged." >"$f"
   run "$SCRIPT" "$f"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skipping"* ]]
+  [[ "$output" != *"[em-dash]"* ]]
 }
 
 @test ".claude non-memory file: still checked, em dash flagged, exit 1" {
@@ -275,7 +275,7 @@ _fixture() {
   [[ "$output" == *"[em-dash]"* ]]
 }
 
-@test "working/backlog basenames: skipped despite em dash, exit 0" {
+@test "working/backlog basenames: em dash unflagged, exit 0" {
   local name f
   for name in PLAN.md DEFERRED.md CONTEXT.md MEMORY.md TODO.md CALENDRIER.md; do
     f=$(_fixture "$name" "Has an em dash — and stays unflagged.")
@@ -284,8 +284,145 @@ _fixture() {
       echo "expected exit 0 for $name, got $status" >&2
       return 1
     }
+    [[ "$output" != *"[em-dash]"* ]] || {
+      echo "expected no em-dash flag for $name" >&2
+      return 1
+    }
+  done
+}
+
+@test "the user's scratchpads are in no rule's scope: skipped whole, exit 0" {
+  local name f
+  for name in TODO.md CALENDRIER.md; do
+    f=$(_fixture "$name" "The repository has 42 tests and an em dash — too.")
+    run "$SCRIPT" "$f"
+    [ "$status" -eq 0 ] || {
+      echo "expected exit 0 for $name, got $status" >&2
+      return 1
+    }
     [[ "$output" == *"skipping"* ]] || {
       echo "expected skip message for $name" >&2
+      return 1
+    }
+  done
+}
+
+# ─── [live-count] ───────────────────────────────────────────────────────────
+
+@test "live count in a .claude note: flagged, exit 1" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  printf '%s' "The suite has 42 tests." >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[live-count]"* ]]
+}
+
+@test "live count in every other agent-facing shape: flagged, exit 1" {
+  local rel f
+  for rel in .claude/memory/mem.md _meta/notes/x-reco.md CLAUDE.md AGENTS.md \
+    PLAN.md DEFERRED.md CONTEXT.md MEMORY.md; do
+    mkdir -p "${BATS_TEST_TMPDIR}/$(dirname "$rel")"
+    f="${BATS_TEST_TMPDIR}/${rel}"
+    printf '%s' "The corpus carries 1,105 lines." >"$f"
+    run "$SCRIPT" "$f"
+    [ "$status" -eq 1 ] || {
+      echo "expected exit 1 for $rel, got $status" >&2
+      return 1
+    }
+    [[ "$output" == *"[live-count]"* ]] || {
+      echo "expected a live-count flag for $rel" >&2
+      return 1
+    }
+  done
+}
+
+@test "live count in user-facing prose: not in scope, exit 0" {
+  local f
+  f=$(_fixture README.md "The repository has 42 tests.")
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+}
+
+@test "an ISO date on the line exempts the count: exit 0" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  printf '%s' "Measured 2026-11-06: the suite has 42 tests." >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "the ignore marker exempts the count: exit 0" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  printf '%s' "The suite has 42 tests. <!-- prose-lint:ignore -->" >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "shapes outside the pattern: exit 0" {
+  local dir f line
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  for line in "The suite had 42 tests." \
+    "The suite was 42 tests." \
+    "The suite has 42 patients." \
+    "The suite has about 42 tests." \
+    "The suite is at 42 tests." \
+    "The suite has forty-two tests." \
+    "30 files, 786 tests." \
+    "The suite has 42 \`tests\`."; do
+    printf '%s' "$line" >"$f"
+    run "$SCRIPT" "$f"
+    [ "$status" -eq 0 ] || {
+      echo "expected exit 0 on: $line" >&2
+      return 1
+    }
+  done
+}
+
+@test "a count in a fenced block or in display math: exit 0" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  printf '%s\n' '```' 'The suite has 42 tests.' '```' '$$' 'x has 42 lines' '$$' >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 0 ]
+}
+
+@test "a count in a table row or a header: flagged, exit 1" {
+  local dir f
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  printf '%s\n' '| the suite has 42 tests | x |' >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[live-count]"* ]]
+  printf '%s\n' '## The suite has 42 tests' >"$f"
+  run "$SCRIPT" "$f"
+  [ "$status" -eq 1 ]
+}
+
+@test "a thousands separator in the number: flagged, exit 1" {
+  local dir f sep
+  dir="${BATS_TEST_TMPDIR}/.claude"
+  mkdir -p "$dir"
+  f="${dir}/DESIGN-X.md"
+  for sep in "251,906" "251.906" "251 906" $'251\302\240906'; do
+    printf '%s' "The plan is $sep bytes." >"$f"
+    run "$SCRIPT" "$f"
+    [ "$status" -eq 1 ] || {
+      echo "expected exit 1 on separator: $sep" >&2
       return 1
     }
   done
