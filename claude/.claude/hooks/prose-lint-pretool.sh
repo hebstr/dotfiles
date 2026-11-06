@@ -45,7 +45,7 @@ import difflib, json, os, sys
 
 ti = json.loads(os.environ["HOOK_INPUT"]).get("tool_input", {})
 try:
-    before = open(sys.argv[1]).read()
+    before = open(sys.argv[1], encoding="utf-8", errors="surrogateescape").read()
 except OSError:
     before = None
 if ti.get("content") is not None:
@@ -55,7 +55,7 @@ else:
     if old is None or new is None or before is None:
         raise SystemExit(3)
     after = before.replace(old, new) if ti.get("replace_all") else before.replace(old, new, 1)
-with open(sys.argv[2], "w") as fh:
+with open(sys.argv[2], "w", encoding="utf-8", errors="surrogateescape") as fh:
     fh.write(after)
 added = []
 for tag, _, _, j1, j2 in difflib.SequenceMatcher(

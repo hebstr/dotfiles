@@ -475,6 +475,31 @@ assert_blocked() {
   [ "$(cat "$CAPTURE_DIR/content")" = "clean prose on disk." ]
 }
 
+# A byte no UTF-8 decoder accepts used to raise UnicodeDecodeError past the
+# `except OSError` guard, under this machine's own UTF-8 locale and with no
+# environment variable set: Python exited 1, the command substitution fell back,
+# and the edit proceeded unlinted with a traceback. Both rule families are
+# checked because the read and the write each carry the errors= keyword.
+@test "lints a file carrying a byte that is not valid UTF-8" {
+  use_real_prose_lint
+  f=$(fixture "projet/.claude/DESIGN-X.md" \
+    "$(printf 'Line one.\nCaf\xe9 latin-1 byte here.\nLine two.\n')")
+
+  run_hook "$(edit_payload "$f" "Line two." "The suite has 42 tests.")"
+
+  assert_blocked "$f"
+  [[ $stderr == *"[live-count]"* ]]
+  [[ $stderr != *UnicodeDecodeError* ]]
+
+  g=$(fixture "projet/README.md" \
+    "$(printf 'Line one.\nCaf\xe9 latin-1 byte here.\nLine two.\n')")
+
+  run_hook "$(edit_payload "$g" "Line two." "A rhetorical — dash.")"
+
+  assert_blocked "$g"
+  [[ $stderr == *"[em-dash]"* ]]
+}
+
 @test "no-ops on an Edit of a file that is not on disk" {
   f=$(unwritten "ghost.md")
 
