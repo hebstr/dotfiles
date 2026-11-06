@@ -46,6 +46,7 @@ Editing a launch-loaded `CLAUDE.md` mid-session does not apply until `/clear`, `
 Editing a not-yet-loaded nested file or path-scoped rule does apply.
 
 Published ceilings: 200 lines per `CLAUDE.md` with a startup and `/status` warning, a combined-file limit whose value is not published, 4 MiB hard skip, 40 000 characters per on-demand file on a 200K window, 200 lines or 25 KB for `MEMORY.md`, 500 lines for a `SKILL.md`.
+**The 40 000 figure is scoped too widely here, corrected on 2026-11-06 by the `/design` this note feeds.** It governs path-scoped rules, a subdirectory `CLAUDE.md` or `CLAUDE.local.md`, and their `@path` imports, and not a file read with the Read tool. So it binds every file of `claude/.claude/rules/` and binds no `PLAN.md`, which is where the design had to take a different anchor. Detail in `~/dotfiles/.claude/DESIGN-INSTRUCTION-ROUTING.md`, under the open points of its section "The hook owns `claude-files.md`, a write-time cap replaces dropping the `PLAN.md` mandate, and the shape ban narrows to the copula form".
 The skill listing budget is 1% of the context window, and over it Claude Code drops descriptions starting with the least-invoked skills.
 
 `InstructionsLoaded` is observability only and cannot act.
