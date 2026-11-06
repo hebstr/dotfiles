@@ -374,6 +374,15 @@ Deux décisions prises le 2026-11-06, à la suite du walkthrough du script.
 Le conseil `npm ci` est désormais émis par `report_drift` sur tout chemin qui rend la main sans réifier l'arbre, le hold-back intégral inclus, là où sa garde ne couvrait que « rien de périmé » et `--check` : l'invariant visé a toujours été « les chemins qui retournent sans toucher à l'arbre », et le hold-back en est un.
 L'appel au registre de `latest_version` porte `--connect-timeout 10 --max-time 120 --retry 2`, la forme maison de `rv-update` et `devtools-update`, sans quoi un registre qui traîne suspend aussi le `sys-update` qui appelle le module.
 
+Le conseil que `report_drift` imprime a pourtant été mort deux jours, trouvé le 2026-11-06 en vérifiant si `--ignore-scripts` casserait le gate : `npm ci` refusait le couple commité sur `EUSAGE`, les trois paquets épinglés manquant du lockfile.
+Ses 127 clés `packages` étaient des chemins sortant du projet, `../../../dotfiles/css/.local/share/css-gate/node_modules/...`, et une seule origine, `a58299a`, le retour en arrière à la main du 2026-11-04 ; les huit lockfiles antérieurs sont sains, `1cbda89` du même jour inclus, donc aucun install passé par le script n'a produit cette forme et le lien stow de `GATE_DIR` est hors de cause, un `cd` logique sur un lien reproduit écrivant des clés correctes.
+Mesuré sur copies : n'importe quel install répare la désynchronisation et fait repasser `npm ci`, mais reporte les clés telles quelles, donc seule une régénération à vide les nettoie.
+Faite le 2026-11-06, lockfile supprimé puis `npm install` depuis le chemin physique : 0 clé fuyante sur 127, les trois pins résolus sur les versions commitées, `npm ci --dry-run` en 0, et `prettier` 3.9.10 comme `stylelint` 17.16.0 répondent depuis `node_modules/.bin`.
+
+Écarté le même jour, `--ignore-scripts` sur les deux appels npm : zéro `preinstall`, `install` ou `postinstall` dans les 134 manifestes de l'arbre, les 14 occurrences étant des `prepare` que npm n'exécute pas pour une dépendance du registre.
+Posé dans le script seul il est défait au prochain `npm ci`, et posé aussi sur celui-là il impose une contrainte permanente à trois paquets JS pur qui n'en ont jamais eu besoin, pour fermer une fenêtre sur une release compromise hypothétique.
+À réouvrir sur un `postinstall` mesuré atterrissant dans l'arbre du gate.
+
 D'où le parti retenu : un ensemble que npm refuse sous ce drapeau est un bump retenu, l'épinglage ne bouge pas et la sortie reste 0.
 Le module de `sys-update` reste vert pendant que l'upstream rattrape, et la ligne `↑` continue d'afficher le bump en attente à chaque run, donc rien ne se perd en silence.
 Un échec npm d'une autre nature reste une erreur dure, trace relayée.
