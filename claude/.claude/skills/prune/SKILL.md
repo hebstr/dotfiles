@@ -61,7 +61,7 @@ An estimate carries no direction: the campaign's passes undershot at 40 % of the
 
 Three holders an inventory read file by file cannot see, each of which has inverted a verdict:
 
-- a memory recalled by its description, which is routinely the completer copy and which no file-by-file read opens;
+- a memory found through its index line, which is routinely the completer copy and which no file-by-file read opens;
 - a rules file with a `paths:` front matter, the strongest holder there is, which has emptied three steps of one note at once;
 - a ruling held in another row, which protected a third of one file the inventory had read as cuttable.
 
@@ -135,7 +135,7 @@ Propose, with the holder named, and let the user decide:
 A holder is read to the end and never credited: of four holders one note credited, three had drifted and the fourth had moved to a stronger file, and of three passages claiming nothing else held them, two were false.
 
 A verified fact with no other holder is moved rather than kept, and the check is one command.
-Its destination is a memory recalled by its description, which beats a plan only the verifier reads, or the file whose subject it is, written in that file's language.
+Its destination is a memory found through its index line, which beats a plan only the verifier reads, or the file whose subject it is, written in that file's language.
 The global baseline governs that write; this skill adds nothing to it.
 
 ## 5. Merge and delete last
