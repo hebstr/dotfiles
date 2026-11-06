@@ -11,7 +11,7 @@ setup() {
   export WORK STUB_DIR RULES RUNTIME STATE
 
   mkdir -p "$STUB_DIR" "$RULES" "$RUNTIME" "$STATE"
-  for cmd in cat jq awk grep date mkdir wc; do
+  for cmd in cat jq awk grep date mkdir wc python3; do
     ln -sf "$(command -v "$cmd")" "$STUB_DIR/$cmd"
   done
   for name in pdf docx secrets showboat install chromium agents memory claude-files; do
@@ -37,6 +37,22 @@ read_call() {
 
 bash_call() {
   jq -nc --arg c "$1" '{session_id: "s1", tool_name: "Bash", tool_input: {command: $c}}'
+}
+
+edit_call() {
+  jq -nc --arg f "$1" --arg o "$2" --arg n "$3" \
+    '{session_id: "s1", tool_name: "Edit", tool_input: {file_path: $f, old_string: $o, new_string: $n}}'
+}
+
+write_call() {
+  jq -nc --arg f "$1" --arg c "$2" \
+    '{session_id: "s1", tool_name: "Write", tool_input: {file_path: $f, content: $c}}'
+}
+
+# Writes exactly $2 bytes, so a test states the size the cap compares against.
+mk_plan() {
+  mkdir -p "$(dirname "$1")"
+  head -c "$2" /dev/zero | tr '\0' x >"$1"
 }
 
 field() {
@@ -254,6 +270,59 @@ field() {
   run_hook "$(read_call Write "$STORE/feedback_new.md")"
   [ -z "$(field permissionDecision)" ]
   [[ $(field additionalContext) == *BODY-memory* ]]
+}
+
+@test "denies a write that grows an over-cap plan file, at both path shapes" {
+  for p in project/.claude/PLAN.md project/PLAN.md; do
+    mk_plan "$WORK/$p" 20001
+    rm -f "$RUNTIME"/claude-code-rules-*
+    run_hook "$(edit_call "$WORK/$p" x xx)"
+    [ "$(field permissionDecision)" = deny ] || {
+      echo "not denied: $p"
+      return 1
+    }
+    [[ $(field permissionDecisionReason) == *"at 20001 bytes, over the 20000-byte ceiling"* ]] || {
+      echo "reason misses the sizes: $(field permissionDecisionReason)"
+      return 1
+    }
+    [[ $(field permissionDecisionReason) == *"current intent"* ]]
+  done
+  rm -f "$RUNTIME"/claude-code-rules-*
+  run_hook "$(write_call "$WORK/project/PLAN.md" "$(head -c 20002 /dev/zero | tr '\0' x)")"
+  [ "$(field permissionDecision)" = deny ]
+}
+
+@test "lets a write that shrinks an over-cap plan file through" {
+  mk_plan "$WORK/project/.claude/PLAN.md" 20001
+  run_hook "$(edit_call "$WORK/project/.claude/PLAN.md" xx x)"
+  [ -z "$(field permissionDecision)" ]
+  [[ $(field additionalContext) == *BODY-claude-files* ]]
+  rm -f "$RUNTIME"/claude-code-rules-*
+  run_hook "$(write_call "$WORK/project/.claude/PLAN.md" short)"
+  [ -z "$(field permissionDecision)" ]
+}
+
+@test "lets a growing write to a plan under the cap through" {
+  mk_plan "$WORK/project/.claude/PLAN.md" 19999
+  run_hook "$(edit_call "$WORK/project/.claude/PLAN.md" x xx)"
+  [ -z "$(field permissionDecision)" ]
+  [[ $(field additionalContext) == *BODY-claude-files* ]]
+}
+
+@test "fails open on an over-cap plan when python3 is absent" {
+  mk_plan "$WORK/project/.claude/PLAN.md" 20001
+  rm -f "$STUB_DIR/python3"
+  run_hook "$(edit_call "$WORK/project/.claude/PLAN.md" x xx)"
+  [ "$status" -eq 0 ]
+  [ -z "$(field permissionDecision)" ]
+  [[ $(field additionalContext) == *BODY-claude-files* ]]
+}
+
+@test "leaves a PLAN-<TOPIC>.md untouched over the cap" {
+  mk_plan "$WORK/dotfiles/.claude/PLAN-SESSION-DISCIPLINE.md" 20001
+  run_hook "$(edit_call "$WORK/dotfiles/.claude/PLAN-SESSION-DISCIPLINE.md" x xx)"
+  [ -z "$(field permissionDecision)" ]
+  [[ $(field additionalContext) == *BODY-claude-files* ]]
 }
 
 @test "injects claude-files.md on a write to a file meant for Claude" {

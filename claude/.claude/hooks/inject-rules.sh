@@ -16,6 +16,7 @@ marker="${XDG_RUNTIME_DIR:-/tmp}/claude-code-rules-${session}${agent:+-$agent}"
 log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-code"
 cap=9500
 index_line_cap=160
+plan_cap=20000
 
 decision=""
 reason=""
@@ -90,6 +91,26 @@ is_secret_path() {
   return 1
 }
 
+post_edit_bytes() {
+  HOOK_INPUT=$payload python3 - "$1" 2>/dev/null <<'PY'
+import json, os, sys
+
+ti = json.loads(os.environ["HOOK_INPUT"]).get("tool_input", {})
+if ti.get("content") is not None:
+    print(len(ti["content"].encode()))
+    raise SystemExit(0)
+old, new = ti.get("old_string"), ti.get("new_string")
+if old is None or new is None:
+    raise SystemExit(3)
+try:
+    text = open(sys.argv[1]).read()
+except OSError:
+    raise SystemExit(3)
+text = text.replace(old, new) if ti.get("replace_all") else text.replace(old, new, 1)
+print(len(text.encode()))
+PY
+}
+
 secret_hit=""
 case $tool in
 Read | Edit | Write | MultiEdit | NotebookEdit)
@@ -151,6 +172,14 @@ Edit | Write | MultiEdit)
     index=$HOME/dotfiles/claude/.claude/memory/MEMORY.md
     if [[ ! -e $file && $file != "$index" && -r $index ]] && lines=$(wc -l <"$index") && ((lines > index_line_cap)); then
       decide deny "The memory index is at $lines lines, over the $index_line_cap-line ceiling that keeps it clear of the harness's own compaction nudge: add no entry until it is pruned. Apply the admission test of $rules_dir/memory.md first, since a mechanism whose firing already produces the behaviour needs no note, then prune MEMORY.md and the files it indexes, or edit an existing memory instead of adding one."
+    fi
+    ;;
+  esac
+  case $file in
+  */.claude/PLAN.md | */PLAN.md)
+    if [[ -f $file ]] && plan_bytes=$(wc -c <"$file" 2>/dev/null) && ((plan_bytes > plan_cap)) &&
+      new_bytes=$(post_edit_bytes "$file") && ((new_bytes > plan_bytes)); then
+      decide deny "$file is at $plan_bytes bytes, over the $plan_cap-byte ceiling: a write that takes it further over is refused, and one that cuts it back passes. Past about 5,000 tokens a file comes back from a compaction as a path reference with no content, so the compact instruction of inject-project-context.sh then pays a full re-read of the plan for the rest of the session. The plan holds the current intent alone, and the record of what happened belongs to the design note beside it, to the commit message and to git blame; bringing it under the ceiling is a prune pass the user runs."
     fi
     ;;
   esac
