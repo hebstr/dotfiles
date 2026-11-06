@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Use before proposing any commit, whether the user asked for one or not, and before writing any `git commit`. Also use to close a session: invoke it yourself as soon as every task of the session is done, without sending the user to `/commit` or asking whether to run it. Also use when a Stop hook (`commit-gate.sh`, `ending-gate.sh`) asks for it.
+description: 'Use before proposing any commit, whether the user asked for one or not, and before writing any `git commit`. Also use to close a session: invoke it yourself as soon as every task of the session is done, without sending the user to `/commit` or asking whether to run it. Also use when a Stop hook (`commit-gate.sh`, `ending-gate.sh`) asks for it.'
 ---
 
 # Proposing a commit
