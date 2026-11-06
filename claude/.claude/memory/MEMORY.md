@@ -89,13 +89,13 @@
 - reference_panache_citation_diagnostics.md: panache reads `bibliography:` from the document's folder, not via `resource-path`
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
-- reference_quarto_r_env_var.md: `QUARTO_R`/`QUARTO_PYTHON` injected by the Positron extension: stale values, their two failure modes
+- reference_quarto_r_env_var.md: `QUARTO_R`/`QUARTO_PYTHON` from the Positron extension: stale values, two failure modes
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
 - reference_bash_tool_pitfalls.md: Traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh|head`, `gh watch`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
 - reference_streamlit_config_cwd.md: `.streamlit/config.toml` is read from the launch dir only; a subdir copy is dead
 - reference_edstr_extract_chunk_budget.md: Chunk sizing: characters, not docs; columns the lever; soft bound; edstr owns it
-- reference_collab_comments_highlight_color.md: Upstream installed and hand-patched, the fork's theme keys deferred; the two rgba values
+- reference_collab_comments_highlight_color.md: Upstream hand-patched, the fork's theme keys deferred; the two rgba values
 
 ## Feedback
 - feedback_verify_gt_output_on_render.md: Check gt and gtsummary formatting on the rendered artifact, never `table_styling`
@@ -115,7 +115,7 @@
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French statistical reports and md-nesrine's render journal
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
-- feedback_review_severity_hebstr_doc.md: Reviews of quarto-hebstr-doc (shortcodes, docx, threading, rebuild recipe, assertion probes)
+- feedback_review_severity_hebstr_doc.md: Reviews of quarto-hebstr-doc: shortcodes, docx, threading, rebuild, assertion probes
 - feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING
 - feedback_bats_comment_carve_out.md: Why the bats comment debt is won't-fix; don't re-measure the 41 suites
 - feedback_review_severity_bats_tests.md: Calibrating reviews of bats tests for personal shell tooling; measure a remedy first
