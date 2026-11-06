@@ -1,14 +1,11 @@
 ---
 paths:
-  - "**/.claude/**/*.md"
-  - "**/CLAUDE.md"
-  - "**/AGENTS.md"
-  - "**/_meta/notes/*.md"
+  - "**/.claude/rules/claude-files.md"
 ---
 
 # Files written for Claude
 
-Loaded when Claude reads a file meant for Claude or another agent (`CLAUDE.md`, `AGENTS.md`, rules, skills, memory, the `.claude/` notes: plans, design notes, handoffs, `DEFERRED.md`, and the decision notes of `_meta/notes/`), and injected by `inject-rules.sh` on the session's first write to one.
+Injected by `inject-rules.sh` on the session's first write to a file meant for Claude or another agent (`CLAUDE.md`, `AGENTS.md`, rules, skills, memory, the `.claude/` notes: plans, design notes, handoffs, `DEFERRED.md`, and the decision notes of `_meta/notes/`).
 
 ## Language
 
