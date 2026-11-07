@@ -19,6 +19,8 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 
 Verified on 2026-11-04: `/health` returns `ok`, a tool call completes with `finish_reason` set to `tool_calls`, a plain reply carries no reasoning, sleep and wake work with a 60 s idle trial, and `opencode run "Reply exactly: ok"` returns `ok` through the service.
 Verified on 2026-11-06 with the script: `/health` returns `ok` on the test port 8091, a chat completion answers in French, prompt processing runs at about 50 tok/s and generation at about 32 tok/s, GPUs 1 and 2 each hold 17606 MiB while GPU 0 stays with its Q4_K_M instance, and `down` frees both cards.
+**The 50 tok/s is not a prefill throughput figure and must not be cited as one**, established 2026-11-07 in `cpd-inference-engine-reco.md`: it comes from that one short French chat completion on a freshly started server, so it measures per-request overhead and any PTX JIT rather than prompt processing at depth, and it sits about an order of magnitude below every published sm_75 figure for this model.
+Nothing in this repository measures prefill, so the baseline has still to be taken.
 
 ## Where the machine-specific keys live
 
@@ -123,6 +125,7 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
 
 - b9286 logs `--cache-idle-slots requires --kv-unified, disabling`.
   The trial still verified sleep and wake, so the flag is left out; add `--kv-unified` only if keeping the prompt cache across idle periods matters.
-- The binary and its shared libraries belong to another user under `/data2`; removing or rebuilding that tree breaks the server. `git/.gitconfig` carries `[safe] directory = /data2/llama_cpp_bin/llama.cpp` (added 2026-11-05) so git accepts the foreign-owned tree without a dubious-ownership refusal.
+- The binary and its shared libraries belong to another user under `/data2`; removing or rebuilding that tree breaks the server.
+  `git/.gitconfig` carries `[safe] directory = /data2/llama_cpp_bin/llama.cpp` (added 2026-11-05) so git accepts the foreign-owned tree without a dubious-ownership refusal.
 - b9286 does not accept the short forms `--sm` and `--ctk`; the script uses `--split-mode` and would use `--cache-type-k` if KV quantization ever becomes possible, which it is not while flash attention is forced by the tensor split.
 - The first `up` needs network access to the Hub for the Q6_K_M download; later starts read the cache directly.
