@@ -21,6 +21,12 @@ Consequence for a repo with no `_quarto.yml`: every `.qmd` using a custom format
 
 The render-gate objection to the first route is measured wrong, 2026-10-04 in eds-prise, which gained a `_quarto.yml` that day: `quarto render` alone renders what `render:` names and nothing else, and a document left out of that list keeps its own command, comes out beside itself and takes no `output-dir`. A dot-directory stays outside the project either way, so a `.qmd` under `.claude/` still fails to resolve the extension, measured there the same day.
 
+**The walk-up stops at the project root, and a symlinked `_extensions` is followed.** Measured 2026-11-07 on Quarto 1.11.9, weighing a documentation site under `docs/` in quarto-hebstr-doc:
+
+- a project whose root is a subdirectory (`docs/_quarto.yml`) does **not** see an `_extensions` at the repository root above it, failing with the same `ERROR: Unable to read the extension '<name>'`;
+- `docs/_extensions` as a symbolic link to `../_extensions` resolves the custom format, the extension's shortcodes and, under `embed-resources: false`, every asset its stylesheets name, each landing under `site_libs/quarto-contrib/quarto-project/<name>/`;
+- the other route is a `_quarto.yml` at the repository root with `render:` naming the subdirectory, which also generates an `index.html` redirect at the output root when no root page is rendered.
+
 The error names the extension, not the path, so it reads as a missing install rather than a resolution failure. Check the input file's directory before reinstalling anything.
 
 Related: [[project_quarto_custom_crossref_float]], [[project_qmd_format_hook]].

@@ -11,7 +11,7 @@
 - project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
 - project_quarto_custom_crossref_float.md: hebstr-doc's `anx` crossref type: annex labels, caption keys, the redeclaration trap
-- project_quarto_extensions_need_project_root.md: Without a `_quarto.yml`, `_extensions` resolves only beside the input file
+- project_quarto_extensions_need_project_root.md: `_extensions` resolves beside the input or the project root; a symlink works
 - project_qmd_format_hook.md: panache on .qmd/.md: prek gate, excludes, the `smart` and lint-rule toggles, splitter defects
 - project_shellharden_dotfiles_normalized.md: dotfiles `$VAR` style is shellharden output: never revert or flag it
 - project_litrev_plugin_status.md: litrev paused 2026-10-26 and what serves instead; stays out of hebstr (2026-04-26)
@@ -70,7 +70,7 @@
 - reference_hebstr_outdec_locale_flag.md: OutDec as hebstr's locale flag breaks numeric round-trips and CSS units; sprintf()
 - reference_hebstr_theme_bar_facets.md: hebstr `theme_bar(grid = FALSE)` blanks `strip.text`; the 3-colour palette on 5 categories
 - reference_gtsummary_notes_and_labels.md: gtsummary: `add_variable_group_header()` last, `easy_label()` coerces logicals
-- reference_quarto_lua_shortcodes.md: Quarto Lua traps: empty Inlines, YAML scalars, pipes, embedding, casts, layout keys
+- reference_quarto_lua_shortcodes.md: Quarto shortcode traps: empty Inlines, YAML scalars, embedding, layout, escapes
 - reference_quarto_meta_shortcode_typst.md: `{{< meta >}}` in a `{=typst}` block: no arrays, a missing key prints into the PDF
 - reference_word_embedded_fonts_blocked.md: Recipients' Word refuses embedded fonts; design around the fallback list
 - reference_xlsx_surgical_edit.md: Hand-styled .xlsx: sharedStrings surgery to change a cell, openxlsx2 to append a sheet
