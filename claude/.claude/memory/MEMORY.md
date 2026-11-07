@@ -6,9 +6,7 @@
 
 ## Project
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
-- project_ju_tp2_receiveonly.md: ju-TP2 (WSL) never writes to `~/dotfiles` or `~/.claude`: Syncthing receive-only
-- project_ju_tp2_gpu_smoke_test.md: ju-TP2 carries an RTX A3000 12 GB and llama.cpp: dev and smoke test only
-- project_syncthing_ju_tp2_link.md: Syncthing ju-TP/ju-TP2: the Hyper-V inbound rule and the restart that fixed it
+- project_ju_tp2_receiveonly.md: ju-TP2: receive-only trees, the GPU smoke-test role, the Syncthing link fix
 - project_claude_dir_local_only_repo.md: a project's `.claude` in a nested remote-less repo, local to ju-TP (2026-09-30)
 - project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
@@ -90,6 +88,7 @@
 - reference_quarto_doc_crossref_overrides_format.md: A document-level `crossref:` drops the format's keys; nest it inside
 - reference_pandoc_smart_abbreviations_nbsp.md: Pandoc `smart` puts U+00A0 after "et al."; an empty `abbreviations:` file stops it
 - reference_quarto_r_env_var.md: `QUARTO_R`/`QUARTO_PYTHON` from the Positron extension: stale values, two failure modes
+- reference_revealjs_pdf_export.md: revealjs PDF is a browser print: `E`, the `@page` formula, the post-render recipe
 - reference_shfmt_ast_divergences.md: shfmt 3.8.0 `--to-json` joins the line after a backslash comment; what its tree leaves raw
 - reference_bash_tool_pitfalls.md: Traps: bfs `find`, `pkill -f`, `rg -h`, `pgrep -q`, `wc` order, sudo, `ssh|head`, `gh watch`
 - reference_fs_path_null_collapse.md: `fs::path()` with a NULL argument returns character(0); use `fs::path_join()`
