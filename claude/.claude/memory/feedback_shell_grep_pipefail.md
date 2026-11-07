@@ -1,6 +1,6 @@
 ---
 name: "Shell failure propagation under set -Eeuo pipefail: what crashes and what is swallowed"
-description: "Failure shapes under set -Eeuo pipefail: grep as a mid-pipeline filter crashes the script, while a process substitution or the left operand of an && list swallows the failure and reports success; plus a filter whose exit status answers 'did I run' and not 'did I find something' (jq -e conflating absent-key with unparseable, jq -r letting a literal null through)"
+description: "Failure shapes under set -Eeuo pipefail: grep as a mid-pipeline filter crashes the script, while a process substitution or the left operand of an && list swallows the failure and reports success; plus a filter whose exit status answers 'did I run' and not 'did I find something' (jq -e conflating absent-key with unparseable, jq -r letting a literal null through), and $? read after a command substitution in the same command, which reports the substitution's status and turns a gate sweep into a false pass"
 metadata:
   type: feedback
 ---
@@ -91,5 +91,18 @@ Branch on the validity probe, never on the numeric code: `jq`'s manual documents
 The mirror of this is a *zero* status that means "nothing there": `jq -r '.a.b'` prints the four characters `null` and exits 0 when the key is missing, so a downstream `[ "$v" != "" ]` guard passes and the word reaches whatever the value feeds. `jq -er` closes it by turning the null into exit 1, which an existing `|| v=""` fallback already handles. The general rule covers both directions: a filter's exit status answers "did I run", never "did I find something", so any guard that treats the two as the same question has a hole.
 
 Both shapes and the tests that pinned them left the repository on 2026-10-08 with the Ouroboros uninstall, so no live example remains.
+
+## A fourth shape: `$?` read after a command substitution in the same command
+
+`$?` holds the status of the last command to finish, and a command substitution inside the very command that reads it counts. So a loop reporting a tool's exit code through `printf '%s exit=%s' "$(basename "$f")" "$?"` reports `basename`'s status, which is always 0, and every file passes. Measured 2026-11-07 on bash 5.2.21:
+
+```bash
+false; printf 'file=%s exit=%s\n' "$(basename /a/b)" "$?"            # file=b exit=0, wrong
+false; rc=$?; printf 'file=%s exit=%s\n' "$(basename /a/b)" "$rc"    # file=b exit=1, right
+```
+
+Capture into a variable on its own line, immediately after the command, and read the variable. This bit a `panache format --check` sweep whose every line read `exit=0` while the real statuses were mixed, and that false pass was then written into a memory note as a measured fact about panache's cache, which it was not. The direction of the error is the dangerous one: a gate declared green that never ran. The same shape hides a non-zero status behind any `$(...)`, `"$(wc -l <"$f")"` included, so it is not specific to `basename`.
+
+A sibling of it, from the same session: an env var whose value the tool rejects makes the whole invocation a usage error rather than a run with the flag off. `PANACHE_NO_CACHE=1` exits 2 with `invalid value '1' for '--no-cache' [possible values: true, false]`, so the boolean env vars of a clap-based CLI take `true` and `false`, never `1`. Combined with the `$?` shape above, a sweep can report success from a tool that never examined a single file.
 
 When auditing a new shell script, run: `rg -n 'grep[^|]*\|' script | grep -Ev '\|\| (true|echo|\{)'` to surface candidates. The `-E` is load-bearing: in basic syntax `|` and `(` are literal and the filter removes nothing.

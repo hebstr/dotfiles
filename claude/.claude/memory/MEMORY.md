@@ -58,7 +58,7 @@
 - reference_git_askpass_positron.md: Positron's GIT_ASKPASS sends an empty Basic auth: "Access denied" instead of a prompt
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc: the plan, and why it is dormant since 2026-09-08
-- reference_llama_server_gpu_serving.md: llama-server multi-GPU: flags that OOM, greedy PR 9897, thinking, SWA, `--hf-repo` cache
+- reference_llama_server_gpu_serving.md: llama-server: OOM flags, split-mode, KV quant pairs, greedy, thinking, SWA, `--hf-repo`
 - reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
@@ -139,7 +139,7 @@
 - feedback_french_prose.md: Authorities, anglicisms, typography, straight quotes in eds-prise, EN/FR only, inclusive writing
 - feedback_fr_to_en_translation.md: Claude-facing content into English: migration keeps fidelity, a Claude draft is re-authored
 - feedback_verify_after_install.md: Smoke-test a new tool, hook or integration end-to-end before calling it done
-- feedback_shell_grep_pipefail.md: Shapes that fail or lie under `set -Eeuo pipefail` (mid-pipeline grep, `&&` lists, `jq -e`)
+- feedback_shell_grep_pipefail.md: Shapes that fail or lie under `set -Eeuo pipefail` (mid-pipe grep, `&&` lists, `jq -e`, `$?`)
 - feedback_rg_misses_gitignored_trackers.md: Ignored paths vanish from `rg` and `fdfind`: `-u` is not `-uu`, `-H` not `-u`
 - feedback_git_clean_tree_hides_ignored.md: `git status --porcelain` omits ignored files, so a clean-tree guard misses one
 - feedback_line_number_cross_refs.md: Cite by name, not by line number; and when a drifted reference stays as record
