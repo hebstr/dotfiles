@@ -25,6 +25,13 @@ teardown() {
   rm -rf "$WORK" "$OUTSIDE"
 }
 
+# The .claude exemption holds only while the repository ignores those notes,
+# which is what a nested tracking repository implies. A test relying on the
+# exemption declares the ignore rule the convention puts in place.
+ignore_claude() {
+  printf '%s\n' .claude/ >>"${1:-$WORK}/.git/info/exclude"
+}
+
 run_gate() {
   local payload=$1
   # shellcheck disable=SC2016
@@ -262,7 +269,8 @@ staged_change() {
   [[ $output == *"1 file(s) the commit blocks just shown take were never sealed"*"$PROJECT/other.md"* ]]
 }
 
-@test "leaves the repository's .claude directory and the memory directory out of the paths the blocks take" {
+@test "leaves the repository's ignored .claude directory and the memory directory out of the paths the blocks take" {
+  ignore_claude
   mkdir -p "$WORK/.claude"
   printf 'x\n' >"$WORK/.claude/PLAN.md"
   printf 'x\n' >"$FAKE_HOME/.claude/memory/feedback_x.md"
@@ -318,7 +326,8 @@ staged_change() {
   [[ $output == *"1 file(s) outside the tracking files were changed"*"$PROJECT/new.md"* ]]
 }
 
-@test "ignores modified files under .claude and the memory directory" {
+@test "ignores modified files under an ignored .claude and the memory directory" {
+  ignore_claude
   printf 'x\n' >"$PROJECT/.claude/PLAN.md"
   printf 'x\n' >"$FAKE_HOME/.claude/memory/feedback_x.md"
   run_gate "$(payload "$(unfenced_message)")"
@@ -401,10 +410,17 @@ staged_change() {
   [ "$status" -eq 0 ]
 }
 
-@test "ignores writes under the project's .claude directory" {
+@test "ignores writes under the project's ignored .claude directory" {
+  ignore_claude
   write_at 200 "$PROJECT/.claude/PLAN.md"
   run_gate "$(payload "$(unfenced_message)")"
   [ "$status" -eq 0 ]
+}
+
+@test "blocks on a write under a .claude directory the repository does not ignore" {
+  write_at 200 "$PROJECT/.claude/PLAN.md"
+  run_gate "$(payload "$(unfenced_message)")"
+  [ "$status" -eq 2 ]
 }
 
 @test "ignores writes under the resolved memory directory" {
@@ -437,6 +453,7 @@ staged_change() {
 }
 
 @test "prefers CLAUDE_PROJECT_DIR over cwd as the project root" {
+  ignore_claude
   mkdir -p "$PROJECT/sub"
   write_at 200 "$PROJECT/.claude/PLAN.md"
   # shellcheck disable=SC2016
@@ -445,8 +462,9 @@ staged_change() {
   [ "$status" -eq 0 ]
 }
 
-@test "ignores writes under the git root's .claude when the project dir is a subdirectory" {
+@test "ignores writes under the git root's ignored .claude when the project dir is a subdirectory" {
   git init -q "$PROJECT"
+  ignore_claude "$PROJECT"
   mkdir -p "$PROJECT/sub/.claude"
   write_at 200 "$PROJECT/.claude/PLAN.md"
   write_at 201 "$PROJECT/sub/.claude/PLAN.md"

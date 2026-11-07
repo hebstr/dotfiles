@@ -54,6 +54,13 @@ stamp() {
   printf '%s\n' "$1" >"$RUNTIME/claude-code-writes-s1.stamp"
 }
 
+# The .claude exemption holds only while the repository ignores those notes,
+# which is what a nested tracking repository implies. A test relying on the
+# exemption declares the ignore rule the convention puts in place.
+ignore_claude() {
+  printf '%s\n' .claude/ >>"$WORK/.git/info/exclude"
+}
+
 seal_only() {
   local value=$1
   shift
@@ -133,7 +140,8 @@ commit_file() {
   [ "$output" = "changed"$'\t'"$PROJECT/src/a.sh" ]
 }
 
-@test "leaves out the project's .claude directory and the memory directory" {
+@test "leaves out the project's ignored .claude directory and the memory directory" {
+  ignore_claude
   stamp 100
   write_at 200 "$PROJECT/.claude/PLAN.md"
   write_at 200 "$FAKE_HOME/.claude/memory/x.md"
@@ -143,12 +151,22 @@ commit_file() {
   [ -z "$output" ]
 }
 
-@test "leaves out the repository's own .claude directory when the root is a subdirectory of it" {
+@test "leaves out the repository's own ignored .claude directory when the root is a subdirectory of it" {
+  ignore_claude
   stamp 100
   write_at 200 "$WORK/.claude/NOTE.md"
   run_stale
   [ "$status" -eq 0 ]
   [ -z "$output" ]
+}
+
+@test "counts a .claude note the repository does not ignore, the memory directory staying out" {
+  stamp 100
+  write_at 200 "$PROJECT/.claude/PLAN.md"
+  write_at 200 "$FAKE_HOME/.claude/memory/x.md"
+  run_stale
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed	$PROJECT/.claude/PLAN.md" ]
 }
 
 @test "leaves out a journalled path git ignores" {

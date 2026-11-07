@@ -27,6 +27,7 @@ hooks = [
   { id = "check-added-large-files", args = ["--maxkb=500"], exclude = '^agents/' },
   { id = "check-yaml" },
   { id = "check-merge-conflict" },
+  { id = "end-of-file-fixer", files = '^\.claude/' },
 ]
 
 [[repos]]

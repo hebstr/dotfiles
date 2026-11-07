@@ -47,8 +47,10 @@ Read a file from it when a rule below points to it, and not before.
 - Right after showing that block, run it exactly as shown, in one shell call, opening on the single prefix `cd <project> &&` or `cd <project>/.claude &&` that the bullets prescribe (never `git -C`, `bash -c` or any other form).
   The permission prompt is where the user confirms it, and their answer there is the only authorization; a "yes" in the conversation is not one.
   If they refuse, or the call fails (a prek hook rewriting a file included), stop and report; never retry it another way.
-- A project's `.claude/` is a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
-  When the session wrote notes there, add a second block, last, holding `cd <project>/.claude && git add <the notes this session wrote> && git commit -m "<header>"`, the header naming what the pass cut or decided rather than that a file was updated.
+- A project's `.claude/` is usually a repository of its own, ignored by the parent (`~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`).
+  Settle which shape you are in with `git -C <project>/.claude rev-parse --show-toplevel`: it answers `<project>/.claude` when that nested repository exists, and the project root when the parent tracks the notes.
+  `~/dotfiles` is the second shape since 2026-11-07, so its notes are staged in the parent's own block like any other path, and `.claude/DESIGN-SSH.md` and `.claude/DESIGN-GPU-REMOTE.md` stay out of every staging command.
+  In the first shape, when the session wrote notes there, add a second block, last, holding `cd <project>/.claude && git add <the notes this session wrote> && git commit -m "<header>"`, the header naming what the pass cut or decided rather than that a file was updated.
   Never `git add .` or `git add -u` there: it would sweep another session's notes.
   No repository there, or one with no commit yet: say so, and name the first commit as the user's without writing that command anywhere in the response: an import stages notes no session here verified, and since 2026-09-30 no check refuses it.
 - Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.

@@ -7,7 +7,7 @@
 ## Project
 - project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
 - project_ju_tp2_receiveonly.md: ju-TP2: receive-only trees, the GPU smoke-test role, the Syncthing link fix
-- project_claude_dir_local_only_repo.md: a project's `.claude` in a nested remote-less repo, local to ju-TP (2026-09-30)
+- project_claude_dir_local_only_repo.md: `.claude` in a nested remote-less repo; dotfiles excepted, public since 2026-11-07
 - project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
 - project_zotero_agent_access.md: How agents read the Zotero library (skill, local API, no MCP); decided 2026-09-23, don't redo
 - project_quarto_custom_crossref_float.md: hebstr-doc's `anx` crossref type: annex labels, caption keys, the redeclaration trap

@@ -137,8 +137,12 @@ in_work_tree_unignored() {
 }
 
 excluded() {
-  [[ -n $root && $1 == "$root/.claude/"* ]] && return 0
-  [[ -n $top && $1 == "$top/.claude/"* ]] && return 0
+  local base
+  for base in "$root" "$top"; do
+    [[ -n $base && $1 == "$base/.claude/"* ]] || continue
+    git -C "$base" check-ignore -q -- "$1" 2>/dev/null && return 0
+    return 1
+  done
   [[ $1 == "$memory/"* ]]
 }
 

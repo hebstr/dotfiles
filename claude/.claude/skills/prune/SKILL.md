@@ -48,7 +48,8 @@ git -C <repo>/.claude log --format='%h %ad %s' --date=short -5 -- <note>
 A `prune` in a recent subject means the row's cheap half is already gone.
 Cite that commit, say what it took, and ask whether the invocation wants a second pass: the `Next` column of the campaign's own table reads "little left" on twenty of its rows, so a second pass is worth starting and worth starting with a lower expectation.
 
-The project's `.claude/` is a repository of its own, ignored by the parent (`DESIGN-CLAUDE-REPO.md`).
+The project's `.claude/` is a repository of its own, ignored by the parent (`DESIGN-CLAUDE-REPO.md`), except `~/dotfiles` since 2026-11-07, where the parent tracks the notes and the history before the move lives in `~/archive/pro-dotfiles/claude-notes-2026-11-07.bundle` alone.
+`git -C <project>/.claude rev-parse --show-toplevel` tells the two apart: `<project>/.claude` for the nested shape, the project root for the tracked one.
 Where it has none, say so before cutting anything: a deletion is then unrecoverable, and the homing rule of step 4 becomes the only net.
 
 ## 1. Inventory, and the user validates it before any cut
