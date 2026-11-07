@@ -96,13 +96,13 @@ The three verdicts the inventory could not settle alone, and which the user owns
 | PLAN-SQL.md                     |    99 | 2026-10-13, deleted | — |
 | PROMPT-PDF-TABLES-EVAL.md       |    27 | 2026-10-02, deleted | — |
 | CONTINUE-OPENCODE-CPD.md        |     0 | 2026-09-30, deleted | — |
-| pdf-tables-eval/ (6 files)      |  1029 | 2026-09-30, 9262 lines cut, 6 files kept; 2026-10-15, the 16 PDF copies and the 95 page renders deleted, 38.6 MB, neither ever tracked | done: the 6 analysis files are the row |
+| pdf-tables-eval/ (deleted)      |     0 | 2026-09-30, 9262 lines cut, 6 files kept; 2026-10-15, the 16 PDF copies and the 95 page renders deleted, 38.6 MB, neither ever tracked; 2026-11-08, the 6 analysis files deleted whole, 1029 lines | — |
 ```
 
 **A gitignored input is not the measurement, and what decides its fate is recoverability rather than the criterion.** The row above records what left `pdf-tables-eval/` on 2026-10-15, both halves recoverable, the PDFs from `~/Zotero/storage` by their key and the renders from the PDFs.
 The campaign's figures never covered either, counting only lines `git ls-tree` could see.
 
-Four rows were decisions rather than passes: two taken on 2026-09-30, one on 2026-10-02 and one on 2026-10-13.
+Five rows were decisions rather than passes: two taken on 2026-09-30, one on 2026-10-02, one on 2026-10-13 and one on 2026-11-08.
 `CONTINUE-OPENCODE-CPD.md` was an empty file, a handoff consumed and left behind, imported empty in `42fb9ab`: gone, an empty file being no placeholder.
 `PROMPT-PDF-TABLES-EVAL.md` went the same way on 2026-10-02, for the opposite reason: it was a full buffer, and the evidence that it had been consumed on 2026-09-23 is that its own deliverables exist, `pdf-tables-eval/` beside `_meta/notes/pdf-inspector-reco.md` rewritten the same evening and `rules/pdf.md` revised on 2026-09-26.
 A buffer whose chantier closed is never a pass candidate, which is why its 27 lines were never worth a criterion.
@@ -112,11 +112,16 @@ Repointed in the same edit: `feedback_bats_comment_carve_out`, which named this 
 The only other citer was this file's own table.
 `pdf-tables-eval/` kept its 959 lines of analysis (`COMPARAISON.md` and the four `detail-lot-*.md`) and its README, and lost the 9,262 lines of raw `pdf2md` output, sixteen per-article dumps: `_meta/notes/pdf-inspector-reco.md` and `rules/pdf.md` carry the conclusions, so the criterion's "a measurement no better copy holds" did not protect them.
 
+**Those 1,029 lines went whole on 2026-11-08, on the user's decision that nothing would be done with them, and the row is the campaign's one deletion the criterion argued against.** Two readings of the same day had just established the opposite: that the four `detail-lot-*.md` were the only holder of each table's denominator derivation, of the per-lot counting conventions that define what a false cell is, and of the alternative counts under a different convention, none of which `COMPARAISON.md` carried; and that the directory cost no context at all, no hook or `paths:` rule loading it, `rules/pdf.md` citing only the decision note. The recommendation was therefore to keep, twice, and the user overrode it.
+What the fold into `_meta/notes/pdf-inspector-reco.md` saved, as the "regroup or delete" the user offered: the sixteen-article selection table with producer, language and evaluated pages, which is the only thing that makes a reprise possible now that the PDF copies are gone; the counting conventions, with the one divergence between lots that qualifies the aggregate (55 cells of 415 on Schmidt); the per-form breakdown, which is what `rules/pdf.md` rule 6 rests on; the error-type distribution; and the limits.
+What went: the cell-by-cell examples of the 38 tables, each denominator's derivation, and the `-layout` failure mode per table. A reprise can therefore compare aggregates and no longer tables.
+**The lesson the register keeps is about the offer rather than the content: "regroup what matters or delete" is an instruction a note can absorb, and quantifying the loss before writing it is what made the fold defensible rather than a silent downgrade of every figure in `rules/pdf.md`.**
+
 Outside the `.claude/` corpus, on the same day and by the same criterion, the user decided the repository needs no `README.md` and it was deleted: a personal configuration repository has no reader to land on it, and the reproducibility half it carried moved to `_meta/notes/dotfiles-bootstrap.md`, versioned where the `.claude/` copies of those rationales are not.
 No thin README was kept: what remained was either already in `_meta/notes/wsl-init-tuto.md` or now in that note, and the one live `DEFERRED.md` row the README owned, its bootstrap not running on a fresh Ubuntu, is closed by the note pointing at that tutorial for the ordered sequence.
 The consequence is external and accepted: `github.com/hebstr/dotfiles` answers 200 to an unauthenticated API call, so the repository is public and its landing page now shows no README at all.
 
-What makes that cut reversible is git rather than reproducibility, checked the same day: pdf-inspector is at 1.25.2 against the 1.24.0 the eval ran on, so a rerun measures a different tool and `git show 42fb9ab:` is the only way back to those bytes.
+What makes that cut reversible is git rather than reproducibility, checked the same day: pdf-inspector is at 1.25.2 against the 1.24.0 the eval ran on, so a rerun measures a different tool and git is the only way back to those bytes: `git show 6a43c6b:.claude/pdf-tables-eval/<file>` for the six analysis files, and `42fb9ab` for the raw output, no longer reachable from the parent repository and only through `~/archive/pro-dotfiles/claude-notes-2026-11-07.bundle`.
 Section counts throughout are `##` headings, the convention every pass used.
 
 ## The motifs of the thirty-six passes

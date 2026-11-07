@@ -49,7 +49,9 @@ What is lost is the early warning, not the enforcement.
 
 ## What the repository leaves out, and why the capture rule still holds
 
-`screenshots/` is 95 PNG and nothing else, `pdf-tables-eval/` is 16 PDF for 17 MB **and** 6 markdown files that are the evaluation's results, which is why the ignore rule is `*.pdf` and not that directory.
+`screenshots/` is 95 PNG and nothing else, and `pdf-tables-eval/` was 16 PDF for 17 MB **and** 6 markdown files holding the evaluation's results, which is why the ignore rule was written `*.pdf` rather than naming that directory.
+The directory is gone from the working tree since 2026-11-08, the user having decided the six analysis files were of no further use and what bound future work having been folded into `~/dotfiles/_meta/notes/pdf-inspector-reco.md`, so the `*.pdf` line now guards nothing in particular and the `screenshots/` line carries the rule on its own.
+**Deleting it changes nothing about the publication problem below: the blobs stay in every commit that held them, so the filter pass remains mandatory before any push.**
 Ignoring `screenshots/` is what keeps "a capture is never versioned" of `rules/chromium.md` ("Where verification captures go") literally true in both repositories.
 
 ## The gate the repository carries (2026-09-30)

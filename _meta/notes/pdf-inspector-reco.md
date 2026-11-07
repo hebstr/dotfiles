@@ -139,7 +139,7 @@ Les PDF chiffrés restent hors règle, décision du 2026-09-23. Sur les 450 PDF 
 
 ## 2026-09-23 : tableaux des articles scientifiques
 
-La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Corpus, sorties et comptage cellule par cellule : `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-*.md`), versionné depuis `42fb9ab` (2026-09-30) dans le dépôt propre à `.claude/`, repris par le dépôt parent le 2026-11-07, `42fb9ab` n'étant plus atteignable que par `~/archive/pro-dotfiles/claude-notes-2026-11-07.bundle`. Les PDF et les captures, restés hors git, ont été supprimés le 2026-10-15 : les seize pièces jointes sont intactes dans `~/Zotero/storage` et les 95 rendus se refont par `pdftoppm`.
+La section « Tableaux » d'août reposait sur une inspection à la main, sans document pdfTeX, et concluait que « sur les documents linéaires produits par Word ou par un moteur de composition, les tableaux sortis sont corrects ». Cette section la mesure sur des articles de la bibliothèque Zotero, avec pdf-inspector 1.24.0, et la contredit. Cette note est désormais le seul porteur de la mesure. Les six fichiers d'analyse de `~/dotfiles/.claude/pdf-tables-eval/` (`README.md`, `COMPARAISON.md`, `detail-lot-{A,B,C,D}.md`, 1 029 lignes) ont été supprimés le 2026-11-08, sur décision de l'utilisateur qui n'en ferait rien : ce qui liait un travail futur est replié ci-dessous, le reste (exemples cellule par cellule des 38 tableaux, dérivation de chaque dénominateur, mode d'échec de `-layout` tableau par tableau) part avec eux. Récupération par `git show 6a43c6b:.claude/pdf-tables-eval/<fichier>`, et par `~/archive/pro-dotfiles/claude-notes-2026-11-07.bundle` pour l'historique du dépôt propre à `.claude/`, où ils vivaient depuis `42fb9ab` (2026-09-30). Les PDF et les captures, restés hors git, avaient été supprimés le 2026-10-15 : les seize pièces jointes sont intactes dans `~/Zotero/storage` et les 95 rendus se refont par `pdftoppm`.
 
 ### Protocole
 
@@ -149,6 +149,35 @@ La section « Tableaux » d'août reposait sur une inspection à la main, sans d
 - Métrique : grille de cellules comptée à la main, proche de GriTS_Con en correspondance exacte, avec appariement un à un des tableaux. TEDS et GriTS supposent des portées de cellules qu'un tableau Markdown ne peut pas exprimer : elles pénaliseraient le format, pas l'outil. Une cellule fusionnée est donc juste si son texte tombe dans l'une des positions qu'elle couvre.
 - Fabrication : 4 pages témoins sans tableau, plus un relevé sur toutes les pages des 16 sorties, chaque bloc Markdown étant rattaché à sa page physique par son contenu, puis vérifié sur l'image.
 - Comparaison répartie entre 4 agents, un lot de producteurs chacun, avec contrôles par sondage dans le fil principal.
+- Conventions de comptage, qui définissent ce que « cellule fausse » veut dire et sans lesquelles aucun chiffre d'ici n'est reproductible : un libellé de groupe rendu dans la première colonne de sa portée, suivi de cellules vides, est juste et non une « fusion perdue », la portée restant inférable ; un indice aplati (`dmodel`) et un appel de note aplati (`0a`) sont récupérables côté `-layout`, un exposant aplati (`10^20` en `1020`) ne l'est pas ; les espaces insérées (`O (1)`, `anti- inflammatoires`) et la perte du gras ou de l'italique ne sont pas comptées ; une cellule dont le ToUnicode du PDF est faux (`≤` extrait `#`) est fausse des deux côtés et listée incertaine, le défaut étant celui de la police. Critère de bande pour `-layout` : une cellule est récupérable si son texte chevauche la bande de sa colonne ou la touche sans espace intermédiaire.
+- **Les conventions n'ont pas été harmonisées entre les lots, et c'est la principale réserve sur l'agrégat.** Le lot C compte juste la cellule vide d'une ligne qui disparaît (aucun texte perdu), là où le lot D compte fausses toutes les cellules d'une ligne de groupe sortie du tableau, vides comprises. Chez Schmidt, où ce choix pèse le plus, l'écart est de 55 cellules sur 415 (75/415 contre 20/360).
+
+### Corpus
+
+Les seize articles et les tableaux évalués, par leur clé Better BibTeX. C'est la seule chose qui rende une reprise possible : les copies des PDF sont supprimées, et une reprise les retrouve par ces clés dans `~/Zotero/storage`. Les pages sont celles du PDF, relevées sur la légende puis confirmées sur l'image.
+
+| Clé | Producteur (pdfinfo) | Langue | Tableaux évalués (pages) | Formes couvertes |
+|---|---|---|---|---|
+| touvronLLaMAOpenEfficient2023 | pdfTeX-1.40.21 | EN | T1 (2), T3 (4), T16 (18) | trois filets, en-têtes multiniveaux, pleine largeur |
+| vaswaniAttentionAllYou2023 | pdfTeX-1.40.25 | EN | T1 (6), T2 (8), T3 (9) | trois filets, grille, en-têtes multiniveaux, exposants |
+| boisisEvaluationPrescriptionConcomitante2017 | PDFLaTeX (HAL) | FR | T3 (32), T4 (42 à 46), T9 (73) | grille, trois filets, sans filet, multipage, texte long |
+| mcgettiganCardiovascularRiskNonsteroidal2011 | Acrobat Distiller 9.0.0 (3B2) | EN | T1 (5), T2 (14), T4 (15) | trois filets, en-têtes multiniveaux, valeurs denses, notes, exposants |
+| bewickStatisticsReview92004 | Acrobat Distiller 11.0.9 | EN | T1 (2), T3 (3), T6 (5) | trois filets, notes, exposants |
+| albertiModeleCox2005 | Acrobat Distiller 7.0 (Elsevier) | FR | I (3), III (5), VIII (7) | trois filets, signes moins, texte long |
+| miremont-salameImputabilitePharmacovigilanceMethode2016 | Acrobat Distiller 9.0.0 (Elsevier) | FR | T1 (3), T4 (5), T6 (6) | trois filets, en-têtes multiniveaux, notes |
+| burlacuAntiinflammatoiresNonSteroidiens2025 | Acrobat Distiller 25.0 (Elsevier) | FR | T1 (5 et 6) | page pivotée (/Rotate 90), multipage, notes, texte long |
+| ComiteTechniquePharmacovigilance2019 | Microsoft Word 2013 | FR | I (9), III (17), annexes (60, 61) | grille, trois filets, paysage natif, texte long |
+| 36LessaiNoninferiorite2022 | Microsoft Word pour Microsoft 365 | FR | T2 (26), T3 (27 et 28) | grille, trois filets, sous-groupes en retrait, multipage |
+| duongUsagePatternsOverthecounter2014 | PDFlib PLOP 2.0.0p6 / Distiller 7.0.5, iText | EN | T1 (3), T2 (4) | sans filet, sous-groupes en retrait, valeurs denses, notes |
+| ioannidisWhyMostDiscovered2008 | PDFsharp 1.50.4740 | EN | T1 (2), T2 (3) | trois filets, en-têtes multiniveaux, valeurs denses, exposants |
+| GeneralizationBiasLarge | Antenna House PDF Output Library 7.4, iText | EN | T1 (6 et 7), T2 (8 et 9) | grille, multipage, signes moins, valeurs denses |
+| silberzahnManyAnalystsOne2018 | Adobe PDF Library 9.9 (InDesign), iText | EN | T3 (8), T4 (9) | trois filets, page pivotée, en-têtes multiniveaux, valeurs denses |
+| schmidtDiclofenacUseCardiovascular2018 | Adobe PDF Library 10.0.1 (InDesign) | EN | T1 (5) | sans filet, page pivotée, sous-groupes en retrait, signes moins, valeurs denses |
+| curran-everettExplorationsStatisticsStatistical2016 | modified using iText 4.2.0 (XPP) | EN | T1 (3) | trois filets, notes |
+
+Pages témoins sans tableau : vaswani 3 (figure), boisis 103 (liste alignée), mcgettigan 7 (forest plot et prose à deux colonnes), silberzahn 1 (bloc auteurs et affiliations).
+
+Limites de la stratification, imposées par la bibliothèque : Word n'y produit aucun article de revue à tableaux, donc la strate Word est un dossier méthodologique et un rapport de pharmacovigilance ; aucun PDF n'a iText pour producteur natif, la strate iText étant l'article dont c'est la seule mention ; PLOP, PDFsharp et Antenna House n'ont qu'un article chacun.
 
 ### Résultats
 
@@ -158,6 +187,27 @@ La section « Tableaux » d'août reposait sur une inspection à la main, sans d
 | Cellules fausses ou non récupérables | 1 853 / 3 923 (47 %) | 337 / 3 923 (9 %) |
 | Même mesure, hors les deux tableaux de Silberzahn | 1 206 / 3 245 (37 %) | 52 / 3 245 (1,6 %) |
 | Médiane par tableau | 28 % | 0 % |
+
+Par forme de tableau, cellules fausses `pdf2md` et non récupérables `-layout`. Un tableau porte plusieurs formes, donc les lignes se recouvrent et chacune reflète aussi les autres formes de ses tableaux : c'est un ordre de danger, pas une décomposition. **C'est cette table qui fonde la règle 6 de `rules/pdf.md`**, qui fait rendre la page en image quand le tableau porte des exposants, un en-tête sur plusieurs niveaux ou une page pivotée.
+
+| Forme | Tableaux | Fidèles | `pdf2md` faux | `-layout` non récup. |
+|---|---|---|---|---|
+| exposants | 7 | 0 | 857 / 1 021 (84 %) | 313 (31 %) |
+| grille à filets | 8 | 1 | 474 / 792 (60 %) | 6 (1 %) |
+| paysage ou pivoté | 5 | 1 | 625 / 1 044 (60 %) | 285 (27 %) |
+| trois filets | 26 | 4 | 1 282 / 2 303 (56 %) | 331 (14 %) |
+| notes de bas de tableau | 16 | 1 | 961 / 1 838 (52 %) | 301 (16 %) |
+| texte long multilignes | 21 | 2 | 748 / 1 454 (51 %) | 23 (2 %) |
+| en-têtes multiniveaux | 12 | 1 | 1 157 / 2 310 (50 %) | 328 (14 %) |
+| multipage | 6 | 1 | 277 / 551 (50 %) | 1 (0 %) |
+| signes moins | 4 | 0 | 274 / 810 (34 %) | 3 (0 %) |
+| valeurs denses | 8 | 1 | 365 / 1 180 (31 %) | 5 (0 %) |
+| sous-groupes en retrait | 4 | 0 | 100 / 664 (15 %) | 0 |
+| sans filet | 4 | 0 | 97 / 828 (12 %) | 0 |
+
+Types d'erreur sur les 33 tableaux altérés ou non détectés, un tableau en cumulant souvent plusieurs : lignes scindées ou fusionnées 19, colonnes décalées 14, valeur altérée 8, texte courant mêlé au tableau 8, note mêlée au tableau 4, fusion perdue 3, en-têtes aplatis 3, sous-groupes en retrait perdus 3.
+
+Les 5 tableaux fidèles sont Touvron T1, McGettigan T4, Bewick T1, Comité Tableau I et l'annexe du Comité page 61 : des grilles simples, à une ligne d'en-tête, sans cellule de texte long et sans texte courant contigu. Deux tableaux de Silberzahn pèsent à eux seuls 647 des 1 853 cellules fausses (T3 : 29 lignes fondues en une ; T4 : page pivotée dense).
 
 - **Aucun producteur n'est sûr.** pdfTeX 44 % de cellules fausses, Distiller 43 %, Word 22 %, Adobe PDF Library 66 %. PLOP (5,5 %) et iText (4 %) restent les plus bas, sur un article chacun.
 - **Les tableaux fidèles sont les grilles simples** : une ligne d'en-tête, pas de texte long, pas de prose contiguë. Dès qu'un en-tête s'étage sur deux niveaux, qu'une cellule porte plusieurs lignes, ou qu'une ligne de groupe n'a pas de valeur, les lignes fusionnent (19 tableaux) et les colonnes glissent (14).
@@ -171,7 +221,15 @@ La section « Tableaux » d'août reposait sur une inspection à la main, sans d
 - **La ponctuation des fontes mathématiques TeX est altérée dans la prose.** Sur les 16 sorties, 22 occurrences de ponctuation entourée d'emphase (`\*[;:,.]\*`) dans 8 documents. Dans 7, la ponctuation reste juste et seule l'emphase s'ajoute (`28*.*4` chez Vaswani, qui se rend 28.4). Dans `touvronLLaMAOpenEfficient2023.pdf` (pdfTeX), le caractère lui-même change : `0.9` sort `0*:* 9`, `0.1` et `1.0` sortent `0*:* 1` et `1*:* 0`, `2,000` sort `2*;*000`, là où `pdftotext` donne `0.9`, `1.0` et `2, 000`. D'où la consigne de la règle 3 : un nombre ou une citation se recopie depuis `pdftotext`.
 - **`pdftotext -layout` reste lisible** : au plus une cellule perdue sur 29 tableaux. Ses échecs sont prévisibles : exposants aplatis (`1019`), glyphes mal codés dans le PDF, page pivotée dense, rangée d'en-tête compressée. Sur ces cas, l'image de la page seule fait foi.
 
-Recherche externe (détail dans `COMPARAISON.md`, section « Métrique ») : le score « Tables (TEDS) 0.814 » du README de pdf-inspector vient d'opendataloader-bench, soit 42 documents à tableaux, mesurés sur la version 0.2.6, et un benchmark qui ne pénalise aucun tableau inventé. Il ne se transpose pas à ce corpus. Upstream, des issues ouvertes décrivent les mêmes défauts : cellules fusionnées (#537), fausses tables sur pages à colonnes (#498, #219) et sur un bloc d'auteurs arXiv (#291), exposants (#297), en-têtes pivotés (#296). Aucune option ne désactive la détection des tableaux (`MarkdownOptions` n'en a pas).
+Recherche externe. Les benchmarks qui notent du Markdown reconnaissent eux-mêmes la limite que le protocole ci-dessus contourne : olmOCR-bench écrit qu'un modèle qui ne sort que des tableaux Markdown « cannot achieve a max score » sur sa section tableaux. Le score « Tables (TEDS) 0.814 » du README de pdf-inspector vient d'opendataloader-bench, soit 42 documents à tableaux, mesurés sur la version 0.2.6, et un benchmark qui ne pénalise aucun tableau inventé. Il ne se transpose pas à ce corpus. Upstream, des issues ouvertes décrivent les mêmes défauts : cellules fusionnées (#537), fausses tables sur pages à colonnes (#498, #219) et sur un bloc d'auteurs arXiv (#291), exposants (#297), en-têtes pivotés (#296). Aucune option ne désactive la détection des tableaux (`MarkdownOptions` n'en a pas).
+
+### Limites
+
+- Chaque tableau a été compté par un seul agent, sans double codage. Les contrôles par sondage dans le fil principal ont tous confirmé : exposants de Vaswani T2 hors cellules, Touvron T16 coupé en deux tableaux, les 29 lignes de Silberzahn T3 fondues en une, Burlacu T1 sorti en prose.
+- Conventions non harmonisées entre les lots, chiffrée plus haut dans le protocole.
+- Strates minces : PLOP, PDFsharp, Antenna House et iText tiennent à un article chacun, et Word à deux documents qui ne sont pas des articles de revue.
+- Le relevé des 21 pages fabriquées repose sur une attribution heuristique des blocs Markdown à leur page physique (par le contenu, pondéré par la rareté du mot) et sur un examen à 50 dpi : il établit l'existence et l'étendue du défaut, pas un taux.
+- Une seule version de l'outil, la 1.24.0.
 
 ### Décision
 
@@ -179,4 +237,4 @@ Recherche externe (détail dans `COMPARAISON.md`, section « Métrique ») : le 
 
 Rien à construire. Un filtre qui supprimerait les tableaux de la sortie `pdf2md` jetterait aussi les tableaux justes, sans rien apporter que la règle ne couvre déjà : la valeur se relit de toute façon dans `-layout`. Appliqué le 2026-09-23 dans `~/.claude/rules/pdf.md` : une phrase ajoutée à la règle 3, une règle 6 (tableaux) avec la commande de localisation par légende, et la section des défauts mesurés étendue aux articles. L'entrée `pdf2md` de `rules/environment.md` suit.
 
-À réévaluer si les correctifs upstream des exposants (#297), des en-têtes pivotés (#296) et des tableaux scindés (#270) sont publiés, ou si une version annonce un correctif de la césure : le corpus et `COMPARAISON.md` permettent de refaire la mesure avec le même protocole, mais plus à l'identique : la mesure porte sur la 1.24.0 et la version installée est la 1.25.2 depuis (constaté 2026-10-13), donc une reprise mesure un autre outil et les chiffres d'ici restent la seule lecture de cette version. Cette note est la source de chaque chiffre que cite la section « Measured defects of pdf2md » de `rules/pdf.md` : une re-mesure s'écrit ici d'abord, puis le chiffre de tête s'y reporte.
+À réévaluer si les correctifs upstream des exposants (#297), des en-têtes pivotés (#296) et des tableaux scindés (#270) sont publiés, ou si une version annonce un correctif de la césure : la section « Corpus » et les conventions du protocole permettent de refaire la mesure sur les mêmes articles et avec la même définition d'une cellule fausse, mais la comparaison ne pourra porter que sur les agrégats, la dérivation des dénominateurs tableau par tableau étant partie avec les fichiers de détail. Et plus à l'identique de toute façon : la mesure porte sur la 1.24.0 et la version installée est la 1.25.2 depuis (constaté 2026-10-13), donc une reprise mesure un autre outil et les chiffres d'ici restent la seule lecture de cette version. Condition non remplie au 2026-11-08 : les trois issues sont toujours ouvertes sur `firecrawl/pdf-inspector`, et la 1.25.2 (publiée le 2026-09-28) reste la dernière version, ses notes de 1.25.0 à 1.25.2 ne portant ni la césure, ni le rattachement des exposants, ni les tableaux scindés (son #603 ne change que la taille du balisage `<sup>`). Cette note est la source de chaque chiffre que cite la section « Measured defects of pdf2md » de `rules/pdf.md` : une re-mesure s'écrit ici d'abord, puis le chiffre de tête s'y reporte.
