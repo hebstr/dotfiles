@@ -261,6 +261,7 @@ Ne jamais utiliser `--adopt`, qui copie le fichier local dans le paquet par-dess
 | `agents` | `stow` (replié) | `~/.agents` doit rester un lien unique pour que l'installateur de skills écrive dans le dépôt |
 | `syncthing` | `stow --no-folding`, en excluant les dossiers non synchronisés | sinon stow crée des dossiers vides juste pour y poser un `.stignore` |
 | `css` | `stow` (replié), section 7 | les liens de `~/.local/bin` passent par `~/.local/share/css-gate/node_modules` : replié, ce dossier suit ce que `npm ci` et `sys-update css-toolchain` installent dans le dépôt ; en `--no-folding`, chaque fichier serait lié un par un et ceux qu'ajoute une mise à jour ne le seraient pas |
+| `bash-cpd` | aucun | propre au poste CHU `cpd000001` : stowé sur lui seul, après avoir déstowé `bash`, car les deux paquets revendiquent les mêmes cibles (`_meta/notes/dotfiles-bootstrap.md`) |
 | `positron`, `firefox`, `obsidian`, `Rstudio`, `zotero`, `handy` | aucun | applications côté Windows, profils propres à la machine principale, ou non utilisés |
 
 Test à blanc, puis application :
