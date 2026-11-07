@@ -150,6 +150,7 @@
 - feedback_audit_walkthrough.md: `/audit:walkthrough` and `/audit:blindspot`: weigh by evidence, unverified is not fake
 - feedback_format_hook_strips_new_import.md: In Python, an import added before its usage is stripped as F401 by the format hook
 - feedback_browser_layout_probe.md: Inspect a rendered layout yourself in headless chromium; Streamlit needs CDP and a sleep
+- feedback_isolate_render_comparison.md: A peer session voids a before/after render diff; worktree it, one browser profile
 - feedback_personal_working_files.md: The write-gate on NOTES.md, TODO.md and CALENDRIER.md: reading is free, writing never
 - feedback_user_deletions_are_decisions.md: Items gone from the user's own data are their pruning: report, never restore
 - feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
