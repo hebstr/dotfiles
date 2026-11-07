@@ -86,6 +86,12 @@ Carried out the same day. The user took the bundle (`~/archive/pro-dotfiles/clau
 
 What this costs from now on, stated once: the notes and every tracking commit message are public, and the two excluded notes are versioned nowhere, their history living only in that bundle.
 
+Open, and the step the move now waits on: nothing is published yet, and the push is held until a confidentiality read of the 34 notes has run.
+The condition a command checks is `git rev-list --count origin/main..HEAD`, which answers 3 while the move is unpublished and 0 once the push has happened; the three commits are `83d1121` (another session's memory commit, never pushed), `4cfa875` (the move) and `0c701d1` (`DESIGN-CPD.md`, added by the user, the guard having refused it to the session as another session's unsealed work).
+The brief for that read is in `.claude/PROMPT.md`, written for a fresh conversation on 2026-11-07, and it carries the one fact that orders the work: a redaction committed on top of those two commits protects nothing after the push, the original blob staying reachable, so anything to remove has to land inside them through a rebase or `filter-repo-rs` while they are still local.
+What already ran, and found nothing: `filter-repo-rs --detect-secrets` at 0 over the whole reachable history, the `gitleaks` hook green on both commits of the move, and a hand sweep for addresses, e-mail addresses and long digit runs whose only hits were in the deleted article conversions.
+So what that read is for is the eight categories a scanner cannot see, the hardest of them being a dismissive judgement on an identifiable vendor, maintainer, colleague or employer, which reads as an ordinary technical verdict in place.
+
 Open, found by the commit verifier the same day and left to the user: that exclusion protects less than it looks. `_meta/notes/ssh-lan-server.md`, `ssh-lan-wsl.md`, `ssh-lan-mdns.md` and `wsl-init-tuto.md` are tracked and already public, and they carry two of the host names and one of the addresses. What the two excluded notes still keep out is the remaining address, the second private range and the SSH and GPU reasoning around them. It predates this change and is no regression, so nothing was scrubbed: deciding whether those four notes should be redacted, or whether the exclusion of the two is then pointless, is the user's.
 Measured the same day, so that nothing below is re-derived:
 
