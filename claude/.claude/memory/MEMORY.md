@@ -108,7 +108,7 @@
 - feedback_sourcing_follows_the_claim.md: Rewriting a sourced claim inherits its citation obligation
 - feedback_no_literal_matching_on_natural_language.md: Regex belongs on formal input, never on natural language
 - feedback_check_before_hand_rolling.md: Query the installed library before hand-rolling a helper or pricing a build
-- feedback_load_matching_skill.md: Load a matching installed skill before producing the artifact, not after
+- feedback_load_matching_skill.md: Load a matching skill before the artifact; rule on /design when it is user-invocable only
 - feedback_slash_command_in_pasted_prompt.md: A `/name` in a paste fires nothing; one absent from the list exists
 - feedback_reviewer_review_testing_scope.md: review-testing only sees test files changed on the branch; pass a scope override
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections

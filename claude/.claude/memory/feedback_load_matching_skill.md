@@ -24,6 +24,11 @@ It recurred on 2026-10-29, same repository and same skill, on the six prune test
 The prek `shellcheck` hook caught the one defect the skill states outright (`run !` for a negative assertion, with its `bats_require_minimum_version 1.5.0`), which is why the first commit failed; loading the skill afterwards added the failure-path test the hook could not see.
 The bats case is mechanized since that date: `inject-rules.sh` denies the session's first `Edit`, `Write` or `MultiEdit` on a `*.bats` path, its message naming the skill to call. Nothing else is, so the rule below still carries every other artifact type.
 
+A user-invocable-only skill cannot be loaded at all, so what is owed is a ruling rather than a call.
+On 2026-11-07 in `quarto-hebstr-doc`, asked to put the language icon on the `{{< script >}}` folded chip, the session measured the DOM, prototyped the selector and delivered its "what does done look like" list without once weighing a `/design` pass, although that feature had been designed, delivered, reopened on a defect of form and re-decided, all on that same day; it ruled only when the user asked whether it was confident and whether `/design` was warranted, and the ruling was yes.
+`CLAUDE.md` carries the correction since that date, grafted onto the "what does done look like" bullet rather than added as a line of its own, the always-loaded set having had 175 of its 12,288 bytes free (`instructions-budget`, same day).
+A deterministic carrier was weighed and none fits: the trigger, a user's implementation idea, and the tell, a proposal carrying no ruling, are both natural language, where the mechanized bats case above keys on a file extension and `ending-gate.sh` keys on fixed idioms.
+
 ## How to apply
 
 - Check the available-skills list against the artifact about to be produced, before producing it. Tests, prose, diagrams, artifacts and reviews all have skills that carry checklists no neighbouring file encodes.
