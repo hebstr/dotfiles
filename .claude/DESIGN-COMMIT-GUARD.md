@@ -793,7 +793,7 @@ Still not reproduced: names over 200 characters, which Claude Code truncates and
 
 ## The `commit` skill moves to a separate plugin with its gate and its journal, once the mechanism is stable (framing approved on 2026-09-24)
 
-**Decision: nothing moves now; the migration to `claude-code-plugins` is triggered when step 4 is closed, the review of the scripts of "The shell of the `commit` skill moves into tested scripts" having been done on 2026-09-24 on the current paths.
+**Decision: nothing moves now; the migration to the `skills` repository is triggered when step 4 is closed, the review of the scripts of "The shell of the `commit` skill moves into tested scripts" having been done on 2026-09-24 on the current paths.
 It takes the form of a separate `commit` plugin, with its own source directory.**
 
 **Why: the goal is a skill as portable and packaged as the `audit` and `workflow` plugins, and for a skill that carries hooks only a plugin reaches it.** Grouping the files in the dotfiles would leave the hooks registered in the user's `settings.json`; only a plugin's `hooks/hooks.json` makes the whole thing a unit installable and activatable in one block.
@@ -808,7 +808,7 @@ The "close" family of `ending-gate.sh` looks for ` /commit`: to realign if the p
 - The plugin's `hooks/hooks.json` declares the gate and the journal through `${CLAUDE_PLUGIN_ROOT}`; precedent of a plugin `hooks/hooks.json`: `ouroboros` and `r-skills` installed, of `${CLAUDE_PLUGIN_ROOT}` in its commands: `ouroboros` alone.
 - `commit-stale.sh` stays beside the gate; `SKILL.md` calls it through `${CLAUDE_PLUGIN_ROOT}`, which the doc (`code.claude.com/docs/en/plugins-reference`, read on 2026-09-24) substitutes in the content of a plugin's skill and agent, but which is absent from the Bash tool's environment.
 - `writes.sh` and `transcripts.sh` stay in `skills/commit/scripts/`, on the precedent of `audit/walkthrough/scripts/` and the `${CLAUDE_SKILL_DIR}` of `audit/walkthrough/agents/ouroboros-bridge.md`.
-- The bats of `_meta/tests/` (`commit-gate.bats`, `commit-stale.bats`, `commit-writes.bats`, `commit-transcripts.bats`, `write-journal.bats`) move beside the scripts, like the `test_*.py` of the plugins repository, and the CI of `claude-code-plugins`, which runs the manifest validation, prek and pytest, without bats, gains a bats step.
+- The bats of `_meta/tests/` (`commit-gate.bats`, `commit-stale.bats`, `commit-writes.bats`, `commit-transcripts.bats`, `write-journal.bats`) move beside the scripts, like the `test_*.py` of the plugins repository, and the CI of the `skills` repository, which runs the manifest validation, prek and pytest, without bats, gains a bats step.
 - The dotfiles lose the `write-journal.sh` and `commit-gate.sh` entries of `claude/.claude/settings.json` and activate the plugin.
 
 **Couplings to undo at the migration, inventory of 2026-09-24.**

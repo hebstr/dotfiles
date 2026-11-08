@@ -30,7 +30,7 @@ Two further strands attach to it: a methodical cleanup of the conventions that h
 
 ## Framing assumptions
 
-- Global scope: `~/.claude/CLAUDE.md`, `rules/`, memory, the skills and hooks of the dotfiles' `claude` package, plus the `~/Documents/packages/claude-code-plugins` repository where `workflow/sync` lives (`workflow/continue`, cited when the chantier opened, was deleted on 2026-09-30).
+- Global scope: `~/.claude/CLAUDE.md`, `rules/`, memory, the skills and hooks of the dotfiles' `claude` package, plus the `~/Documents/packages/skills` repository where `workflow/sync` lives (`workflow/continue`, cited when the chantier opened, was deleted on 2026-09-30).
   The chantier therefore touches two repositories.
 - "End of session" means every task of the session done, the session being closable, rather than the end of each task (made precise by the user on 2026-09-23, replacing "end of the current task or a signal from the user").
   Associated preference: short, targeted sessions rather than one session chaining everything; the continuation of a closed session therefore leaves in a fresh conversation.
@@ -478,7 +478,7 @@ Two rules went to `feedback_review_severity_bats_tests`: a surviving mutant that
   The bullet stays in `CLAUDE.md` until then.
   Decided on 2026-09-22: the framing waits for the end of step 4, so as not to change the measured behaviour inside the window.
 
-- **The adversarial-review stop signal, toward the skill.** Its place is `audit/walkthrough` in `claude-code-plugins`, outside the scope of step 3; the bullet stays in `CLAUDE.md`.
+- **The adversarial-review stop signal, toward the skill.** Its place is `audit/walkthrough` in the `skills` repository, outside the scope of step 3; the bullet stays in `CLAUDE.md`.
 
 - **Memory index injection, closed on 2026-09-27.** Pending from its implementation (`78a40b0`, `847f432`), in a fresh conversation: `/audit:walkthrough _meta/instructions-ab/grade.py --reviewer posit-dev:critical-code-reviewer`.
   The `_meta/tests/inject-project-context.bats` half ran on 2026-10-12 (`fbcc7de`), leaving the `grade.py` one.

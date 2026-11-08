@@ -250,7 +250,7 @@
     "hebstr": {
       "source": {
         "source": "github",
-        "repo": "hebstr/claude-code-plugins"
+        "repo": "hebstr/skills"
       }
     },
     "litrev": {

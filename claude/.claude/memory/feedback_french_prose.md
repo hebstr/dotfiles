@@ -39,5 +39,5 @@ When editing or producing French prose for the user, apply these decisions. Do n
 
 **How to apply:**
 - When asked to edit, polish, or write French prose: invoke `/workflow:write` for full reference, or apply these rules directly for short edits.
-- Bilingual FR↔EN parity reviews: see `Bilingual Review Mode` in `~/Documents/packages/claude-code-plugins/workflow/write/SKILL.md`.
+- Bilingual FR↔EN parity reviews: see `Bilingual Review Mode` in `~/Documents/packages/skills/workflow/write/SKILL.md`.
 - If the user contradicts a rule above, treat it as a new directive and update this memory accordingly. Do not silently re-derive the rejected position.

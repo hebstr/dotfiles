@@ -1,4 +1,6 @@
-# Restructuring `claude-code-plugins` for agents other than Claude Code
+# Restructuring the skills repository for agents other than Claude Code
+
+The repository was named `hebstr/claude-code-plugins` when this ran and was renamed to `hebstr/skills` on 2026-11-08, per ruling 5 below, its local clone moving to `~/Documents/packages/skills`. The old name below is the state the recommendation was written against.
 
 2026-11-08.
 Decision asked: how the repository should be restructured so its seven skills run under agents other than Claude Code without losing the workflow, the scope or the quality the plugin form gives them, ruling on the distribution form, the repository granularity and the name.

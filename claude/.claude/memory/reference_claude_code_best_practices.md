@@ -38,7 +38,7 @@ Read on the official sub-agents doc page on 2026-09-14, against 2.1.232, and not
 
 - **Fork mode is the default in an interactive session**, so every `Agent` call starts in the background and Claude cannot ask for the foreground. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` is the only lever back.
 - **`AskUserQuestion` is removed from every subagent**, with no exception. A step that has to question the user therefore belongs in the main context: that is why the `audit:walkthrough` orchestrator and its batch-triage and bridge steps run there, and only the reviewer goes to an `Agent`.
-- **A background subagent keeps `Skill` and `Agent`**, nesting to depth 3. What stays unmeasured is the notification path: whether a subagent can launch background `Agent` calls of its own *and* receive their completion notifications. The `audit/sweep` Phase 1 fan-out depends on it when a sweep is itself spawned as a reviewer, and the open row of `~/Documents/packages/claude-code-plugins/.claude/DEFERRED.md` asks for that measurement.
+- **A background subagent keeps `Skill` and `Agent`**, nesting to depth 3. What stays unmeasured is the notification path: whether a subagent can launch background `Agent` calls of its own *and* receive their completion notifications. The `audit/sweep` Phase 1 fan-out depends on it when a sweep is itself spawned as a reviewer, and the open row of `~/Documents/packages/skills/.claude/DEFERRED.md` asks for that measurement.
 
 ## Session transcript forensics
 

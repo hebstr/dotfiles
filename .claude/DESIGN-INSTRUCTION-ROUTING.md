@@ -40,7 +40,7 @@ The triggers live in the hook's own table, not in the files' frontmatter: an unk
 | Session-start PLAN.md, compaction, .claude/ default location (about 2,000) | inject-project-context.sh: legacy root Claude files and a root CLAUDE.md masking .claude/CLAUDE.md flagged on startup; pointer to .claude/PLAN.md on startup, compact, resume; the index part untouched; root keeps create under .claude/ and propose a PLAN.md | 3 + root |
 | Cite by name, tables in fences, claims backed by a command, English for Claude-facing content, the routing test and budget (about 3,500) | new rules/claude-files.md, paths **/.claude/**/*.md, **/CLAUDE.md, **/AGENTS.md | 2 |
 | No comments in code, only modify directly related code, padding, lint gate and its scope (about 4,300) | rules/code.md | 2 |
-| Adversarial review exit signal | audit/walkthrough in claude-code-plugins (existing decision); the root line goes once the skill carries it | 4 |
+| Adversarial review exit signal | audit/walkthrough in the skills repository (existing decision); the root line goes once the skill carries it | 4 |
 | Communication, Prose hygiene, Profile, References, Build (design, premise, ouroboros), Shell search preferences | root, rewritten to the rule alone, rationale to this note | 5 |
 ```
 

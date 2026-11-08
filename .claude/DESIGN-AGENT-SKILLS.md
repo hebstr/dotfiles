@@ -84,12 +84,12 @@ If https://github.com/anthropics/claude-code/issues/16345 ships, `claude/.claude
 
 ## Where a skill the user writes goes is decided by its coupling to this machine
 
-Decided 2026-10-08, while designing `poc` (`DESIGN-POC.md`), the two candidate homes being `claude/.claude/skills/` and the `hebstr/claude-code-plugins` marketplace.
+Decided 2026-10-08, while designing `poc` (`DESIGN-POC.md`), the two candidate homes being `claude/.claude/skills/` and the `hebstr` marketplace, whose repository was named `claude-code-plugins` then and `hebstr/skills` since 2026-11-08.
 The criterion was never written down although both precedents existed, so a session without it argued the placement from scratch.
 
 The criterion: a skill whose load-bearing steps read this machine's stack, harness or corpus stays in `claude/.claude/skills/`; the marketplace takes only what someone else can install and run.
 
-The split is already clean enough to be read off the tree, by one `rg` for markers of this machine (`dotfiles`, `/home/julien`, `Zotero`, `ju-TP`, `_meta/notes`): one file carries them across the published `audit/` and `workflow/` plugins of `~/Documents/packages/claude-code-plugins`, against several under `claude/.claude/skills/`, where `zotero/SKILL.md` hardcodes `~/Zotero` and `design/SKILL.md` names `_meta/notes/`.
+The split is already clean enough to be read off the tree, by one `rg` for markers of this machine (`dotfiles`, `/home/julien`, `Zotero`, `ju-TP`, `_meta/notes`): one file carries them across the published `audit/` and `workflow/` plugins of `~/Documents/packages/skills`, against several under `claude/.claude/skills/`, where `zotero/SKILL.md` hardcodes `~/Zotero` and `design/SKILL.md` names `_meta/notes/`.
 The marketplace skills that do need environment facts discover them at runtime instead, which is what the reviewer scan of `audit/walkthrough/scripts/scan-reviewers.py` does for `walkthrough` and `blindspot`: the available reviewers are read off the installed plugins, with no hardcoded list.
 
 What the criterion costs on the user-level side, accepted: nothing lints those skills, nothing tests them, and they exist on one machine.

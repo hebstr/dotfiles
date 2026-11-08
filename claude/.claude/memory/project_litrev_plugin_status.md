@@ -17,7 +17,7 @@ Stated by the user: neither `/litrev` nor its sub-skills (`litrev-search`, `litr
 `litrev` was briefly migrated into the `hebstr` marketplace, then rolled back. It is permanently a separate plugin with its own repo (`hebstr/claude-code-litrev` → `claude-code-litrev/`). Do not propose merging it back into `hebstr` without new evidence.
 
 **Why:**
-1. **Heterogeneous stack.** `litrev` ships a Python MCP server (uv, dependencies), a `workspace/` and an active `PLAN.md`. `audit` and `workflow`, the plugins the hebstr marketplace lists, are pure markdown skills. Bundling them inflates `claude-code-plugins` with unrelated infrastructure.
+1. **Heterogeneous stack.** `litrev` ships a Python MCP server (uv, dependencies), a `workspace/` and an active `PLAN.md`. `audit` and `workflow`, the plugins the hebstr marketplace lists, are pure markdown skills. Bundling them inflates the `skills` repository with unrelated infrastructure.
 2. **Disjoint audiences.** `litrev` targets medical researchers and clinicians; `audit` and `workflow` target Claude Code developers. Nothing justifies coupling their versions or release cycles.
 3. **Provenance already separate.** `litrev` has its own upstream repo. The migration was a subtree import from `hebstr/claude-code-litrev`, never a merge of git histories.
 
