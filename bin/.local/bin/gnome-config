@@ -50,14 +50,14 @@ require() {
 
 # Drop keyfile groups whose header starts with a hardware/state-specific prefix.
 drop_groups() {
-  awk -v pat="$1" '/^\[/ { skip = ($0 ~ pat) } !skip'
+  awk -v pat="$1" 'BEGIN { re = "^\\[" pat } /^\[/ { skip = ($0 ~ re) } !skip'
 }
 
 # Per-domain curation applied to a raw `dconf dump`.
 domain_filter() {
   case "$1" in
-  peripherals) drop_groups '^\[tablets' ;;        # hardware-specific tablet blocks
-  shell-extensions) drop_groups '^\[gsconnect' ;; # device-pairing state (certs, IPs)
+  peripherals) drop_groups 'tablets' ;;        # hardware-specific tablet blocks
+  shell-extensions) drop_groups 'gsconnect' ;; # device-pairing state (certs, IPs)
   *) cat ;;
   esac
 }
