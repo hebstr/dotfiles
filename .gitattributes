@@ -1,1 +1,2 @@
 positron/.config/Positron/User/profiles/*/settings.json filter=positron-theme
+positron-cpd/.positron-server/data/Machine/settings.json filter=positron-theme
