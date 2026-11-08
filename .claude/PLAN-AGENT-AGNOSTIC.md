@@ -22,9 +22,13 @@ So the direction is served where the reco said it would be and traded against a 
 
 ## The chantier the user names for a second step
 
-Reformatting `~/Documents/packages/claude-code-plugins` into a collection of skills usable by any agent, renamed `hebstr-agent-skills` in their own words.
+Reformatting `~/Documents/packages/claude-code-plugins` into a collection of skills usable by any agent, renamed `hebstr-agent-skills` in their own words, `agent-skills` in the wording of 2026-11-08.
+Ordering fixed by the user on 2026-11-08: this repository is taken before any revision of the global `~/.claude`, so the `AGENTS.md` question of "What stays open" below is explicitly deferred behind it.
+A `/workflow:reco` was ruled owed the same day and its buffer written, on three bundled decisions: distribution form (keep the plugin and add a portable install path, against dropping the plugin and marketplace format), repository granularity (one repository against one per group, given planned additions of `design` and `commit`), and the name.
+Two things that session measured and that bear on the reco's verdict: `disable-model-invocation: true` sits in all seven `SKILL.md` rather than in the few the earlier count suggested, so the capability with no equivalent outside Claude Code gates every skill in the repository; and the name `agent-skills` collides with the third-party vendoring route of `DESIGN-AGENT-SKILLS.md`, which `bin/.local/bin/agent-skills-update` and the `agent-skills` module of `sys-update` already own.
+What the reco does not have to serve: opencode, which consumes both plugins already through `opencode-skills-sync` and the link farm declared under `skills.paths`, so the portability gap is harnesses absent from both machines.
 Measured 2026-11-05: the repository carries two plugin directories, `audit/` and `workflow/`, seven `SKILL.md` in all, and one `.claude-plugin/marketplace.json`. Claude-specific couplings per skill, counted on `allowed-tools`, `disable-model-invocation`, `CLAUDE_PLUGIN_ROOT` and `claude-code`: eleven in `audit/blindspot`, five in `audit/sweep`, four in `workflow/sync`, two in each of the other four. So the coupling is real and bounded rather than structural.
-Two things such a pass would have to settle, flagged and not solved: `disable-model-invocation` has no equivalent outside Claude Code, and it is what keeps a user-invocable skill from auto-firing, which several of these depend on; and a rename touches the install side, the marketplace manifest and whatever `extraKnownMarketplaces` entry points at it (memory `reference_claude_code_marketplace_mechanics`).
+Two things such a pass would have to settle, flagged and not solved: `disable-model-invocation` has no equivalent outside Claude Code, and it is what keeps a user-invocable skill from auto-firing, which all seven depend on (re-counted 2026-11-08); and a rename touches the install side, the marketplace manifest and whatever `extraKnownMarketplaces` entry points at it (memory `reference_claude_code_marketplace_mechanics`).
 
 ## What stays open
 
