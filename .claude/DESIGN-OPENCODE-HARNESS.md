@@ -1,7 +1,7 @@
 # DESIGN-OPENCODE-HARNESS.md
 
 Design note for giving opencode access to the Claude Code profile, decided 2026-09-21 after a `/workflow:reco` and validated by the user the same day.
-This note is gitignored; the tracked, reproducible side is `_meta/notes/opencode-harness-setup.md` (procedure and `showboat verify` checks) and the "Local coding agent" section of `_meta/notes/dotfiles-bootstrap.md`.
+This note is tracked by the parent repository since `797548b`, 2026-11-07, which moved the allowlisted names of `.claude/.gitignore` into it; the reproducible side is `_meta/notes/opencode-harness-setup.md` (procedure and `showboat verify` checks) and the "Local coding agent" section of `_meta/notes/dotfiles-bootstrap.md`.
 Sequencing against the model lives in `DESIGN-GPU-REMOTE.md` § "The harness is sized on the 9B, which is fetched before the harness is built", steps 7 to 11.
 
 ## Little is injected, everything is readable, and budget is the constraint
@@ -122,9 +122,13 @@ Pointers were rejected for behavioral rules: a model cannot know to fetch a rule
 
 Drift is handled by hand, through memory `project_opencode_agents_md_mirror`; a rule the 9B ignores is not answered by widening the file, the live run having answered its breaches with a permission and a plugin guard instead (see "The first live run on the 9B, 2026-09-21").
 
+One rule is mirrored without its mechanism, deliberately: the `.claude/HANDOFF.md` bullet of `CLAUDE.md` names the `handoff` skill as that file's only writer, where `AGENTS.md` keeps the direct write and carries the triggers alone.
+That skill cannot run under opencode, `scripts/tail.sh` reading `CLAUDE_CODE_SESSION_ID`, which opencode does not set, and the skill appearing in no entry of `permission.skill` (verified 2026-11-08).
+
 The 8 KB that priced the rejection has since been passed, `AGENTS.md` having gained rules of its own, and what the rejection rests on is accumulation rather than byte count.
 Its budget half has decayed, measured 2026-09-30: `~/.claude/CLAUDE.md` was 12,104 bytes against the 57,521 of `b70a9c7` that priced the design, and the memory index 20,661 against 50,732, so the digest weighed 71 % of the file it exists to keep out of the prompt, about 0.9k tokens of an 18.4k fixed part.
 What has not decayed is the other half, the Claude-only instructions that mislead a small model, which `_meta/notes/zotero-agent-access-reco.md` gives evidence for: its "Where to look for more" wording is a candidate cause for the 9B never calling its own `skill` tool, so whether a hand-maintained digest still earns its drift risk is open.
+The model that reads the file is no longer the 9B the selection was sized on: `opencode.json` defaults to `cpd/qwen3.8-27b`, read 2026-11-08, the 9B of `ju-TP` staying the floor the accumulation half is argued against.
 
 Why the guard protects two roots rather than one: every file under `~/.claude` that matters resolves into `~/dotfiles/claude/.claude` through stow, and `AGENTS.md` itself tells the model to edit the resolved path of a symlink, so a refusal on `~/.claude` alone would have been bypassed by following the rules.
 

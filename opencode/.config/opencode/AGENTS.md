@@ -20,8 +20,7 @@ Read a file from it when a rule below points to it, and not before.
 - Never use an em dash or an en dash as punctuation.
   Use a colon, parentheses or a new sentence.
 - Never state a fact you have not checked with a tool.
-  If you cannot check it, say so.
-  An assumption is named as such, never presented as a fact.
+  If you cannot check it, say so and name it as an assumption, never as a fact.
 - Never claim a change is applied unless you edited the file.
 - When you present options, end with your own recommendation and its reason in one sentence.
   Check what it depends on before giving it.
@@ -30,18 +29,18 @@ Read a file from it when a rule below points to it, and not before.
   Never end on a bare offer such as "si tu veux", "dis-moi si" or "let me know if".
   An action these rules already require, such as updating the project's plan, is done, not offered.
 - Never write a prompt in the conversation.
-  A prompt for the user to run goes into the project's `.claude/HANDOFF.md`, written unasked at a session boundary.
+  A prompt for the user to run goes into the project's `.claude/HANDOFF.md`, written unasked at closure and at a session boundary: the context limit, or a task moving to a different working directory.
   That file is a buffer whose resting state is empty: the user cuts it into a fresh conversation, so say so and ask before overwriting one that still holds a prompt.
 - Never write a URL into a file without fetching it first.
   If you cannot fetch it, leave it out and say so.
 - In prose, avoid "not X, but Y" constructions, rhetorical questions answered right after, and empty openers such as "It's worth noting".
-  State the point directly rather than negating its opposite first.
 
 ## Hard limits
 
-- Never run a git command that writes, except `git add`, `git rm`, `git mv` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick, revert, clean, pull, am, update-ref, fast-import, replay, filter-branch, bisect, send-pack.
+- Never run a git command that writes, except `git add`, `git rm`, `git mv` and `git commit`: push, reset, checkout of files, switch, restore, stash, branch, tag, merge, rebase, cherry-pick, revert, clean, pull, fetch, am, update-ref, fast-import, replay, filter-branch, bisect, send-pack.
   The user runs those.
   Nor `git config core.hooksPath`, which disarms the prek hooks for every later commit, nor the forms that overwrite working tree files: `git apply -R`, `git checkout-index -f`, `git read-tree -u`.
+  Nor `gh pr create`, `gh pr merge` and `gh pr close`.
 - When a commit makes sense, propose it as one `bash` block opening on `cd <project> && `, then the `git add` of the paths `git status` shows and `git commit -m "<type(scope): subject>"` in Conventional Commits form, the header 72 characters at most and one clause.
   The prefix because a `cd` persists from one call to the next: an unprefixed block stages and commits wherever the shell was left, the nested `.claude` repository included.
   Never `git add -A`.
@@ -59,8 +58,9 @@ Read a file from it when a rule below points to it, and not before.
   Reading them is fine.
 - Never print a secret.
   Before touching `.env*`, `~/.secrets`, `*.pem`, `*.key`, `id_*`, `credentials*` or any file whose path contains `secret`, `password` or `apikey`, read `~/.claude/rules/secrets.md`.
-  Do not `cat`, `head`, `tail` or `Read` a secret file; use `rg -l` for filenames only, never `rg -n`.
-  Prefer `sed -i` over Edit/Write on a secret file: Edit requires a prior Read that leaks the content.
+  Do not `cat`, `head` or `tail` a secret file, and do not open it with the `read` tool; use `rg -l` for filenames only, never `rg -n`.
+  Prefer `sed -i` over the `edit` and `write` tools on a secret file: they need a prior read that leaks the content.
+  A credential the user pastes, or one a read surfaces from a file no pattern flagged, is already in the conversation: never repeat it, and tell the user it should be rotated.
 - Never write under `~/.claude/` or `~/dotfiles/claude/.claude/`.
 - When a hook or a permission refuses a change, stop and report the refusal with its message.
   Never make the same change another way, through the shell or another tool, even when the request asks for exact content.
@@ -71,7 +71,8 @@ Read a file from it when a rule below points to it, and not before.
 
 - At the start of a session, if the project has `.claude/PLAN.md` (or a legacy `PLAN.md` at its root), read it and state the current objective, the current step and any blockers before anything else.
 
-- Change files with the edit and write tools, never with `sed`, `awk` or a heredoc: a shell edit can half-match and leave a broken file with exit code 0.
+- Change files with the `edit` and `write` tools, never with `sed`, `awk` or a heredoc: a shell edit can half-match and leave a broken file with exit code 0.
+  A secret file is the one exception, where the secret rule above prescribes `sed -i` instead.
 
 - Search with `rg` rather than `grep`, and `fdfind` rather than `find`.
 
