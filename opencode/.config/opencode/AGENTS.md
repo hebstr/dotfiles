@@ -21,6 +21,7 @@ Read a file from it when a rule below points to it, and not before.
   Use a colon, parentheses or a new sentence.
 - Never state a fact you have not checked with a tool.
   If you cannot check it, say so.
+  An assumption is named as such, never presented as a fact.
 - Never claim a change is applied unless you edited the file.
 - When you present options, end with your own recommendation and its reason in one sentence.
   Check what it depends on before giving it.
@@ -34,6 +35,7 @@ Read a file from it when a rule below points to it, and not before.
 - Never write a URL into a file without fetching it first.
   If you cannot fetch it, leave it out and say so.
 - In prose, avoid "not X, but Y" constructions, rhetorical questions answered right after, and empty openers such as "It's worth noting".
+  State the point directly rather than negating its opposite first.
 
 ## Hard limits
 
@@ -57,6 +59,8 @@ Read a file from it when a rule below points to it, and not before.
   Reading them is fine.
 - Never print a secret.
   Before touching `.env*`, `~/.secrets`, `*.pem`, `*.key`, `id_*`, `credentials*` or any file whose path contains `secret`, `password` or `apikey`, read `~/.claude/rules/secrets.md`.
+  Do not `cat`, `head`, `tail` or `Read` a secret file; use `rg -l` for filenames only, never `rg -n`.
+  Prefer `sed -i` over Edit/Write on a secret file: Edit requires a prior Read that leaks the content.
 - Never write under `~/.claude/` or `~/dotfiles/claude/.claude/`.
 - When a hook or a permission refuses a change, stop and report the refusal with its message.
   Never make the same change another way, through the shell or another tool, even when the request asks for exact content.

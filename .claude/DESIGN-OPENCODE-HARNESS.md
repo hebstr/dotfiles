@@ -40,11 +40,12 @@ Rejected:
 Decided 2026-11-08 through `/design`, approved by the user the same day, to serve them on `cpd` where Claude Code "will never be installed" and the farm directory is created empty.
 The farm stays for everything the Claude Code cache sources; only the user's own seven move.
 
-`opencode.json` gains two `skills.paths` entries, `~/Documents/packages/skills/audit` and `~/Documents/packages/skills/workflow`, placed after the farm entry, and `cpd` gains a clone of `hebstr/skills` at that same path, pulled by hand with `git pull --ff-only`.
+`opencode.json` gains two `skills.paths` entries, initially `~/Documents/packages/skills/audit` and `~/Documents/packages/skills/workflow`, placed after the farm entry, and `cpd` gains a clone of `hebstr/skills` at that same path, pulled by hand with `git pull --ff-only`.
 `opencode-skills-sync` is not touched: no clone source mode, no sibling script.
 One stowed `opencode.json` stays valid for both machines, which is the choice the section "The packages are not forked per machine, measured 2026-11-04" of `DESIGN-CPD.md` already made for the whole package.
 That choice broke on the skills clone: `cpd` does not use `~/Documents/packages`, its clone lives at `~/.local/share/opencode/skills`, and the stowed `skills.paths` now names that path, so `ju-TP` carries the same two entries pointing at its own clone under `~/Documents/packages/skills`.
 The user decided on 2026-11-08 to edit the stowed file directly rather than keep one shared path with a per-machine override: the clone is not synced between the machines, so nothing breaks when the two paths differ, and a local layer was rejected as an invisible second source of truth.
+The stowed `opencode.json` carries `~/.local/share/opencode/skills/{audit,workflow}` since that decision; `ju-TP`'s clone lives at `~/Documents/packages/skills`, so the two machines resolve the same entries to different paths, which is the accepted trade of editing the stowed file in place.
 The farm entry the file once carried for `cpd` is gone too: the farm directory does not exist there because nothing fills it.
 
 **Why the farm was never required for these seven**: the three reasons this note gives for the farm above are all properties of the Claude Code cache, and a git clone has none of them. No version hash moves under it, no disabled sibling plugin shares its directory, and nothing is listed five times.
