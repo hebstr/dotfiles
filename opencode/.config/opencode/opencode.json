@@ -139,6 +139,7 @@
       "curl *better-bibtex/json-rpc*": "deny",
       "*>*": "ask",
       "git push*": "deny",
+      "git -C * push*": "deny",
       "git reset*": "deny",
       "git checkout*": "deny",
       "git switch*": "deny",
