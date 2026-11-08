@@ -59,6 +59,11 @@ A recommendation on what to do next, in one sentence with its reason in one line
 That statement is allowed only when every `Out of scope` entry relayed in 0.1.3 received an answer; an entry left without one is something that remains to pursue.
 When a tracking file (a PLAN, a workstream note) names the next step, base the recommendation on it.
 
+This step is the only point in the session where its end is known, so it carries the routing.
+Concluding that the session can be closed, invoke the `handoff` skill now, before 0.3: it certifies the closure over the content no verifier pass has read, which 0.1.4 names and no list it can compute reaches, and it decides whether a brief is owed.
+Its findings are applied and resealed before the blocks of 0.4, so the commit carries them and still marks the closure.
+Recommending a next task instead, this commit is mid-session: no handoff fires, and 0.3 follows directly.
+
 ### 0.3 Review
 
 Run `git diff --numstat HEAD` for tracked files, and `git ls-files --others --exclude-standard` then `wc -l` for new files.

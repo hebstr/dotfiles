@@ -18,7 +18,8 @@ Three axes, set by the user:
 1. Tracking verification precedes every commit proposal: a sweep of the repository and an update if needed, never a commit proposed without it.
 2. Every recommendation is tested before being issued, during the session as at its end: it holds at the relance or it is revised beforehand.
    Adversarial review proposals (`/audit:walkthrough`, `/audit:blindspot`) obey the same discipline and stop being a systematic reflex.
-3. A session always closes in this order: tracking recorded and up to date, then a recommendation on what comes next or the explicit indication to close, then the commit proposal, which marks the closure.
+3. A session always closes in this order: tracking recorded and up to date, then a recommendation on what comes next or the explicit indication to close, then, when that indication is to close, the certification of the closure and its branch, then the commit proposal, which marks the closure.
+   The third element was added on 2026-11-08 by `.claude/DESIGN-HANDOFF.md`, which carries why it sits before the commit rather than after it.
 
 Two further strands attach to it: a methodical cleanup of the conventions that have become useless or counterproductive, and the articulation with `/workflow:sync`, which the user runs themselves in a fresh conversation after each session.
 
@@ -429,6 +430,9 @@ Ouroboros evaluate APPROVED at 0.90.
 Two rules went to `feedback_review_severity_bats_tests`: a surviving mutant that is observationally equivalent through the artifact's contract is not a test defect, and a proposed remedy is measured for discriminating power before it is applied, the "add a positive counterpart" remedy of this walkthrough having killed nothing until it was substituted.
 
 ## Open points
+
+- **A `handoff` skill closing every session, suggested by the user on 2026-11-08 and designed the same day: `.claude/DESIGN-HANDOFF.md`.** That note carries the nine approved decisions, its six rejected approaches, the measurements of 2026-11-08 that only the consumed `.claude/HANDOFF.md` buffer held, what stays open, and the record of the four artifacts built the same day under its section "Implementation of 2026-11-08".
+  Step 4 must account for the change, which adds a step to axis 3 above, rewrites what a session does after its last commit, and replaces the injected text of `closure-check.sh` without touching its trigger, so the recall measurement that step still owes is unaffected.
 
 - **Both adversarial reviews the user accepted on 2026-10-11 ran that day.** The `write-journal.sh` pass returned zero finding, so no behaviour changed and the pass on its suite was never owed; its four measured-clean shapes are recorded in `feedback_review_severity_shell_installers.md` and in `26506fb`, and `DESIGN-COMMIT-GUARD.md` no longer carries the item, its open point having been dropped on 2026-10-16 once that evidence was derived. What the `skill-mention.sh` pass settled the same day is in `DESIGN-INSTRUCTION-ROUTING.md`, section "Step 3": the relay-tag guard and the rewritten injected message. The calibration that governed it, `feedback_review_severity_heuristic_code.md` with `feedback_no_literal_matching_on_natural_language.md`, held: of nine findings two were accepted, one rejected on the hooks doc and six noted for want of any producer on the real corpus.
 

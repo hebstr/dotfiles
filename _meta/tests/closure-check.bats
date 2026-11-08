@@ -30,7 +30,7 @@ payload() {
 assert_injects() {
   [ "$status" -eq 0 ]
   [ "$(jq -r '.hookSpecificOutput.hookEventName' <<<"$output")" = UserPromptSubmit ]
-  [[ $(jq -r '.hookSpecificOutput.additionalContext' <<<"$output") == *"check run now"* ]]
+  [[ $(jq -r '.hookSpecificOutput.additionalContext' <<<"$output") == *"invoke the handoff skill now"* ]]
 }
 
 assert_silent() {
