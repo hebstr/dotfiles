@@ -366,7 +366,7 @@ Same trigger for the fourth time running: `instructions-budget` refused at 161 l
 
 The absorbed body was rewritten before the commit, not carried over as written: the session that produced it had concluded the farm was inert, from runs that piped `opencode debug skill` into `rg`, which truncates its output. The full listing refuted that within the same session, so what section 5 now holds is the farm working plus the piping trap, and the note's original claim reached no committed state.
 
-Two costs taken. The index line is now at exactly 130 bytes, the cap, so the next clause added to it has to displace one. And the carrier's filename undersells it again, as in the seventh pass: a note named `marketplace_mechanics` now also holds where opencode finds skills, with the `description` and the section heading carrying that.
+Two costs taken. The index line is at 128 bytes against the 130 cap, so a clause of more than two characters added to it has to displace one. And the carrier's filename undersells it again, as in the seventh pass: a note named `marketplace_mechanics` now also holds how opencode reads that cache, with the `description` and the section heading carrying that.
 
 The absorbed fact differs from the three previous merges in having another holder, `~/dotfiles/_meta/notes/skills-repo-portability-reco.md`, which is the condition the sixth pass's trimming rule keys on. That argued for dropping rather than merging, and the user chose the merge regardless, on the ground that the fact is a durable tool fact wider than the chantier that produced it.
 
