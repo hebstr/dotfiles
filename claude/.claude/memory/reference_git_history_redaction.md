@@ -1,6 +1,6 @@
 ---
 name: Redacting text out of local commits before a first push
-description: What it takes to remove text from unpushed commits: the introducing commit, fixup+autosquash, the rm --cached worktree trap, filter-repo-rs --partial, and the backup ref's residual liability
+description: "What it takes to remove text from unpushed commits: the introducing commit, git log --all -S over a grep of the tips, fixup+autosquash, the rm --cached worktree trap, filter-repo-rs --partial, the checks that a plain push leaves the backup ref behind, and the three steps that clear the clone afterwards (reflog expire, gc --prune, then rm -r .git/filter-repo, which no gc touches)"
 metadata:
   type: reference
 ---
@@ -18,5 +18,7 @@ The route, measured end to end:
 - commits whose trees the filter does not change keep their hashes, so already-pushed history survives untouched. Verify it, rather than trusting it, with `git rev-parse origin/main` before and after.
 
 **After the rewrite the backup ref and the filter's bundle still carry the unredacted blobs.** With `push.default` unset (so `simple`), no `remote.origin.push` refspec and no upstream on that ref, a plain `git push` leaves them behind: check those three before concluding it. Never `git push --all` while the ref exists, and delete it once the push is verified.
+
+**Deleting that ref prunes nothing, and clearing the clone takes three steps rather than one.** The pre-rewrite commits stay readable from the reflog and from the unreachable objects, so `git cat-file -t <old sha>` still answers `commit` and `git grep` still reads the unredacted text out of it. `git reflog expire --expire=now --all` then `git gc --prune=now` is what ends that half, verified by the old sha becoming unresolvable and `git fsck --unreachable --no-reflogs` reporting none. Neither touches `.git/filter-repo/`, whose `fast-export.filtered` and backup bundle are plain files holding the same text: that directory is a separate `rm -r`. Reading the `gc` as covering it is [[feedback_verify_native_gc_semantics]] exactly. None of this is an exposure while `.stignore` holds `.git` and no refspec pushes it, so it is hygiene and not urgency.
 
 Worked case, with the verdicts and what was refused: [[project_claude_dir_local_only_repo]] and `~/dotfiles/.claude/DESIGN-CLAUDE-REPO.md`, section "The confidentiality read before the push (2026-11-08)".
