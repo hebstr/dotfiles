@@ -355,3 +355,19 @@ The seventh pass had weighed this exact pair and not taken it, on two grounds, a
 Two refusals of the fourth pass were checked and neither covers this pair: the `feedback_review_severity_*` entries are refused as a family (19 when that refusal was written, 21 on 2026-11-08), and this merge feeds one of them rather than merging them together.
 
 One pointer outside the store names the absorbed file: `.claude/DESIGN-INSTRUCTION-ROUTING.md`, in a dated 2026-09-27 measurement of the harness stamping frontmatter, which stays as record with the merge noted beside it.
+
+# Ninth pass: the opencode discovery note, same day as the eighth (2026-11-08)
+
+Same trigger for the fourth time running: `instructions-budget` refused at 161 lines against the ceiling of 160, after `reference_opencode_skill_discovery.md` was added at the close of the skills-repo portability chantier. The user was offered the four shapes (fold into an already-indexed file, drop the new note, raise the ceiling in its four sites, or run `/prune`) and chose the fold, which holds the standing answer the eighth pass recorded.
+
+**Applied: the new note into `reference_claude_code_marketplace_mechanics`**, 161 lines to 160, the body carried over whole as a fifth section whose heading names the differing trigger, the four existing sections firing on installing, refreshing or moving a marketplace and the fifth on whether a second harness can read what the cache holds.
+
+**The carrier was decided by subject, not by inbound references**, which is where this pass differs from the seventh and the eighth: `rg -F` over `~/dotfiles` and `~/Documents` found no pointer to either file, so the link test those passes used had nothing to say. The subject test is the chain the carrier already describes: its section 2 establishes that the cache becomes the source of truth at runtime, and the absorbed body establishes how opencode reads that cache through the link farm.
+
+The absorbed body was rewritten before the commit, not carried over as written: the session that produced it had concluded the farm was inert, from runs that piped `opencode debug skill` into `rg`, which truncates its output. The full listing refuted that within the same session, so what section 5 now holds is the farm working plus the piping trap, and the note's original claim reached no committed state.
+
+Two costs taken. The index line is now at exactly 130 bytes, the cap, so the next clause added to it has to displace one. And the carrier's filename undersells it again, as in the seventh pass: a note named `marketplace_mechanics` now also holds where opencode finds skills, with the `description` and the section heading carrying that.
+
+The absorbed fact differs from the three previous merges in having another holder, `~/dotfiles/_meta/notes/skills-repo-portability-reco.md`, which is the condition the sixth pass's trimming rule keys on. That argued for dropping rather than merging, and the user chose the merge regardless, on the ground that the fact is a durable tool fact wider than the chantier that produced it.
+
+The sweep of the entries no triage pass has read is still owed, now through four consecutive single merges.

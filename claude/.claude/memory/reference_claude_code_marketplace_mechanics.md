@@ -1,11 +1,11 @@
 ---
 name: Claude Code marketplace install mechanics
-description: When `claude plugin install` is required vs skippable, when cache is populated, what an uninstall cleans and what it leaves for the user to delete by hand, how `extraKnownMarketplaces` relates to `marketplace add`, and why a moved `directory` source breaks `marketplace update`. Verified 2026-08-21 against the on-disk cache and settings state, the removal path on 2026-10-08.
+description: When `claude plugin install` is required vs skippable, when cache is populated, what an uninstall cleans and what it leaves for the user to delete by hand, how `extraKnownMarketplaces` relates to `marketplace add`, and why a moved `directory` source breaks `marketplace update`. Also, for a different trigger, how opencode reads that cache through the link farm, and why `opencode debug skill` must be redirected to a file rather than piped. Verified 2026-08-21 against the on-disk cache and settings state, the removal path on 2026-10-08, the opencode reading on 2026-11-08.
 metadata:
   type: reference
   originSessionId: e3cb33c3-05ad-4318-aa10-31d456904d95
 ---
-Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by inspection of `~/.claude/plugins/cache/` against `~/.claude/settings.json` (2026-08-21).
+Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by inspection of `~/.claude/plugins/cache/` against `~/.claude/settings.json` (2026-08-21), plus a fifth on a different trigger, how opencode reads that cache (section 5, 2026-11-08).
 
 **1. `extraKnownMarketplaces` (settings.json) ≡ `claude plugin marketplace add`**
 - Declaring a marketplace under `extraKnownMarketplaces` registers it at Claude Code startup, equivalent to having run the CLI `add` command. No separate `claude plugin marketplace add <name>` needed.
@@ -31,3 +31,13 @@ Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by
 **4. A `directory` source records its path twice, and a moved source dir fails the refresh**
 - The path lives in `extraKnownMarketplaces` (`~/.claude/settings.json`, stow-managed) AND in `~/.claude/plugins/known_marketplaces.json` (`source.path` plus `installLocation`, CLI-managed, not stow-managed). Both must be corrected when the source repo moves.
 - A path pointing at a missing directory makes `claude plugin marketplace update` exit 1 with `1 marketplace could not be refreshed (see --debug): <name>`, while every other marketplace still refreshes. The `--debug` it points at is not accepted on the subcommand (`unknown option '--debug'`), and `claude --debug plugin ...` starts an interactive session instead of running the command, so diagnose by reading the declared path and checking it exists. Under `set -e` that single failure is enough to abort a wrapper script (see `claude-plugins-update` in `~/dotfiles/bin/.local/bin/`, which tolerates it and defers the non-zero exit to the end).
+
+## 5. Reading the cache from opencode: the farm works, and `debug skill` must not be piped
+
+Different trigger from the four above, which fire on installing, refreshing or moving a marketplace: this one fires when asking whether a second harness reads the skills that cache holds. Measured 2026-11-08 on `ju-TP`, opencode 1.19.5.
+
+**It does.** `opencode debug skill` resolves 66 skills, and the link farm `~/.local/share/opencode-claude-skills` supplies most of them, nine from `r-skills`, nine from `r-lib`, six from `posit-dev`, four from `audit` and three from `workflow`. So the configured `skills.paths` is read, and the object form the stowed `opencode.json` uses works despite being marked `"deprecated": true` in the published schema.
+
+**The trap that makes this look false: `opencode debug skill` truncates when piped.** `~/dotfiles/_meta/notes/opencode-harness-setup.md` states it ("read from a file, not a pipe"), and a session that piped it into `rg` got fourteen entries out of 66, none of them the marketplace skills, and concluded the farm was inert. Redirect to a file before reading it, always.
+
+Confirmed in passing: `disable-model-invocation: true` does not hide a skill from this listing, all seven `hebstr` skills carrying the flag and all appearing.

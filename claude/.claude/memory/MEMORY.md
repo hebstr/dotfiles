@@ -48,7 +48,7 @@
 - reference_todo_sync.md: The `todo-sync` command aggregating TODO.md items across projects
 - reference_pkgdown_site_contents.md: What reaches a pkgdown site and stays on it: root `*.md`, vignettes, dead pages
 - reference_pkgdown_assets_extra_css.md: pkgdown CSS: only `pkgdown/assets/` reaches the root, `url()` breaks in `extra.scss`
-- reference_claude_code_marketplace_mechanics.md: Plugin install vs cache, `extraKnownMarketplaces`, a moved `directory` source
+- reference_claude_code_marketplace_mechanics.md: Plugin install vs cache, a moved `directory` source, opencode reading the farm
 - reference_plugin_skill_env_vars.md: `${CLAUDE_PLUGIN_ROOT}` renders `//`; `${CLAUDE_SKILL_DIR}` empty in skill Bash
 - reference_modern_r_model_tooling.md: R packages for model evaluation and effects (easystats, broom, yardstick); on request only
 - reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
