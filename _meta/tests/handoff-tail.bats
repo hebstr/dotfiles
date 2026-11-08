@@ -11,9 +11,11 @@ bats_require_minimum_version 1.5.0
 #   2. those literal paths stay outside /tmp, which the script filters, while the
 #      journal itself lives under BATS_TEST_TMPDIR, which it never inspects;
 #   3. tab is an IFS whitespace character, so a line opening on a tab collapses to
-#      one field instead of yielding an empty timestamp: the two malformed shapes
+#      one field instead of yielding an empty timestamp: the three malformed shapes
 #      a truncated write can leave are spelled out rather than built from an empty
-#      first field, which never reaches the loop as one.
+#      first field, which never reaches the loop as one. The third is a final line
+#      carrying no newline, which read assigns and then reports as a failure, so
+#      the loop body never sees it and the count comes from the residual.
 
 SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/skills/handoff/scripts/tail.sh"
 
@@ -62,6 +64,14 @@ tail_env() {
   [ "$output" = "/repo/kept.md" ]
 }
 
+@test "drops a TMPDIR path when TMPDIR carries a trailing slash" {
+  stamp_at 1762000000000000000
+  journal_line 1762000000000000001 /scratch/tmp/x.md
+  journal_line 1762000000000000002 /repo/a.md
+  run -0 --separate-stderr tail_env s1 /scratch/tmp/
+  [ "$output" = "/repo/a.md" ]
+}
+
 @test "keeps a path belonging to another repository" {
   stamp_at 1762000000000000000
   journal_line 1762000000000000001 /elsewhere/project/.claude/PLAN.md
@@ -92,21 +102,39 @@ tail_env() {
   stamp_at 1762000000000000000
   journal_line 1762000000000000001 /repo/a.md
   chmod 000 "$JOURNAL"
-  run ! --separate-stderr tail_env
+  run -1 --separate-stderr tail_env
   [ -z "$output" ]
-  [[ $stderr == *"journal"* ]]
+  [[ $stderr == *"unreadable"* ]]
 }
 
-@test "a missing journal exits non-zero and prints no path" {
-  run ! --separate-stderr tail_env
+@test "a missing journal exits 0 with no path, nothing of the session having been journaled" {
+  run -0 --separate-stderr tail_env
   [ -z "$output" ]
-  [[ $stderr == *"journal"* ]]
+  [[ $stderr == *"no write journal"* ]]
+}
+
+@test "an unreadable stamp exits non-zero, told apart from a missing one" {
+  stamp_at 1762000000000000000
+  journal_line 1762000000000000001 /repo/a.md
+  chmod 000 "$STAMP"
+  run -1 --separate-stderr tail_env
+  [ -z "$output" ]
+  [[ $stderr == *"unreadable"* ]]
+}
+
+@test "a timestamp carrying a leading zero is read as decimal, not as octal" {
+  stamp_at 1762000000000000000
+  journal_line 1762000000000000001 /repo/a.md
+  journal_line 08 /repo/oct.md
+  run -0 --separate-stderr tail_env
+  [ "$output" = "/repo/a.md" ]
+  [[ $stderr != *"value too great"* ]]
 }
 
 @test "an empty stamp file exits non-zero and prints no path" {
   : >"$STAMP"
   journal_line 1762000000000000001 /repo/a.md
-  run ! --separate-stderr tail_env
+  run -1 --separate-stderr tail_env
   [ -z "$output" ]
   [[ $stderr == *"stamp"* ]]
 }
@@ -114,9 +142,24 @@ tail_env() {
 @test "a stamp left as an unsubstituted token exits non-zero and prints no path" {
   stamp_at '<STAMP_VALUE>'
   journal_line 1762000000000000001 /repo/a.md
-  run ! --separate-stderr tail_env
+  run -1 --separate-stderr tail_env
   [ -z "$output" ]
   [[ $stderr == *"stamp"* ]]
+}
+
+@test "a journaled path holding spaces survives the tab split" {
+  stamp_at 1762000000000000000
+  journal_line 1762000000000000001 "/repo/a note.md"
+  run -0 --separate-stderr tail_env
+  [ "$output" = "/repo/a note.md" ]
+}
+
+@test "a session id holding a slash or dots is refused, so no journal path is steered" {
+  run -3 --separate-stderr tail_env "../../etc/passwd"
+  [ -z "$output" ]
+  [[ $stderr == *"no usable"* ]]
+  run -3 --separate-stderr tail_env "s1/../../etc"
+  [ -z "$output" ]
 }
 
 @test "no usable CLAUDE_CODE_SESSION_ID exits 3 and prints no path" {
@@ -129,7 +172,7 @@ tail_env() {
   stamp_at 1762000000000000000
   journal_line '<STAMP_VALUE>' /repo/orphan.md
   journal_line 1762000000000000001 /repo/a.md
-  run ! --separate-stderr tail_env
+  run -1 --separate-stderr tail_env
   [ "$output" = "/repo/a.md" ]
   [[ $stderr == *"1 journal"* ]]
 }
@@ -138,7 +181,16 @@ tail_env() {
   stamp_at 1762000000000000000
   printf '%s\n' /repo/truncated.md >>"$JOURNAL"
   journal_line 1762000000000000001 /repo/a.md
-  run ! --separate-stderr tail_env
+  run -1 --separate-stderr tail_env
+  [ "$output" = "/repo/a.md" ]
+  [[ $stderr == *"1 journal"* ]]
+}
+
+@test "a final line left unterminated is counted, not dropped in silence" {
+  stamp_at 1762000000000000000
+  journal_line 1762000000000000001 /repo/a.md
+  printf '%s\t%s' 1762000000000000002 /repo/unterminated.md >>"$JOURNAL"
+  run -1 --separate-stderr tail_env
   [ "$output" = "/repo/a.md" ]
   [[ $stderr == *"1 journal"* ]]
 }
