@@ -58,7 +58,7 @@ Measured 2026-11-08 on `ju-TP`, opencode 1.19.5, `OPENCODE_CONFIG` on a scratch 
 
 Weakest assumption, tested: the later `skills.paths` entry wins, so the clone shadows the farm. If a future version reversed that precedence, `ju-TP` would fall back to the farm copy, which is today's behaviour, and `cpd` would be unaffected, its farm being empty.
 
-What it trades away: the farm's coupling to `enabledPlugins`, so disabling the `audit` plugin in Claude Code no longer hides those skills from opencode, and on `ju-TP` opencode now serves the working clone, which can hold prose the plugin cache does not have yet. Both are accepted on a solo setup where the same person owns both harnesses.
+What it trades away: the farm's coupling to `enabledPlugins`, so disabling the `audit` plugin in Claude Code no longer hides those skills from opencode, and on `ju-TP` opencode now serves the working clone, which can hold prose the plugin cache does not have yet. Both are accepted on a solo setup where the same person owns both harnesses, and the second lands on the bench alone: the user stated on 2026-11-08 that the real use of opencode is on `cpd`, `ju-TP` keeping the install to write and measure the harness.
 
 Rejected, each on a measurement of that day:
 

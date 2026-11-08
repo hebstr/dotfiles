@@ -9,7 +9,7 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 - `~/.config/opencode/opencode.json` is a stow link to `~/dotfiles/opencode/.config/opencode/opencode.json`.
 - It declares the provider `cpd`, the model `cpd/qwen3.8-27b`, and the base URL `http://127.0.0.1:8090/v1`, alongside a `ju-tp2` provider kept declared and unused; see "Where the machine-specific keys live".
 - The model entry is named `unsloth/Qwen3.8-27B-GGUF` with a 196608 token context limit.
-- The server runs from `~/.opencode/bin/llama-server.sh`, stowed from `~/dotfiles/opencode/.opencode/bin/llama-server.sh`, in the foreground of a terminal; `up` fetches the model from the Hub if absent and serves until interrupted, `down` stops it, `status` reports process, port and VRAM, `logs` tails `~/logs/cpd-llama/llama-server.log`.
+- The server runs from `~/.opencode/bin/opencode-serve`, stowed from `~/dotfiles/opencode/.opencode/bin/opencode-serve`, in the foreground of a terminal; `up` fetches the model from the Hub if absent and serves until interrupted, `down` stops it, `status` reports process, port and VRAM, `logs` tails `~/logs/cpd-llama/llama-server.log`.
 - The default run loads `Qwen3.8-27B-UD-Q6_K_M.gguf` from the cache in `/data2/llama.cpp` on CUDA devices 1 and 2 with `--split-mode tensor`, a 196608 token context, one slot, and flash attention enabled by the split mode.
 - The legacy `llama-server.service` unit is untouched; it stays disabled at boot, and its old single-GPU Q4_K_M run on port 8090 coexists with the script while both are up, each holding its own card set.
 - The binary is the pre-existing b9286 at `/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server`.
@@ -59,7 +59,7 @@ The display name `unsloth/Qwen3.8-27B-GGUF` in the config is cosmetic.
 - Keep b9286 instead of installing a newer build under `/opt/llama`.
   b9286 supports every flag the script uses; the only missing option is `--reasoning-effort`, which matters only for the deferred thinking A/B.
 - Run the server as `edjulien` from a foreground script instead of creating a `llama` system user or a systemd unit.
-  Only `edjulien` uses opencode on cpd today, and a terminal process keeps the lifecycle visible: start it with `llama-server.sh up`, stop it with `down` or by interrupting the terminal.
+  Only `edjulien` uses opencode on cpd today, and a terminal process keeps the lifecycle visible: start it with `opencode-serve up`, stop it with `down` or by interrupting the terminal.
 - Use `UD-Q6_K_M` instead of `UD-Q4_K_M` now that two cards are available.
   The Q6 weights plus the 196608 token KV cache leave about 7 GiB free per card, and the measured generation speed is about 32 tok/s on two cards, above the single-card Q4 figure.
 - Split across CUDA devices 1 and 2 with `--split-mode tensor` instead of device 0 alone.
@@ -120,7 +120,7 @@ Nothing refreshes that clone on its own: `git pull --ff-only` there is what upda
 Start the server in a terminal; the first run downloads the Q6_K_M GGUF into `/data2/llama.cpp`:
 
 ```bash
-~/.opencode/bin/llama-server.sh up
+~/.opencode/bin/opencode-serve up
 curl -s http://127.0.0.1:8090/health
 ```
 
@@ -133,9 +133,9 @@ cd "$(mktemp -d)" && git init -q && opencode run "Reply exactly: ok"
 ## Operations
 
 ```bash
-~/.opencode/bin/llama-server.sh status
-~/.opencode/bin/llama-server.sh logs
-~/.opencode/bin/llama-server.sh down
+~/.opencode/bin/opencode-serve status
+~/.opencode/bin/opencode-serve logs
+~/.opencode/bin/opencode-serve down
 curl -s http://127.0.0.1:8090/props | jq '{model_alias, is_sleeping}'
 ```
 
@@ -152,6 +152,7 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
   Reading `/data2/llama.cpp` needs no grant, the cache being mode 777 with `other::rwx`.
   Two simultaneous users would need more VRAM than one card provides, so revisit `CUDA_VISIBLE_DEVICES` and `--ctx-size` at that point.
 - Thinking A/B: install a build that supports `--reasoning-effort`, then replace `--reasoning off ${SAMPLING}` with `--reasoning on --reasoning-effort low --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0`.
+- Restow `opencode` on `cpd000001`: `llama-server.sh` was renamed to `opencode-serve` in the package on 2026-11-08 (`a66fd73`), so the link that machine carries still has the old name and the new one is absent until the package is restowed there; check for a leftover `~/.opencode/bin/llama-server.sh` afterwards.
 - Claude Code is not installed on cpd, so no link farm exists here and the third-party plugin skills of its cache stay out. The seven skills of `hebstr/skills` reach opencode from the clone instead, decided 2026-11-08: see "Current state" above and `DESIGN-OPENCODE-HARNESS.md` § "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08".
 
 ## Caveats
