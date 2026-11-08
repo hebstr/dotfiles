@@ -115,7 +115,7 @@ jq -c "{model, instructions, permission: (.permission | keys), skills}" opencode
 ```
 
 ```output
-{"model":"cpd/qwen3.8-27b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permission":["bash","external_directory","skill"],"skills":{"paths":["~/.local/share/opencode-claude-skills","~/Documents/packages/skills/audit","~/Documents/packages/skills/workflow"]}}
+{"model":"cpd/qwen3.8-27b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permission":["bash","external_directory","skill"],"skills":{"paths":["~/.local/share/opencode/skills/audit","~/.local/share/opencode/skills/workflow"]}}
 ```
 
 `model` names `cpd`, not `ju-TP2`, since 2026-11-04 (`71ff1ec`, `d7b04c8`): the setup built on `cpd` is the one that runs, and the user stated on 2026-11-05 that opencode will not be used against `ju-TP2` until further notice.

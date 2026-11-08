@@ -43,6 +43,9 @@ The farm stays for everything the Claude Code cache sources; only the user's own
 `opencode.json` gains two `skills.paths` entries, `~/Documents/packages/skills/audit` and `~/Documents/packages/skills/workflow`, placed after the farm entry, and `cpd` gains a clone of `hebstr/skills` at that same path, pulled by hand with `git pull --ff-only`.
 `opencode-skills-sync` is not touched: no clone source mode, no sibling script.
 One stowed `opencode.json` stays valid for both machines, which is the choice the section "The packages are not forked per machine, measured 2026-11-04" of `DESIGN-CPD.md` already made for the whole package.
+That choice broke on the skills clone: `cpd` does not use `~/Documents/packages`, its clone lives at `~/.local/share/opencode/skills`, and the stowed `skills.paths` now names that path, so `ju-TP` carries the same two entries pointing at its own clone under `~/Documents/packages/skills`.
+The user decided on 2026-11-08 to edit the stowed file directly rather than keep one shared path with a per-machine override: the clone is not synced between the machines, so nothing breaks when the two paths differ, and a local layer was rejected as an invisible second source of truth.
+The farm entry the file once carried for `cpd` is gone too: the farm directory does not exist there because nothing fills it.
 
 **Why the farm was never required for these seven**: the three reasons this note gives for the farm above are all properties of the Claude Code cache, and a git clone has none of them. No version hash moves under it, no disabled sibling plugin shares its directory, and nothing is listed five times.
 
@@ -66,7 +69,8 @@ Rejected, each on a measurement of that day:
 
 Open on purpose: the clone's freshness on `cpd` depends on a pull that nothing triggers, which is the same posture `DESIGN-CPD.md` § "Open points" already records for the dotfiles clone itself.
 
-Applied the same day in `8047880`, on `ju-TP`: the two `skills.paths` entries, the `external_directory` allow above, and the records. The clone on `cpd` and the four measurements it gates are owed on that machine.
+Applied the same day in `8047880`, on `ju-TP`: the two `skills.paths` entries, the `external_directory` allow above, and the records. The clone on `cpd` followed the same day at `~/.local/share/opencode/skills`, with its paths written into the stowed file in place of the shared path: `opencode debug skill` resolves all seven from it, and a live `opencode run` loaded the `reco` skill through the `skill` tool (see `_meta/notes/opencode-cpd-setup.md`).
+Still owed on `cpd`: whether `write` and `reco` run to completion as full passes rather than loading; whether `OPENROUTER_API_KEY` has an outbound path there, which the three cross-provider skills need; and whether `walkthrough`, `blindspot` and `skill-adversary` survive dispatching a bundled agent definition opencode does not read.
 
 A standing coupling the change leaves behind: the `showboat verify` check of `_meta/notes/opencode-harness-setup.md` that prints `jq -c "{model, instructions, permission: (.permission | keys), skills}"` pins the `skills` object verbatim, so any later edit to `skills.paths` makes that expected output false and has to carry it.
 
@@ -94,7 +98,7 @@ The Stop hook's re-activation cannot be done from a plugin (anomalyco/opencode#1
 
 ## Permissions allow reading `~/.claude` and forbid writing it
 
-`external_directory` set to `allow` on `~/.claude/**`, on the link farm and, since 2026-11-08, on `~/Documents/packages/skills/**`, the skills clone the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" adds; skill directories are already allowed by opencode itself, but this block opens on `"*": "ask"` and the farm carries its own allow, so a `templates/` or `scripts/` read under the clone would have been auto-rejected under `opencode run` without it.
+`external_directory` set to `allow` on `~/.claude/**` and, since 2026-11-08, on `~/.local/share/opencode/skills/**`, the skills clone path the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" serves; skill directories are already allowed by opencode itself, but this block opens on `"*": "ask"` and the farm carries its own allow, so a `templates/` or `scripts/` read under the clone would have been auto-rejected under `opencode run` without it.
 
 The write half did not hold: as first written, `edit` was set to `deny` on `~/.claude/**`, and the live run of 2026-09-21 wrote there despite it, opencode matching `edit` patterns against a path relative to the project (see "The first live run on the 9B, 2026-09-21").
 The `edit` patterns are gone, the plugin guard and the `bash` permission carrying the refusal instead (see "`bash` asks unless a command is on a read-and-gate allowlist, 2026-09-21").

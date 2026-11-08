@@ -38,9 +38,8 @@
   "instructions": [".claude/CLAUDE.md", ".claude/memory/MEMORY.md"],
   "skills": {
     "paths": [
-      "~/.local/share/opencode-claude-skills",
-      "~/Documents/packages/skills/audit",
-      "~/Documents/packages/skills/workflow"
+      "~/.local/share/opencode/skills/audit",
+      "~/.local/share/opencode/skills/workflow"
     ]
   },
   "watcher": {
@@ -192,8 +191,7 @@
       "*": "ask",
       "/tmp/**": "allow",
       "~/.claude/**": "allow",
-      "~/.local/share/opencode-claude-skills/**": "allow",
-      "~/Documents/packages/skills/**": "allow"
+      "~/.local/share/opencode/skills/**": "allow"
     },
     "skill": {
       "*": "allow",

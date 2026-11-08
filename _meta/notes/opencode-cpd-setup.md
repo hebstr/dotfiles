@@ -1,6 +1,6 @@
 # opencode with a local llama-server on cpd000001
 
-As-built record and reproduction procedure, built 2026-11-04 and updated 2026-11-06.
+As-built record and reproduction procedure, built 2026-11-04 and updated 2026-11-08.
 The scope is the single user `edjulien`; the shared, multi-user variant is deferred.
 
 ## Current state
@@ -14,14 +14,26 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 - The legacy `llama-server.service` unit is untouched; it stays disabled at boot, and its old single-GPU Q4_K_M run on port 8090 coexists with the script while both are up, each holding its own card set.
 - The binary is the pre-existing b9286 at `/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server`.
 - The stow packages `bin`, `opencode`, `agents` and `claude` are linked.
-- `~/.claude/skills` is a real directory whose entries are links; `~/.local/share/opencode-claude-skills` exists and stays empty.
-- `~/Documents/packages/skills` is **not yet cloned here**: the stowed `opencode.json` has named it under `skills.paths` since 2026-11-08, so the step is owed on this machine and the Reproduction section below carries it. Once cloned it is a consumer clone, never edited here, kept current with `git pull --ff-only`, and it is what serves the seven skills of `hebstr/skills` to opencode.
+- `~/.claude/skills` is a real directory whose entries are links.
+- The farm directory `~/.local/share/opencode-claude-skills` does not exist on this machine: its entry left the stowed `opencode.json` on 2026-11-08 because nothing here ever fills it, and `opencode-skills-sync` would recreate it only if it ran.
+- The skills clone lives at `~/.local/share/opencode/skills`, cloned 2026-11-08 from `git@github.com:hebstr/skills.git`. It is a consumer clone, never edited here, kept current with `git pull --ff-only`, and it is what serves the seven skills of `hebstr/skills` to opencode.
+- The stowed `opencode.json` names that path under `skills.paths`; on `ju-TP` the same entries point at `~/Documents/packages/skills/{audit,workflow}`, so the two machines differ there (see "The skills paths override").
 - `/etc/opencode` is empty, `/usr/local/bin/opencode` is absent, and neither the `llama` user nor `/opt/llama` exists.
 
 Verified on 2026-11-04: `/health` returns `ok`, a tool call completes with `finish_reason` set to `tool_calls`, a plain reply carries no reasoning, sleep and wake work with a 60 s idle trial, and `opencode run "Reply exactly: ok"` returns `ok` through the service.
 Verified on 2026-11-06 with the script: `/health` returns `ok` on the test port 8091, a chat completion answers in French, prompt processing runs at about 50 tok/s and generation at about 32 tok/s, GPUs 1 and 2 each hold 17606 MiB while GPU 0 stays with its Q4_K_M instance, and `down` frees both cards.
 **The 50 tok/s is not a prefill throughput figure and must not be cited as one**, established 2026-11-07 in `cpd-inference-engine-reco.md`: it comes from that one short French chat completion on a freshly started server, so it measures per-request overhead and any PTX JIT rather than prompt processing at depth, and it sits about an order of magnitude below every published sm_75 figure for this model.
 Nothing in this repository measures prefill, so the baseline has still to be taken.
+
+Verified on 2026-11-08 for the skills clone: `opencode debug skill` resolves all seven from `~/.local/share/opencode/skills`, four under `audit` and three under `workflow`, each exactly once, with flat ids.
+A live `opencode run` in a throwaway repository loaded the `reco` skill through the `skill` tool and completed, which is the first end-to-end pass of a clone-served skill on this machine.
+The same run auto-rejects a skill set to `ask` in `permission.skill`, because `opencode run` has no channel to prompt: a named `allow` entry is what lets it load, as the override above shows for `reco`.
+
+## The skills paths override
+
+The stowed `opencode.json` names this machine's clone path, `~/.local/share/opencode/skills/{audit,workflow}`, and `ju-TP` carries the same two entries pointing at `~/Documents/packages/skills/{audit,workflow}`.
+The user decided on 2026-11-08 to edit the stowed file directly rather than keep one path for both machines with a per-machine override: the clone is not synced between the machines, so nothing breaks when the two paths differ, and a local layer was rejected as an invisible second source of truth.
+The `ju-TP` entries were replaced in place; that machine re-resolves its seven skills from its own clone on next start, which owes the same check this machine had on 2026-11-08.
 
 ## Where the machine-specific keys live
 
@@ -79,24 +91,24 @@ Link the packages:
 ```bash
 cd ~/dotfiles
 stow -v -t ~ bin opencode agents
-mkdir -p ~/.claude/skills ~/.local/share/opencode-claude-skills
+mkdir -p ~/.claude/skills
 stow -v -R --ignore='\.ruff_cache' -t ~ claude
 ```
 
 `~/.claude/skills` must exist as a real directory before the `claude` package is stowed, so each skill becomes one directory link.
 
-Clone the skills repository, which the stowed `opencode.json` names under `skills.paths`:
+Clone the skills repository into this machine's own path:
 
 ```bash
-mkdir -p ~/Documents/packages
-git clone https://github.com/hebstr/skills.git ~/Documents/packages/skills
+mkdir -p ~/.local/share/opencode
+git clone https://github.com/hebstr/skills.git ~/.local/share/opencode/skills
 ```
 
-The path is the one both machines use, so one stowed configuration serves both.
-Check what opencode resolves from it, reading the output from a file because this command truncates when piped:
+The stowed `opencode.json` already names this path under `skills.paths`, so no per-machine configuration step is needed here.
+Check what opencode resolves from the clone, reading the output from a file because this command truncates when piped:
 
 ```bash
-opencode debug skill > /tmp/skills.txt && rg -o '"location": "[^"]*packages/skills[^"]*"' /tmp/skills.txt
+opencode debug skill > /tmp/skills.txt && rg -o '"location": "[^"]*opencode/skills[^"]*"' /tmp/skills.txt
 ```
 
 Seven lines are expected, four under `audit` and three under `workflow`.
@@ -137,7 +149,7 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
   Reading `/data2/llama.cpp` needs no grant, the cache being mode 777 with `other::rwx`.
   Two simultaneous users would need more VRAM than one card provides, so revisit `CUDA_VISIBLE_DEVICES` and `--ctx-size` at that point.
 - Thinking A/B: install a build that supports `--reasoning-effort`, then replace `--reasoning off ${SAMPLING}` with `--reasoning on --reasoning-effort low --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0`.
-- Claude Code is not installed on cpd, so the farm directory `~/.local/share/opencode-claude-skills` stays empty and the third-party plugin skills of its cache stay out. The seven skills of `hebstr/skills` reach opencode from the clone instead, decided 2026-11-08: see "Current state" above and `DESIGN-OPENCODE-HARNESS.md` § "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08".
+- Claude Code is not installed on cpd, so no link farm exists here and the third-party plugin skills of its cache stay out. The seven skills of `hebstr/skills` reach opencode from the clone instead, decided 2026-11-08: see "Current state" above and `DESIGN-OPENCODE-HARNESS.md` § "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08".
 
 ## Caveats
 
