@@ -185,9 +185,11 @@ The locution figure is the prevalence of the pattern under a reduced copy of the
 
 ## Open
 
-- **The chain cannot be exercised in the session that builds it**, measured on 2026-11-08: the reduced `closure-check.sh` fired on the user's locution as designed and asked for the skill, and both `handoff` and `claude:handoff` came back `Unknown skill` from the `Skill` tool, the harness having scanned the skills directory before the file existed.
-  The procedure was then run by hand, in its own order, and reported an empty scope.
-  So the first end-to-end test of the routing belongs to the next session, and step 4 inherits the general form of this: a session cannot measure a mechanism it has just created.
+- **The `Unknown skill` of 2026-11-08 was a missing link, not a scan window.** The reduced `closure-check.sh` fired on the user's locution as designed and asked for the skill, and both `handoff` and `claude:handoff` came back `Unknown skill` from the `Skill` tool, which was first attributed to the harness having scanned the skills directory before the file existed.
+  The cause, found at 21:04 the same day: `~/.claude/skills/` is a real directory carrying one symlink per skill, as `rules/install.md` prescribes for the `claude` package, and `stow claude` had not been rerun after the skill directory was created, so the path the harness scans held no `handoff` at all and the next session's skill list missed it too.
+  `stow -n -v claude` named that single link and nothing else; it was created at 21:06, and the `Skill` listing gained the skill inside that same session, with no restart, so a skill is invocable as soon as its link exists.
+  The procedure of 2026-11-08 was then run by hand, in its own order, and reported an empty scope, so the first end-to-end test of the routing still belongs to a session that did not build the chain.
+  What step 4 inherits is narrower than "a session cannot measure a mechanism it has just created": a new skill directory needs its `stow` pass before any session sees it.
 - **The recall of `closure-check.sh`** stays owed to step 4 of `PLAN-SESSION-DISCIPLINE.md`, and the deliberate freeze it now demands.
   Reducing the hook to a router changes its injected text, not its trigger, so the measurement is unaffected.
 - **Whether section 0.2 concludes at the right moment** is the weakest assumption and is untested: it can only be judged at the step 4 remeasure, which must account for this change as it accounts for the two corrections of `DESIGN-CADRER.md`.
@@ -196,8 +198,20 @@ The locution figure is the prevalence of the pattern under a reduced copy of the
 - **A write made through Bash or by hand** is absent from the journal, so the reread's tail misses it.
   `CLAUDE.md` forbids shell writes, and `git status` catches the unignored ones, which leaves an ignored `.claude/` file written outside `Edit` and `Write` as the residual.
 - **The `handoff` name** is the user's, after Matt Pocock's; nothing in `~/Documents/packages/skills` or this package held that name before 2026-11-08.
-- **The journal's tail is computed by a shell block inside the skill**, not by a script with a suite, which follows what `commit/SKILL.md` already inlines in its steps 0.1.1 and 0.1.4.
-  It reopens with the open point "The shell of the `commit` skill moves into tested scripts" of `.claude/DESIGN-COMMIT-GUARD.md`, which covers the same debt.
+
+## The journal's tail is a tested script, 2026-11-08
+
+**Decision: the computation lives in `claude/.claude/skills/handoff/scripts/tail.sh` with `_meta/tests/handoff-tail.bats`, and section 1 of the skill calls it.**
+The shell block the skill first carried was justified by "what `commit/SKILL.md` already inlines in its steps 0.1.1 and 0.1.4", and that precedent does not exist: both fences of that file are script invocations, the logic having already been extracted, and the only inline computation left there is the `rg | jq` of `agents/verifier.md`.
+What governs is the approved decision "The shell of the `commit` skill moves into tested scripts" of `DESIGN-COMMIT-GUARD.md`, whose motive applies verbatim: the text of a `SKILL.md` is seen neither by shellcheck, nor by bats, nor by the review criterion of section 0.3 of `commit`.
+Its first red test is the one that bit here: an unreadable stamp or journal must exit with an error, never with an empty list, and in this skill an empty list is what section 4 reads as "the pass already covered everything".
+Run in the session of 2026-11-08, the block answered a bare `No such file or directory` with no path on stdout, which is indistinguishable from an empty scope.
+Drift measured on the twin block: 28 of 31 launches of 0.1.1 conformed, three paraphrased, one losing the union.
+
+Not folded into `writes.sh` as a flag: the rule is not the gate's (section 1 declines `commit-stale.sh` and its `excluded()`), it has one caller, and `writes.sh` sits in the frozen path list of the step 4 preflight.
+
+**What the suite found, and the script now holds.** Tab is an IFS whitespace character, so a journal line opening on a tab collapses to a single field: `IFS=$'\t' read -r ts path` yields the path in `ts` and an empty `path`, and the block's `[ -n "$p" ]` guard dropped it in silence.
+The loop therefore counts an empty path as malformed rather than skipping it, which covers both shapes a truncated write can leave, and a malformed line prints the valid paths with a count on stderr instead of hiding them.
 
 ## Implementation of 2026-11-08
 
@@ -207,5 +221,8 @@ section 0.2 of `claude/.claude/skills/commit/SKILL.md`, which carries the routin
 the `reminder` of `claude/.claude/hooks/closure-check.sh`, reduced from the whole procedure to a routing line, with the `assert_injects` substring of `_meta/tests/closure-check.bats` following it;
 and the `!DESIGN-HANDOFF.md` line of `.claude/.gitignore`.
 
+Two more the same evening, from the decision above: `claude/.claude/skills/handoff/scripts/tail.sh` and `_meta/tests/handoff-tail.bats`, the suite written red first (12 failing on the absent script) and green at 13 once the IFS shape was added.
+
 Gate: `shellharden`, `shfmt -d -i 2` and `shellcheck` clean on the hook, `bats _meta/tests/closure-check.bats` 28/28, `_meta/tests/instructions-budget.bats` clean, and both touched frontmatters parse under `yaml.safe_load`.
+The script passes the same three tools and `bats _meta/tests/handoff-tail.bats` 13/13.
 Nothing is owed in the opencode mirror: its `skill` permission map in `opencode/.config/opencode/opencode.json` defaults to `"*": "allow"`, which is what an auto-invoked certification carrying no git write wants, and `AGENTS.md` mirrors the rules of `CLAUDE.md`, which this change does not touch.

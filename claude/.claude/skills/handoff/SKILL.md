@@ -22,19 +22,21 @@ The brief is an input to the reread rather than its successor, two defects of 20
 The write journal's entries post-dating the stamp are the scope, with no filter but the temporary directories:
 
 ```bash
-j="${XDG_RUNTIME_DIR:-/tmp}/claude-code-writes-${CLAUDE_CODE_SESSION_ID-}.log"
-s=0 && [ -r "${j%.log}.stamp" ] && read -r s <"${j%.log}.stamp"
-while IFS=$'\t' read -r t p; do
-  case $p in "${TMPDIR:-/tmp}"/* | /tmp/*) continue ;; esac
-  [ -n "$p" ] && [ "$t" -gt "$s" ] 2>/dev/null && printf '%s\n' "$p"
-done <"$j" | LC_ALL=C sort -u
+bash ~/.claude/skills/handoff/scripts/tail.sh
 ```
+
+Each line printed is one path, sorted and deduplicated.
+Exit 0 with no line means the journal holds nothing after the stamp, which is the empty scope section 4 acts on, and it is the only shape that may be read that way.
+Exit 3 says `CLAUDE_CODE_SESSION_ID` is unusable; exit 1 says the journal is unreadable, or the stamp is not a timestamp, or a journal line is malformed.
+On exit 3, and on the first two shapes of exit 1, nothing is printed, so a failure never reads as an empty scope.
+A malformed line is the third shape: the valid paths are still printed and stderr names how many lines were skipped, so the scope is that list plus whatever those lines held.
+The cases are pinned by `_meta/tests/handoff-tail.bats`.
 
 The temporary directories are the one thing dropped, the session scratchpad living there and holding no tracking file.
 A path in another repository stays in: a note of `~/dotfiles` written from a project session is exactly the kind of write no other mechanism reaches.
 
-No stamp file means no verifier pass ran in this session, and the whole journal is then the scope, which is the shape a session that commits nothing takes.
-`CLAUDE_CODE_SESSION_ID` empty or no readable journal: say so, and take as the scope the files you know the session wrote after the last pass, naming that the list is yours rather than the journal's.
+No stamp file means no verifier pass ran in this session, and the whole journal is then the scope, which the script says on stderr and is the shape a session that commits nothing takes.
+On any non-zero exit, say which failure it was, then take as the scope the files you know the session wrote after the last pass, naming that the list is yours rather than the journal's.
 
 Do not use `commit-stale.sh` for this list.
 Its `excluded()` drops the `.claude/` paths each project ignores and the memory store, and its journal branch drops them again through `in_work_tree_unignored`, which is 117 of the 150 post-pass paths measured on 2026-11-08: the paths this pass exists to read are exactly the ones it filters.
