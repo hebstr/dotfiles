@@ -56,6 +56,7 @@
 - reference_r_data_mask_shadows_local.md: A column shadows a same-named local later in the same tibble()/mutate() call
 - reference_git_html_id_filter.md: `html-id`, `comment-hash`, `out-meta`, regex traps, silent loss, prek's stash, status noise
 - reference_git_askpass_positron.md: Positron's GIT_ASKPASS sends an empty Basic auth: "Access denied" instead of a prompt
+- reference_git_history_redaction.md: Redaction before a push: blob in the introducing commit, fixup+autosquash, rm --cached trap
 - reference_regex_engine_accented_text.md: Regex alternations over accented text: re2 vs ICU, ASCII-only `\b`, offset maps
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc: the plan, and why it is dormant since 2026-09-08
 - reference_llama_server_gpu_serving.md: llama-server: OOM flags, split-mode, KV quant pairs, greedy, thinking, SWA, `--hf-repo`
@@ -114,8 +115,7 @@
 - feedback_review_severity_personal.md: Personal packages and solo repos: missing-infra and already-compromised-host rejections
 - feedback_review_severity_stat_reports_fr.md: Calibrating reviews of French statistical reports and md-nesrine's render journal
 - feedback_review_severity_shell_installers.md: Calibrating reviews of personal shell installers, hooks and commit-skill scripts
-- feedback_review_severity_hebstr_doc.md: Reviews of quarto-hebstr-doc: shortcodes, docx, threading, rebuild, assertion probes
-- feedback_hebstr_doc_no_public_api.md: quarto-hebstr-doc has one developer: no public-API or compat argument, no CONTRIBUTING
+- feedback_review_severity_hebstr_doc.md: Reviews of quarto-hebstr-doc, and its no-public-API rule: one dev, no compat argument
 - feedback_bats_comment_carve_out.md: Why the bats comment debt is won't-fix; don't re-measure the 41 suites
 - feedback_review_severity_bats_tests.md: Calibrating reviews of bats tests for personal shell tooling; measure a remedy first
 - feedback_review_severity_bash_dotfiles.md: Calibrating reviews of the interactive shell dotfiles in `bash/`
