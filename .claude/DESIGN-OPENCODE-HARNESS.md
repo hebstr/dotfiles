@@ -194,6 +194,13 @@ opencode is the second adapter of the contract decided in `.claude/DESIGN-COMMIT
 `permission.bash` ends on the four `ask` rules for `git add`, `git commit`, `git rm` and `git mv` (the last two by the decision "every git write verb is gated" in that section), placed last so that the last-match-wins evaluation keeps them, and written as substrings (`"*git add*"`) so that they still catch a compound command if opencode ever matches the whole command string, as its V2 core on `dev` does.
 Before them, `opencode.json` denies the other write verbs of Claude Code's `deny` list in their canonical prefix form, placed after `"*>*": "ask"` so that a redirection cannot turn a deny back into a prompt; a rerouted form (`git -C . push`) still falls to `"*": "ask"`.
 The hardening patterns of the third `git-write-guard.sh` walkthrough (`git config core.hooksPath`, `git apply -R`, `git checkout-index -f`, `git read-tree -u` and their long spellings) are prefix patterns where Claude Code's guard reads the parsed command, so a reordered spelling matches none of them and falls to `"*": "ask"` on opencode, the same accepted class as `git -C . push`.
+
+### The deny patterns moved from prefix to substring form, 2026-11-08
+
+The `git -C . push` bypass was measured live in run `0422e28c`: a compound command `cd /home/edjulien/dotfiles && git push` was rewritten by the shell scanner into `git -C /home/edjulien/dotfiles push`, which matched an allow rule for `git -C *` that had been added during the session, and executed without a prompt.
+The fix moved every write-verb deny from its canonical prefix form (`git push*`, `git reset*`) to a substring form (`git*push*`, `git*reset*`), one pattern per verb, which covers `git <verb>`, `git -C <path> <verb>`, and any other flag-prefixed spelling in a single rule.
+Twenty-seven patterns replaced forty-eight: the old list carried both the bare prefix and a `-C` variant for each verb, plus eleven separate `git branch` subflag patterns that collapse into one `git*branch*`.
+The read allowlist is untouched: its patterns (`git status*`, `git diff*`, etc.) stay in prefix form because they are allows, and a false positive on an allow is less dangerous than a false positive on a deny.
 Accepted: an "always" answer approves `git commit *` for the rest of the session.
 The prompt itself has not been tried live.
 

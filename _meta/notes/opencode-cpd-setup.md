@@ -29,6 +29,9 @@ Verified on 2026-11-08 for the skills clone: `opencode debug skill` resolves all
 A live `opencode run` in a throwaway repository loaded the `reco` skill through the `skill` tool and completed, which is the first end-to-end pass of a clone-served skill on this machine.
 The same run auto-rejects a skill set to `ask` in `permission.skill`, because `opencode run` has no channel to prompt: a named `allow` entry is what lets it load, as the override above shows for `reco`.
 
+The same session measured a permission bypass: a compound `cd /home/edjulien/dotfiles && git push` was rewritten by the shell scanner into `git -C /home/edjulien/dotfiles push`, which matched an allow rule and executed without a prompt despite `"git push*": "deny"`.
+The deny patterns were moved to substring form (`git*push*`, `git*reset*`, etc.) so that every flag-prefixed spelling of a write verb is caught by one pattern per verb; see `DESIGN-OPENCODE-HARNESS.md` § "The deny patterns moved from prefix to substring form, 2026-11-08".
+
 ## The skills paths override
 
 The stowed `opencode.json` names this machine's clone path, `~/.local/share/opencode/skills/{audit,workflow}`, and `ju-TP` carries the same two entries pointing at `~/Documents/packages/skills/{audit,workflow}`.
