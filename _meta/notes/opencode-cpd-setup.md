@@ -15,7 +15,7 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 - The binary is the pre-existing b9286 at `/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server`.
 - The stow packages `bin`, `opencode`, `agents` and `claude` are linked.
 - `~/.claude/skills` is a real directory whose entries are links; `~/.local/share/opencode-claude-skills` exists and stays empty.
-- `~/Documents/packages/skills` is a clone of the public `hebstr/skills`, read by opencode through the two `skills.paths` entries of the stowed `opencode.json`; it is a consumer clone, never edited here, kept current with `git pull --ff-only`.
+- `~/Documents/packages/skills` is **not yet cloned here**: the stowed `opencode.json` has named it under `skills.paths` since 2026-11-08, so the step is owed on this machine and the Reproduction section below carries it. Once cloned it is a consumer clone, never edited here, kept current with `git pull --ff-only`, and it is what serves the seven skills of `hebstr/skills` to opencode.
 - `/etc/opencode` is empty, `/usr/local/bin/opencode` is absent, and neither the `llama` user nor `/opt/llama` exists.
 
 Verified on 2026-11-04: `/health` returns `ok`, a tool call completes with `finish_reason` set to `tool_calls`, a plain reply carries no reasoning, sleep and wake work with a 60 s idle trial, and `opencode run "Reply exactly: ok"` returns `ok` through the service.

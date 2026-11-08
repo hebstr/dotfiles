@@ -66,7 +66,9 @@ Rejected, each on a measurement of that day:
 
 Open on purpose: the clone's freshness on `cpd` depends on a pull that nothing triggers, which is the same posture `DESIGN-CPD.md` § "Open points" already records for the dotfiles clone itself.
 
-What the implementation owes, beyond the two entries in `opencode/.config/opencode/opencode.json`: the expected output of the `showboat verify` check that prints `jq -c "{model, instructions, permission: (.permission | keys), skills}"` in `_meta/notes/opencode-harness-setup.md` pins the `skills` object verbatim, so it goes stale in the same edit and is updated with it, along with that note's description of `skills.paths` as "pointing at the link farm".
+Applied the same day in `8047880`, on `ju-TP`: the two `skills.paths` entries, the `external_directory` allow above, and the records. The clone on `cpd` and the four measurements it gates are owed on that machine.
+
+A standing coupling the change leaves behind: the `showboat verify` check of `_meta/notes/opencode-harness-setup.md` that prints `jq -c "{model, instructions, permission: (.permission | keys), skills}"` pins the `skills` object verbatim, so any later edit to `skills.paths` makes that expected output false and has to carry it.
 
 ## What the model sees is filtered by `permission.skill`
 
