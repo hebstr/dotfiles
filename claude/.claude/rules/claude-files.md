@@ -10,7 +10,7 @@ Injected by `inject-rules.sh` on the session's first write to a file meant for C
 ## Language
 
 - Everything meant for Claude or agents is written in English, French only when the user explicitly asks for it: memory files, skills with their agents and prompts, rules files, `CLAUDE.md`, the `.claude/` notes, and the decision notes of `_meta/notes/`. The conversation itself still mirrors the user's language.
-- A stored prompt (`.claude/PROMPT.md`, a handoff, a continuation prompt) is Claude-facing whoever pastes it, so it is English too: what decides is the reader, never the writer. A French one already in the tree is the deferred debt of the line below, never the precedent to follow.
+- A stored prompt (`.claude/HANDOFF.md`, a handoff, a continuation prompt) is Claude-facing whoever pastes it, so it is English too: what decides is the reader, never the writer. A French one already in the tree is the deferred debt of the line below, never the precedent to follow.
 - Existing French content of that kind moves to English at its next substantial rewrite, skills one per conversation; the deferred list is in `~/dotfiles/.claude/DESIGN-CADRER.md`.
 
 ## Form
@@ -19,13 +19,14 @@ Injected by `inject-rules.sh` on the session's first write to a file meant for C
 - Cite by name, never by line number: code by its symbol (a function, a branch named by its guard), a test by its `test_that()`, `def test_` or `@test` title, prose by its section heading or a verbatim quote. A line number rots silently on any insertion above it, while a name either resolves under `rg -F` or fails loudly.
 - A drifted line reference is never renumbered: in live text, convert it to a name in the same edit; in a dated or superseded section, leave it as record. A shift in line numbers alone is therefore never staleness for a sync or audit pass. Carve-out: a project `CLAUDE.md` that deliberately keeps `file:line` pointers in a named section owns their upkeep, and no new ones are added elsewhere. Detail and incidents in `feedback_line_number_cross_refs.md`.
 
-## `.claude/PROMPT.md`
+## `.claude/HANDOFF.md`
 
 - One file per project holds the prompt Claude writes for the user to run, and it is a buffer rather than a document: Claude fills it at a session boundary, the user cuts it into a fresh conversation, and it sits empty the rest of the time. Empty is its resting state, so finding content there means a previous session's prompt was never consumed: say so and ask before overwriting it.
 - The fresh conversation is the point, not a preference. A skill gated on explicit invocation only fires on a `/name` the user types, so a prompt Claude prints in its own conversation can never reach one.
 - A buffer that routes to such a skill opens on that `/name`, the rest of the file being its argument. The harness parses the command at the start of the pasted message only, and a skill carrying `disable-model-invocation: true` is absent from the model's own skill list, so a command line sitting under a title fires nothing and the fresh session improvises the procedure instead of loading it. Verified 2026-10-17 on `prune`: every invocation in `~/.claude/projects` opens on `<command-message>`, none follows prose.
 - Claude writes it, never runs what it holds, and never proposes running it: a prompt in that file is the user's to send.
 - It is overwritten whole rather than appended to, and it carries one prompt at a time. A prompt worth keeping is not kept here: the decision it serves goes to the note that owns it.
+- The file was named `PROMPT.md` until 2026-11-08. A `PROMPT*.md` still in a project is the same buffer under the old name: rename it to `HANDOFF*.md` when the project is next touched, and update that project's `.claude/.gitignore`, which lists the old pattern wherever it predates the rename.
 
 ## Content
 

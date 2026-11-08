@@ -69,7 +69,7 @@ Three holders an inventory read file by file cannot see, each of which has inver
 So the inventory names, per note, which of the three it did not open, and the pass opens them in step 2.
 
 The scope is the note families `rules/claude-files.md` governs: `<repo>/.claude/*.md` and `<repo>/_meta/notes/*.md`.
-A `PROMPT*.md` is a buffer and not a note, and its resting state is empty.
+A `HANDOFF*.md` is a buffer and not a note, and its resting state is empty.
 
 ## 2. Take the citation map, per hit
 

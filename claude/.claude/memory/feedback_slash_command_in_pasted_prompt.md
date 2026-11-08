@@ -21,6 +21,6 @@ The listing is the set of model-invocable skills, never the set of installed one
 **How to apply:** scan the first line of a pasted prompt for `/name` before planning anything, and treat any skill the user names, invoked or merely mentioned, as existing until a check says otherwise.
 Absent from the skill list, the cheapest check is one `Skill` call on the bare name: its refusal names `disable-model-invocation` outright, where `~/.claude/skills/<name>/SKILL.md` has to be found first and misses a plugin-provided skill.
 Then say in one line that the command has to be typed, and name what is worth doing first: exploration whose facts the skill will need is useful, the artifact the skill produces is not.
-The handoff goes to `.claude/PROMPT.md` opening on that `/name`, per `rules/claude-files.md`.
+The handoff goes to `.claude/HANDOFF.md` opening on that `/name`, per `rules/claude-files.md`.
 
 Related: [[reference_claude_code_best_practices]].

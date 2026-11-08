@@ -29,7 +29,7 @@ Read a file from it when a rule below points to it, and not before.
   Never end on a bare offer such as "si tu veux", "dis-moi si" or "let me know if".
   An action these rules already require, such as updating the project's plan, is done, not offered.
 - Never write a prompt in the conversation.
-  A prompt for the user to run goes into the project's `.claude/PROMPT.md`, written unasked at a session boundary.
+  A prompt for the user to run goes into the project's `.claude/HANDOFF.md`, written unasked at a session boundary.
   That file is a buffer whose resting state is empty: the user cuts it into a fresh conversation, so say so and ask before overwriting one that still holds a prompt.
 - Never write a URL into a file without fetching it first.
   If you cannot fetch it, leave it out and say so.

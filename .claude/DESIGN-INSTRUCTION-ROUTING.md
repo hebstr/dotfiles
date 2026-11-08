@@ -385,12 +385,16 @@ Cost fell by 47 % at similar turn counts, which fits about 83 KB less instructio
 
 ## A prompt goes to a file, and the rule splits across the root and the rules file (instructed by the user on 2026-09-30)
 
-**Decision.** Claude never writes a prompt in the conversation: it goes into the project's `.claude/PROMPT.md`, unasked at a session boundary.
+**Decision.** Claude never writes a prompt in the conversation: it goes into the project's `.claude/HANDOFF.md`, unasked at a session boundary.
 The root keeps the trigger and the destination in one line, because a session boundary implies no read of any `.claude/` file, so nothing scoped would have loaded by then.
 The file's lifecycle goes to its own section of `rules/claude-files.md`, which `inject-rules.sh` loads on the session's first write under `*/.claude/*.md`, `*/CLAUDE.md`, `*/AGENTS.md` or `*/_meta/notes/*.md`.
 
 **The ignore list, recorded on 2026-10-14.** The root `PROMPT.md` pattern of `.gitignore` went on 2026-09-30 in `218bab9`, which is what lets a prompt buffer be versioned at all, and the `.claude` repository re-ignored `PROMPT*.md` on 2026-10-02 in `d708b8e`, deleting the one tracked buffer with it.
 So the destination the rule names is tracked in no repository here, which is what a buffer whose resting state is empty asks for, and the `PROMPT*.md` exclusion the campaign count of `PRUNE-OBSERVATIONS.md` argued on 2026-10-01 binds only the span before that commit.
+
+**Renamed to `HANDOFF*.md` on 2026-11-08, instructed by the user.** The name is the only thing that changed: destination, lifecycle, resting state and the split between the root line and the rules file all hold.
+The rename landed in the root line, the `rules/claude-files.md` section and its Language bullet, `AGENTS.md`, the `prune` and `commit` skills, `project_claude_dir_local_only_repo` and `feedback_slash_command_in_pasted_prompt`, plus the buffer itself here; dated records of the old name stay as record, per the drifted-reference rule of `rules/claude-files.md`.
+What it does not reach is the other projects: 14 `.claude/.gitignore` under `~` still exclude `PROMPT*.md`, and 11 projects still hold a buffer under the old name, 15 files of which 4 are unconsumed, those four in two projects (`eds-prise` three, `claude-code-litrev` one). So the rules file carries a transition bullet telling a session to rename both when it next touches such a project.
 
 **Why step 1 does not claim it.** Detecting a prompt inside assistant prose is a heuristic, not a mechanism, so no hook can enforce the prohibition; the instruction is all there is.
 
@@ -401,7 +405,7 @@ So the destination the rule names is tracked in no repository here, which is wha
 **Cascade, the same day.** `workflow:continue` prescribed the opposite ("Print directly (no file written)", "Do not create CONTINUATION-PROMPT.md"), so the rule would have lost on every invocation, and the skill was realigned in its source clone.
 `AGENTS.md` mirrors the root's Communication section, so it took the rule too, against a first pass that concluded it owed nothing on a grep for "continuation": a mirror is checked by the section it digests, not by the words of the line being changed.
 
-**That cascade was undone later the same day**: a `/design` deleted `workflow:continue` outright, its three steps having each become a standing obligation (this rule and the `.claude/PROMPT.md` section of `rules/claude-files.md` for the prompt, the "Plans and tracking" line plus the harness memory instruction and the `commit` verifier for the other two), and the alignment edits above were dropped with the file. The measure that settled it is the item of `~/Documents/packages/claude-code-plugins/.claude/PLAN.md`: about forty `PROMPT*.md` writes in five days across four repositories, none of them through the skill, and richer than the template its step 3 prescribed. Carrying that template into the `.claude/PROMPT.md` section was rejected for the same reason, and stays available in one sentence should a written prompt ever come out vague.
+**That cascade was undone later the same day**: a `/design` deleted `workflow:continue` outright, its three steps having each become a standing obligation (this rule and the `.claude/HANDOFF.md` section of `rules/claude-files.md` for the prompt, the "Plans and tracking" line plus the harness memory instruction and the `commit` verifier for the other two), and the alignment edits above were dropped with the file. The measure that settled it is the item of `~/Documents/packages/claude-code-plugins/.claude/PLAN.md`: about forty `PROMPT*.md` writes in five days across four repositories, none of them through the skill, and richer than the template its step 3 prescribed. Carrying that template into the `.claude/HANDOFF.md` section was rejected for the same reason, and stays available in one sentence should a written prompt ever come out vague.
 
 ## The Edit-or-Write rule stays prose, because the gate it protects also writes from the shell (decided on 2026-09-28)
 
@@ -443,7 +447,7 @@ The criterion it confirms is not reopened: a figure enters a note only if a name
 
 **Decision.** Its `paths:` becomes the self-referential `**/.claude/rules/claude-files.md`, on the precedent of "The five files stay in `rules/`, scoped, and one hook injects them" above, so the `want claude-files` branch of `inject-rules.sh` is its only delivery.
 
-**Why the hook and not the shipped mechanism.** Every section of the file is write-time guidance (Language, Form, `.claude/PROMPT.md`, Content, Where a new instruction goes), and nothing in it governs a read.
+**Why the hook and not the shipped mechanism.** Every section of the file is write-time guidance (Language, Form, `.claude/HANDOFF.md`, Content, Where a new instruction goes), and nothing in it governs a read.
 The hook's trigger is the superset: "A `paths:` rule loads on a native `Read` only (2026-09-26)" above measured that a `Write` of a new file loads no rule, which is the case where the Language and Form rules bind hardest.
 
 **Scope of the test, re-derived from `instructions.log`.** Intersect the `path_glob_match` and `inject` events per session, keyed on the rule's basename:
