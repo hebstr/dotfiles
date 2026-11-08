@@ -185,6 +185,9 @@ The locution figure is the prevalence of the pattern under a reduced copy of the
 
 ## Open
 
+- **The chain cannot be exercised in the session that builds it**, measured on 2026-11-08: the reduced `closure-check.sh` fired on the user's locution as designed and asked for the skill, and both `handoff` and `claude:handoff` came back `Unknown skill` from the `Skill` tool, the harness having scanned the skills directory before the file existed.
+  The procedure was then run by hand, in its own order, and reported an empty scope.
+  So the first end-to-end test of the routing belongs to the next session, and step 4 inherits the general form of this: a session cannot measure a mechanism it has just created.
 - **The recall of `closure-check.sh`** stays owed to step 4 of `PLAN-SESSION-DISCIPLINE.md`, and the deliberate freeze it now demands.
   Reducing the hook to a router changes its injected text, not its trigger, so the measurement is unaffected.
 - **Whether section 0.2 concludes at the right moment** is the weakest assumption and is untested: it can only be judged at the step 4 remeasure, which must account for this change as it accounts for the two corrections of `DESIGN-CADRER.md`.
