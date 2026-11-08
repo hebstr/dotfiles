@@ -81,3 +81,89 @@ lines"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+# The missing-link half needs stow and reads $HOME/dotfiles as the stow dir, so
+# each fixture below builds a package tree there and links from $HOME by hand.
+# A package counts as deployed on the machine when one of its own files already
+# resolves through a link, which is what keeps bash-cpd and the absent desktop
+# applications from being demanded everywhere.
+
+@test "exits 0 when every file of a deployed package is linked" {
+  command -v stow >/dev/null || skip "stow not installed"
+  mkdir -p "$HOME/dotfiles/bin/.local/bin" "$HOME/.local/bin"
+  touch "$HOME/dotfiles/bin/.local/bin/foo"
+  ln -s "$HOME/dotfiles/bin/.local/bin/foo" "$HOME/.local/bin/foo"
+
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "exits 1 and prints MISSING for an unlinked file of a deployed package" {
+  command -v stow >/dev/null || skip "stow not installed"
+  mkdir -p "$HOME/dotfiles/bin/.local/bin" "$HOME/.local/bin"
+  touch "$HOME/dotfiles/bin/.local/bin/foo" "$HOME/dotfiles/bin/.local/bin/bar"
+  ln -s "$HOME/dotfiles/bin/.local/bin/foo" "$HOME/.local/bin/foo"
+
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"MISSING"* ]]
+  [[ "$output" == *".local/bin/bar"* ]]
+  [[ "$output" == *"stow --no-folding bin"* ]]
+}
+
+@test "says nothing about a package no link of its own resolves into" {
+  command -v stow >/dev/null || skip "stow not installed"
+  mkdir -p "$HOME/dotfiles/firefox/.mozilla/firefox/z24d9fn6.default-release"
+  touch "$HOME/dotfiles/firefox/.mozilla/firefox/z24d9fn6.default-release/user.js"
+
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "names the plain stow form for a folded package" {
+  command -v stow >/dev/null || skip "stow not installed"
+  mkdir -p "$HOME/dotfiles/claude/.claude/skills/one" "$HOME/.claude/skills"
+  mkdir -p "$HOME/dotfiles/claude/.claude/skills/two"
+  touch "$HOME/dotfiles/claude/.claude/skills/one/SKILL.md"
+  touch "$HOME/dotfiles/claude/.claude/skills/two/SKILL.md"
+  ln -s "$HOME/dotfiles/claude/.claude/skills/one" "$HOME/.claude/skills/one"
+
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"skills/two"* ]]
+  [[ "$output" == *"stow claude"* ]]
+  [[ "$output" != *"stow --no-folding claude"* ]]
+}
+
+@test "ignores a file git ignores, and reports the one beside it" {
+  command -v stow >/dev/null || skip "stow not installed"
+  mkdir -p "$HOME/dotfiles/git/.config/git/__pycache__" "$HOME/.config/git"
+  touch "$HOME/dotfiles/git/.config/git/filter.py"
+  touch "$HOME/dotfiles/git/.config/git/__pycache__/filter.pyc"
+  touch "$HOME/dotfiles/git/.config/git/other.py"
+  ln -s "$HOME/dotfiles/git/.config/git/filter.py" "$HOME/.config/git/filter.py"
+  printf '%s\n' '**/__pycache__/' >"$HOME/dotfiles/.gitignore"
+  git -C "$HOME/dotfiles" init -q
+  git -C "$HOME/dotfiles" add -A
+
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"other.py"* ]]
+  [[ "$output" != *"pycache"* ]]
+}
+
+@test "treats _meta as no package of its own" {
+  command -v stow >/dev/null || skip "stow not installed"
+  mkdir -p "$HOME/dotfiles/bin/.local/bin" "$HOME/.local/bin"
+  mkdir -p "$HOME/dotfiles/_meta/tests"
+  touch "$HOME/dotfiles/bin/.local/bin/foo" "$HOME/dotfiles/bin/.local/bin/bar"
+  touch "$HOME/dotfiles/_meta/tests/some.bats"
+  ln -s "$HOME/dotfiles/bin/.local/bin/foo" "$HOME/.local/bin/foo"
+
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".local/bin/bar"* ]]
+  [[ "$output" != *"some.bats"* ]]
+}

@@ -17,7 +17,49 @@ for i in "${!links[@]}"; do
   test -e "${links[i]}" || broken+="BROKEN: ${links[i]} -> ${targets[i]}"$'\n'
 done
 
-if [ "$broken" != "" ]; then
-  printf '%s' "$broken"
+DOTFILES="$HOME/dotfiles"
+PLAIN=" agents css claude "
+missing=""
+
+if [ -d "$DOTFILES" ]; then
+  if ! command -v stow >/dev/null 2>&1; then
+    printf 'NOTE: stow is not installed, so the unlinked-file half did not run\n' >&2
+  else
+    for pkg in "$DOTFILES"/*/; do
+      pkg=${pkg%/}
+      name=${pkg##*/}
+      [ "$name" = "_meta" ] && continue
+
+      deployed=0
+      while IFS= read -r -d '' file; do
+        rel=${file#"$pkg"/}
+        resolved=$(readlink -e -- "$HOME/$rel" 2>/dev/null) || continue
+        case $resolved in "$pkg"/*) deployed=1 && break ;; esac
+      done < <(find "$pkg" -type f -print0 2>/dev/null)
+      ((deployed)) || continue
+
+      out=$(cd "$DOTFILES" && stow -n -v "$name" 2>&1) || true
+      found=""
+      while IFS= read -r line; do
+        case $line in 'LINK: '*) ;; *) continue ;; esac
+        rel=${line#'LINK: '}
+        rel=${rel%% =>*}
+        git -C "$DOTFILES" check-ignore -q "$name/$rel" 2>/dev/null && continue
+        found+="MISSING: ~/$rel"$'\n'
+      done <<<"$out"
+
+      if [ "$found" != "" ]; then
+        case $PLAIN in
+        *" $name "*) flag="" ;;
+        *) flag="--no-folding " ;;
+        esac
+        missing+="$found  fix: cd ~/dotfiles && stow $flag$name"$'\n'
+      fi
+    done
+  fi
+fi
+
+if [ "$broken$missing" != "" ]; then
+  printf '%s' "$broken$missing"
   exit 1
 fi

@@ -1,7 +1,7 @@
 [[repos]]
 repo = "local"
 hooks = [
-  { id = "symlinks-check", name = "check symlinks", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
+  { id = "symlinks-check", name = "check stow links, broken and missing", entry = "bin/.local/bin/symlinks-check", language = "system", pass_filenames = false },
   { id = "instructions-budget", name = "always-loaded instructions budget", entry = "bin/.local/bin/instructions-budget", args = ["--budget", "12288", "--index-lines", "160"], language = "system", pass_filenames = false, files = '^claude/\.claude/(CLAUDE\.md|rules/|hooks/inject-rules\.sh|memory/MEMORY\.md$)' },
   { id = "bats-tests", name = "check bats tests (failures also land in $XDG_RUNTIME_DIR/bats-report/report.xml)", entry = "bash -c 'j=(); command -v parallel >/dev/null && j=(--jobs \"$(nproc)\"); r=\"${XDG_RUNTIME_DIR:-/tmp}/bats-report\"; mkdir -p \"$r\"; exec bats \"${j[@]}\" --report-formatter junit --output \"$r\" _meta/tests/'", language = "system", pass_filenames = false, files = '^(_meta/tests/|bin/\.local/bin/|claude/\.claude/hooks/|claude/\.claude/skills/[^/]+/scripts/|git/\.config/git/|opencode/\.config/opencode/plugins/)' },
   { id = "shellharden", name = "shellharden (fix with: shellharden --replace <file>)", entry = "shellharden --check", language = "system", types = ["shell"], exclude = '^(agents|_meta/instructions-ab/fixtures)/|\.bats$' },

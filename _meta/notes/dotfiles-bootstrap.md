@@ -92,9 +92,25 @@ The gap is tracked in `.claude/DEFERRED.md`.
 
 [`prek`](https://github.com/j178/prek) runs the hooks (`prek install`, `prek run -a`).
 
+## The deployment is checked at every commit
+
+`bin/.local/bin/symlinks-check`, a prek hook on every commit, holds both halves of one invariant: a link under `$HOME` that points into `~/dotfiles` and resolves nowhere, and a file of a deployed package that no link reaches.
+`_meta/tests/symlinks-check.bats` pins the fourteen cases.
+
+The second half was added on 2026-11-08, after three files reached the repository without ever reaching a target: `opencode/.config/opencode/tui.json` committed on 2026-11-05 as "minimal stowed tui.json", `opencode/.opencode/bin/opencode-serve` and `claude/.claude/skills/handoff/` both on 2026-11-08, the last leaving a skill the `Skill` tool answered `Unknown skill` for in every session.
+The commit advances, `stow` does not follow, and nothing said so: no `sys-update` module names `stow`.
+
+**Whether a package is expected on this machine is derived, never listed.** A package counts as deployed when one of its own files resolves, through a link, back into the package, which is what keeps `bash-cpd` and `positron-cpd` from being demanded on `ju-TP` and the absent desktop applications from being demanded on a machine that has none. A package no link resolves into is skipped in silence, so the first file of a brand new package is the one case the hook cannot catch: that is the bootstrap case, and the `stow` line above covers it.
+
+Three more decisions.
+`stow -n -v` is the authority on what is missing, and only its `LINK:` lines count; a path `git check-ignore` matches is dropped, since stow reads no `.gitignore` and would otherwise link a `__pycache__` that the repository ignores.
+Every package is checked rather than the ones a commit touches, which also catches a miss an earlier commit left: it costs about 0.8 s on top of the 1.7 s the first half already took (measured 2026-11-08, warm cache), against a per-commit budget that `pass_filenames` would have held to one package.
+A regular file where a link belongs makes `stow -n` print a conflict rather than a `LINK:`, so the hook stays silent on it: `rules/install.md` has that case ask the user before anything is removed, and no hook decides it.
+
 ## Local coding agent
 
-opencode runs on the main machine against a Qwen3.5 9B served by `llama-server` on the GPU machine, through an SSH forward, and reads the Claude Code profile through a harness (`opencode/.config/opencode/`: `opencode.json`, `AGENTS.md`, `plugins/claude-hooks.ts`), each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` included.
+The real use of opencode is on `cpd000001` alone, stated by the user on 2026-11-08; the main machine keeps the install as the bench where the harness is written and measured, which is where the measurements of `DESIGN-OPENCODE-HARNESS.md` were taken.
+On that bench opencode runs against a Qwen3.5 9B served by `llama-server` on the GPU machine, through an SSH forward, and reads the Claude Code profile through a harness (`opencode/.config/opencode/`: `opencode.json`, `AGENTS.md`, `plugins/claude-hooks.ts`), each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` included.
 On the GPU machine, install the CUDA build with `llama-update` and the `hf` CLI with `uv tool install huggingface-hub`; `llama-session` downloads the model the first time it runs.
 On the main machine, beyond the `stow` line above:
 
@@ -105,7 +121,7 @@ opencode-skills-sync
 
 The second command links the skills of the enabled Claude Code plugins where opencode looks for them.
 `sys-update claude-plugins` reruns it after the updates it makes; a plugin changed any other way (Claude Code's own auto-update, `/plugin enable`, `disable` or `update`) needs a manual `opencode-skills-sync`, or opencode serves the old set until the next `sys-update`.
-To work, run `llama-session` in one terminal and `opencode` in another.
+To exercise the bench, run `llama-session` in one terminal and `opencode` in another.
 `_meta/notes/opencode-harness-setup.md` holds the full procedure and the checks that `showboat verify` replays.
 The CHU workstation `cpd000001` is set up separately, by hand, from `_meta/notes/opencode-cpd-setup.md`: a shared `llama-server` under systemd, opencode in `/usr/local/bin` for every user, and the harness without the Claude Code plugins; of the `bin` scripts above, only `llama-update` runs there, as root with its paths redirected to `/opt/llama`.
 
