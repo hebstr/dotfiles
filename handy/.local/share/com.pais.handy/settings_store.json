@@ -1,5 +1,6 @@
 {
   "settings": {
+    "airpods_mode": false,
     "always_on_microphone": false,
     "app_language": "en",
     "append_trailing_space": true,
@@ -66,12 +67,14 @@
     "history_limit": 5,
     "hold_threshold_ms": 300,
     "keyboard_implementation": "tauri",
+    "language_detection": "when_needed",
+    "language_detection_window_secs": 5,
     "lazy_stream_close": false,
     "log_level": "info",
+    "long_form_chunking": true,
     "model_unload_timeout": "min10",
     "mute_while_recording": false,
     "onboarding_completed": true,
-    "ort_accelerator": "auto",
     "overlay_position": "bottom",
     "overlay_style": "none",
     "paste_delay_after_ms": 60,
@@ -109,6 +112,7 @@
     "post_process_providers": [
       {
         "allow_base_url_edit": false,
+        "api_format": "openai",
         "base_url": "https://api.openai.com/v1",
         "id": "openai",
         "label": "OpenAI",
@@ -117,6 +121,7 @@
       },
       {
         "allow_base_url_edit": false,
+        "api_format": "openai",
         "base_url": "https://api.z.ai/api/paas/v4",
         "id": "zai",
         "label": "Z.AI",
@@ -125,6 +130,7 @@
       },
       {
         "allow_base_url_edit": false,
+        "api_format": "openai",
         "base_url": "https://openrouter.ai/api/v1",
         "id": "openrouter",
         "label": "OpenRouter",
@@ -133,6 +139,7 @@
       },
       {
         "allow_base_url_edit": false,
+        "api_format": "anthropic",
         "base_url": "https://api.anthropic.com/v1",
         "id": "anthropic",
         "label": "Anthropic",
@@ -141,6 +148,7 @@
       },
       {
         "allow_base_url_edit": false,
+        "api_format": "openai",
         "base_url": "https://api.groq.com/openai/v1",
         "id": "groq",
         "label": "Groq",
@@ -149,6 +157,7 @@
       },
       {
         "allow_base_url_edit": false,
+        "api_format": "openai",
         "base_url": "https://api.cerebras.ai/v1",
         "id": "cerebras",
         "label": "Cerebras",
@@ -157,6 +166,7 @@
       },
       {
         "allow_base_url_edit": false,
+        "api_format": "openai",
         "base_url": "https://bedrock-mantle.us-east-1.api.aws/v1",
         "id": "bedrock_mantle",
         "label": "AWS Bedrock (Mantle)",
@@ -165,6 +175,7 @@
       },
       {
         "allow_base_url_edit": true,
+        "api_format": "openai",
         "base_url": "http://localhost:11434/v1",
         "id": "custom",
         "label": "Custom",
@@ -185,6 +196,10 @@
     "show_tray_icon": true,
     "show_whats_new_on_update": true,
     "sound_theme": "marimba",
+    "spoken_languages": [
+      "fr",
+      "en"
+    ],
     "start_hidden": false,
     "theme": "system",
     "transcribe_accelerator": "auto",
@@ -194,7 +209,7 @@
     "update_checks_enabled": true,
     "vad_backend": "silero",
     "vad_enabled": true,
-    "whats_new_last_seen_version": "0.9.7",
+    "whats_new_last_seen_version": "0.10.0",
     "word_correction_threshold": 0.18
   }
 }
