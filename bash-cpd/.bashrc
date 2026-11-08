@@ -6,6 +6,13 @@ case $- in
 *) return ;;
 esac
 
+### LINE EDITOR -------------------------------------------------------------
+
+if [ -f ~/.local/share/blesh/ble.sh ]; then
+  # shellcheck source=/dev/null
+  source -- ~/.local/share/blesh/ble.sh --attach=none
+fi
+
 ### HISTORY -----------------------------------------------------------------
 
 HISTCONTROL=ignoreboth:erasedups
@@ -125,15 +132,15 @@ fi
 # shellcheck source=/dev/null
 [ -f ~/.secrets ] && source ~/.secrets
 
-###-----------------------------------------------------------------------------
+### EXPORT PATH ----------------------------------------------------------------
+
+# llama-server
+export PATH="/data2/llama_cpp_bin/llama.cpp/build/bin:$PATH"
+
+# opencode
+export PATH="$HOME/.opencode/bin:$PATH"
 
 # cargo
 export PATH="$HOME/.cargo/bin:$PATH"
 
-# llama-server
-export CUDA_VISIBLE_DEVICES="0,1,2"
-export LLAMA_CACHE="/data2/llama.cpp"
-export PATH="/data2/llama_cpp_bin/llama.cpp/build/bin:$PATH"
-
-# opencode
-export PATH=/home/edjulien/.opencode/bin:$PATH
+[[ ! ${BLE_VERSION-} ]] || ble-attach

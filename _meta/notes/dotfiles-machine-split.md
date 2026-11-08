@@ -26,7 +26,8 @@ It keeps one versioned file but takes the divergence out of git and out of Synct
 
 ## Open
 
-Settled on 2026-11-07 from a diff run on `cpd000001`: `.bashrc`, `.profile` and `.bash_logout` all diverge, so all three entered `bash-cpd/` in full; `.blerc` is absent on that machine and stays out.
+Settled on 2026-11-07 from a diff run on `cpd000001`: `.bashrc`, `.profile` and `.bash_logout` all diverge, so all three entered `bash-cpd/` in full; `.blerc` was absent on that machine and stayed out.
+On 2026-11-08 ble.sh was configured on `cpd000001`: the LINE EDITOR block and the final `ble-attach` were grafted into `bash-cpd/.bashrc`, and `~/.blerc` was linked to `bash/.blerc` through a selective stow of the `bash` package (the three files already claimed by `bash-cpd` ignored via `--ignore` flags, since GNU Stow 2.3.1 reads no `.stow-ignore` file).
 The split was built as one package per divergence with no shared-content trimming of `bash/`: `bash/` keeps the main machine's files untouched, and `bash-cpd/` carries the workstation's files as they stand, so a file edited on one machine reaches the other only through a deliberate copy.
 
 Whether, when the split of `positron-stow-split-reco.md` is built, the `positron-theme` clean filter covers both packages through one glob, per the open arbitration there.
