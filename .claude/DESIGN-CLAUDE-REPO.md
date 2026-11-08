@@ -90,8 +90,8 @@ What this costs from now on, stated once: the notes and every tracking commit me
 
 Open, and the step the move now waits on: nothing is published yet, and the push is held until a confidentiality read of the 34 notes has run.
 The condition a command checks is `git rev-list --count origin/main..HEAD`, which answers 0 once the push has happened and anything above it while the move is unpublished, the exact figure rising with every later commit and therefore worth nothing as a record.
-What the unpushed range holds is `4cfa875` (the move), `0c701d1` (`DESIGN-CPD.md`, added by the user, the guard having refused it to the session as another session's unsealed work), and behind them `83d1121`, another session's memory commit that was never pushed either.
-The brief for that read is in `.claude/PROMPT.md`, written for a fresh conversation on 2026-11-07, and it carries the one fact that orders the work: a redaction committed on top of those two commits protects nothing after the push, the original blob staying reachable, so anything to remove has to land inside them through a rebase or `filter-repo-rs` while they are still local.
+What the unpushed range holds is the move commit, the commit adding `DESIGN-CPD.md` (added by the user, the guard having refused it to the session as another session's unsealed work), and behind them `83d1121`, another session's memory commit that was never pushed either. Those two are cited by content rather than by hash because the rewrite of 2026-11-08 changed both, while `83d1121` kept its own.
+The brief for that read was written into `.claude/PROMPT.md` for a fresh conversation on 2026-11-07, and consumed there on 2026-11-08, so the buffer is empty again and the subsection below is what records the outcome. It carried the one fact that ordered the work: a redaction committed on top of those two commits protects nothing after the push, the original blob staying reachable, so anything to remove has to land inside them through a rebase or `filter-repo-rs` while they are still local.
 What already ran, and found nothing: `filter-repo-rs --detect-secrets` at 0 over the whole reachable history, the `gitleaks` hook green on both commits of the move, and a hand sweep for addresses, e-mail addresses and long digit runs whose only hits were in the deleted article conversions.
 So what that read is for is the eight categories a scanner cannot see, the hardest of them being a dismissive judgement on an identifiable vendor, maintainer, colleague or employer, which reads as an ordinary technical verdict in place.
 
@@ -113,7 +113,7 @@ A hand copy of the notes onto cpd was accepted as the quick form on 2026-11-07, 
 
 ### The confidentiality read before the push (2026-11-08)
 
-Four parallel agents read the 28 tracked paths plus the 6 `pdf-tables-eval/*.md` of `4cfa875`, 34 files and 6,282 lines, each applying an eight-category taxonomy to its own group so no file was read twice.
+Four parallel agents read the 28 tracked paths plus the 6 `pdf-tables-eval/*.md` the move commit still held, 34 files and 6,282 lines, each applying an eight-category taxonomy to its own group so no file was read twice.
 Do not rerun it.
 
 Two measurements of this section are wrong and are corrected here, which `git log --all -S` over every reachable commit established where a grep of the two tips had missed it.
@@ -130,11 +130,15 @@ Seven tracked notes are left out deliberately, four because the read found a pas
 The form was chosen over a longer exclusion list because a note written next month is then private until someone lists it, where allow-by-default made every future note public and owed a fresh read each time.
 The cost is that an unlisted note stops reaching `cpd`, which for these seven is nothing.
 
-Two mechanical facts govern the push, neither optional.
-A `.gitignore` entry untracks nothing, so the seven need `git rm --cached` inside `4cfa875`.
-And no `.claude` path exists in `origin/main`, so every blob sits in `4cfa875` except `DESIGN-CPD.md`, which entered at `0c701d1`.
+Three mechanical facts governed the push, none optional.
+A `.gitignore` entry untracks nothing, so the seven needed `git rm --cached` inside the move commit.
+No `.claude` path existed in `origin/main` before that commit, so every blob sat in it except `DESIGN-CPD.md`, which entered at the next one.
+And a `git rm --cached` replayed by a rebase deletes the files from the worktree as well: `--cached` spares the worktree only in the commit where it is typed, so the seven unlisted notes lost their working copy and were restored with `git show <pre-rewrite sha>:<path>`, which is why the backup ref has to outlive the rebase.
 
-Open, with the condition a command can check: `git log --all -S` finds the three e-mail addresses, the three LAN values, the study table name and the reviewer's name in no commit, and `git ls-tree -r 4cfa875 .claude` lists neither `pdf-tables-eval/` nor the seven unlisted notes.
+Carried out and verified on 2026-11-08, before the push: two `fixup!` commits folded by `git rebase --autosquash`, which conflicted twice on this file because the redaction and this subsection shared it, then `filter-repo-rs --partial --force --invert-paths --path .claude/pdf-tables-eval --backup` for the corpus, which no `git rm` could reach, that path being absent from the index since it was deleted a commit later.
+`--partial` is what keeps the remote: without it the tool runs its remote cleanup and `origin` is gone.
+Measured after the rewrite, each string of the five passages above searched on its own with `git log -S`: none found in any commit of `origin/main..HEAD`, `pdf-tables-eval` in no commit of any ref, 21 tracked paths under `.claude`, 30 notes on disk with the seven restored byte for byte, and `origin/main` still at `fea38bd` with `83d1121` keeping its hash, so no published commit was rewritten.
+Open until the push lands, the condition being `git rev-list --count origin/main..HEAD` at 0: the local `backup/pre-push-20261108` ref and the bundle in `.git/filter-repo/` both still carry the unredacted blobs, so neither may be pushed, no `git push --all` while the ref exists, and the ref goes once the push is verified.
 The warehouse schema pair stays findable at `2520b65` by the decision above.
 Also open: the archive bundle's filename sits in five tracked files that all reach the push, so redacting it in one is void and the five are one decision.
 
