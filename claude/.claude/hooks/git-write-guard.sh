@@ -313,7 +313,7 @@ worktree_writes() {
 
 local_commit() {
   local base=$dir entry value
-  [[ -n $base && $2 != *[qedo]* ]] && ((!gitloc)) || return 1
+  [[ -n $base && $2 != *[qedo]* ]] && ((! gitloc)) || return 1
   for entry in "${gitc[@]}"; do
     [[ ${entry%%$'\t'*} != *[qedo]* ]] || return 1
     value=${entry#*$'\t'}
@@ -336,7 +336,7 @@ hooks_path_write() {
     --*) ;;
     -*) ;;
     *)
-      ((keyed)) && ((!reading)) && return 0
+      ((keyed)) && ((! reading)) && return 0
       [[ ${tok,,} == core.hookspath ]] && keyed=1
       ;;
     esac
@@ -414,7 +414,7 @@ branch_writes() {
     *) positional=1 ;;
     esac
   done
-  ((positional && !listing))
+  ((positional && ! listing))
 }
 
 tracked=0
@@ -499,7 +499,7 @@ staging_specs() {
 move_specs() {
   local a dashdash=0 paths=()
   for ((a = 0; a < ${#args[@]}; a++)); do
-    if ((!dashdash)); then
+    if ((! dashdash)); then
       case ${args[a]} in
       --)
         dashdash=1
@@ -817,7 +817,7 @@ for entry in "${entries[@]}"; do
     picked+=("$path")
     continue
   fi
-  if ((!committed_specs)) && [[ ${code:0:1} != [\ ?!] ]]; then
+  if ((! committed_specs)) && [[ ${code:0:1} != [\ ?!] ]]; then
     picked+=("$path")
     continue
   fi

@@ -54,7 +54,7 @@ if [[ -n $command ]]; then
     "$BASH" "${BASH_SOURCE[0]%/*}/git-write-guard.sh" --verdict 2>/dev/null)
   wait "$!" && judged=1
 fi
-if ((!judged)); then
+if ((! judged)); then
   stale=()
   mapfile -t stale < <("$BASH" "${BASH_SOURCE[0]%/*}/commit-stale.sh" "$session" "${CLAUDE_PROJECT_DIR:-$cwd}" 2>/dev/null)
   wait "$!" || unchecked=1

@@ -14,7 +14,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.16.7"
+rev = "v0.17.3"
 hooks = [
   { id = "ruff-check", args = ["--fix"], exclude = '^(agents|_meta/session-discipline)/' },
   { id = "ruff-format", exclude = '^(agents|_meta/session-discipline)/' },
@@ -47,7 +47,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/scop/pre-commit-shfmt"
-rev = "v3.13.1-1"
+rev = "v3.14.1-1"
 hooks = [
   { id = "shfmt", args = ["-w", "-i", "2"], exclude = '^(agents|_meta/instructions-ab/fixtures)/' },
   { id = "shfmt", args = ["-w", "-i", "2"], types = ["text"], files = '^bash/\.(profile|bash_logout|blerc)$' },
