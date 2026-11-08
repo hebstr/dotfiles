@@ -262,6 +262,7 @@ Ne jamais utiliser `--adopt`, qui copie le fichier local dans le paquet par-dess
 | `syncthing` | `stow --no-folding`, en excluant les dossiers non synchronisés | sinon stow crée des dossiers vides juste pour y poser un `.stignore` |
 | `css` | `stow` (replié), section 7 | les liens de `~/.local/bin` passent par `~/.local/share/css-gate/node_modules` : replié, ce dossier suit ce que `npm ci` et `sys-update css-toolchain` installent dans le dépôt ; en `--no-folding`, chaque fichier serait lié un par un et ceux qu'ajoute une mise à jour ne le seraient pas |
 | `bash-cpd` | aucun | propre au poste CHU `cpd000001` : stowé sur lui seul, après avoir déstowé `bash`, car les deux paquets revendiquent les mêmes cibles (`_meta/notes/dotfiles-bootstrap.md`) |
+| `positron-cpd` | `stow --no-folding`, sur le poste CHU `cpd000001` seul | Positron y tourne en serveur distant : ses réglages vivent dans `.positron-server/data/Machine/settings.json`, que le paquet lie ; ailleurs, le lien atterrit où rien ne lit (`_meta/notes/dotfiles-bootstrap.md`) |
 | `positron`, `firefox`, `obsidian`, `Rstudio`, `zotero`, `handy` | aucun | applications côté Windows, profils propres à la machine principale, ou non utilisés |
 
 Test à blanc, puis application :
@@ -457,7 +458,7 @@ Liste reprise de `_meta/notes/dotfiles-bootstrap.md` ; l'absence de manifeste ve
 
 - Positron Windows lit ses réglages dans `C:\Users\<user_windows>\AppData\Roaming\Positron\User\` (ou `...\User\profiles\<id>\`). Les liens créés depuis WSL n'y sont pas lus : le paquet `positron` ne se stow pas.
 - Importer le profil de la machine principale depuis Positron, pas par copie de fichiers.
-- Les réglages propres à WSL (chemins Linux) vont dans `~/.positron-server/data/Machine/settings.json`, prioritaire sur les réglages utilisateur en session distante. Exemple si le profil désigne une autre version de R :
+- Les réglages propres à la machine (chemins Linux) vont dans `~/.positron-server/data/Machine/settings.json`, prioritaire sur les réglages utilisateur en session distante ; sur le poste CHU `cpd000001` ce fichier est stowé par le paquet `positron-cpd`. Exemple si le profil désigne une autre version de R :
 
 ```json
 {

@@ -1,8 +1,8 @@
 # Stowing a second machine's Positron settings
 
 Recommendation written on 2026-11-06, for making the `cpd` workstation's Positron `settings.json` stow-managed alongside `ju-TP`'s.
-**Deferred by the user the same day, before any change: nothing was renamed, stowed or committed.**
-This note holds the recommended shape, the measurements that rejected the alternative, and the two arbitrations left open, so none of it is re-derived when the decision is picked up.
+**Superseded on 2026-11-08: `cpd`'s live settings live in `~/.positron-server/data/Machine/settings.json` (Positron runs there as a remote server), and the `positron-cpd` package stows that file alone; nothing was renamed, so the two-package split below never happened.**
+The note keeps the measurements that still bind: the profile-directory caveat, the drift guard, and why the grouped layout was rejected.
 
 ## The two files never share a target path
 

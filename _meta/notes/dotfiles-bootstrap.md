@@ -7,7 +7,7 @@ The ordered fresh-install sequence, with the steps this note leaves out (moving 
 ## Structure
 
 ```
-agents/ air/ bash/ bash-cpd/ bin/ claude/ css/ firefox/ gh/ git/ handy/ obsidian/ opencode/ panache/ positron/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/ zotero/   # config stow packages
+agents/ air/ bash/ bash-cpd/ bin/ claude/ css/ firefox/ gh/ git/ handy/ obsidian/ opencode/ panache/ positron/ positron-cpd/ prek/ R/ Rstudio/ ruff/ ssh/ syncthing/ zotero/   # config stow packages
 prek.toml                  # pre-commit hooks
 _meta/
 ├── backup/              # backup script + systemd timer/service + excludes
@@ -26,7 +26,7 @@ Packages follow stow conventions: each top-level dir maps its tree relative to `
 sudo apt install -y stow
 git clone https://github.com/hebstr/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin bash-cpd firefox gh git handy obsidian opencode panache positron prek R Rstudio ruff ssh syncthing zotero
+stow -R --no-folding --ignore='\.ruff_cache' -t ~ air bash bin bash-cpd firefox gh git handy obsidian opencode panache positron positron-cpd prek R Rstudio ruff ssh syncthing zotero
 mkdir -p ~/.claude/skills
 stow -R --ignore='\.ruff_cache' -t ~ claude
 stow -R -t ~ agents css
@@ -60,6 +60,8 @@ With `--no-folding`, a restow unlinks every skill directory and relinks its file
 That profile name is specific to one machine: elsewhere, rename the directory inside the package to match the local profile, otherwise the link lands where Firefox never reads and the setting vanishes with no error.
 The link is safe because Firefox reads `user.js` and never writes it; `_meta/notes/dns-dnsforge-firefox.md` holds the measurement and the `user.js` traps.
 `bash-cpd` is machine-specific by name: stowing it anywhere but `cpd000001` links files where nothing reads them, and on `cpd000001` it must be stowed after unstowing `bash`, since both packages claim the same targets.
+`positron-cpd` is machine-specific by name: on `cpd000001` Positron runs as a remote server, so its settings live in `.positron-server/data/Machine/settings.json`, which the package links; stowing it anywhere else lands where nothing reads.
+The shared `positron` package still carries `ju-TP`'s profile settings under `.config/Positron/User/profiles/-eb36ac2/`; on `cpd000001` that directory holds a Syncthing mirror of the same file, which Positron never reads there.
 `zotero` follows the same shape and carries the same caveat, with a single `user.js` under `.zotero/zotero/pucr7b5d.default/`.
 It holds the settings chosen by hand and nothing Zotero records as state, and it leaves out the sync user name.
 Zotero rewrites `prefs.js` by replacement, which would break a link to it, and applies `user.js` over it at every start: a setting changed in Zotero's own interface reverts on restart unless `user.js` changes with it.
