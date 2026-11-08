@@ -37,6 +37,7 @@ Four non-obvious mechanics about the marketplace + plugin lifecycle, verified by
 Different trigger from the four above, which fire on installing, refreshing or moving a marketplace: this one fires when asking whether a second harness reads the skills that cache holds. Measured 2026-11-08 on `ju-TP`, opencode 1.19.5.
 
 **It does.** `opencode debug skill` resolves 66 skills, and the link farm `~/.local/share/opencode-claude-skills` supplies most of them, nine from `r-skills`, nine from `r-lib`, six from `posit-dev`, four from `audit` and three from `workflow`. So the configured `skills.paths` is read, and the object form the stowed `opencode.json` uses works despite being marked `"deprecated": true` in the published schema.
+**Since 2026-11-08 those seven no longer come from the farm**: `skills.paths` also names the `audit` and `workflow` directories of the `~/Documents/packages/skills` clone, placed last, and the later entry wins the name collision, so the farm still links them while the clone serves them, the total staying 66. The farm remains the only route for the third-party plugin skills, which is what the rest of this section describes.
 
 **The trap that makes this look false: `opencode debug skill` truncates when piped.** `~/dotfiles/_meta/notes/opencode-harness-setup.md` states it ("read from a file, not a pipe"), and a session that piped it into `rg` got fourteen entries out of 66, none of them the marketplace skills, and concluded the farm was inert. Redirect to a file before reading it, always.
 

@@ -82,6 +82,26 @@ The mirror move, folding everything into `claude/.claude/skills/`, was already m
 This holds as long as Claude Code ignores `.agents/skills`.
 If https://github.com/anthropics/claude-code/issues/16345 ships, `claude/.claude/skills/` becomes the redundant half and the split is worth reopening, but not in the direction proposed here: the overwrite argument survives that change untouched.
 
+## The `skills` CLI lands in `~/.agents/skills` whatever agent is named, measured 2026-11-08
+
+The question arose from the other end on 2026-11-08: whether `npx skills add hebstr/skills` is the route serving the user's own seven skills to opencode on `cpd`, which has no Claude Code and no link farm.
+It is not, and the reason is where the CLI writes rather than what it fetches.
+
+Measured that day, twice, in a throwaway `HOME` under the session scratchpad, the second run with `CLAUDECODE` unset so that `@vercel/detect-agent` would name opencode instead of the calling agent: `npx -y skills add hebstr/skills -g -a opencode -s '*' -y` copies the seven into `~/.agents/skills/<name>` and creates nothing whatsoever under `~/.config/opencode/`.
+That is not what either the CLI or its documentation announces: its bundle declares `globalSkillsDir: join(configHome, "opencode/skills")` for the `opencode` agent and detects it by `existsSync` on `~/.config/opencode`, which the scratch `HOME` provided, and `docs/agents.md` gives `~/.config/opencode/skills/` as the global path.
+So the installer's canonical store is the only destination it uses, and the documented per-agent path is not honoured on this build.
+
+Why that disqualifies the route here, and it is not the overwrite argument above: `~/.agents` is a stow link into `~/dotfiles/agents/.agents`, whose 48 files including `.skill-lock.json` are tracked by git.
+The only destination therefore sits inside the dotfiles working tree, which `DESIGN-CPD.md` § "Open points" declares read-only on `cpd` ("The clone is a consumer, never a place the repository is edited").
+An install there leaves seven untracked directories and one modified tracked file in a clone whose update path is `git pull --ff-only`, which refuses rather than reconciles, and `_meta/notes/backup-cpd000001-setup.md` would copy the duplicates out.
+Committing them instead would duplicate 30 prose files in a second repository, against the one-`SKILL.md` rule of `_meta/notes/skills-repo-portability-reco.md`, and would hand the user's own skills to `agent-skills-update`, which exists to treat that store as wholly replaceable.
+The route also needs node and npx on `cpd`, which nothing establishes: what is measured there is that the npm registry answers for the dependency opencode fetches with its own runtime.
+
+What the measurement does not condemn: the fetch itself, which is faithful (see the reco note's "What public sources cannot settle"), and the route for a third party or for any harness outside this machine's git transport, where it stays the recommended one.
+
+Reopening conditions, either of which makes the route clean and then better than the clone, being zero-configuration and carrying an update verb: `~/.agents` stops being tracked by the dotfiles, or the CLI starts honouring its own `~/.config/opencode/skills`.
+The route taken instead on 2026-11-08 is in `DESIGN-OPENCODE-HARNESS.md` § "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08".
+
 ## Where a skill the user writes goes is decided by its coupling to this machine
 
 Decided 2026-10-08, while designing `poc` (`DESIGN-POC.md`), the two candidate homes being `claude/.claude/skills/` and the `hebstr` marketplace, whose repository was named `claude-code-plugins` then and `hebstr/skills` since 2026-11-08.

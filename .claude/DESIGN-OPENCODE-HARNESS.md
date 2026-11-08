@@ -35,6 +35,39 @@ Rejected:
 - `skills.paths` pointing at the install paths directly: breaks on every update, exposes disabled plugins, lists each posit skill five times.
 - An opencode plugin computing the paths at startup through its `config` hook: nothing establishes that skill discovery reads the configuration after that hook, and it would be untested JS.
 
+## The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08
+
+Decided 2026-11-08 through `/design`, approved by the user the same day, to serve them on `cpd` where Claude Code "will never be installed" and the farm directory is created empty.
+The farm stays for everything the Claude Code cache sources; only the user's own seven move.
+
+`opencode.json` gains two `skills.paths` entries, `~/Documents/packages/skills/audit` and `~/Documents/packages/skills/workflow`, placed after the farm entry, and `cpd` gains a clone of `hebstr/skills` at that same path, pulled by hand with `git pull --ff-only`.
+`opencode-skills-sync` is not touched: no clone source mode, no sibling script.
+One stowed `opencode.json` stays valid for both machines, which is the choice the section "The packages are not forked per machine, measured 2026-11-04" of `DESIGN-CPD.md` already made for the whole package.
+
+**Why the farm was never required for these seven**: the three reasons this note gives for the farm above are all properties of the Claude Code cache, and a git clone has none of them. No version hash moves under it, no disabled sibling plugin shares its directory, and nothing is listed five times.
+
+Measured 2026-11-08 on `ju-TP`, opencode 1.19.5, `OPENCODE_CONFIG` on a scratch config, output redirected to a file and never piped:
+
+- the two clone group directories alone resolve all seven at `~/Documents/packages/skills/{audit,workflow}/*/SKILL.md`, exit 0, empty stderr. opencode reads a plain directory of skill directories with no symlink layer, which the reco had left as "unmeasured and not needed";
+- the farm and the two clone paths declared together, clone last, give 66 skills, the same count as the farm alone, each of the seven resolving exactly once and from the clone. The later path wins the collision, silently;
+- the ids stay flat (`walkthrough`, `sweep`, `write`), as they already are through the farm, so no `audit:` namespacing is lost or gained.
+
+Weakest assumption, tested: the later `skills.paths` entry wins, so the clone shadows the farm. If a future version reversed that precedence, `ju-TP` would fall back to the farm copy, which is today's behaviour, and `cpd` would be unaffected, its farm being empty.
+
+What it trades away: the farm's coupling to `enabledPlugins`, so disabling the `audit` plugin in Claude Code no longer hides those skills from opencode, and on `ju-TP` opencode now serves the working clone, which can hold prose the plugin cache does not have yet. Both are accepted on a solo setup where the same person owns both harnesses.
+
+Rejected, each on a measurement of that day:
+
+- **A clone source mode in `opencode-skills-sync`**, which was the reco's step 0: `skill_dirs()` needs no new parsing, only the loss of its `installed_plugins.json`, `settings.json` and `enabledPlugins` requirements, but nothing on `cpd` would ever call it, there being no `sys-update` and no `claude-plugins-update` there. Buildable the day per-plugin enablement matters on that machine.
+- **A dotfiles submodule** instead of a second clone: dotfiles has none today, every clone and pull gains a step, each skill change owes a wiring commit, and the submodule would live under `~/dotfiles` while the editable clone lives under `~/Documents/packages`, so the two machines would stop agreeing on one path and one config.
+- **An HTTP catalogue**, which opencode supports natively: the published schema describes `skills` as "Additional paths or URLs to discover skills from", the documentation gives "An HTTP catalog is a base URL with an `index.json` file" downloading `<base-url>/<entry>/<file>`, and the installed 1.19.5 binary carries `SkillDiscovery.pull` fetching that `index.json`, so the route exists on the version that runs here. Its price is a generated manifest enumerating every file (30 across the seven), a `version` integer to bump per skill or the cache serves stale prose with no signal, and a CI gate against drift. It is the route for a machine where git is not already the transport, or for a third party, and that is its reopening condition.
+- **`npx skills add hebstr/skills`**: see `DESIGN-AGENT-SKILLS.md`, section "The `skills` CLI lands in `~/.agents/skills` whatever agent is named, measured 2026-11-08".
+- **Copying the seven bodies into the `claude` stow package**: breaks the reco's rule of one `SKILL.md` with no duplicated prose.
+
+Open on purpose: the clone's freshness on `cpd` depends on a pull that nothing triggers, which is the same posture `DESIGN-CPD.md` § "Open points" already records for the dotfiles clone itself.
+
+What the implementation owes, beyond the two entries in `opencode/.config/opencode/opencode.json`: the expected output of the `showboat verify` check that prints `jq -c "{model, instructions, permission: (.permission | keys), skills}"` in `_meta/notes/opencode-harness-setup.md` pins the `skills` object verbatim, so it goes stale in the same edit and is updated with it, along with that note's description of `skills.paths` as "pointing at the link farm".
+
 ## What the model sees is filtered by `permission.skill`
 
 Every visible skill's description sits in the `skill` tool's own description, so the listing is paid on every request; opencode removes a skill set to `deny` from it.
@@ -59,7 +92,7 @@ The Stop hook's re-activation cannot be done from a plugin (anomalyco/opencode#1
 
 ## Permissions allow reading `~/.claude` and forbid writing it
 
-`external_directory` set to `allow` on `~/.claude/**` and on the link farm; skill directories are already allowed by opencode itself.
+`external_directory` set to `allow` on `~/.claude/**`, on the link farm and, since 2026-11-08, on `~/Documents/packages/skills/**`, the skills clone the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" adds; skill directories are already allowed by opencode itself, but this block opens on `"*": "ask"` and the farm carries its own allow, so a `templates/` or `scripts/` read under the clone would have been auto-rejected under `opencode run` without it.
 
 The write half did not hold: as first written, `edit` was set to `deny` on `~/.claude/**`, and the live run of 2026-09-21 wrote there despite it, opencode matching `edit` patterns against a path relative to the project (see "The first live run on the 9B, 2026-09-21").
 The `edit` patterns are gone, the plugin guard and the `bash` permission carrying the refusal instead (see "`bash` asks unless a command is on a read-and-gate allowlist, 2026-09-21").
@@ -217,4 +250,4 @@ Creating one needs `bash`, which already asks and could write there directly.
 - Whether a skill set to `ask` stays usable as a slash command when the user types it: needs the interactive TUI, item 1 of "Next".
 - A command on the `bash` allowlist can still write without a redirection if the tool itself writes (`ruff check --fix`, `shfmt -w`, `air format` on any path given): accepted, since these are the gate the model is told to run, but they are not confined to the project.
 - The skill farm is resynced only by `claude-plugins-update`, so a plugin auto-update or a `/plugin enable|disable|update` done in Claude Code leaves opencode on the superseded version, or on a disabled plugin's skills, until the next `sys-update`, breaking in the meantime the rule that only an enabled plugin's skills are ever exposed.
-  Deferred with a chosen remedy in `DEFERRED.md`, row of 2026-09-21 on the opencode skill farm.
+  Deferred with a chosen remedy in `DEFERRED.md`, row of 2026-09-21 on the opencode skill farm, whose scope narrowed on 2026-11-08 to the third-party plugin skills: the seven of `hebstr/skills` left the farm, and with it the `enabledPlugins` rule, which the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" accepts losing for them.

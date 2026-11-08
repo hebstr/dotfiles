@@ -15,6 +15,7 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 - The binary is the pre-existing b9286 at `/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server`.
 - The stow packages `bin`, `opencode`, `agents` and `claude` are linked.
 - `~/.claude/skills` is a real directory whose entries are links; `~/.local/share/opencode-claude-skills` exists and stays empty.
+- `~/Documents/packages/skills` is a clone of the public `hebstr/skills`, read by opencode through the two `skills.paths` entries of the stowed `opencode.json`; it is a consumer clone, never edited here, kept current with `git pull --ff-only`.
 - `/etc/opencode` is empty, `/usr/local/bin/opencode` is absent, and neither the `llama` user nor `/opt/llama` exists.
 
 Verified on 2026-11-04: `/health` returns `ok`, a tool call completes with `finish_reason` set to `tool_calls`, a plain reply carries no reasoning, sleep and wake work with a 60 s idle trial, and `opencode run "Reply exactly: ok"` returns `ok` through the service.
@@ -84,6 +85,23 @@ stow -v -R --ignore='\.ruff_cache' -t ~ claude
 
 `~/.claude/skills` must exist as a real directory before the `claude` package is stowed, so each skill becomes one directory link.
 
+Clone the skills repository, which the stowed `opencode.json` names under `skills.paths`:
+
+```bash
+mkdir -p ~/Documents/packages
+git clone https://github.com/hebstr/skills.git ~/Documents/packages/skills
+```
+
+The path is the one both machines use, so one stowed configuration serves both.
+Check what opencode resolves from it, reading the output from a file because this command truncates when piped:
+
+```bash
+opencode debug skill > /tmp/skills.txt && rg -o '"location": "[^"]*packages/skills[^"]*"' /tmp/skills.txt
+```
+
+Seven lines are expected, four under `audit` and three under `workflow`.
+Nothing refreshes that clone on its own: `git pull --ff-only` there is what updates the skills.
+
 Start the server in a terminal; the first run downloads the Q6_K_M GGUF into `/data2/llama.cpp`:
 
 ```bash
@@ -119,7 +137,7 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
   Reading `/data2/llama.cpp` needs no grant, the cache being mode 777 with `other::rwx`.
   Two simultaneous users would need more VRAM than one card provides, so revisit `CUDA_VISIBLE_DEVICES` and `--ctx-size` at that point.
 - Thinking A/B: install a build that supports `--reasoning-effort`, then replace `--reasoning off ${SAMPLING}` with `--reasoning on --reasoning-effort low --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0`.
-- Claude Code is not installed on cpd, so the plugin skills directory stays empty.
+- Claude Code is not installed on cpd, so the farm directory `~/.local/share/opencode-claude-skills` stays empty and the third-party plugin skills of its cache stay out. The seven skills of `hebstr/skills` reach opencode from the clone instead, decided 2026-11-08: see "Current state" above and `DESIGN-OPENCODE-HARNESS.md` § "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08".
 
 ## Caveats
 
