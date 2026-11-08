@@ -9,11 +9,11 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 - `~/.config/opencode/opencode.json` is a stow link to `~/dotfiles/opencode/.config/opencode/opencode.json`.
 - It declares the provider `cpd`, the model `cpd/qwen3.8-27b`, and the base URL `http://127.0.0.1:8090/v1`, alongside a `ju-tp2` provider kept declared and unused; see "Where the machine-specific keys live".
 - The model entry is named `unsloth/Qwen3.8-27B-GGUF` with a 196608 token context limit.
-- The server runs from `~/cpd-llama.sh`, stowed from `~/dotfiles/cpd/cpd-llama.sh`, in the foreground of a terminal; `up` fetches the model from the Hub if absent and serves until interrupted, `down` stops it, `status` reports process, port and VRAM, `logs` tails `~/logs/cpd-llama/llama-server.log`.
+- The server runs from `~/.opencode/bin/llama-server.sh`, stowed from `~/dotfiles/opencode/.opencode/bin/llama-server.sh`, in the foreground of a terminal; `up` fetches the model from the Hub if absent and serves until interrupted, `down` stops it, `status` reports process, port and VRAM, `logs` tails `~/logs/cpd-llama/llama-server.log`.
 - The default run loads `Qwen3.8-27B-UD-Q6_K_M.gguf` from the cache in `/data2/llama.cpp` on CUDA devices 1 and 2 with `--split-mode tensor`, a 196608 token context, one slot, and flash attention enabled by the split mode.
 - The legacy `llama-server.service` unit is untouched; it stays disabled at boot, and its old single-GPU Q4_K_M run on port 8090 coexists with the script while both are up, each holding its own card set.
 - The binary is the pre-existing b9286 at `/data2/llama_cpp_bin/llama.cpp/build/bin/llama-server`.
-- The stow packages `bin`, `opencode`, `agents`, `claude` and `cpd` are linked.
+- The stow packages `bin`, `opencode`, `agents` and `claude` are linked.
 - `~/.claude/skills` is a real directory whose entries are links; `~/.local/share/opencode-claude-skills` exists and stays empty.
 - `/etc/opencode` is empty, `/usr/local/bin/opencode` is absent, and neither the `llama` user nor `/opt/llama` exists.
 
@@ -43,7 +43,7 @@ The display name `unsloth/Qwen3.8-27B-GGUF` in the config is cosmetic.
 - Keep b9286 instead of installing a newer build under `/opt/llama`.
   b9286 supports every flag the script uses; the only missing option is `--reasoning-effort`, which matters only for the deferred thinking A/B.
 - Run the server as `edjulien` from a foreground script instead of creating a `llama` system user or a systemd unit.
-  Only `edjulien` uses opencode on cpd today, and a terminal process keeps the lifecycle visible: start it with `cpd-llama.sh up`, stop it with `down` or by interrupting the terminal.
+  Only `edjulien` uses opencode on cpd today, and a terminal process keeps the lifecycle visible: start it with `llama-server.sh up`, stop it with `down` or by interrupting the terminal.
 - Use `UD-Q6_K_M` instead of `UD-Q4_K_M` now that two cards are available.
   The Q6 weights plus the 196608 token KV cache leave about 7 GiB free per card, and the measured generation speed is about 32 tok/s on two cards, above the single-card Q4 figure.
 - Split across CUDA devices 1 and 2 with `--split-mode tensor` instead of device 0 alone.
@@ -77,7 +77,7 @@ Link the packages:
 
 ```bash
 cd ~/dotfiles
-stow -v -t ~ bin opencode agents cpd
+stow -v -t ~ bin opencode agents
 mkdir -p ~/.claude/skills ~/.local/share/opencode-claude-skills
 stow -v -R --ignore='\.ruff_cache' -t ~ claude
 ```
@@ -87,7 +87,7 @@ stow -v -R --ignore='\.ruff_cache' -t ~ claude
 Start the server in a terminal; the first run downloads the Q6_K_M GGUF into `/data2/llama.cpp`:
 
 ```bash
-~/cpd-llama.sh up
+~/.opencode/bin/llama-server.sh up
 curl -s http://127.0.0.1:8090/health
 ```
 
@@ -100,9 +100,9 @@ cd "$(mktemp -d)" && git init -q && opencode run "Reply exactly: ok"
 ## Operations
 
 ```bash
-~/cpd-llama.sh status
-~/cpd-llama.sh logs
-~/cpd-llama.sh down
+~/.opencode/bin/llama-server.sh status
+~/.opencode/bin/llama-server.sh logs
+~/.opencode/bin/llama-server.sh down
 curl -s http://127.0.0.1:8090/props | jq '{model_alias, is_sleeping}'
 ```
 

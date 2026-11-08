@@ -19,7 +19,7 @@ LOGFILE=$LOGDIR/llama-server.log
 
 usage() {
   cat <<'EOF'
-Usage: cpd-llama up | down | status | logs | -h | --help
+Usage: llama-server up | down | status | logs | -h | --help
 
 Runs the local llama-server for the opencode cpd provider in the foreground.
 
@@ -36,7 +36,7 @@ EOF
 }
 
 die() {
-  printf 'cpd-llama: %s\n' "$1" >&2
+  printf 'llama-server: %s\n' "$1" >&2
   exit 1
 }
 
@@ -172,7 +172,7 @@ done
 mkdir -p "$LOGDIR"
 
 if port_listening; then
-  die "port $PORT is already in use; stop it (cpd-llama down, or the llama-server service) or set CPD_PORT"
+  die "port $PORT is already in use; stop it (llama-server down, or the llama-server service) or set CPD_PORT"
 fi
 
 check_gpus
