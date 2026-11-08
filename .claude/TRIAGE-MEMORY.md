@@ -1,7 +1,7 @@
 # TRIAGE-MEMORY.md
 
-Three memory passes applied: the triage of 2026-09-22 over the 114 files of `~/.claude/memory/`, framed in `PLAN-SESSION-DISCIPLINE.md` § "Third pass"; the sweep of 2026-10-09 under the admission criterion; the harness's legacy stores on 2026-10-13.
-The canonical store is versioned in `dotfiles` (131 files tracked), so what the first two passes removed is read back in its history, `ee86678`, `1517137`, `653dc17` and `1464c2c` for 2026-09-22: that is what allows pruning their verdict tables. The fifth pass's legacy stores were not versioned, and the pre-pass tarball sat in a dead session scratchpad, so its "Superseded" and "Obsolete" tables are the only state of what the 31 deleted files held.
+Eight memory passes applied, each under its own heading below, from the triage of 2026-09-22 over the 114 files of `~/.claude/memory/`, framed in `PLAN-SESSION-DISCIPLINE.md` § "Third pass", to the merge of 2026-11-08. The first three were the triage, the sweep of 2026-10-09 under the admission criterion and the harness's legacy stores on 2026-10-13; the ceiling re-set of 2026-10-23 sits between the fifth and the sixth and is not a pass.
+The canonical store is versioned in `dotfiles`, its file count re-derived with `git ls-files claude/.claude/memory` rather than read here, so what the first two passes removed is read back in its history, `ee86678`, `1517137`, `653dc17` and `1464c2c` for 2026-09-22: that is what allows pruning their verdict tables. The fifth pass's legacy stores were not versioned, and the pre-pass tarball sat in a dead session scratchpad, so its "Superseded" and "Obsolete" tables are the only state of what the 31 deleted files held.
 Four headings are cited from outside the note, so renaming one repoints its citers in the same edit, the map re-derived 2026-11-06: "A non-parsing frontmatter costs nothing while the native recall stays off" (the memory-pass bullet of `PLAN-SESSION-DISCIPLINE.md` § "Open points", and `rules/memory.md` § "One store" for the file rather than the heading), "Index lines too long" (`rules/memory.md` § "One store", `DESIGN-INSTRUCTION-ROUTING.md`, and the memory-triage status paragraph of `PLAN-SESSION-DISCIPLINE.md`), "Body prunes of the third pass" (the open-task bullet of `PLAN-SESSION-DISCIPLINE.md`) and "Fourth pass: the sweep under the admission criterion" (`DESIGN-INSTRUCTION-ROUTING.md`, `PLAN-SESSION-DISCIPLINE.md` and `PRUNE-OBSERVATIONS.md`).
 
 ## Deletions: ten files go
@@ -37,7 +37,7 @@ It replaces the 200-character threshold on the description alone, set on 2026-09
 
 Each line is derived from the target file's frontmatter `description`, never from the index line in place, which is the thing that drifts.
 The frontmatter keeps the long form for whoever opens the file: shortening the index removes a duplicate, not a piece of information. What reads that long form today is a reader rather than a selector, the native recall being gated off on this account, which "A non-parsing frontmatter costs nothing while the native recall stays off" below settles with what would change if the flag turned on.
-Two standing refusals: do not merge the 19 `feedback_review_severity_*` entries, whose recall is by target and where a merged file would load the 19 calibrations at every review; do not raise `--index-bytes` or `--index-lines` of `instructions-budget`, which change only what the check reports, the 25,000 and the 200 belonging to the harness.
+Two standing refusals: do not merge the `feedback_review_severity_*` entries as a family, whose recall is by target and where a merged file would load every calibration at every review (19 when this was written, 21 on 2026-11-08, and the count is not what grounds the refusal); do not raise `--index-bytes` or `--index-lines` of `instructions-budget`, which change only what the check reports, the 25,000 and the 200 belonging to the harness.
 
 Pass of 2026-10-04: the 124 lines rewritten, the index from 24,470 to 14,839 bytes over 133 lines, without touching a memory file or a frontmatter.
 
@@ -338,7 +338,19 @@ The filename now undersells the file, which is the cost taken: a note named `rec
 
 **Two merges weighed and not taken**, each with the ground, so a later pass does not re-derive them:
 
-- **`feedback_hebstr_doc_no_public_api` into `feedback_review_severity_hebstr_doc`.** One project, which is the rule that admitted the 2026-10-19 merge, but the triggers differ: one fires at a review, the other when designing or releasing a change. Its index line measures 126 bytes against the 130 cap, so naming the second trigger means dropping part of the artefact enumeration the walkthrough scope filter reads.
+- **`feedback_hebstr_doc_no_public_api` into `feedback_review_severity_hebstr_doc`.** One project, which is the rule that admitted the 2026-10-19 merge, but the triggers differ: one fires at a review, the other when designing or releasing a change. Its index line measures 126 bytes against the 130 cap, so naming the second trigger means dropping part of the artefact enumeration the walkthrough scope filter reads. **Taken the next day by the eighth pass below, the user choosing it over dropping a new note.**
 - **`project_typst_skill_evaluation` and `project_litrev_plugin_status` into `project_closed_tool_evaluations`.** Both read as closed verdicts and both carry live operational guidance instead: how to use the typst skill when its data and its prose disagree, and what serves a bibliographic need while litrev is paused. A note whose description says "read the verdict rather than redo it" does not recall either.
 
 The sweep of the entries no triage pass has read is still owed.
+
+# Eighth pass: the hebstr-doc pair, taken against the seventh's own verdict (2026-11-08)
+
+Same trigger as the sixth and the seventh: `instructions-budget` refused a dotfiles commit, the index at 161 lines against the ceiling of 160 after `reference_git_history_redaction.md` was added. The user was offered folding the new note into an already-indexed file or dropping it, and chose the merge pass again, which makes that the standing answer to this trigger rather than a one-off.
+
+**Applied: `feedback_hebstr_doc_no_public_api` into `feedback_review_severity_hebstr_doc`**, 161 lines to 160, the absorbed body carried over byte for byte under a heading of its own that names the differing trigger, its closing `Related:` link dropped as it would now point at the carrier itself. The carrier was decided by inbound references, as in the seventh pass: the absorbed file linked to it and nothing linked the other way.
+
+The seventh pass had weighed this exact pair and not taken it, on two grounds, and both were paid rather than refuted. The differing trigger is now carried by the section heading and by a clause in the `description`, so a design-or-release question still finds it. The index line did lose the artefact enumeration the walkthrough scope filter reads, replaced by "Reviews of quarto-hebstr-doc" at 127 bytes. What that costs is unmeasured and looks like nothing: the filter reads the `description`, which kept the enumeration, so the loss falls on whoever reads the index instead.
+
+Two refusals of the fourth pass were checked and neither covers this pair: the `feedback_review_severity_*` entries are refused as a family (19 when that refusal was written, 21 on 2026-11-08), and this merge feeds one of them rather than merging them together.
+
+One pointer outside the store names the absorbed file: `.claude/DESIGN-INSTRUCTION-ROUTING.md`, in a dated 2026-09-27 measurement of the harness stamping frontmatter, which stays as record with the merge noted beside it.
