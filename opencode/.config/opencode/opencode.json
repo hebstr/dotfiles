@@ -186,6 +186,7 @@
     },
     "external_directory": {
       "*": "ask",
+      "/tmp/**": "allow",
       "~/.claude/**": "allow",
       "~/.local/share/opencode-claude-skills/**": "allow"
     },
