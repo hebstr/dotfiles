@@ -4,7 +4,7 @@ description: >
   User-invocable ONLY via `/prune [<note or project>]`.
   Does not auto-trigger on mentions of "clean up the notes", "this plan is too long", "the tracking is stale", "prune", "élaguer les notes", "nettoyer le suivi", "ce plan est trop long", and never on a session closing a step, which the criterion of `rules/claude-files.md` already covers.
   The pass that cuts a project's `.claude/` notes and the decision notes of `_meta/notes/` down to what still binds future work.
-  Not for: the memory store, whose admission test and index ceiling are in `rules/memory.md`; `CLAUDE.md` and the unscoped rules files, governed by the routing test and the `instructions-budget` check; `NOTES.md`, `TODO.md` and `CALENDRIER.md`, which are the user's and are never written to; choosing between ways of implementing something (use `/design`).
+  Not for: the memory store, whose admission test and index ceiling are in `rules/memory.md`; `CLAUDE.md` and the unscoped rules files, governed by the routing test and the `instructions-budget` check; `NOTES.md`, `TODO.md` and `CALENDRIER.md`, which are the user's, whose premises this criterion is not calibrated for, and which this pass never cuts even when invoked on one; choosing between ways of implementing something (use `/design`).
 disable-model-invocation: true
 ---
 

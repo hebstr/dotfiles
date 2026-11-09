@@ -30,7 +30,7 @@
 
 ## Reference
 - reference_zotero_user_js_pref_precedence.md: Why a Zotero or BBT pref reverts at restart, and the citation key facts
-- reference_zotero_metadata_acquisition.md: Which route fills which field; .nbib lands PMID natively; one id kind per paste
+- reference_zotero_metadata_acquisition.md: Which route fills which field; .nbib lands PMID; scipdf can attach a wrong PDF
 - reference_syncthing_ghost_records.md: Finding which device holds a stale record of an ignored path; the phones' `.stignore`
 - reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
 - reference_warp_scholar_split_tunnel.md: Scholar 403s through WARP: the excluded host plus the Firefox TRR exclusion
@@ -151,7 +151,7 @@
 - feedback_format_hook_strips_new_import.md: In Python, an import added before its usage is stripped as F401 by the format hook
 - feedback_browser_layout_probe.md: Inspect a rendered layout yourself in headless chromium; Streamlit needs CDP and a sleep
 - feedback_isolate_render_comparison.md: A peer session voids a before/after render diff; worktree it, one browser profile
-- feedback_personal_working_files.md: The write-gate on NOTES.md, TODO.md and CALENDRIER.md: reading is free, writing never
+- feedback_personal_working_files.md: The write-gate on TODO.md and CALENDRIER.md, and why NOTES.md left it on 2026-11-09
 - feedback_user_deletions_are_decisions.md: Items gone from the user's own data are their pruning: report, never restore
 - feedback_verify_native_gc_semantics.md: Never call a cache "covered" from a GC command's name: read its help, test on a copy
 - feedback_session_tool_residue.md: A killed Bash-tool process skips cleanup: a mktemp state dir with an EXIT trap
