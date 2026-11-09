@@ -5,7 +5,7 @@
 - user_quarto_typst_only.md: Quarto PDF via Typst only, never the LaTeX `format: pdf` path
 
 ## Project
-- project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md rules and the commit format
+- project_opencode_agents_md_mirror.md: opencode's `AGENTS.md` mirrors CLAUDE.md, the rules files and the commit format
 - project_ju_tp2_receiveonly.md: ju-TP2: receive-only trees, the GPU smoke-test role, the Syncthing link fix
 - project_claude_dir_local_only_repo.md: `.claude` in a nested remote-less repo; dotfiles excepted, public since 2026-11-07
 - project_ubuntu_26_04_migration.md: 26.04 flag is Supported: 1 (2026-10-09); migrate Dec 2026 at the earliest, research done
