@@ -159,7 +159,7 @@ Claims the sweep could not verify, left as they stand rather than ruled on: the 
 129 files to 128, the one fewer being the merge and no note deleted on the criterion; 557,814 body bytes to 535,245; the index 138 lines and 15,441 bytes to 137 and 15,306; the severity family 159,906 bytes to 151,849 over its 19 files; and the same eight frontmatters `yaml.safe_load` refuses, before and after.
 
 **The ceiling needs no edit**, 150 against the 137 the pass left being a margin of 13, since narrowed to 12 by the fifth pass and to 11 by the memory added on 2026-10-13, `instructions-budget` reading 139 index lines for 130 files.
-**Four sites hard-code that number, not two**, contrary to the framing of this pass's prompt: `index_line_cap` in `inject-rules.sh`, the `--index-lines` arg in `prek.toml`, and two `inject-rules.bats` cases, "denies a new memory file once the index is over the line ceiling" and "leaves the prune path open over the ceiling, and passes at it", which carry an over-the-ceiling fixture and an at-the-ceiling one between them (161 and 160 since the re-set of 2026-10-23). A re-set touches all four.
+**Four sites hard-code that number, not two**, contrary to the framing of this pass's prompt: `index_line_cap` in `inject-rules.sh`, the `--index-lines` arg in `prek.toml`, and two `inject-rules.bats` cases, "denies a new memory file once the index is over the line ceiling" and "leaves the prune path open over the ceiling, and passes at it", which carry an over-the-ceiling fixture and an at-the-ceiling one between them (171 and 170 since the re-set of 2026-11-09). A re-set touches all four.
 
 # Fifth pass: the legacy harness stores (2026-10-13)
 
@@ -371,3 +371,24 @@ Two costs taken. The index line is at 128 bytes against the 130 cap, so a clause
 The absorbed fact differs from the three previous merges in having another holder, `~/dotfiles/_meta/notes/skills-repo-portability-reco.md`, which is the condition the sixth pass's trimming rule keys on. That argued for dropping rather than merging, and the user chose the merge regardless, on the ground that the fact is a durable tool fact wider than the chantier that produced it.
 
 The sweep of the entries no triage pass has read is still owed, now through four consecutive single merges.
+
+# Ceiling re-set from 160 to 170, the fold being unavailable (2026-11-09)
+
+Same trigger for the fifth time running: `instructions-budget` refused a dotfiles commit, the index at 161 lines against the ceiling of 160, after `feedback_review_severity_hebstr_slide.md` was added at the close of the `/audit:walkthrough` of `quarto-hebstr-slide`'s theme.
+The user was offered the four shapes and chose the re-set, which the sixth through ninth passes had each declined in favour of a fold.
+
+**What makes this pass differ: every fold was blocked, which was true of none of those four.**
+
+- **Folding the new note into `feedback_review_severity_hebstr_doc`** falls under the fourth pass's refusal of the `feedback_review_severity_*` entries as a family. The one exception, the same-project rule that admitted `..._md_nesrine` into `..._stat_reports_fr` on 2026-10-19, does not reach it: `quarto-hebstr-slide` and `quarto-hebstr-doc` are two repositories, not one project. The merge would also cost what no previous fold cost, the scope filter of `/audit:walkthrough` reading the `description` and therefore loading each project's calibration into the other's reviews.
+- **Folding an unrelated pair, as the sixth pass did**, is blocked by a measurement rather than by a reading: the four pairs the fourth pass still refuses carry index lines of 121 to 127 bytes against the 130 cap (`reference_dbplyr_in_vs_semi_join` 126, `..._null_semantics` 127, the three Quarto notes 121, 125 and 124, `reference_flextable_grouped_rows` 121 against `reference_table_column_width_layout` 126). The refusal rested on "one description would not recall both symptoms", and no merged line has the room to name two triggers. What let the sixth pass cross the pkgdown refusal was exactly that room, which none of these four has.
+- **`/prune` is in the four shapes offered and is not available at all.** Its own frontmatter excludes the store: "Not for: the memory store, whose admission test and index ceiling are in `rules/memory.md`". A pass that offers it offers nothing.
+
+The re-set rests on the same ground as the 2026-10-23 one, re-derived rather than recalled: the index stood at 18,295 bytes against the harness's 25,000 and 161 lines against its 200, so neither harness dimension is under pressure.
+170 keeps a 30-line margin against the harness's own compaction, against the 40 the previous re-set left.
+
+All four sites moved together: `index_line_cap` in `inject-rules.sh`, the `--index-lines` arg in `prek.toml`, and the two `inject-rules.bats` cases, whose fixtures went to 171 and 170 lines and whose deny assertion now reads "at 171 lines, over the 170-line ceiling".
+A fifth site was looked for and there is none (`rg -n '\b160\b'` over `rules/memory.md`, `CLAUDE.md`, the hooks, `prek.toml`, `instructions-budget` and `_meta/tests/` returns nothing).
+The 47 cases of `inject-rules.bats` pass and `instructions-budget --budget 12288 --index-lines 170` exits 0 at 161 lines.
+A re-set stays the user's to authorise, never a session's own call, as the 2026-10-23 entry records.
+
+The sweep of the entries no triage pass has read is still owed, and this pass adds a reason to run it: the fold is the standing answer to this trigger and the family refusal now blocks it for every new `feedback_review_severity_*` note, which is the shape the store keeps receiving.
