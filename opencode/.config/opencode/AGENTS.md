@@ -54,8 +54,9 @@ Read a file from it when a rule below points to it, and not before.
   In the first shape, when the session wrote notes there, add a second block, last, holding `cd <project>/.claude && git add <the notes this session wrote> && git commit -m "<header>"`, the header naming what the pass cut or decided rather than that a file was updated.
   Never `git add .` or `git add -u` there: it would sweep another session's notes.
   No repository there, or one with no commit yet: say so, and name the first commit as the user's without writing that command anywhere in the response: an import stages notes no session here verified, and since 2026-09-30 no check refuses it.
-- Never write to `NOTES.md`, `TODO.md` or `CALENDRIER.md`.
-  Reading them is fine.
+- Never write to `TODO.md` or `CALENDRIER.md`.
+  `NOTES.md` left that gate on 2026-11-09: it stays the user's, so write one only on their explicit request and never on a pass's own initiative.
+  Reading all three is fine.
 - Never print a secret.
   Before touching `.env*`, `~/.secrets`, `*.pem`, `*.key`, `id_*`, `credentials*` or any file whose path contains `secret`, `password` or `apikey`, read `~/.claude/rules/secrets.md`.
   Do not `cat`, `head` or `tail` a secret file, and do not open it with the `read` tool; use `rg -l` for filenames only, never `rg -n`.

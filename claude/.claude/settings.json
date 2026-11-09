@@ -77,7 +77,6 @@
       "Bash(curl *better-bibtex/json-rpc*)",
       "Edit(~/.claude/plugins/marketplaces/**)",
       "Edit(~/.claude/plugins/cache/**)",
-      "Edit(//**/NOTES.md)",
       "Edit(//**/TODO.md)"
     ],
     "ask": ["Bash(git add*)", "Bash(git commit*)"],
