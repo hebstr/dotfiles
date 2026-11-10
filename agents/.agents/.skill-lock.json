@@ -1,15 +1,6 @@
 {
   "version": 3,
   "skills": {
-    "prek": {
-      "source": "j178/prek",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/j178/prek.git",
-      "skillPath": "skills/prek/SKILL.md",
-      "skillFolderHash": "426fcf46c5fb613c211de618e95e3a81380091c8",
-      "installedAt": "2026-09-18T10:28:52.261Z",
-      "updatedAt": "2026-10-18T20:27:41.862Z"
-    },
     "typst": {
       "source": "lucifer1004/claude-skill-typst",
       "sourceType": "github",
@@ -17,7 +8,16 @@
       "skillPath": "skills/typst/SKILL.md",
       "skillFolderHash": "64229aeb12fd6ddcb129312a9e6dd1f429588cd5",
       "installedAt": "2026-10-17T08:47:06.936Z",
-      "updatedAt": "2026-11-10T08:13:24.359Z"
+      "updatedAt": "2026-11-10T13:12:53.722Z"
+    },
+    "prek": {
+      "source": "j178/prek",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/j178/prek.git",
+      "skillPath": "skills/prek/SKILL.md",
+      "skillFolderHash": "426fcf46c5fb613c211de618e95e3a81380091c8",
+      "installedAt": "2026-11-10T13:28:00.452Z",
+      "updatedAt": "2026-11-10T13:28:00.452Z"
     }
   },
   "dismissed": {}
