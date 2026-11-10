@@ -102,10 +102,12 @@ The commit advances, `stow` does not follow, and nothing said so: no `sys-update
 
 **Whether a package is expected on this machine is derived, never listed.** A package counts as deployed when one of its own files resolves, through a link, back into the package, which is what keeps `bash-cpd` and `positron-cpd` from being demanded on `ju-TP` and the absent desktop applications from being demanded on a machine that has none. A package no link resolves into is skipped in silence, so the first file of a brand new package is the one case the hook cannot catch: that is the bootstrap case, and the `stow` line above covers it.
 
-Three more decisions.
+Four more decisions.
 `stow -n -v` is the authority on what is missing, and only its `LINK:` lines count; a path `git check-ignore` matches is dropped, since stow reads no `.gitignore` and would otherwise link a `__pycache__` that the repository ignores.
 Every package is checked rather than the ones a commit touches, which also catches a miss an earlier commit left: it costs about 0.8 s on top of the 1.7 s the first half already took (measured 2026-11-08, warm cache), against a per-commit budget that `pass_filenames` would have held to one package.
 A regular file where a link belongs makes `stow -n` print a conflict rather than a `LINK:`, so the hook stays silent on it: `rules/install.md` has that case ask the user before anything is removed, and no hook decides it.
+The simulation runs `stow -n -v` bare, where the `stow` line above carries `--ignore='\.ruff_cache'` and, on a machine that does not sync every Syncthing folder, an `--ignore` per missing one: the cache half is closed by the root `.gitignore`, which the `check-ignore` filter reads, and the Syncthing half is left open, so on such a machine the hook reports the un-synced folders as `MISSING` and its `fix:` line omits the `--ignore` that keeps `stow` from creating them.
+Carrying the exclusions in `~/.stow-global-ignore` would close it for the simulation and the real deployment at once, and was declined on 2026-11-10: that file is machine-local and replaces stow's built-in list rather than adding to it, against an over-report measured in a fixture and with no occurrence on `ju-TP`, where both folders exist.
 
 ## Local coding agent
 
