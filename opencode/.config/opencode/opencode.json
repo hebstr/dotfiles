@@ -38,6 +38,7 @@
   "instructions": [".claude/CLAUDE.md", ".claude/memory/MEMORY.md"],
   "skills": {
     "paths": [
+      "~/.claude/skills",
       "~/.local/share/opencode/skills/audit",
       "~/.local/share/opencode/skills/workflow"
     ]
