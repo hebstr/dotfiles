@@ -61,6 +61,7 @@
 - reference_technical_doc_pattern.md: Per-script technical doc with hebstr-doc: the plan, and why it is dormant since 2026-09-08
 - reference_llama_server_gpu_serving.md: llama-server: OOM flags, split-mode, KV quant pairs, greedy, thinking, SWA, `--hf-repo`
 - reference_tool_update_routines.md: The four tool-update routines, and the `agent-skills` route a third-party skill takes
+- reference_tracker_masked_sqlite_rowid.md: Tracker masked 2026-11-10 on the sqlite ROWID loop; don't unmask before 3.7.1 moves
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
 - reference_positron_open_html_externally.md: Explorer click to Firefox, editorAssociations, xdg-open, the profiles.ini trap

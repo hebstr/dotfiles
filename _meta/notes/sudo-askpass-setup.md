@@ -74,6 +74,11 @@ The test is `: </dev/tty`, not `[ -t 0 ]`: opening `/dev/tty` is what sudo attem
 
 Priming the credential cache covers the rest of the run: the `sudo apt-get` and `sudo snap refresh` calls inside the modules reuse the timestamp `sudo_prime` laid down, and each use refreshes it.
 
+That holds within one process tree, and not across Claude Code's Bash tool: measured 2026-11-10, a `sudo -A` that succeeded re-prompted on the next tool call two minutes later, well inside the 15-minute `timestamp_timeout`.
+The tool runs with no controlling terminal (`tty` answers `pas un tty`, `ps -o tty=` answers `?`), so under the default `tty_tickets` sudo keys the ticket on the parent process instead, and each call has a different parent shell.
+The mechanism is the documented fallback rather than something measured here; what is measured is the re-prompt.
+Consequence for an agent: batch every privileged step of a task into one `sudo -A bash -c '…'` rather than a sequence of `sudo` calls, which would open one dialog each.
+
 `--modal` is kept as a redundant hint, not as a requirement: under zenity 4.0.1 the password dialog carries `_NET_WM_STATE_MODAL` whether or not the flag is passed, and `WM_TRANSIENT_FOR` is absent either way, so the window has no parent to be modal against (measured 2026-10-31 with `xprop`, both forms, reproduced).
 The bats case asserting the flag pins the call's shape, never a modality the dialog needs.
 
