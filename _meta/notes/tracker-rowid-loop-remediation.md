@@ -61,14 +61,19 @@ $ du -sh ~/.cache/tracker3 && rm -rf ~/.cache/tracker3
 
 Three levers were on the table. The rsyslog rate limit was dropped on measurement: `rsyslog.service` declares `Requires=syslog.socket`, that socket is active, and `rsyslogd`'s listening socket is `/run/systemd/journal/syslog`, handed over by systemd socket activation. The imuxsock documentation states that under systemd many `SysSock.*` parameters are ignored, which would leave `SysSock.RateLimit.*` inert here. `SysSock.RateLimit.Severity` is also documented inconsistently between the reference page and the code. The edit would further have landed in `/etc/rsyslog.conf`, a dpkg conffile, so a prompt on every rsyslog upgrade, for no effect.
 
-The effective cap sits upstream, in journald: `ForwardToSyslog=yes` is on, so everything reaching rsyslog has already passed journald's rate limit.
+The effective cap sits upstream, in journald, `ForwardToSyslog` having been on at the time: everything reaching rsyslog had already passed journald's rate limit.
 
-Two files installed, directives checked against the man pages on the machine (logrotate 3.21.0, systemd 255):
+Three files installed, directives checked against the man pages on the machine (logrotate 3.21.0, systemd 255):
 
-- `/etc/systemd/journald.conf.d/50-limits.conf`: `SystemMaxUse=1G` (the journal sat at 4.0 GB, its default cap), `RateLimitIntervalSec=30s`, `RateLimitBurst=2000`, i.e. 66 messages/s per service sustained. A future runaway drops from 4M to ~240k lines per hour.
+- `/etc/systemd/journald.conf.d/50-limits.conf`: `RateLimitIntervalSec=30s` and `RateLimitBurst=2000`, i.e. 66 messages/s per service sustained, which drops a runaway from 4M to ~240k lines per hour. Plus `SystemMaxUse=200M`, set first to `1G` against a journal sitting at 4.0 GB, then aligned on the `JOURNAL_SIZE="200M"` that `clean_journal()` of `bin/.local/bin/sys-cleanup` already vacuums to. The always-on cap now does the work that module did intermittently, so its reported reclaim stops being the ceiling being pulled down and becomes a flood signal.
 - `/etc/logrotate.d/rsyslog`: `maxsize 200M` added, `rotate 4` raised to `rotate 7`. The weekly cadence is kept, but since the logrotate timer fires daily, a file past 200 MB is rotated the next day at the latest.
+- `/etc/systemd/journald.conf.d/syslog.conf`: `ForwardToSyslog=no`. The filename is load-bearing, since it masks Ubuntu's own `/usr/lib/systemd/journald.conf.d/syslog.conf`, which forces `yes` against the compiled default of `no`. `journald.conf(5)` sorts drop-ins by filename across every directory and the last one wins, so any numeric prefix (`50-`, `99-`) sorts ahead of `syslog.conf` in ASCII and would be overridden; only an identical name, or one past `s`, reaches the end of the cascade.
 
-Lever left unapplied, more radical: `ForwardToSyslog=no` would end all growth of `/var/log/syslog`, the journal now being capped and queryable through `journalctl`. Held back so as not to move where the user reads logs without their decision.
+Dropping the forward halves the write amplification of userspace logs, which were stored twice on the NVMe. It does not kill `/var/log/syslog`: `module(load="imklog")` in `/etc/rsyslog.conf` reads the kernel ring buffer directly, so kernel messages keep landing there and in `kern.log` (measured right after the change: 819 bytes of `wlp0s20f3` reassociation). That stream is small, `kern.log` holding 3.9 MB over a rotation period.
+
+Nothing on this machine consumed the file: no hit for `/var/log/syslog` across `~/dotfiles`, and neither `fail2ban`, `logcheck` nor `logwatch` is installed, `dpkg -l` returning only `rsyslog` itself.
+
+Covering any of this in `sys-cleanup` was weighed and rejected, 2026-11-10. The journal is already a module there, and more aggressive than the cap was; everything in `/var/log` outside the journal came to about 78 MB (1.1 GB total against 1022 MB of journal), which no module is worth; and a user-invoked reclaim is the wrong instrument against 907 KiB/s, which fills the disk in days. An always-on cap is what bounds that.
 
 ## Privileged application
 
@@ -88,7 +93,11 @@ Vacuuming done, freed 0B of archived journals from /var/log/journal/beb894a32ee5
 Vacuuming done, freed 0B of archived journals from /var/log/journal.
 ~~~
 
-The explicit vacuum frees nothing because restarting journald had already applied `SystemMaxUse=1G` and brought the journal from 4.0 GB down to 1021.6 MB. `truncate` rather than `rm`, to keep rsyslog's file descriptor valid. Measured at the time: 31 GB reclaimed, `/` from 132 GB used to 101 GB.
+The explicit vacuum frees nothing because restarting journald had already applied the cap, then `1G`, and brought the journal from 4.0 GB down to 1021.6 MB. `truncate` rather than `rm`, to keep rsyslog's file descriptor valid. Measured at the time: 31 GB reclaimed, `/` from 132 GB used to 101 GB.
+
+The second elevation, installing `syslog.conf` and the 200M alignment, was refused to the agent by the auto-mode classifier under `Logging/Audit Tampering`: disabling the forward and truncating a log file in one elevation reads as covering tracks from the outside. The refusal was not worked around by splitting the command, and the user ran it themselves. Any later pass touching logging reduction on this machine should expect the same refusal and hand the command over rather than reshape it.
+
+Journal after that restart: 181.2 MB, inside the 200M cap.
 
 ## Final verification
 
@@ -121,21 +130,21 @@ tracker-xdg-portal-3.service                                      masked    enab
 --- effective journald ---
 [Journal]
 [Journal]
-SystemMaxUse=1G
+SystemMaxUse=200M
 RateLimitIntervalSec=30s
 RateLimitBurst=2000
 [Journal]
-ForwardToSyslog=yes
+ForwardToSyslog=no
 --- effective logrotate ---
  weekly (7 rotations)
 empty log files are not rotated, log files >= 209715200 are rotated earlier, old logs are removed
 --- sizes ---
-20849 bytes  /var/log/syslog
-Archived and active journals take up 1021.6M in the file system.
+819 bytes  /var/log/syslog
+Archived and active journals take up 181.2M in the file system.
 --- temperatures (mC) ---
-acpitz: 45000
-TCPU: 45050
-x86_pkg_temp: 53000
+acpitz: 34000
+TCPU: 34050
+x86_pkg_temp: 36000
 --- load ---
-0.00 0.14 0.49 1/797 20704
+0.55 0.36 0.26 2/873 25859
 ```
