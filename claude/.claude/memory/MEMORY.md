@@ -81,7 +81,7 @@
 - reference_pandoc_312_data_uri.md: pandoc 3.12 leaves `#` unescaped in data URIs, truncating self-contained widget CSS
 - reference_citeproc_bib_vs_csl.md: citeproc recases `.bib` titles and leaves CSL-JSON/YAML alone; protecting French titles
 - reference_better_bibtex_export_control.md: What a Better BibTeX export can emit: honoured prefs, `skipFields`, override files
-- reference_quarto_extension_install_resolution.md: `quarto add owner/repo` installs main even with `@latest`; only `@<tag>` pins
+- reference_quarto_extension_install_resolution.md: `quarto add`: `@latest` takes main, `@<tag>` pins; a local path skips owner/
 - reference_quarto_file_outside_render_list.md: A `.qmd` outside `render:` loses metadata and `output-dir`, yet gets renamed
 - reference_quarto_page_title_fallback.md: An empty or absent `title:` sends the filename into a page's `<title>`
 - reference_quarto_include_path_resolution.md: `{{< include >}}` resolves against the includer; no root form, standalone only

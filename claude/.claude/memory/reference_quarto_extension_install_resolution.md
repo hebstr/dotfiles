@@ -28,4 +28,8 @@ Consequences when maintaining an extension:
 
 `quarto-hebstr-doc` documented the opposite ("resolves to the latest release if any tag exists") in `CONTRIBUTING.md` and its project `CLAUDE.md` until 2026-08-29; both are corrected.
 
+**A local path installs without the owner directory**, measured 2026-11-10 on Quarto 1.11.9 with `quarto add ~/Documents/packages/quarto-hebstr-slide`: the extension lands at `_extensions/<folder-name-of-the-clone>/`, where `owner/repo` lands at `_extensions/<owner>/<repo>/`.
+So installing an unpushed clone over a previously GitHub-installed extension adds a second copy beside the first rather than replacing it, and a format id that resolves through the owner directory keeps pointing at the stale one.
+The fix is to move the fresh directory into the owner path and delete the stale one; the local-path form is otherwise the only way to test an unpushed extension in a consumer project.
+
 Related: [[project_quarto_custom_crossref_float]], [[reference_quarto_extension_format_knitr]]
