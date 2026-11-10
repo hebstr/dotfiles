@@ -15,9 +15,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/lucifer1004/claude-skill-typst.git",
       "skillPath": "skills/typst/SKILL.md",
-      "skillFolderHash": "b1486a04b26e8c0412dc09a6246949a19d7ac28f",
+      "skillFolderHash": "64229aeb12fd6ddcb129312a9e6dd1f429588cd5",
       "installedAt": "2026-10-17T08:47:06.936Z",
-      "updatedAt": "2026-11-03T09:37:01.575Z"
+      "updatedAt": "2026-11-10T08:13:24.359Z"
     }
   },
   "dismissed": {}
