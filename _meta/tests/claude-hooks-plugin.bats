@@ -19,6 +19,8 @@ setup() {
 // one against an event shaped like the host's, and prints what the host reads back.
 // In the system phase the tool slot names the session hook to fire: the host runs
 // the same system builder for "context", "compaction" and "generate".
+import { register } from "node:module"
+register(new URL("./driver-resolver.mjs", import.meta.url))
 const [plugin, phase, tool, argsJson, directory] = process.argv.slice(2)
 const mod = await import(plugin)
 const registered = { tool: {}, session: {} }
@@ -67,6 +69,14 @@ try {
   }
 } catch (e) {
   console.log(`THROWN: ${e.message}`)
+}
+EOF
+  cat >"${BATS_TEST_TMPDIR}/driver-resolver.mjs" <<'EOF'
+export async function resolve(specifier, context, next) {
+  if (specifier === "@opencode/plugin") {
+    return { url: "data:text/javascript,export const Plugin = { define: (p) => p };", shortCircuit: true }
+  }
+  return next(specifier, context)
 }
 EOF
 }

@@ -307,12 +307,15 @@ With no matching rule the default is `ask`, but the `build` agent always opens o
 ## The ported plugin carries no runtime dependency, 2026-11-11
 
 `Plugin.define` is `export function define(plugin) { return plugin }` in `@opencode/plugin@2.2.7`, an identity.
-A plugin that default-exports a plain `{ id, setup }` object therefore loads, measured rather than assumed: a probe under a scratch `XDG_CONFIG_HOME` was logged as "loading plugin", its `setup` ran, `ctx.location.directory` resolved, and `ctx.tool.hook` and `ctx.session.hook` both registered.
-The port keeps `import type { Plugin } from "@opencode/plugin"`, erased at runtime, so nothing has to be installed under `~/.config/opencode` and the bats driver keeps loading the module through a bare `await import`.
+The port default-exports `Plugin.define({ id, setup })` with a value import of `@opencode/plugin`.
 
-Rejected: calling `Plugin.define`, which turns the package into a runtime dependency and costs a 190 MB `node_modules` tree per machine, untracked by the repository, for an identity call.
+Measured 2026-11-11 against the 2.2.7 server: a plain `{ id, setup }` default export fails to load with `SchemaError(Missing key at ["default"])`, so the host demands the marked form even though `define` is an identity.
+The remedy is the value import and the `Plugin.define` call, which the 2.2.7 server loads cleanly (probe under a scratch `XDG_CONFIG_HOME`: "loading plugin" with no failure, `setup` registered).
 
-Weakest assumption: `define` stays an identity and the host demands no marker on the default export. A version that tagged plugins through it would show the plugin unloaded in `opencode plugin list`, and the remedy is one import.
+The package is not installed on disk: the 2.2.7 binary serves `@opencode/plugin` from its embedded cache at import time, so nothing goes under `~/.config/opencode`.
+The bats driver cannot rely on that, so it registers a resolve hook mapping `@opencode/plugin` to an identity `define` stub before importing the plugin; the suite stays green without a 190 MB `node_modules` tree.
+
+Weakest assumption: the host keeps demanding the marked form and serving the package from its embedded cache. A version that stopped serving it would break the value import at load time, visible in the server log as a module resolution failure rather than a schema error.
 
 ## What V2 changes in the plugin's three contracts, measured 2026-11-11
 

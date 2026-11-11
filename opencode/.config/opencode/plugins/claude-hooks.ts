@@ -2,7 +2,7 @@ import { spawn } from "node:child_process"
 import { existsSync, readFileSync, realpathSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path"
-import type { Plugin } from "@opencode/plugin"
+import { Plugin } from "@opencode/plugin"
 
 type EditArgs = {
   path?: string
@@ -119,7 +119,7 @@ function runHook(script: string, payload: string, cwd: string): Promise<Result> 
   })
 }
 
-const ClaudeHooks: Plugin = {
+export default Plugin.define({
   id: "claude-hooks",
   setup: async (ctx) => {
     const directory = ctx.location.directory
@@ -179,6 +179,4 @@ const ClaudeHooks: Plugin = {
       }
     })
   },
-}
-
-export default ClaudeHooks
+})
