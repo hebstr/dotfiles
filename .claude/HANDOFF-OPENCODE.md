@@ -2,11 +2,14 @@
 
 ## State at the time of writing
 
-Three files are modified in `~/dotfiles`, unstaged and uncommitted:
+Commit `752f70f` on `main` of `~/dotfiles` ("fix(opencode): load the hooks plugin through Plugin.define") holds four files:
 
 - `opencode/.config/opencode/plugins/claude-hooks.ts`: the type-only import became a value import, `import { Plugin } from "@opencode/plugin"`, and the default export is now `Plugin.define({ id, setup })` instead of a plain object.
 - `_meta/tests/claude-hooks-plugin.bats`: the driver registers a module resolve hook (`node:module` `register`) that maps `@opencode/plugin` to an identity `define` stub before importing the plugin.
 - `.claude/DESIGN-OPENCODE-HARNESS.md`, section "The ported plugin carries no runtime dependency, 2026-11-11": rewritten to record what the measurement found.
+- this brief itself, `.claude/HANDOFF-OPENCODE.md`.
+
+The commit is local on ju-TP and not pushed: `origin/main` sits at its parent, so a push of `main` carries it.
 
 ## Why the change exists
 
@@ -28,7 +31,7 @@ This reverses the earlier decision of the same section, which had rejected the `
 
 - `bats _meta/tests/claude-hooks-plugin.bats` from `~/dotfiles`: 42 tests, all green at the time of writing.
 - The plugin loads under node v22.23.4 with a resolver stub (same shape as the bats one); without any stub it fails module resolution, which is expected on this machine and not a defect: the consumer is the opencode server, not bare node.
-- `git diff` in `~/dotfiles` shows exactly the three files above; nothing else is modified.
+- `git show --stat 752f70f` in `~/dotfiles` lists exactly those four files, and `git status --short` is empty: nothing else is modified.
 
 ## Bounds and traps
 
