@@ -101,7 +101,8 @@ probe 'clone state' 'git -C ~/dotfiles log -1 --format="%h %ad %s" --date=short;
 probe 'clone remote' 'git -C ~/dotfiles remote -v'
 # shellcheck disable=SC2016
 probe 'opencode config links' 'for f in opencode.json AGENTS.md plugins/claude-hooks.ts; do readlink -e ~/.config/opencode/"$f" || echo "absent: $f"; done'
-probe 'opencode plugin load' 'opencode plugin list 2>&1 | head -5'
+probe 'opencode service' 'opencode service status 2>&1 | head -3'
+probe 'opencode plugin load' 'grep -aE "loading plugin|Plugin failed" ~/.local/share/opencode/log/opencode.log 2>&1 | tail -5'
 # shellcheck disable=SC2016
 probe 'claude profile links' 'for d in rules hooks memory skills; do readlink -e ~/.claude/"$d" || echo "absent: $d"; done; readlink -e ~/.agents/skills || echo "absent: .agents/skills"'
 probe 'managed opencode config' 'ls -l /etc/opencode/ 2>&1'

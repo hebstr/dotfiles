@@ -5,7 +5,7 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 
 ## Current state
 
-- opencode runs from `~/.opencode/bin/opencode`. It was 1.19.5 from npm until the V2 installer landed there on 2026-11-11; opencode has been paused on this machine since, the V1 plugin not loading under V2, and resumes at step 4 of `.claude/DESIGN-OPENCODE-HARNESS.md` § "The harness migrates to opencode V2, decided 2026-11-11", which also asks whether the installer kept the `opencode-serve` symlink it writes beside.
+- opencode runs from `~/.opencode/bin/opencode`. It was 1.19.5 from npm until the V2 installer landed there on 2026-11-11, and the machine was paused the same day while the V1 plugin did not load under V2. It is back in service since the ported plugin was stowed and `opencode service restart` cleared the V1 module that the background server was still serving from the plugin's path: see `.claude/DESIGN-OPENCODE-HARNESS.md` § "Probing a V2 configuration takes `--standalone`, 2026-11-11" for what that cache does and for the `opencode plugin list` trap that goes with it. Step 4 of that note's migration section still asks whether the installer kept the `opencode-serve` symlink it writes beside.
 - `~/.config/opencode/opencode.json` is a stow link to `~/dotfiles/opencode/.config/opencode/opencode.json`.
 - It declares the provider `cpd`, the model `cpd/qwen3.8-27b`, and the base URL `http://127.0.0.1:8090/v1`, alongside a `ju-tp2` provider kept declared and unused; see "Where the machine-specific keys live".
 - The model entry is named `unsloth/Qwen3.8-27B-GGUF` with a 196608 token context limit.
@@ -152,7 +152,7 @@ The trial helpers in `_meta/cpd/` remain available: `trial-serve.sh` starts the 
   Reading `/data2/llama.cpp` needs no grant, the cache being mode 777 with `other::rwx`.
   Two simultaneous users would need more VRAM than one card provides, so revisit `CUDA_VISIBLE_DEVICES` and `--ctx-size` at that point.
 - Thinking A/B: install a build that supports `--reasoning-effort`, then replace `--reasoning off ${SAMPLING}` with `--reasoning on --reasoning-effort low --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0`.
-- Restow `opencode` on `cpd000001`: `llama-server.sh` was renamed to `opencode-serve` in the package on 2026-11-08 (`a66fd73`), so the link that machine carries still has the old name and the new one is absent until the package is restowed there; check for a leftover `~/.opencode/bin/llama-server.sh` afterwards.
+- Restow `opencode` on `cpd000001`: the package was restowed on 2026-11-11, the ported plugin having reached the machine through its link, so the rename of `llama-server.sh` to `opencode-serve` of 2026-11-08 (`a66fd73`) should have landed with it. What stays owed is the check, which nobody has run: `readlink -e ~/.opencode/bin/opencode-serve` and the absence of a leftover `~/.opencode/bin/llama-server.sh`, which is also the `opencode-serve` half of step 4 in `.claude/DESIGN-OPENCODE-HARNESS.md`.
 - Claude Code is not installed on cpd, so no link farm exists here and the third-party plugin skills of its cache stay out. The seven skills of `hebstr/skills` reach opencode from the clone instead, decided 2026-11-08: see "Current state" above and `DESIGN-OPENCODE-HARNESS.md` § "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08".
 
 ## Caveats
