@@ -66,7 +66,7 @@
 - reference_uv_pip_virtual_env.md: `uv pip install` targets `$VIRTUAL_ENV` over the cwd project; `env -u VIRTUAL_ENV`
 - reference_positron_extension_registries.md: Profile registry beats global; VSIX reinstall breaks it; a clean removal takes two
 - reference_positron_open_html_externally.md: Explorer click to Firefox, editorAssociations, xdg-open, the profiles.ini trap
-- reference_hebstr_easy_out_subdir.md: easy_out() subdirs, kebab-case, easy_out_map() gone, the out_qmd() docx pairing
+- reference_hebstr_easy_out_subdir.md: easy_out() subdirs, kebab-case, easy_out_map() gone, out_qmd() docx, png and gt_format
 - reference_gt_reactable_css_theming.md: Theming gt vs reactable: gt rejects `var()`, only `!important` reaches it
 - reference_table_column_width_layout.md: gt/flextable widths, Word grid and indent floor, PNG clipping, multi-panel float cut
 - reference_flextable_grouped_rows.md: Grouped rows in flextable and gt: what spans one, what each drops, how they stripe

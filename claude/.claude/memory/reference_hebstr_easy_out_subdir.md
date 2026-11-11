@@ -19,6 +19,10 @@ metadata:
 
 **`out_qmd()` derives its path from the deparsed argument**, so the binding name must equal the `easy_out()` `filename`: `out_qmd(fig_uv$demo)` reads `output/fig-uv/fig-uv-demo.svg`, which `easy_out(fig_uv)` on a named list produces, and which `easy_out(x, filename = "fig_uv", suffix = "demo")` produces too when the panels need different sizes. A list built under one name and written under another filename silently points at nothing.
 
+**`png = TRUE` is inert on a gt or a gtsummary object**, measured 2026-11-11 on eds-prise: that branch of `easy_out()` writes the HTML with `gtsave()` and then the PNG with `webshot()` unconditionally, so a table always comes out in both formats, and the `png` argument governs the htmlwidget branch instead. Asking for the flag to get a PNG out of a table reads the argument list rather than the branch.
+
+**`gt_format()` is soft-deprecated in favour of `tbl_format()`**, same function and same arguments, the alias warning once per session at the first call. Older projects on the stack (eds-avc) still call the deprecated name, so a pattern copied from them carries it in.
+
 **One limitation lifted**: the class guard now accepts `htmlwidget`, `flextable` and `hebstr_dict` alongside ggplot, ggmatrix, gt, gtsummary, wbWorkbook and grid grobs. Project docs asserting that `easy_out()` refuses a `reactable` are stale.
 
 Related: [[reference_hebstr_theme_bar_facets]], [[reference_hebstr_outdec_locale_flag]], [[project_hebstr_add_note_migration]].
