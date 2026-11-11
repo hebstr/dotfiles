@@ -31,6 +31,7 @@ The same run auto-rejects a skill whose `skill` rule is `ask`, because `opencode
 
 The same session measured a permission bypass: a compound `cd /home/edjulien/dotfiles && git push` was rewritten by the shell scanner into `git -C /home/edjulien/dotfiles push`, which matched an allow rule and executed without a prompt despite `"git push*": "deny"`.
 The deny patterns were moved to substring form (`git*push*`, `git*reset*`, etc.) so that every flag-prefixed spelling of a write verb is caught by one pattern per verb; see `DESIGN-OPENCODE-HARNESS.md` § "The deny patterns moved from prefix to substring form, 2026-11-08".
+The four `ask` rules did not follow, so the same rewrite still carries `git add` and `git commit` past the gate unprompted, measured 2026-11-11 and open in that note's "Open points".
 
 ## The skills paths override
 
