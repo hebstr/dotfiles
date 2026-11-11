@@ -270,7 +270,7 @@ The plugin is the hard blocker: a V1 plugin implementation does not run under V2
 Steps, ordered by dependency, the minimal viable core being 0 to 3:
 
 0. `~/.opencode/bin` on the `PATH` through `bash/.profile`, then `npm uninstall -g opencode-ai`. Once per machine. **Done on `ju-TP` 2026-11-11**: the `PATH` block sits before the `$HOME/.local/bin` one so that `~/.opencode/bin` lands ahead of `~/.npm-global/bin`, `opencode` answers `v2.2.7`, and `~/.npm-global/lib` is empty.
-1. The `edit` deny of the next section, which closes the write window without waiting for the port.
+1. The `edit` deny of the next section, which closes the write window without waiting for the port. **Done 2026-11-11**, and `opencode debug agents --standalone` resolves both denies.
 2. The plugin port and its suite, `_meta/tests/claude-hooks-plugin.bats` green before and after. **Done 2026-11-11**, 34 tests green before, 38 after, and V2 loads the ported file with no error in its log.
 3. One live `opencode run` on the 9B of `ju-TP2`, which settles the payload shape that a stub suite cannot. **Done 2026-11-11**, see "What the live run on the 9B settled, 2026-11-11".
 4. `cpd` back in service: stow the ported plugin, and check whether the installer kept the `opencode-serve` symlink it writes beside.
