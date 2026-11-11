@@ -54,6 +54,7 @@
 - reference_nanoparquet_col_select.md: nanoparquet `col_select` silently drops NAs and shifts values in a row group: never use it
 - reference_r_list_key_lookup.md: Reading a declared key out of an R list: `$` partial-matches, `==` gives `logical(0)`
 - reference_r_data_mask_shadows_local.md: A column shadows a same-named local later in the same tibble()/mutate() call
+- reference_cli_markup_dot_names.md: A `{.obj}` in a cli message reads as markup; `\\` keeps the indentation
 - reference_git_html_id_filter.md: `html-id`, `comment-hash`, `out-meta`, regex traps, silent loss, prek's stash, status noise
 - reference_git_askpass_positron.md: Positron's GIT_ASKPASS sends an empty Basic auth: "Access denied" instead of a prompt
 - reference_git_history_redaction.md: Redaction before a push: blob in the introducing commit, fixup+autosquash, rm --cached trap
