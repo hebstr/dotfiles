@@ -24,7 +24,7 @@ Hors du périmètre : l'export d'une collection vers litrev (écarté par l'util
 - `zotero/.zotero/zotero/pucr7b5d.default/user.js` active l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
 - `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne s'ajoute que si les agents composent mal leurs requêtes à l'usage.
 - `claude/.claude/settings.json` porte `Bash(curl *better-bibtex/json-rpc*)` dans `permissions.deny`. Un appel `api.ready` au JSON-RPC a été refusé le 2026-09-23 sans invite.
-- `opencode/.config/opencode/opencode.json` porte l'équivalent opencode, `"curl *better-bibtex/json-rpc*": "deny"` dans `permission.bash`, juste avant `"*>*": "ask"` (détail dans « La lecture seule tient au seul verrou de Zotero »).
+- `opencode/.config/opencode/opencode.json` ne porte plus l'équivalent opencode : `5d6c755` (2026-11-08) a supprimé `"curl *better-bibtex/json-rpc*": "deny"` sans que son en-tête le mentionne, et l'utilisateur a décidé le 2026-11-11 de l'y laisser absent (détail dans « La lecture seule tient au seul verrou de Zotero »).
 
 Le skill sert aussi opencode, dont le harnais charge `~/.claude/skills` : `opencode debug skill` le liste, mais Qwen3.5-9B ne l'a pas employé le 2026-09-23 (section « Le test 5 sous opencode ne charge pas le skill (2026-09-23) »).
 
@@ -41,7 +41,10 @@ Si les invites deviennent un frein, la voie est un script d'enveloppe qui ne pre
 Un agent Claude Code dispose de Bash, donc de `curl` : il peut adresser une écriture à l'API locale ou au JSON-RPC de Better BibTeX quelle que soit la voie.
 Le verrou réel est celui de Zotero, qui refuse toute écriture par l'API locale tant qu'aucune clé n'a été accordée dans sa boîte de dialogue : ne jamais cliquer « Allow ».
 La règle `permissions.deny` sur le JSON-RPC est un garde-fou d'appoint, contournable par une commande reformulée.
-`opencode.json` porte son équivalent depuis le 2026-09-23, `"curl *better-bibtex/json-rpc*": "deny"`, placé juste avant `"*>*": "ask"`, suivi depuis le 2026-09-25 des seules règles git (`DESIGN-OPENCODE-HARNESS.md`, « Git writes: `add`, `commit`, `rm` and `mv` ask, the other verbs are denied, 2026-09-25 »). Opencode retient la dernière règle qui correspond (page « Permissions » de opencode) : un appel au JSON-RPC portant une redirection demande donc confirmation au lieu d'être refusé. `opencode debug config` la restitue ; aucun refus n'a été observé en session opencode, faute de modèle servi pendant l'essai, puis, le 2026-09-23 sous Qwen3.5-9B, faute de tentative (section « Le test 5 sous opencode ne charge pas le skill (2026-09-23) »).
+`opencode.json` a porté son équivalent du 2026-09-23 au 2026-11-08, `"curl *better-bibtex/json-rpc*": "deny"`, placé juste avant `"*>*": "ask"` : opencode retenant la dernière règle qui correspond (page « Permissions » de opencode), un appel au JSON-RPC portant une redirection demandait confirmation au lieu d'être refusé.
+`5d6c755` l'a supprimé le 2026-11-08, dans un commit dont l'en-tête ne parle que des permissions git et des commandes ajoutées, et l'utilisateur a décidé le 2026-11-11 de ne pas le remettre : opencode ne sert plus que des smoke tests sur `ju-TP`, et la configuration, source stow unique, vise `cpd`, où le paquet `zotero` n'est pas déployé, les paquets liés y étant `bin`, `opencode`, `agents` et `claude`.
+`curl` n'étant sur aucune liste d'allow, il retombe sur la règle d'ouverture `"*": "ask"` : refus automatique sous `opencode run`, approuvable dans le TUI.
+Ce qui reste est le garde-fou Claude Code, `Bash(curl *better-bibtex/json-rpc*)` dans `claude/.claude/settings.json`, et le verrou de Zotero lui-même, qui est le seul des trois à ne pas être contournable par une commande reformulée.
 
 #### Ce que le JSON-RPC expose, relevé dans la source le 2026-09-28
 

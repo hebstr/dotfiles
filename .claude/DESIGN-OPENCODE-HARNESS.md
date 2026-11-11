@@ -73,7 +73,7 @@ Open on purpose: the clone's freshness on `cpd` depends on a pull that nothing t
 Applied the same day in `8047880`, on `ju-TP`: the two `skills.paths` entries, the `external_directory` allow above, and the records. The clone on `cpd` followed the same day at `~/.local/share/opencode/skills`, with its paths written into the stowed file in place of the shared path: `opencode debug skill` resolves all seven from it, and a live `opencode run` loaded the `reco` skill through the `skill` tool (see `_meta/notes/opencode-cpd-setup.md`).
 Still owed on `cpd`: whether `write` and `reco` run to completion as full passes rather than loading; whether `OPENROUTER_API_KEY` has an outbound path there, which the three cross-provider skills need; and whether `walkthrough`, `blindspot` and `skill-adversary` survive dispatching a bundled agent definition opencode does not read.
 
-A standing coupling the change leaves behind: the `showboat verify` check of `_meta/notes/opencode-harness-setup.md` that prints `jq -c "{model, instructions, permission: (.permission | keys), skills}"` pins the `skills` object verbatim, so any later edit to `skills.paths` makes that expected output false and has to carry it.
+A standing coupling the change leaves behind: the `showboat verify` check of `_meta/notes/opencode-harness-setup.md` that prints `jq -c '{model, instructions, permissions: ([.permissions[].action] | unique), skills}'` pins the `skills` object verbatim, so any later edit to `skills.paths` makes that expected output false and has to carry it.
 
 ## What the model sees is filtered by `permission.skill`
 
@@ -274,19 +274,20 @@ Steps, ordered by dependency, the minimal viable core being 0 to 3:
 2. The plugin port and its suite, `_meta/tests/claude-hooks-plugin.bats` green before and after. **Done 2026-11-11**, 34 tests green before, 38 after, and V2 loads the ported file with no error in its log.
 3. One live `opencode run` on the 9B of `ju-TP2`, which settles the payload shape that a stub suite cannot. **Done 2026-11-11**, see "What the live run on the 9B settled, 2026-11-11".
 4. `cpd` back in service: stow the ported plugin, and check whether the installer kept the `opencode-serve` symlink it writes beside. **The plugin half is done 2026-11-11**: the ported file is stowed there and the TUI loads it, once `opencode service restart` cleared the V1 module the running service still held, see "Probing a V2 configuration takes `--standalone`, 2026-11-11". The `opencode-serve` half is still owed, with the leftover `llama-server.sh` that `_meta/notes/opencode-cpd-setup.md` § "Deferred" asks about.
-5. The native conversion, starting from `opencode debug config`, re-measuring the read allowlist residues of "The read allowlist widened, 2026-11-05" against the V2 shell scanner.
+5. The native conversion, starting from `opencode debug config`, re-measuring the read allowlist residues of "The read allowlist widened, 2026-11-05" against the V2 shell scanner. **The conversion is done 2026-11-11**, see "The configuration converts to the native V2 shape, 2026-11-11". The residue re-measurement is still owed.
 6. The records that hung off the npm install. **Done 2026-11-11**, with step 0, which made them false: `_meta/notes/dotfiles-bootstrap.md` and `_meta/notes/opencode-harness-setup.md` now give the binary installer as the route, the opencode row of `_meta/notes/environment-archive.md` names `~/.opencode/bin/opencode`, `claude/.claude/rules/install.md` and the memory `project_closed_tool_evaluations.md` mark the `allow-scripts=opencode-ai` entry of `~/.npmrc` vestigial against an empty global prefix, `_meta/notes/opencode-cpd-setup.md` drops its 1.19.5 claim, and the `opencode plugin dependency` probe of `_meta/cpd/recon.sh`, the ported plugin having no dependency to find, becomes a pair: `opencode service status`, and a `grep` of `~/.local/share/opencode/log/opencode.log` for `loading plugin` and `Plugin failed`. It was `opencode plugin list` for part of that day, which the section on `--standalone` measured as a false negative waiting to happen.
 
 State at the end of 2026-11-11: `ju-TP` runs V2 2.2.7 alone, `opencode` resolving to `~/.opencode/bin/opencode` in a login shell and the npm global prefix being empty; `cpd` runs V2 with the ported plugin stowed and loading, and what step 4 still owes there is the `opencode-serve` symlink.
+The stowed configuration is native V2 since the same day, so neither machine reads the compatibility layer any more.
 
 ## V2 enforces an `edit` deny on an absolute path, so the profile guard moves into the configuration, 2026-11-11
 
-`permission.edit` denies `~/.claude/**` and `~/dotfiles/claude/.claude/**` in the stowed `opencode.json`, and the plugin keeps its own guard once ported.
+Two `edit` deny rules take `~/.claude/**` and `~/dotfiles/claude/.claude/**` in the stowed `opencode.json`, and the plugin keeps its own guard once ported.
 Both rather than either: the configuration rule is the always-on floor and the only one that covers the `patch` tool, while the plugin resolves symlinks and a missing tail through `realTarget` and returns a message telling the model not to retry by other means.
 
 What makes this possible reverses the measurement of "The first live run on the 9B, 2026-09-21", where an absolute `edit` pattern could never match because `write.ts` asked with a project-relative path.
 Measured on 2026-11-11 against 2.2.7: `FileAccess.resolve` hands the permission layer the absolute path when the file sits outside the project and the project-relative one otherwise, and `~` is expanded in the rules an agent resolves, visible through `opencode debug agents` although `debug config` prints the source spelling.
-A V1-shaped `permission.edit`, `permission.write` or `permission.patch` all normalize onto the single V2 `edit` action, so the block is written in V1 form today and step 5 rewrites it as `edit` rules of the native array.
+A V1-shaped `permission.edit`, `permission.write` or `permission.patch` all normalize onto the single V2 `edit` action, so the block was written in V1 form until step 5 turned it into `edit` rules of the native array on 2026-11-11.
 Checked the same day on both binaries: V2 resolves the two denies to `/home/julien/.claude/**` and `/home/julien/dotfiles/claude/.claude/**`, and V1 1.19.5 parses the block and expands it identically, where it stays inert for the project-relative reason above.
 
 What it does not cover: a write to the stow source made from inside `~/dotfiles`, whose resource is relative there. The plugin guard carries that half.
@@ -417,6 +418,24 @@ The assertions now pin the residue, so a later attempt to clean it up is visible
 **Noted, not fixed.** `JSON.stringify(result.output)` in `resultParts` is unguarded where the host's own helper wraps its equivalent in try/catch, and a throw from `execute.after` is unhandled by the host.
 It is unreachable for `edit` and `write`: their `content` is set, so `resultParts` returns from an earlier branch, and their `output` is a string, which the `typeof` test takes first.
 Widening `EDIT_TOOLS` to a tool whose `output` is a non-serializable value, with no `content`, is what re-opens it.
+
+## The configuration converts to the native V2 shape, 2026-11-11
+
+Step 5, applied to `opencode/.config/opencode/opencode.json`.
+Two deprecated keys moved: `permission`, an object of four blocks, becomes `permissions`, an ordered array of `{action, resource, effect}` in which `bash` is spelled `shell`; `provider` becomes `providers`, whose entries carry `package`, its value prefixed `aisdk:`, and `settings`, in place of `npm` and `options`.
+`model` as a string and `skills.paths` stay, both being in the published schema and in neither deprecation.
+`Permission.Ruleset` is an array of objects with `additionalProperties: false` and admits no compact form, so the file goes from 206 lines to 737 for the same 134 rules in the same order: that cost is forced, not chosen.
+
+The equality was established before the file was touched.
+`opencode debug config --standalone` normalizes the V1 file to a document; that document, fed back as a configuration, normalizes to itself; and the converted file normalizes to the same document, `diff` clean in all three.
+The result validates against `https://opencode.ai/config.json` with zero errors (`jsonschema` 4.10.3, Draft 2020-12), and `opencode debug agents --standalone` still resolves both `edit` denies, `~` expanded to `/home/julien/.claude/**` and `/home/julien/dotfiles/claude/.claude/**`.
+
+The other half of step 5 is untouched: the conversion changes no rule, so the four accepted residues of "The read allowlist widened, 2026-11-05" stand exactly as V1's scanner left them.
+The command that section used to count the rules, `opencode debug agent build`, is gone from 2.2.7, whose `debug` subcommands are `agents`, `config`, `heap-dump` and `paths`; the replacement reads them out of `opencode debug agents --standalone` and is in `_meta/notes/opencode-harness-setup.md` § "Checks".
+
+The user narrowed `ju-TP`'s role the same day, from the 2026-11-08 "write and measure the harness" to smoke tests alone, so the shared configuration is read as `cpd`'s.
+That is what settles the Better BibTeX JSON-RPC deny which `5d6c755` dropped on 2026-11-08 under a header naming only git permissions: left out rather than restored, the `zotero` package not being among the four stowed on `cpd`.
+The record is in `_meta/notes/zotero-agent-access-reco.md` § "La lecture seule tient au seul verrou de Zotero", with what still guards that endpoint.
 
 ## Next, in the order agreed on 2026-09-21
 

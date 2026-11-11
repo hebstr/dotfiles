@@ -10,11 +10,11 @@ What the setup is made of, all tracked:
 
 - `bin/.local/bin/llama-session`: brings up one inference session, starting `llama-server` on `ju-TP2` if none runs, forwarding its port to `127.0.0.1:8080`, tearing both down on exit. Defaults to `unsloth/Qwen3.5-9B-GGUF`, file `Qwen3.5-9B-UD-Q5_K_XL.gguf`, context 98304, and downloads the model with `hf` when absent.
 - `bin/.local/bin/llama-update`: installs the llama.cpp CUDA build on `ju-TP2`.
-- `opencode/.config/opencode/opencode.json`: the `ju-tp2` provider and the 9B with its `limit`, joined on 2026-11-04 by the `cpd` provider and its 27B, which `model` has named since, `instructions` loading each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` (found by walking up to the git root), `skills.paths` pointing at `~/.claude/skills` and, since 2026-11-08, at the `audit` and `workflow` directories of the `hebstr/skills` clone, which is what serves those seven skills on `cpd`; the link farm `~/.local/share/opencode-claude-skills` left the list that same day, so the third-party plugin skills of the Claude Code cache are no longer exposed here, `watcher.ignore` keeping the file watcher off render and virtualenv trees (added 2026-11-05), and `permission` (`bash` on ask outside a read-and-gate allowlist, the git write verbs denied except `add`, `commit`, `rm` and `mv`, which ask, `edit` denying the two Claude Code profile roots since 2026-11-11, `external_directory` open on `~/.claude`, on `/tmp` and on the skills clone path, `skill` denying the MCP-bound and claude.ai skills and gating the user-invoked ones).
+- `opencode/.config/opencode/opencode.json`: the `ju-tp2` provider and the 9B with its `limit`, joined on 2026-11-04 by the `cpd` provider and its 27B, which `model` has named since, `instructions` loading each project's `.claude/CLAUDE.md` and `.claude/memory/MEMORY.md` (found by walking up to the git root), `skills.paths` pointing at `~/.claude/skills` and, since 2026-11-08, at the `audit` and `workflow` directories of the `hebstr/skills` clone, which is what serves those seven skills on `cpd`; the link farm `~/.local/share/opencode-claude-skills` left the list that same day, so the third-party plugin skills of the Claude Code cache are no longer exposed here, `watcher.ignore` keeping the file watcher off render and virtualenv trees (added 2026-11-05), and `permissions`, an ordered array of `{action, resource, effect}` since the native conversion of 2026-11-11 (`shell` on ask outside a read-and-gate allowlist, the git write verbs denied except `add`, `commit`, `rm` and `mv`, which ask, `edit` denying the two Claude Code profile roots since 2026-11-11, `external_directory` open on `~/.claude`, on `/tmp` and on the skills clone path, `skill` denying the MCP-bound and claude.ai skills and gating the user-invoked ones).
 - `opencode/.config/opencode/AGENTS.md`: the behavioral rules of `CLAUDE.md` that any agent can apply, including reading a project's `.claude/PLAN.md` at session start, and pointers into `~/.claude/rules/`. Its presence stops opencode from loading `~/.claude/CLAUDE.md` whole.
 - `opencode/.config/opencode/plugins/claude-hooks.ts`: refuses any `edit` or `write` resolving under `~/.claude` or `~/dotfiles/claude/.claude`, runs the Claude Code hooks `prose-lint-pretool.sh` and `format-on-edit.sh` around the others (refusing an `edit` of an existing `.md`, `.qmd` or `.Rmd` whose `oldString` is not verbatim, which the pre-hook could not replay), and strips the global profile from the system prompt when opencode runs inside `~/dotfiles/claude`, where the `instructions` walk finds the profile's stow source.
 Ported to the V2 plugin API on 2026-11-11 (`ctx.tool.hook`, `ctx.session.hook`, a default export, the `path` argument), which also narrowed that strip: V2 no longer climbs to `~` from a directory outside a git repository, which V1 did.
-The refusal is no longer the plugin's alone either, `permission.edit` denying the two profile roots in `opencode.json` since the same day, which is the layer that also covers the `patch` tool.
+The refusal is no longer the plugin's alone either, the `edit` deny entries of `opencode.json` taking the two profile roots since the same day, which is the layer that also covers the `patch` tool.
 Decisions and measurements in `.claude/DESIGN-OPENCODE-HARNESS.md` § "The harness migrates to opencode V2, decided 2026-11-11" and the sections that follow it.
 - `bin/.local/bin/opencode-skills-sync`: links every skill of the enabled Claude Code plugins into `~/.local/share/opencode-claude-skills/`; `claude-plugins-update` reruns it, so `sys-update claude-plugins` keeps it current for the updates it makes itself.
 
@@ -109,8 +109,11 @@ f=$(mktemp); (cd /tmp && opencode debug skill >"$f" 2>/dev/null); jq -r "[.[] | 
 design
 ```
 
+`opencode debug skill` is gone from V2 2.2.7, whose `debug` subcommands are `agents`, `config`, `heap-dump` and `paths`, so this check no longer runs and the output above is the V1 reading this note recorded.
+Replacing it takes a session or a probe plugin calling `ctx.tool.list()`, which `.claude/DESIGN-OPENCODE-HARNESS.md` § "Probing a V2 configuration takes `--standalone`, 2026-11-11" sets out.
+
 ```bash
-(cd /tmp && opencode debug agent build 2>/dev/null) | jq -c "[.permission[] | select(.permission == \"bash\")] | [first.pattern, first.action, last.pattern, last.action]"
+(cd /tmp && opencode debug agents --standalone 2>/dev/null) | jq -c '[.. | objects | select(.action == "shell")] as $s | [$s[0].resource, $s[0].effect, $s[-1].resource, $s[-1].effect]'
 ```
 
 ```output
@@ -118,11 +121,11 @@ design
 ```
 
 ```bash
-jq -c "{model, instructions, permission: (.permission | keys), skills}" opencode/.config/opencode/opencode.json
+jq -c '{model, instructions, permissions: ([.permissions[].action] | unique), skills}' opencode/.config/opencode/opencode.json
 ```
 
 ```output
-{"model":"cpd/qwen3.8-27b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permission":["bash","edit","external_directory","skill"],"skills":{"paths":["~/.claude/skills","~/.local/share/opencode/skills/audit","~/.local/share/opencode/skills/workflow"]}}
+{"model":"cpd/qwen3.8-27b","instructions":[".claude/CLAUDE.md",".claude/memory/MEMORY.md"],"permissions":["edit","external_directory","shell","skill"],"skills":{"paths":["~/.claude/skills","~/.local/share/opencode/skills/audit","~/.local/share/opencode/skills/workflow"]}}
 ```
 
 `model` names `cpd`, not `ju-TP2`, since 2026-11-04 (`71ff1ec`, `d7b04c8`): the setup built on `cpd` is the one that runs, and the user stated on 2026-11-05 that opencode will not be used against `ju-TP2` until further notice.
@@ -137,5 +140,5 @@ bats _meta/tests/opencode-skills-sync.bats _meta/tests/claude-hooks-plugin.bats 
 suites pass
 ```
 
-What each check proves, in order: the configuration and scripts resolve into this repository; the link farm builds and holds a known plugin skill, `opencode-skills-sync` still maintaining it although `skills.paths` stopped naming it on 2026-11-08; opencode discovers `design` from `~/.claude/skills` (named `cadrer` until 2026-09-24) and nothing else of the three probed, `cli` and `ooo` having gone with the farm entry, which is what the selection records rather than a defect; `bash` opens and closes on `ask`; the configuration names the active model and keeps the other provider declared, loads each project's `.claude/` files, carries an `edit` block that denies the two profile roots (live under V2, inert under V1, see `.claude/DESIGN-OPENCODE-HARNESS.md` § "V2 enforces an `edit` deny on an absolute path, so the profile guard moves into the configuration, 2026-11-11") and points `skills.paths` at `~/.claude/skills` and at the two group directories of the skills clone, the farm having left the list; the four bats suites behind the setup pass, the plugin's covering the profile guard, the hooks and the removal of the global profile outside git. `opencode debug skill` is read from a file, not a pipe: piped, its output comes out truncated.
+What each check proves, in order: the configuration and scripts resolve into this repository; the link farm builds and holds a known plugin skill, `opencode-skills-sync` still maintaining it although `skills.paths` stopped naming it on 2026-11-08; opencode discovers `design` from `~/.claude/skills` (named `cadrer` until 2026-09-24) and nothing else of the three probed, `cli` and `ooo` having gone with the farm entry, which is what the selection records rather than a defect; the `shell` rules open and close on `ask`; the configuration names the active model and keeps the other provider declared, loads each project's `.claude/` files, carries `edit` entries that deny the two profile roots (live under V2, inert under V1, see `.claude/DESIGN-OPENCODE-HARNESS.md` § "V2 enforces an `edit` deny on an absolute path, so the profile guard moves into the configuration, 2026-11-11") and points `skills.paths` at `~/.claude/skills` and at the two group directories of the skills clone, the farm having left the list; the four bats suites behind the setup pass, the plugin's covering the profile guard, the hooks and the removal of the global profile outside git. `opencode debug skill` is read from a file, not a pipe: piped, its output comes out truncated.
 

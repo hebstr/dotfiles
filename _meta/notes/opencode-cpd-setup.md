@@ -27,7 +27,7 @@ Nothing in this repository measures prefill, so the baseline has still to be tak
 
 Verified on 2026-11-08 for the skills clone: `opencode debug skill` resolves all seven from `~/.local/share/opencode/skills`, four under `audit` and three under `workflow`, each exactly once, with flat ids.
 A live `opencode run` in a throwaway repository loaded the `reco` skill through the `skill` tool and completed, which is the first end-to-end pass of a clone-served skill on this machine.
-The same run auto-rejects a skill set to `ask` in `permission.skill`, because `opencode run` has no channel to prompt: a named `allow` entry is what lets it load, as the override above shows for `reco`.
+The same run auto-rejects a skill whose `skill` rule is `ask`, because `opencode run` has no channel to prompt: a named `allow` entry is what lets it load, as the override above shows for `reco`.
 
 The same session measured a permission bypass: a compound `cd /home/edjulien/dotfiles && git push` was rewritten by the shell scanner into `git -C /home/edjulien/dotfiles push`, which matched an allow rule and executed without a prompt despite `"git push*": "deny"`.
 The deny patterns were moved to substring form (`git*push*`, `git*reset*`, etc.) so that every flag-prefixed spelling of a write verb is caught by one pattern per verb; see `DESIGN-OPENCODE-HARNESS.md` § "The deny patterns moved from prefix to substring form, 2026-11-08".

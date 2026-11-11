@@ -433,7 +433,7 @@ _system_by_metadata() {
 }
 
 # The patch tool writes several files from one patchText and escapes a guard keyed
-# on a single path; the profile denies of permission.edit carry it instead.
+# on a single path; the profile denies of the edit rules carry it instead.
 @test "before: the patch tool runs no hook" {
   _drive before patch '{"patchText": "x"}'
   [ "$output" = "ALLOWED" ]

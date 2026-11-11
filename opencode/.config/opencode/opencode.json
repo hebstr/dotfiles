@@ -1,11 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "cpd/qwen3.8-27b",
-  "provider": {
+  "providers": {
     "cpd": {
-      "npm": "@ai-sdk/openai-compatible",
       "name": "llama.cpp on cpd000001",
-      "options": {
+      "package": "aisdk:@ai-sdk/openai-compatible",
+      "settings": {
         "baseURL": "http://127.0.0.1:8090/v1"
       },
       "models": {
@@ -19,9 +19,9 @@
       }
     },
     "ju-tp2": {
-      "npm": "@ai-sdk/openai-compatible",
       "name": "llama.cpp on ju-TP2",
-      "options": {
+      "package": "aisdk:@ai-sdk/openai-compatible",
+      "settings": {
         "baseURL": "http://127.0.0.1:8080/v1"
       },
       "models": {
@@ -35,7 +35,10 @@
       }
     }
   },
-  "instructions": [".claude/CLAUDE.md", ".claude/memory/MEMORY.md"],
+  "instructions": [
+    ".claude/CLAUDE.md",
+    ".claude/memory/MEMORY.md"
+  ],
   "skills": {
     "paths": [
       "~/.claude/skills",
@@ -59,148 +62,676 @@
       "**/.ruff_cache/**"
     ]
   },
-  "permission": {
-    "bash": {
-      "*": "ask",
-      "rg *": "allow",
-      "fdfind *": "allow",
-      "find *": "allow",
-      "ls*": "allow",
-      "cat *": "allow",
-      "head *": "allow",
-      "tail *": "allow",
-      "wc *": "allow",
-      "pwd": "allow",
-      "echo *": "allow",
-      "readlink *": "allow",
-      "stat *": "allow",
-      "file *": "allow",
-      "command -v *": "allow",
-      "shellcheck *": "allow",
-      "shellharden *": "allow",
-      "shfmt *": "allow",
-      "bats *": "allow",
-      "air *": "allow",
-      "jarl *": "allow",
-      "ruff *": "allow",
-      "pyrefly *": "allow",
-      "prose-lint *": "allow",
-      "panache *": "allow",
-      "stylelint *": "allow",
-      "prettier *": "allow",
-      "sqlfluff *": "allow",
-      "stylua *": "allow",
-      "cd": "allow",
-      "cd *": "allow",
-      "which *": "allow",
-      "type *": "allow",
-      "basename *": "allow",
-      "dirname *": "allow",
-      "realpath *": "allow",
-      "tree *": "allow",
-      "du *": "allow",
-      "df *": "allow",
-      "date": "allow",
-      "date *": "allow",
-      "uname": "allow",
-      "uname *": "allow",
-      "nproc": "allow",
-      "free *": "allow",
-      "id": "allow",
-      "id *": "allow",
-      "hostname": "allow",
-      "printenv": "allow",
-      "printenv *": "allow",
-      "grep *": "allow",
-      "diff *": "allow",
-      "delta *": "allow",
-      "cut *": "allow",
-      "tr *": "allow",
-      "sort *": "allow",
-      "uniq *": "allow",
-      "jq *": "allow",
-      "sed -n *": "allow",
-      "sort*-o*": "ask",
-      "tree*-o*": "ask",
-      "sed*-i*": "ask",
-      "echo*": "allow",
-      ";*": "allow",
-      "&&*": "allow",
-      "|*": "allow",
-      "2>&1*": "allow",
-      ">&*": "allow",
-      "git*": "allow",
-      "*>*": "ask",
-      "git*push*": "deny",
-      "git*reset*": "deny",
-      "git*checkout*": "deny",
-      "git*switch*": "deny",
-      "git*restore*": "deny",
-      "git*stash*": "deny",
-      "git*merge*": "deny",
-      "git*rebase*": "deny",
-      "git*tag*": "deny",
-      "git*branch*": "deny",
-      "git*cherry-pick*": "deny",
-      "git*revert*": "deny",
-      "git*clean*": "deny",
-      "git*pull*": "deny",
-      "git*fetch*": "deny",
-      "git*am*": "deny",
-      "git*update-ref*": "deny",
-      "git*fast-import*": "deny",
-      "git*replay*": "deny",
-      "git*filter-branch*": "deny",
-      "git*bisect*": "deny",
-      "git*send-pack*": "deny",
-      "git*config core.hooksPath*": "deny",
-      "git*apply -R*": "deny",
-      "git*apply --reverse*": "deny",
-      "git*checkout-index -f*": "deny",
-      "git*checkout-index --force*": "deny",
-      "git*read-tree -u*": "deny",
-      "gh pr create*": "deny",
-      "gh pr merge*": "deny",
-      "gh pr close*": "deny",
-      "*git add*": "ask",
-      "*git commit*": "ask",
-      "*git rm*": "ask",
-      "*git mv*": "ask"
+  "permissions": [
+    {
+      "action": "shell",
+      "resource": "*",
+      "effect": "ask"
     },
-    "edit": {
-      "*": "allow",
-      "~/.claude/**": "deny",
-      "~/dotfiles/claude/.claude/**": "deny"
+    {
+      "action": "shell",
+      "resource": "rg *",
+      "effect": "allow"
     },
-    "external_directory": {
-      "*": "ask",
-      "/tmp/**": "allow",
-      "~/.claude/**": "allow",
-      "~/.local/share/opencode/skills/**": "allow"
+    {
+      "action": "shell",
+      "resource": "fdfind *",
+      "effect": "allow"
     },
-    "skill": {
-      "*": "allow",
-      "blindspot": "ask",
-      "commit": "ask",
-      "design": "ask",
-      "poc": "ask",
-      "prune": "ask",
-      "reco": "ask",
-      "relire": "ask",
-      "review-comments": "ask",
-      "review-prose": "ask",
-      "skill-adversary": "ask",
-      "sweep": "ask",
-      "sync": "ask",
-      "typst-review": "ask",
-      "walkthrough": "ask",
-      "write": "ask",
-      "built-in-browser": "deny",
-      "chrome-browser": "deny",
-      "computer-use": "deny",
-      "docs": "deny",
-      "morning": "deny",
-      "import-memory": "deny"
+    {
+      "action": "shell",
+      "resource": "find *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "ls*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "cat *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "head *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "tail *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "wc *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "pwd",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "echo *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "readlink *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "stat *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "file *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "command -v *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "shellcheck *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "shellharden *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "shfmt *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "bats *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "air *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "jarl *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "ruff *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "pyrefly *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "prose-lint *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "panache *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "stylelint *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "prettier *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "sqlfluff *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "stylua *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "cd",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "cd *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "which *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "type *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "basename *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "dirname *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "realpath *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "tree *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "du *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "df *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "date",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "date *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "uname",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "uname *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "nproc",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "free *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "id",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "id *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "hostname",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "printenv",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "printenv *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "grep *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "diff *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "delta *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "cut *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "tr *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "sort *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "uniq *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "jq *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "sed -n *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "sort*-o*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "tree*-o*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "sed*-i*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "echo*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": ";*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "&&*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "|*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "2>&1*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": ">&*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "git*",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "*>*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git*push*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*reset*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*checkout*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*switch*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*restore*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*stash*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*merge*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*rebase*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*tag*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*branch*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*cherry-pick*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*revert*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*clean*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*pull*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*fetch*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*am*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*update-ref*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*fast-import*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*replay*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*filter-branch*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*bisect*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*send-pack*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*config core.hooksPath*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*apply -R*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*apply --reverse*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*checkout-index -f*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*checkout-index --force*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git*read-tree -u*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "gh pr create*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "gh pr merge*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "gh pr close*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "*git add*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "*git commit*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "*git rm*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "*git mv*",
+      "effect": "ask"
+    },
+    {
+      "action": "edit",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "edit",
+      "resource": "~/.claude/**",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "~/dotfiles/claude/.claude/**",
+      "effect": "deny"
+    },
+    {
+      "action": "external_directory",
+      "resource": "*",
+      "effect": "ask"
+    },
+    {
+      "action": "external_directory",
+      "resource": "/tmp/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/.claude/**",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "~/.local/share/opencode/skills/**",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "skill",
+      "resource": "blindspot",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "commit",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "design",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "poc",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "prune",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "reco",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "relire",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "review-comments",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "review-prose",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "skill-adversary",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "sweep",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "sync",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "typst-review",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "walkthrough",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "write",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
+      "resource": "built-in-browser",
+      "effect": "deny"
+    },
+    {
+      "action": "skill",
+      "resource": "chrome-browser",
+      "effect": "deny"
+    },
+    {
+      "action": "skill",
+      "resource": "computer-use",
+      "effect": "deny"
+    },
+    {
+      "action": "skill",
+      "resource": "docs",
+      "effect": "deny"
+    },
+    {
+      "action": "skill",
+      "resource": "morning",
+      "effect": "deny"
+    },
+    {
+      "action": "skill",
+      "resource": "import-memory",
+      "effect": "deny"
     }
-  }
+  ]
 }
