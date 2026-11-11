@@ -236,7 +236,7 @@ In md-nesrine and in its `lib/`, asked what one of the project's columns means w
 `~/Documents/sandbox/` holds such directories, so the case is not hypothetical.
 
 Decision of the user the same day, a guard rather than a usage rule: the plugin's `experimental.chat.system.transform` removes the two blocks, rebuilt verbatim as `instruction.ts` writes them.
-Since the V2 port of 2026-11-11 the hook is `ctx.session.hook("context", …)`, the verbatim reconstruction is kept and a second net was added on the instructions metadata.
+Since the V2 port of 2026-11-11 the hooks are `ctx.session.hook` on `context`, `compaction` and `generate`, the verbatim reconstruction is kept and a second net was added on the instructions metadata; the walkthrough of the same day settled both the three names and the fact that the second net cannot fire (see "The strip owes three hook registrations, and the metadata net is unreachable, 2026-11-11").
 What the guard answers has narrowed: V2 no longer walks up to `~` from a directory outside a git repository, so only the stow-source case of running inside `~/dotfiles/claude` still leaks, and the strip was watched removing it live (see "What the live run on the 9B settled, 2026-11-11").
 Cutting by what follows a block was rejected, since the next block's opening text (the skills preamble) is opencode's internal wording.
 The cost: the hook is marked experimental, and a changed block format makes the guard remove nothing without breaking anything, which the plugin suite and the trace's checks would catch.
@@ -356,7 +356,7 @@ The suite grew from 34 tests to 38: the write-shaped empty `oldString` case beca
 
 **The global-profile leak changed shape, and the strip keeps an object.** From a non-git directory directly under `$HOME`, the instructions entry `core/instructions` weighs 10634 characters against `AGENTS.md`'s 10557 bytes, and no entry is keyed on a file: V2 no longer walks up to `~`, so the case measured on 2026-09-21 in `~/Documents/sandbox` is gone.
 From inside `~/dotfiles/claude` it is another matter: the entry weighs 41473, which is `AGENTS.md` plus `CLAUDE.md` plus `MEMORY.md` of the stow source, while the part's text weighs 27419, the difference being what the plugin removed before the capture plugin saw it.
-So the strip is kept, the verbatim route is the one that fires, and the instructions metadata is a net that has not had to catch anything yet. The capture also confirms the documented warning that the metadata is not updated when a hook edits the text: it still advertises the blocks the strip removed.
+So the strip is kept, the verbatim route is the one that fires, and the instructions metadata is a net that has not had to catch anything yet (corrected the same day: it cannot catch anything against 2.2.7, see "The strip owes three hook registrations, and the metadata net is unreachable, 2026-11-11"). The capture also confirms the documented warning that the metadata is not updated when a hook edits the text: it still advertises the blocks the strip removed.
 
 ## Probing a V2 configuration takes `--standalone`, 2026-11-11
 
@@ -364,14 +364,57 @@ So the strip is kept, the verbatim route is the one that fires, and the instruct
 A variant is therefore measured with `XDG_CONFIG_HOME` and `--standalone` together, which is how the two sections above were checked.
 The `OPENCODE_CONFIG` technique of "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" no longer works.
 `opencode debug skill` is gone, so the tool and skill lists are read from inside a session or through a probe plugin calling `ctx.tool.list()`.
-`opencode upgrade` exists and is the candidate route to replace npm in `sys-update` at step 6.
+`opencode upgrade` exists and is the candidate route to replace npm in `sys-update`, which step 6 did not do: that step rewrote the records alone, `sys-update` carries no opencode module and its `npm` one still runs `npm update -g` against an empty global prefix (measured 2026-11-11), so the open point below is where this sits.
+
+## The strip owes three hook registrations, and the metadata net is unreachable, 2026-11-11
+
+Second review walkthrough of `claude-hooks.ts`, run the day of the port on `01d3b18` and on `_meta/tests/claude-hooks-plugin.bats` together, with `posit-dev:critical-code-reviewer`.
+It changed the plugin twice and the suite five times; the suite went from 38 tests to 42 and stays the only gate.
+None of the five decisions of the port was reopened.
+
+**The strip was registered on one of the three prompt builds.** 2.2.7 dispatches four request kinds onto four hook names, `primary` onto `context`, then `compaction`, `generate` and `title`, and `compaction` and `generate` both build their system array through the same `Uae`, which is where the `Instructions from: <path>` blocks and the `metadata.experimental.instructions` entry are assembled.
+So a callback on `context` alone left the profile unstripped in exactly the request where the context is already full.
+Every built-in module of the host registers one callback on `context`, `compaction` and `generate`, and the plugin now does the same through a named `strip` and a loop.
+Dropping a name from that loop fails that name's test and no other, measured both ways.
+The leak this closes is the stow-source one of "What the live run on the 9B settled, 2026-11-11"; from an ordinary project directory there was nothing to strip in any of the three.
+
+**The instructions metadata cannot fire against 2.2.7, and is kept anyway.** The host's state-entry keys are a closed set of seven literals (`core/date`, `core/environment`, `core/instructions`, `core/codemode`, `core/mcp-guidance`, `core/reference-guidance`, `core/skill-guidance`) plus a dynamic `api/<name>` namespace for plugin-supplied entries, and every instruction file is folded into the single `core/instructions` aggregate.
+No key is ever a file path, so `named.has(entry.key)` against the four absolute profile paths matches nothing.
+This corrects "What V2 changes in the plugin's three contracts, measured 2026-11-11", which read the `{ key, text }` shape off the type definitions and inferred that the strip could key on the file path, and it sharpens "What the live run on the 9B settled, 2026-11-11", which called the metadata a net that has not had to catch anything yet: it is a net that cannot catch anything, not a dormant one.
+
+Kept by the user's ruling on the walkthrough, against the reviewer and against the intra-family L1, which both argued for deleting the branch with its two tests; the cross-provider L2 argued for keeping it and correcting this note instead.
+What the argument for keeping has to concede: the branch guesses that a future host would key an entry on an absolute filesystem path, where the host's own convention namespaces every key it has (`core/`, `api/`), so a per-file key would most likely be namespaced too and miss anyway.
+The two tests of the metadata route pin a contract of `stripGlobalProfile` rather than one of the host, and `_system_by_metadata` builds an entry shape 2.2.7 does not produce.
+Reopen on a host version whose keys are paths, or drop the branch at step 5 when the configuration is converted and the tool surface is re-measured.
+
+One hazard travels with the branch: its removal is `text.replace(entry.text, "")`, so loosening the key test to `core/instructions` would delete the whole aggregate, taking `AGENTS.md` and the project's own `.claude/CLAUDE.md` with the profile.
+That is a reason not to loosen it rather than a defect today.
+
+**`runHook` decoded each pipe chunk on its own.** `out += chunk` on a raw `Buffer` calls `toString()` per chunk, so a character split across a chunk boundary became two U+FFFD.
+Measured on this machine: 40000 U+2014 through the old form yields 3 replacement characters and a length of 40002 for 40000 characters; `setEncoding("utf8")` on both streams yields 0.
+The payload is the live one, `prose-lint` quoting an offending French line whose violation is an em dash.
+No trigger existed at the sizes the two hooks produce, one pipe chunk being 64 KiB; the fix replaces an incorrect idiom with its canonical form rather than adding a guard, which is why it was taken rather than noted.
+
+**The one branch of `resultParts` that production takes had no test.** The live run measured a real `edit` result's `content` as an array of parts, and the suite driver only ever built a string, so the array branch was uncovered: replacing its body with `return []` passed all 41 tests while silently dropping opencode's own result part from what the model reads back.
+The driver grew an `after-parts` phase and the suite a test that kills that mutant and the `[result.content]` one.
+
+**The `_system_with` fixture joined blocks with one newline where the host joins with two.** The host's renderer is `.join("\n\n")` over blocks whose content already ends in a newline, so two blocks sit three newlines apart, and the fixture was one short.
+Correcting it changed four exact-equality assertions and exposed what the old fixture concealed: on the real shape the strip leaves a newline behind, because it removes `<block>\n` out of a `\n\n` gap, so a stripped prompt carries three to four consecutive newlines where the block was.
+Cosmetic, a few tokens, and not fixed here: tightening the strip to consume the whole gap is a change to the plugin that no finding asked for.
+The assertions now pin the residue, so a later attempt to clean it up is visible rather than silent.
+
+**Noted, not fixed.** `JSON.stringify(result.output)` in `resultParts` is unguarded where the host's own helper wraps its equivalent in try/catch, and a throw from `execute.after` is unhandled by the host.
+It is unreachable for `edit` and `write`: their `content` is set, so `resultParts` returns from an earlier branch, and their `output` is a string, which the `typeof` test takes first.
+Widening `EDIT_TOOLS` to a tool whose `output` is a non-serializable value, with no `content`, is what re-opens it.
 
 ## Next, in the order agreed on 2026-09-21
 
 1. The user's first interactive trial, in `~/Documents/services/md-nesrine` on a throwaway branch, following `.claude/ESSAI-OPENCODE.md` in that project (untracked there): the model's knowledge of the project rules without being shown them, `/design` as a slash command, a multi-step task with the gate, a hook refusal, a long session through compaction.
    Its results come back in a fresh conversation through the prompt at the end of that note.
 2. Then the adversarial reviews, held back so that they do not review a version the trial could still change.
-   Still pending: `/audit:blindspot claude/.claude/memory/project_opencode_agents_md_mirror.md`, and a second walkthrough of `claude-hooks.ts` only if the trial changes the plugin.
+   Still pending: `/audit:blindspot claude/.claude/memory/project_opencode_agents_md_mirror.md`.
+   The walkthrough of `claude-hooks.ts` did not wait for the trial: the port made it a review of new code rather than of a version the trial could change, and it ran on 2026-11-11 (see "The strip owes three hook registrations, and the metadata net is unreachable, 2026-11-11").
+   A further one is owed only if the trial changes the plugin.
 3. Then, depending on what the trial shows: the farm freshness check deferred in `DEFERRED.md`, and the A/B against Gemma 4 12B set out in `DESIGN-GPU-REMOTE.md` § "The choice survives a second search, 2026-09-21".
    The `bash` allowlist was the third item here and did not wait for the trial: the user hit the prompts in real use on `cpd`, so it was widened on 2026-11-05 (see "The read allowlist widened, 2026-11-05").
 
