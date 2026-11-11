@@ -423,6 +423,8 @@ Widening `EDIT_TOOLS` to a tool whose `output` is a non-serializable value, with
 
 ## Open points
 
+- Bash syntax highlighting in the prompt follows the active theme's flat `syntax.*` tokens (measured 2026-11-11 on 2.2.7: the binary embeds `tree-sitter-bash.wasm`, so shell code is parsed and coloured, but only through those nine colour slots).
+  There is no integration with blesh: the TUI reads only the terminal's ANSI palette under `theme.name: "system"`, never a blesh config. To follow a blesh theme, either create a custom theme file in `~/.config/opencode/themes/` whose `syntax.*` tokens match it, or keep `system` and align the terminal palette with the blesh theme. Deferred by the user on 2026-11-11.
 - Whether a skill set to `ask` stays usable as a slash command when the user types it: needs the interactive TUI, item 1 of "Next".
 - A command on the `bash` allowlist can still write without a redirection if the tool itself writes (`ruff check --fix`, `shfmt -w`, `air format` on any path given): accepted, since these are the gate the model is told to run, but they are not confined to the project.
 - The skill farm is resynced only by `claude-plugins-update`, so a plugin auto-update or a `/plugin enable|disable|update` done in Claude Code leaves opencode on the superseded version, or on a disabled plugin's skills, until the next `sys-update`, breaking in the meantime the rule that only an enabled plugin's skills are ever exposed.
