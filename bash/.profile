@@ -14,6 +14,13 @@ if [ -d "$HOME/.npm-global/bin" ]; then
   esac
 fi
 
+if [ -d "$HOME/.opencode/bin" ]; then
+  case ":$PATH:" in
+  *":$HOME/.opencode/bin:"*) ;;
+  *) PATH="$HOME/.opencode/bin:$PATH" ;;
+  esac
+fi
+
 if [ -d "$HOME/.local/bin" ]; then
   case ":$PATH:" in
   *":$HOME/.local/bin:"*) ;;
