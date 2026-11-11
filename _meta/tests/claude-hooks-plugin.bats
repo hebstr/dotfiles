@@ -17,6 +17,8 @@ setup() {
   cat >"${BATS_TEST_TMPDIR}/driver.mjs" <<'EOF'
 // Stands in for the opencode V2 host: collects the hooks setup() registers, fires
 // one against an event shaped like the host's, and prints what the host reads back.
+// In the system phase the tool slot names the session hook to fire: the host runs
+// the same system builder for "context", "compaction" and "generate".
 const [plugin, phase, tool, argsJson, directory] = process.argv.slice(2)
 const mod = await import(plugin)
 const registered = { tool: {}, session: {} }
@@ -45,7 +47,7 @@ try {
     const part = { type: "text", text: input.system }
     if (input.metadata) part.metadata = input.metadata
     const event = { system: [part] }
-    await registered.session["context"](event)
+    await registered.session[tool](event)
     process.stdout.write(JSON.stringify(event.system.map((p) => p.text)))
   } else if (phase === "before") {
     await registered.tool["execute.before"]({ tool, sessionID: "s", id: "c", input })
@@ -55,7 +57,11 @@ try {
     await registered.tool["execute.after"](event)
     console.log(event.error.message)
   } else {
-    const event = { tool, sessionID: "s", id: "c", input, status: "completed", result: { content: "TOOL-OUTPUT" } }
+    const result =
+      phase === "after-parts"
+        ? { content: [{ type: "text", text: "TOOL-OUTPUT" }], output: "TOOL-OUTPUT" }
+        : { content: "TOOL-OUTPUT" }
+    const event = { tool, sessionID: "s", id: "c", input, status: "completed", result }
     await registered.tool["execute.after"](event)
     console.log(readBack(event.result))
   }
@@ -234,19 +240,21 @@ _drive() {
 }
 
 # Builds a system prompt the way opencode joins it: header, one block per
-# instruction file ("Instructions from: <path>\n<content>"), then the skills text.
+# instruction file ("Instructions from: <path>\n<content>"), then the skills text,
+# joined by a blank line as the host's own join("\n\n") does. Each file content
+# already ends in a newline, so two blocks really sit three newlines apart, and the
+# strip leaves one of them behind: that residue is what the assertions below pin.
 _system_with() {
-  local parts=("HEADER") f content
+  local out="HEADER" f content
   for f in "$@"; do
     content=$(
       cat "$f"
       printf x
     )
-    parts+=("Instructions from: ${f}"$'\n'"${content%x}")
+    out+=$'\n\n'"Instructions from: ${f}"$'\n'"${content%x}"
   done
-  parts+=("Skills provide specialized instructions.")
-  local IFS=$'\n'
-  jq -n --arg s "${parts[*]}" '{system: $s}'
+  out+=$'\n\n'"Skills provide specialized instructions."
+  jq -n --arg s "$out" '{system: $s}'
 }
 
 _profile_files() {
@@ -258,26 +266,26 @@ _profile_files() {
 
 @test "system: the global profile blocks are removed, the rest kept in order" {
   _profile_files
-  _drive system - "$(_system_with "${HOME}/.claude/CLAUDE.md" "${PROJECT}/.claude/CLAUDE.md" "${HOME}/.claude/memory/MEMORY.md")"
+  _drive system context "$(_system_with "${HOME}/.claude/CLAUDE.md" "${PROJECT}/.claude/CLAUDE.md" "${HOME}/.claude/memory/MEMORY.md")"
   [ "$status" -eq 0 ]
   run jq -r '.[0]' <<<"$output"
   [[ "$output" != *"GLOBAL"* ]]
-  [[ "$output" == "HEADER"$'\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n'"Skills provide specialized instructions." ]]
+  [[ "$output" == "HEADER"$'\n\n\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n\n\n'"Skills provide specialized instructions." ]]
 }
 
 @test "system: the profile's dotfiles source is removed too" {
   mkdir -p "${HOME}/dotfiles/claude/.claude/memory"
   printf 'GLOBAL RULES\n' >"${HOME}/dotfiles/claude/.claude/CLAUDE.md"
   printf 'GLOBAL MEMORY\n' >"${HOME}/dotfiles/claude/.claude/memory/MEMORY.md"
-  _drive system - "$(_system_with "${HOME}/dotfiles/claude/.claude/CLAUDE.md" "${HOME}/dotfiles/claude/.claude/memory/MEMORY.md")"
+  _drive system context "$(_system_with "${HOME}/dotfiles/claude/.claude/CLAUDE.md" "${HOME}/dotfiles/claude/.claude/memory/MEMORY.md")"
   [ "$status" -eq 0 ]
-  [ "$(jq -r '.[0]' <<<"$output")" = "HEADER"$'\n'"Skills provide specialized instructions." ]
+  [ "$(jq -r '.[0]' <<<"$output")" = "HEADER"$'\n\n\n\n'"Skills provide specialized instructions." ]
 }
 
 @test "system: a prompt without the profile passes unchanged" {
   _profile_files
   input=$(_system_with "${PROJECT}/.claude/CLAUDE.md")
-  _drive system - "$input"
+  _drive system context "$input"
   [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
 }
 
@@ -285,7 +293,7 @@ _profile_files() {
   _profile_files
   input=$(_system_with "${HOME}/.claude/CLAUDE.md")
   printf 'GLOBAL RULES EDITED\n' >"${HOME}/.claude/CLAUDE.md"
-  _drive system - "$input"
+  _drive system context "$input"
   [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
 }
 
@@ -293,9 +301,29 @@ _profile_files() {
   mkdir -p "${PROJECT}/.claude"
   printf 'PROJECT RULES\n' >"${PROJECT}/.claude/CLAUDE.md"
   input=$(_system_with "${PROJECT}/.claude/CLAUDE.md")
-  _drive system - "$input"
+  _drive system context "$input"
   [ "$status" -eq 0 ]
   [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
+}
+
+# The host builds the same system array for a compaction and a generate request as
+# for an ordinary turn, under two other hook names, so the strip is registered on
+# all three. Dropping a name from the plugin's loop fails that name's test here,
+# measured both ways 2026-11-11.
+@test "system: the global profile is stripped from a compaction prompt too" {
+  _profile_files
+  _drive system compaction "$(_system_with "${HOME}/.claude/CLAUDE.md" "${PROJECT}/.claude/CLAUDE.md")"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"THROWN"* ]]
+  [ "$(jq -r '.[0]' <<<"$output")" = "HEADER"$'\n\n\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n\n'"Skills provide specialized instructions." ]
+}
+
+@test "system: the global profile is stripped from a generate prompt too" {
+  _profile_files
+  _drive system generate "$(_system_with "${HOME}/.claude/CLAUDE.md" "${PROJECT}/.claude/CLAUDE.md")"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"THROWN"* ]]
+  [ "$(jq -r '.[0]' <<<"$output")" = "HEADER"$'\n\n\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n\n'"Skills provide specialized instructions." ]
 }
 
 # Builds a part whose header is not the one opencode writes today, so only the
@@ -314,7 +342,7 @@ _system_by_metadata() {
 
 @test "system: a profile block named by the instructions metadata is removed" {
   _profile_files
-  _drive system - "$(_system_by_metadata "${HOME}/.claude/CLAUDE.md")"
+  _drive system context "$(_system_by_metadata "${HOME}/.claude/CLAUDE.md")"
   [ "$status" -eq 0 ]
   run jq -r '.[0]' <<<"$output"
   [[ "$output" != *"GLOBAL RULES"* ]]
@@ -324,7 +352,7 @@ _system_by_metadata() {
 @test "system: an instructions entry outside the profile is left alone" {
   _profile_files
   input=$(_system_by_metadata "${PROJECT}/.claude/CLAUDE.md")
-  _drive system - "$input"
+  _drive system context "$input"
   [ "$(jq -r '.[0]' <<<"$output")" = "$(jq -r '.system' <<<"$input")" ]
 }
 
@@ -355,6 +383,29 @@ _system_by_metadata() {
   [ "${lines[0]}" = "TOOL-OUTPUT" ]
   [[ "$output" == *"format-on-edit.sh:"*"air: parse error"* ]]
   [[ "$output" != *"THROWN"* ]]
+}
+
+# The live run of 2026-11-11 measured a real edit's content as an array of parts,
+# so this is the branch of resultParts that production takes; the default driver
+# result is a string and reaches only the first branch.
+@test "after: opencode's own result parts are kept ahead of the report" {
+  _hook format-on-edit.sh 'echo "jarl: 1 violation"'
+  _drive after-parts write '{"path": "/abs/x.R", "content": "x"}'
+  [ "$status" -eq 0 ]
+  [ "$output" = "TOOL-OUTPUT"$'\n\n'"format-on-edit.sh:"$'\n'"jarl: 1 violation" ]
+}
+
+# \xe2\x80\x94 is U+2014, three bytes, written as bytes so the width is visible.
+# 40000 of them are 120000 bytes, so the pipe hands them over in several chunks and
+# a boundary falls inside a character. The hook writes to both streams because the
+# plugin reads both: dropping a setEncoding call makes that stream's chunks decode
+# on their own and the split character becomes \xef\xbf\xbd, U+FFFD.
+@test "after: a long multibyte report crosses the pipe chunks intact" {
+  _hook format-on-edit.sh 'printf "\xe2\x80\x94%.0s" $(seq 1 40000); printf "\xe2\x80\x94%.0s" $(seq 1 40000) >&2'
+  _drive after write '{"path": "/abs/x.R", "content": "x"}'
+  [ "$status" -eq 0 ]
+  replacement=$(printf '\xef\xbf\xbd')
+  [[ "$output" != *"$replacement"* ]]
 }
 
 @test "after: tools other than edit and write run no hook" {

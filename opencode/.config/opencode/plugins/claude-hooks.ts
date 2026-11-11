@@ -102,6 +102,8 @@ function runHook(script: string, payload: string, cwd: string): Promise<Result> 
     }, Number(process.env.CLAUDE_HOOKS_TIMEOUT_MS) || 60_000)
     let out = ""
     let err = ""
+    child.stdout.setEncoding("utf8")
+    child.stderr.setEncoding("utf8")
     child.stdout.on("data", (chunk) => (out += chunk))
     child.stderr.on("data", (chunk) => (err += chunk))
     child.on("error", (e) => {
@@ -122,12 +124,16 @@ const ClaudeHooks: Plugin = {
   setup: async (ctx) => {
     const directory = ctx.location.directory
 
-    await ctx.session.hook("context", (event) => {
+    const strip = (event: { system: SystemPart[] }) => {
       event.system.forEach((part, index) => {
-        const text = stripGlobalProfile(part as SystemPart)
+        const text = stripGlobalProfile(part)
         if (text !== part.text) event.system[index] = { ...part, text }
       })
-    })
+    }
+
+    for (const name of ["context", "compaction", "generate"] as const) {
+      await ctx.session.hook(name, strip)
+    }
 
     await ctx.tool.hook("execute.before", async (event) => {
       if (!EDIT_TOOLS.has(event.tool)) return
