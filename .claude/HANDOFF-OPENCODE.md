@@ -4,7 +4,16 @@
 
 A V2 diagnostic was run on `cpd` on 2026-11-10 against the official docs, reviewed and corrected on `ju-TP` on 2026-11-11. The corrected state is below. The user decided on 2026-11-11 that both machines migrate, `cpd` first then `ju-TP`, and that converting the config to the native V2 shape is in scope rather than deferred.
 
-Before this conversation opens, the user runs the V2 install and the compat readings on `cpd` by hand. **Ask for those readings first**: the warnings V2 emits on the unconverted config, `opencode debug config`, `opencode debug skill`, and whether the shell scanner accepts the real allowlist. Several items below are written as open precisely because those readings answer them, and nothing should be proposed before they are in hand.
+Before this conversation opens, the user runs the V2 install and the compat readings on `cpd` by hand. This conversation runs on `cpd` too, so **read those readings yourself before proposing anything**, from the files they were redirected to there:
+
+- `~/v2-debug-help.txt`, from `opencode debug --help`, to read first: the V2 CLI reference documents `opencode debug paths` alone, and whether `debug config` and `debug skill` survive from V1 is unverified in either direction, so this file says which of the next two can exist at all
+- `~/v2-debug-config.txt`, from `opencode debug config`
+- `~/v2-debug-skill.txt`, from `opencode debug skill`
+- `~/v2-run.txt`, from an `opencode run` against the served model, which carries the compat warnings V2 emits on the unconverted config
+
+What to look for in them: which V1 fields V2 reports as ignored or conflicting, whether the seven skills of the clone still resolve and from which source, and whether the shell scanner accepts the real allowlist or returns a scanner error. Several items below are written as open precisely because those readings answer them, and nothing is proposed before they are in hand.
+
+A missing or empty file among the middle two is a fact about V2 rather than a forgotten step: check the help output before asking the user for anything, and source those two readings elsewhere if the subcommands are gone, the startup and `run` output carrying the warnings and an in-session check carrying skill resolution. The `debug` commands are read-only and re-runnable as they stand, redirected to those same paths. The install is not re-run from here.
 
 ## The ordering constraint that governs everything
 
