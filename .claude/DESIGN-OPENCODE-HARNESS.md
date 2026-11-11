@@ -99,7 +99,8 @@ The Stop hook's re-activation cannot be done from a plugin (anomalyco/opencode#1
 
 ## Permissions allow reading `~/.claude` and forbid writing it
 
-`external_directory` set to `allow` on `~/.claude/**` and, since 2026-11-08, on `~/.local/share/opencode/skills/**`, the skills clone path the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" serves; skill directories are already allowed by opencode itself, but this block opens on `"*": "ask"` and the farm carries its own allow, so a `templates/` or `scripts/` read under the clone would have been auto-rejected under `opencode run` without it.
+`external_directory` set to `allow` on `~/.claude/**` and, since 2026-11-08, on `~/.local/share/opencode/skills/**`, the skills clone path the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" serves; skill directories are already allowed by opencode itself, but this block opens on `"*": "ask"`, so a `templates/` or `scripts/` read under the clone would have been auto-rejected under `opencode run` without it.
+The farm had an allow of its own until the same day; it left with the `skills.paths` entry, so the block's four rules are `*`, `/tmp/**`, `~/.claude/**` and the clone path, verified 2026-11-11.
 
 The write half did not hold: as first written, `edit` was set to `deny` on `~/.claude/**`, and the live run of 2026-09-21 wrote there despite it, opencode matching `edit` patterns against a path relative to the project (see "The first live run on the 9B, 2026-09-21").
 The `edit` patterns are gone, the plugin guard and the `bash` permission carrying the refusal instead (see "`bash` asks unless a command is on a read-and-gate allowlist, 2026-09-21").
@@ -135,6 +136,7 @@ Why the guard protects two roots rather than one: every file under `~/.claude` t
 ## The hooks plugin translates the payload and reports back to the model, 2026-09-21
 
 `opencode/.config/opencode/plugins/claude-hooks.ts`, stowed the same day, pinned by `_meta/tests/claude-hooks-plugin.bats`, which drives the plugin through `node` against stub hook scripts under a fake `HOME`.
+Since the port of 2026-11-11 the suite's driver stands in for the V2 host: it collects what `setup()` registers through a recording context, then fires one hook against an event shaped like the host's.
 
 - It covers the `edit` and `write` tools, the only ones opencode gives a non-GPT model: `apply_patch` replaces them for `gpt-*` ids alone (`registry.ts`, v1.18.31).
 - Unlike Claude Code, where a PostToolUse hook's output never reaches the model on exit 0, `format-on-edit.sh`'s report (a `jarl` or `shellcheck` finding) is appended to the tool output, so the model sees what the gate found on the file it just wrote.
@@ -234,6 +236,8 @@ In md-nesrine and in its `lib/`, asked what one of the project's columns means w
 `~/Documents/sandbox/` holds such directories, so the case is not hypothetical.
 
 Decision of the user the same day, a guard rather than a usage rule: the plugin's `experimental.chat.system.transform` removes the two blocks, rebuilt verbatim as `instruction.ts` writes them.
+Since the V2 port of 2026-11-11 the hook is `ctx.session.hook("context", …)`, the verbatim reconstruction is kept and a second net was added on the instructions metadata.
+What the guard answers has narrowed: V2 no longer walks up to `~` from a directory outside a git repository, so only the stow-source case of running inside `~/dotfiles/claude` still leaks, and the strip was watched removing it live (see "What the live run on the 9B settled, 2026-11-11").
 Cutting by what follows a block was rejected, since the next block's opening text (the skills preamble) is opencode's internal wording.
 The cost: the hook is marked experimental, and a changed block format makes the guard remove nothing without breaking anything, which the plugin suite and the trace's checks would catch.
 Measured again live: 18418 tokens outside git, back at the reference, 34952 in md-nesrine with its rules still known.
@@ -254,6 +258,114 @@ Creating one needs `bash`, which already asks and could write there directly.
 
 `format-on-edit.sh` runs prose-lint only under `*/dotfiles/claude/.claude/*`, which the guard forbids to opencode, so nothing after an edit reports dashes in an ordinary `.md`: the pre-hook is the only check before a commit.
 
+## The harness migrates to opencode V2, decided 2026-11-11
+
+Both machines move, and the configuration is converted to the native V2 shape rather than left on the compatibility layer.
+Approved by the user on 2026-11-11 after a `/design` run on `ju-TP` that measured V2 2.2.7 in session instead of reading the documentation.
+
+The order is forced by a compatibility layer that runs one way: V2 reads a V1 configuration and normalizes it in memory without rewriting the file, while opencode.ai/docs/migrate-v1 warns against pointing V1 at a converted one.
+`opencode/.config/opencode/opencode.json` is a single stow source shared by `cpd` and `ju-TP` through git, so the conversion comes last, after both machines run V2.
+The plugin is the hard blocker: a V1 plugin implementation does not run under V2 at all, so between a machine's V2 install and the port, `prose-lint-pretool.sh`, `format-on-edit.sh` and the `PROFILE_ROOTS` guard are all off there.
+
+Steps, ordered by dependency, the minimal viable core being 0 to 3:
+
+0. `~/.opencode/bin` on the `PATH` through `bash/.profile`, then `npm uninstall -g opencode-ai`. The user's, once per machine.
+1. The `edit` deny of the next section, which closes the write window without waiting for the port.
+2. The plugin port and its suite, `_meta/tests/claude-hooks-plugin.bats` green before and after. **Done 2026-11-11**, 34 tests green before, 38 after, and V2 loads the ported file with no error in its log.
+3. One live `opencode run` on the 9B of `ju-TP2`, which settles the payload shape that a stub suite cannot. **Done 2026-11-11**, see "What the live run on the 9B settled, 2026-11-11".
+4. `cpd` back in service: stow the ported plugin, and check whether the installer kept the `opencode-serve` symlink it writes beside.
+5. The native conversion, starting from `opencode debug config`, re-measuring the read allowlist residues of "The read allowlist widened, 2026-11-05" against the V2 shell scanner.
+6. The records that hang off the npm install, each true only while both binaries coexist: `_meta/notes/dotfiles-bootstrap.md` carries `npm install -g opencode-ai` as a bootstrap step, the opencode row of `_meta/notes/environment-archive.md` names `~/.npm-global/bin/opencode` and the `npm` module of `sys-update`, `claude/.claude/rules/install.md` records `allow-scripts=opencode-ai` in the machine-local `~/.npmrc`, the memory `project_closed_tool_evaluations.md` states that file carries one global package, `_meta/notes/opencode-cpd-setup.md` asserts that 1.19.5 runs from `~/.opencode/bin/opencode`, and `_meta/notes/opencode-harness-setup.md` gives `npm install -g opencode-ai` as the install route.
+
+State on 2026-11-11: `cpd` runs V2 and is paused pending the port; `ju-TP` carries V2 2.2.7 at `~/.opencode/bin/opencode` beside V1 1.19.5, which still answers `opencode` by name, step 0 being undone there.
+
+## V2 enforces an `edit` deny on an absolute path, so the profile guard moves into the configuration, 2026-11-11
+
+`permission.edit` denies `~/.claude/**` and `~/dotfiles/claude/.claude/**` in the stowed `opencode.json`, and the plugin keeps its own guard once ported.
+Both rather than either: the configuration rule is the always-on floor and the only one that covers the `patch` tool, while the plugin resolves symlinks and a missing tail through `realTarget` and returns a message telling the model not to retry by other means.
+
+What makes this possible reverses the measurement of "The first live run on the 9B, 2026-09-21", where an absolute `edit` pattern could never match because `write.ts` asked with a project-relative path.
+Measured on 2026-11-11 against 2.2.7: `FileAccess.resolve` hands the permission layer the absolute path when the file sits outside the project and the project-relative one otherwise, and `~` is expanded in the rules an agent resolves, visible through `opencode debug agents` although `debug config` prints the source spelling.
+A V1-shaped `permission.edit`, `permission.write` or `permission.patch` all normalize onto the single V2 `edit` action, so the block is written in V1 form today and step 5 rewrites it as `edit` rules of the native array.
+Checked the same day on both binaries: V2 resolves the two denies to `/home/julien/.claude/**` and `/home/julien/dotfiles/claude/.claude/**`, and V1 1.19.5 parses the block and expands it identically, where it stays inert for the project-relative reason above.
+
+What it does not cover: a write to the stow source made from inside `~/dotfiles`, whose resource is relative there. The plugin guard carries that half.
+
+Rejected:
+
+- **Flipping `~/.claude/**` to `ask` in `external_directory` for the duration of the port**, which was the remedy the migration brief proposed. It blocks reading as well as writing, so it would have cut skill discovery under `~/.claude/skills` for the whole window.
+- **The ported plugin guard alone**: it is keyed on one path argument, so the `patch` tool escapes it, and it is off exactly when the plugin is off, which is the window this entry exists to close.
+- **The configuration rule alone**: no message reaches the model, and the stow source is missed from inside `~/dotfiles`.
+
+## `**` matches, and a trailing ` *` covers the bare command, measured 2026-11-11
+
+The V2 matcher escapes the regex metacharacters of a pattern, maps `*` to `.*` and `?` to `.`, anchors both ends and compiles with the `s` flag.
+So `**` is `.*.*`, equivalent to `*`, and the four `external_directory` rules are live: the reading that would have made `~/.claude/**` already inert is wrong.
+A pattern ending in ` *` is rewritten to `( .*)?`, so `git status *` also matches a bare `git status`.
+With no matching rule the default is `ask`, but the `build` agent always opens on an allow of `*` over `*`, so an unmatched `edit` is allowed.
+
+## The ported plugin carries no runtime dependency, 2026-11-11
+
+`Plugin.define` is `export function define(plugin) { return plugin }` in `@opencode/plugin@2.2.7`, an identity.
+A plugin that default-exports a plain `{ id, setup }` object therefore loads, measured rather than assumed: a probe under a scratch `XDG_CONFIG_HOME` was logged as "loading plugin", its `setup` ran, `ctx.location.directory` resolved, and `ctx.tool.hook` and `ctx.session.hook` both registered.
+The port keeps `import type { Plugin } from "@opencode/plugin"`, erased at runtime, so nothing has to be installed under `~/.config/opencode` and the bats driver keeps loading the module through a bare `await import`.
+
+Rejected: calling `Plugin.define`, which turns the package into a runtime dependency and costs a 190 MB `node_modules` tree per machine, untracked by the repository, for an identity call.
+
+Weakest assumption: `define` stays an identity and the host demands no marker on the default export. A version that tagged plugins through it would show the plugin unloaded in `opencode plugin list`, and the remedy is one import.
+
+## What V2 changes in the plugin's three contracts, measured 2026-11-11
+
+Read from the JS bundle embedded in the 2.2.7 binary and from the type definitions of `@opencode/plugin@2.2.7`.
+
+- **Throwing from `execute.before` still refuses the call.** The host wraps that callback in a try/catch turning any throw into a `Tool.Error` carrying its `message`, and `Tool.execute` triggers the hook before piping into execution, so the failure short-circuits and the message returns to the model. `execute.after` is wrapped without a catch, so a throw there is an unhandled defect: the after hook must not throw.
+- **A hook can still rewrite a tool's output, under another name.** The after event is `{ status: "completed", result }` or `{ status: "error", error }`, and the host reads `event.result.output` and `event.result.content` back after the trigger. V1's `output.output` becomes `event.result`, and the hook has to test `status` first.
+- **The tool names hold, the path argument does not.** `ctx.tool.list()` on the `build` agent returns `patch`, `edit`, `glob`, `grep`, `question`, `read`, `shell`, `skill`, `subagent`, `webfetch`, `websearch`, `write` and the `opencode_*` session tools; `bash` is now `shell`, a repair table rewriting a model's `bash` call onto it. But `edit` and `write` take `path` where V1 took `filePath`, so a port keeping the old name reads `undefined` and the guard fails open with no signal.
+
+Four further findings bear on the rewrite:
+
+- `patch` is registered for every agent, takes a multi-file `patchText` and carries `permission: "edit"`. It escapes both hook scripts and any guard keyed on a single path, which is the second reason the deny moved into the configuration.
+- V2's `edit` rejects an empty `oldString` and points at `write`, so the special case `claudePayload` has carried since "The plugin's first review walkthrough, 2026-09-21" is dead code in the port.
+- V2's `edit` retries on its own while ignoring typographic quote, dash and space variants, then trailing whitespace on each line, so the refusal on a non-verbatim `oldString` keeps its reason.
+- The instructions system part carries `metadata.experimental.instructions` as `{ key, text }` entries, so the strip can key on the file path instead of rebuilding `Instructions from: <file>` verbatim, which removes the silent failure mode recorded in "A project's `.claude/` is loaded like Claude Code loads it, 2026-09-21". The field is marked experimental and is not updated when a hook edits `text`.
+
+## What the ported plugin no longer says in comments, 2026-11-11
+
+The port of step 2 landed on 2026-11-11 and `rules/code.md` applies to it, so the WHY the V1 file carried in comments lives here.
+Most of it already had a home above: the payload translation in "Hooks run through one opencode plugin that calls the existing scripts", the fuzzy-match refusal and the killed process group in "The plugin's first review walkthrough, 2026-09-21", the `instructions` walk in "A project's `.claude/` is loaded like Claude Code loads it, 2026-09-21".
+What had none:
+
+- `runHook` ignores an error on the child's stdin. A hook may exit before reading it, which `prose-lint-pretool.sh` does when `prose-lint` is absent, and the resulting EPIPE would otherwise be an unhandled error that kills opencode.
+- Exit 2 is Claude Code's blocking signal and the only one the before hook turns into a refusal. Any other non-zero exit stays advisory, as it does in Claude Code.
+- `realTarget` walks up to the nearest existing ancestor and reappends the missing tail, because a file about to be created does not exist yet and `realpathSync` would throw on it. Symlinks into the profile are caught either way.
+- The after hook returns early unless `event.status` is `completed`, V2 handing an `error` event the same hook with no `result` to append to.
+
+Two comments died with V1 rather than moving: opencode no longer calls every export of a plugin module, the default export being the plugin; and `claudePayload` no longer rewrites an edit with an empty `oldString` into a write, V2's `edit` rejecting that input itself.
+
+The suite grew from 34 tests to 38: the write-shaped empty `oldString` case became its edit-shaped counterpart on a missing file, and four were added, two for the metadata route of the strip, one for the `error` branch of the after hook, and one pinning that `patch` runs no hook.
+
+## What the live run on the 9B settled, 2026-11-11
+
+`opencode run --standalone` against `ju-tp2/qwen3.5-9b` through `llama-session`, on a scratch `XDG_CONFIG_HOME` holding a copy of the stowed configuration, a symlink to the real plugin and a capture plugin loaded after it.
+
+- **The edit payload is `{path, oldString, newString}`**, and `read` takes `path` too. The V1 `filePath` would have left the guard reading `undefined`.
+- **The report reaches the model.** The `edit` result's `content` came back as two parts, opencode's own `Edited doc.md (1 replacement)` and the plugin's `format-on-edit.sh:\n1 file left unchanged`. The real content is already an array, so the array branch of the rebuild is the one that runs.
+- **A throw still refuses and the model reports it.** An edit introducing an em dash was refused with `prose-lint`'s own message, the file was left untouched, and the 9B asked which dash to use instead rather than reaching for the shell, unlike every run of 2026-09-21 and 2026-11-05.
+- **The `edit` denies hold at runtime**, measured by calling `ctx.permission.assert` on four resources from inside a session: both profile roots refused with `Permission denied: edit`, a path under `~/Documents` and a project-relative one allowed.
+- Asked to write under `~/.claude`, the 9B refused on its own from `AGENTS.md`, then tried `mkdir` through the shell and was auto-rejected by the `*` ask on `shell`. The guard itself was therefore not reached, which is why the assert above is what measures it.
+
+**The global-profile leak changed shape, and the strip keeps an object.** From a non-git directory directly under `$HOME`, the instructions entry `core/instructions` weighs 10634 characters against `AGENTS.md`'s 10557 bytes, and no entry is keyed on a file: V2 no longer walks up to `~`, so the case measured on 2026-09-21 in `~/Documents/sandbox` is gone.
+From inside `~/dotfiles/claude` it is another matter: the entry weighs 41473, which is `AGENTS.md` plus `CLAUDE.md` plus `MEMORY.md` of the stow source, while the part's text weighs 27419, the difference being what the plugin removed before the capture plugin saw it.
+So the strip is kept, the verbatim route is the one that fires, and the instructions metadata is a net that has not had to catch anything yet. The capture also confirms the documented warning that the metadata is not updated when a hook edits the text: it still advertises the blocks the strip removed.
+
+## Probing a V2 configuration takes `--standalone`, 2026-11-11
+
+`OPENCODE_CONFIG` is ignored by 2.2.7, and `XDG_CONFIG_HOME` moves only what `opencode debug paths` reports: every other `debug` subcommand is answered by the background `opencode serve --service` process with the configuration it loaded at startup.
+A variant is therefore measured with `XDG_CONFIG_HOME` and `--standalone` together, which is how the two sections above were checked.
+The `OPENCODE_CONFIG` technique of "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" no longer works.
+`opencode debug skill` is gone, so the tool and skill lists are read from inside a session or through a probe plugin calling `ctx.tool.list()`.
+`opencode upgrade` exists and is the candidate route to replace npm in `sys-update` at step 6.
+
 ## Next, in the order agreed on 2026-09-21
 
 1. The user's first interactive trial, in `~/Documents/services/md-nesrine` on a throwaway branch, following `.claude/ESSAI-OPENCODE.md` in that project (untracked there): the model's knowledge of the project rules without being shown them, `/design` as a slash command, a multi-step task with the gate, a hook refusal, a long session through compaction.
@@ -269,3 +381,7 @@ Creating one needs `bash`, which already asks and could write there directly.
 - A command on the `bash` allowlist can still write without a redirection if the tool itself writes (`ruff check --fix`, `shfmt -w`, `air format` on any path given): accepted, since these are the gate the model is told to run, but they are not confined to the project.
 - The skill farm is resynced only by `claude-plugins-update`, so a plugin auto-update or a `/plugin enable|disable|update` done in Claude Code leaves opencode on the superseded version, or on a disabled plugin's skills, until the next `sys-update`, breaking in the meantime the rule that only an enabled plugin's skills are ever exposed.
   Deferred with a chosen remedy in `DEFERRED.md`, row of 2026-09-21 on the opencode skill farm, whose scope narrowed on 2026-11-08 to the third-party plugin skills: the seven of `hebstr/skills` left the farm, and with it the `enabledPlugins` rule, which the section "The seven skills of `hebstr/skills` leave the farm for the clone, 2026-11-08" accepts losing for them.
+- ~~Whether V2 still injects the global profile outside a git repository.~~ Closed 2026-11-11 by "What the live run on the 9B settled, 2026-11-11": the directory-walk case is gone, the stow-source case is not, and the strip stays.
+- Whether a V2 configuration can disable a tool by name, which would retire the `patch` hole instead of leaving it to the `edit` deny. To measure at step 5.
+- Whether `~/.claude/skills` leaves `skills` once V2 auto-discovers it. Dropping it is a choice rather than something the compatibility layer did: the normalized array still carried it verbatim on 2026-11-11, beside the two clone paths.
+- Whether the `opencode-serve` symlink survived the V2 installer on `cpd`, the installer writing into the same directory. To check at step 4.

@@ -167,6 +167,11 @@
       "*git rm*": "ask",
       "*git mv*": "ask"
     },
+    "edit": {
+      "*": "allow",
+      "~/.claude/**": "deny",
+      "~/dotfiles/claude/.claude/**": "deny"
+    },
     "external_directory": {
       "*": "ask",
       "/tmp/**": "allow",
