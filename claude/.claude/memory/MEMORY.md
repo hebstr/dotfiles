@@ -123,7 +123,7 @@
 - feedback_review_severity_bash_dotfiles.md: Calibrating reviews of the interactive shell dotfiles in `bash/`
 - feedback_review_severity_claude_rules.md: Calibrating reviews of path-scoped `.claude/rules/` files
 - feedback_review_severity_profiles_scaffolds.md: Calibrating audits of the config templates in `_meta/profiles/`
-- feedback_review_severity_claude_config.md: Calibrating audits of `~/.claude` config artifacts (settings.json, hooks)
+- feedback_review_severity_claude_config.md: Calibrating audits of `~/.claude` config and the opencode claude-hooks.ts
 - feedback_review_severity_claude_md_content.md: Calibrating audits of the rules text of `~/.claude/CLAUDE.md`
 - feedback_review_severity_skill_audits.md: Audits of SKILL.md files, agent definitions and a skill's scripts
 - feedback_review_severity_hebstr.md: Calibrating reviews of the hebstr R package

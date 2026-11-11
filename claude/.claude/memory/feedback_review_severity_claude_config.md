@@ -1,6 +1,6 @@
 ---
 name: Review calibration for ~/.claude harness config
-description: When auditing ~/.claude config artifacts (settings.json, hooks/*.sh, format-on-edit), do not flag intentional minimalism as defects requiring defensive expansion
+description: When auditing ~/.claude config artifacts (settings.json, hooks/*.sh, format-on-edit) and the opencode harness plugin claude-hooks.ts, do not flag intentional minimalism as defects requiring defensive expansion
 metadata:
   type: feedback
 ---
@@ -19,8 +19,10 @@ When reviewing or auditing the user's personal Claude Code harness config (`~/.c
 
 6. **Blanking quoted text before the command-position triggers of `inject-rules.sh`** (to stop `rg 'a|apt install'` or a `showboat note` text from injecting `install.md`). Quoted text carries real commands: `ssh ju-TP2 'cd dotfiles && stow -n …'` and `ssh … 'systemctl --user …'` were 24 of the 27 install triggers found only inside quotes over 14 days of transcripts (2026-09-26 walkthrough), and a false trigger costs one injection per session, or per subagent, at most.
 
+7. **Proposing to delete the instructions-metadata branch of `stripGlobalProfile` in `opencode/.config/opencode/plugins/claude-hooks.ts`, with its two tests.** The branch is unreachable against opencode 2.2.7, whose state-entry keys are a closed set of seven `core/*` literals plus a dynamic `api/<name>` namespace, never a file path: that is measured and recorded, not a gap to re-discover. The user ruled on 2026-11-11 to keep it and correct the design note instead, against the reviewer and against the intra-family L1, the cross-provider L2 agreeing with the user. Re-raise only on a host version whose instruction keys are paths, or at step 5 of the V2 migration, when the configuration is converted and the tool surface is re-measured. The related hazard, that loosening the key test to `core/instructions` would make `text.replace(entry.text, "")` delete the whole aggregate, is a reason not to loosen it rather than a defect to file.
+
 **Why:** the recurring shape across the passes on `~/.claude` and on `sweep-stale-consolidate-locks.sh` is treating intentional minimalism (narrow scope, plain tools, generic outputs, best-effort error handling) as defects requiring defensive expansion, often importing Claude's own behavioral rules or production-grade hardening expectations into user-authored config code where they don't apply.
 
-**How to apply:** in any future config audit, code-review, or audit pass over `~/.claude/` config artifacts, skip the five live categories of suggestion (1, 2, 4, 5, 6) immediately. They are recurring false positives. Real findings still apply: leaked credentials in committed settings, hooks that fail open and corrupt files, scope guards that demonstrably don't gate what they claim to gate, structural drift between CLAUDE.md and `rules/*.md` content, and logic bugs in hook scripts that produce wrong results within the script's stated contract.
+**How to apply:** in any future config audit, code-review, or audit pass over `~/.claude/` config artifacts or over `claude-hooks.ts`, skip the six live categories of suggestion (1, 2, 4, 5, 6, 7) immediately. They are recurring false positives. Real findings still apply: leaked credentials in committed settings, hooks that fail open and corrupt files, scope guards that demonstrably don't gate what they claim to gate, structural drift between CLAUDE.md and `rules/*.md` content, and logic bugs in hook scripts that produce wrong results within the script's stated contract.
 
 Related: [[feedback_review_severity_claude_rules]] covers `.claude/rules/*.md` content; [[feedback_review_severity_claude_md_content]] covers CLAUDE.md content audits; this memory covers harness config artifacts (settings, hooks).
