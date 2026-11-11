@@ -26,16 +26,20 @@ Two traces cover it and are not repeated here: `_meta/notes/llama-cuda-install-j
 
 Recorded after the fact on 2026-09-21: opencode was installed earlier that day, the two packages stowed and the link farm first built later the same day, none of it traced when run. These steps change state, so they sit in tilde fences with the state they left, and `verify` never replays them.
 
-Install opencode under the user npm prefix (`dotfiles-bootstrap.md`, "Bootstrap", sets it), which `sys-update npm` then keeps current:
+Install opencode. Until 2026-11-11 this was `npm install -g opencode-ai` under the user npm prefix (`dotfiles-bootstrap.md`, "Bootstrap", sets it), which `sys-update npm` then kept current, and the step recorded `opencode-ai@1.18.31`.
+V2 ships as a binary from its own installer instead, so the package was removed with `npm uninstall -g opencode-ai` that day and `~/.npm-global/lib` is now empty:
 
 ~~~bash
-npm install -g opencode-ai
-npm ls -g --depth=0 opencode-ai
+curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
 ~~~
 
 ~~~text
-└── opencode-ai@1.18.31
+opencode v2.2.7
 ~~~
+
+The installer puts the binary in `$HOME/.opencode/bin` and, without `--no-modify-path`, edits a shell rc file to add that directory to the `PATH`.
+The flag is deliberate here: the rc files are stow symlinks into this repository, so the `PATH` entry is a reviewed change to `bash/.profile` instead, placed before the `$HOME/.local/bin` block so that `~/.opencode/bin` lands ahead of `~/.npm-global/bin`.
+No update module covers opencode since the package left npm; `opencode upgrade` is the binary's own route and wiring it into `sys-update` is still open.
 
 Link the scripts and the configuration. Both packages are part of the `stow` line of `dotfiles-bootstrap.md`; on a machine already stowed, only the files added since need linking:
 

@@ -5,7 +5,7 @@ The scope is the single user `edjulien`; the shared, multi-user variant is defer
 
 ## Current state
 
-- opencode 1.19.5 runs from `~/.opencode/bin/opencode`.
+- opencode runs from `~/.opencode/bin/opencode`. It was 1.19.5 from npm until the V2 installer landed there on 2026-11-11; opencode has been paused on this machine since, the V1 plugin not loading under V2, and resumes at step 4 of `.claude/DESIGN-OPENCODE-HARNESS.md` § "The harness migrates to opencode V2, decided 2026-11-11", which also asks whether the installer kept the `opencode-serve` symlink it writes beside.
 - `~/.config/opencode/opencode.json` is a stow link to `~/dotfiles/opencode/.config/opencode/opencode.json`.
 - It declares the provider `cpd`, the model `cpd/qwen3.8-27b`, and the base URL `http://127.0.0.1:8090/v1`, alongside a `ju-tp2` provider kept declared and unused; see "Where the machine-specific keys live".
 - The model entry is named `unsloth/Qwen3.8-27B-GGUF` with a 196608 token context limit.

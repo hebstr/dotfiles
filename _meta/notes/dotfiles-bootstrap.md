@@ -117,10 +117,12 @@ On the GPU machine, install the CUDA build with `llama-update` and the `hf` CLI 
 On the main machine, beyond the `stow` line above:
 
 ```sh
-npm install -g opencode-ai
+curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
 opencode-skills-sync
 ```
 
+The installer takes `--no-modify-path` because the shell rc files are stow symlinks into this repository: `bash/.profile` carries the `~/.opencode/bin` entry itself, stowed with the rest, so nothing else puts opencode on the `PATH`.
+It replaced `npm install -g opencode-ai` on 2026-11-11, when V2 made the npm package obsolete.
 The second command links the skills of the enabled Claude Code plugins where opencode looks for them.
 `sys-update claude-plugins` reruns it after the updates it makes; a plugin changed any other way (Claude Code's own auto-update, `/plugin enable`, `disable` or `update`) needs a manual `opencode-skills-sync`, or opencode serves the old set until the next `sys-update`.
 To exercise the bench, run `llama-session` in one terminal and `opencode` in another.

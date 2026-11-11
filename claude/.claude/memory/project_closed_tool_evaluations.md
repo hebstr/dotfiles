@@ -52,7 +52,7 @@ The footprint is four manifests, all tooling, no workspace and no JS application
 - `~/.local/share/css-gate/` (stow package `css`): prettier, stylelint, stylelint-config-standard-scss pinned exact, `package-lock.json` v3 tracked, `node_modules/` ignored, config beside its own `node_modules` so `extends` resolves from there
 - `bin/.local/bin/css-toolchain-update`: wraps `npm install --save-exact`; 69 lines across three bats files cite `npm`, including a full `npm` stub in `css-toolchain-update.bats`
 - `sys-update` and `sys-cleanup`: `npm update -g`, `npm cache verify`
-- `~/.npmrc` (machine-local, never stowed): `prefix=~/.npm-global`, `allow-scripts=opencode-ai`; one global package, `opencode-ai`
+- `~/.npmrc` (machine-local, never stowed): `prefix=~/.npm-global`, `allow-scripts=opencode-ai`; no global package since 2026-11-11, `opencode-ai` having been uninstalled when opencode V2 moved to its own binary installer, which leaves that `allow-scripts` entry vestigial
 - `quarto-hebstr-doc`: repo-local install, `npm ci` in `render.yml`, two prek hooks on `node_modules/.bin/`, pins bumped by a monthly Dependabot `npm` group (see `rules/css.md`, "Commit gate (prek)")
 
 Four measurements that decide it:
