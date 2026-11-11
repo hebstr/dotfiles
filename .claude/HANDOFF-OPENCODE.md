@@ -2,32 +2,35 @@
 
 ## What this conversation inherits
 
-A V2 diagnostic was run on `cpd` on 2026-11-10 against the official docs, reviewed and corrected on `ju-TP` on 2026-11-11. The corrected state is below. The user decided on 2026-11-11 that both machines migrate, `cpd` first then `ju-TP`, and that converting the config to the native V2 shape is in scope rather than deferred.
+A V2 diagnostic was run on `cpd` on 2026-11-10 against the official docs, reviewed and corrected on `ju-TP` on 2026-11-11. The corrected state is below.
 
-Before this conversation opens, the user runs the V2 install and the compat readings on `cpd` by hand. This conversation runs on `cpd` too, so **read those readings yourself before proposing anything**, from the files they were redirected to there:
+Where things stand on 2026-11-11, from the user:
 
-- `~/v2-debug-help.txt`, from `opencode debug --help`, to read first: the V2 CLI reference documents `opencode debug paths` alone, and whether `debug config` and `debug skill` survive from V1 is unverified in either direction, so this file says which of the next two can exist at all
-- `~/v2-debug-config.txt`, from `opencode debug config`
-- `~/v2-debug-skill.txt`, from `opencode debug skill`
-- `~/v2-run.txt`, from an `opencode run` against the served model, which carries the compat warnings V2 emits on the unconverted config
+- `cpd` runs V2, and opencode is paused there until `claude-hooks.ts` is rebuilt, the user having confirmed the V1 plugin does not load.
+- `ju-TP` still runs V1 1.19.5 from npm as this is written. **This conversation runs on `ju-TP`**, and the port is written and tested here because `ju-TP` has node 24.22.2 and bats 1.10.0 while `cpd`'s toolchain for the suite is unknown. Confirm both versions rather than trusting this line.
+- Both machines migrate, and converting the config to the native V2 shape is in scope rather than deferred.
 
-What to look for in them: which V1 fields V2 reports as ignored or conflicting, whether the seven skills of the clone still resolve and from which source, and whether the shell scanner accepts the real allowlist or returns a scanner error. Several items below are written as open precisely because those readings answer them, and nothing is proposed before they are in hand.
+Three things have to be true on this machine before anything is proposed, and each is the user's to do rather than yours:
 
-A missing or empty file among the middle two is a fact about V2 rather than a forgotten step: check the help output before asking the user for anything, and source those two readings elsewhere if the subcommands are gone, the startup and `run` output carrying the warnings and an in-session check carrying skill resolution. The `debug` commands are read-only and re-runnable as they stand, redirected to those same paths. The install is not re-run from here.
+1. V2 installed here, which means `npm uninstall -g opencode-ai` first, then the installer with `--no-modify-path`, per "Installing V2, per machine".
+2. The runtime dependency of the new import resolvable from `~/.config/opencode`, whose `package.json` pins `@opencode-ai/plugin` at 1.18.31 and whose `node_modules` carries the V1 scope `@opencode-ai` (`plugin` and `sdk`) and no `@opencode` scope at all, measured 2026-11-11. That file is machine-local and the repository does not track it, so the step exists once per machine and nothing records it yet.
+3. `~/.claude/**` flipped from `allow` to `ask` in the `external_directory` block, or opencode not driven here beyond the probes, for as long as the port has not landed. The reason is under "Do not".
+
+Then measure the three decision zones of the plugin section here, in session, instead of reading anyone's file: that is what moving this work to `ju-TP` buys. Readings taken on `cpd` before the pause are not reachable from here and are no substitute.
 
 ## The ordering constraint that governs everything
 
 V2 reads a V1 config: "V2 reads existing system, global, and project configuration from the same locations as V1", "V2 normalizes supported V1 and native V2 fields in memory without rewriting the source file", "you do not need to convert it to try or adopt V2" (https://opencode.ai/docs/migrate-v1). Unsupported legacy fields and conflicting V1/V2 values produce warnings while the rest keeps loading. The official order is: install, keep the config, verify, port the plugins, then convert, "This step is optional".
 
-The compat runs one way only. The same page warns "do not point V1 at files after converting them to native V2-only shapes", and `opencode/.config/opencode/opencode.json` is a single stow source shared by `cpd` and `ju-TP` through git. **The config conversion is therefore the last step, after both machines run V2.** Converting it while either machine still runs 1.19.5 breaks that machine's permission layer.
+The compat runs one way only. The same page warns "do not point V1 at files after converting them to native V2-only shapes", and `opencode/.config/opencode/opencode.json` is a single stow source shared by `cpd` and `ju-TP` through git. **The config conversion stays last, after both machines run V2.** Converting it while either machine still runs 1.19.5 breaks that machine's permission layer. `cpd` is already past that point, so `ju-TP`'s own install is the only thing still gating it.
 
-The plugin is the only hard blocker: V1 plugin implementations do not run in V2 at all, so between the V2 install and the port, `prose-lint-pretool.sh`, `format-on-edit.sh` and the `PROFILE_ROOTS` guard are all off on that machine.
+The plugin is the hard blocker, and it is what gates `cpd` coming back: V1 plugin implementations do not run in V2 at all, so between a machine's V2 install and the port, `prose-lint-pretool.sh`, `format-on-edit.sh` and the `PROFILE_ROOTS` guard are all off there.
 
 ## Blocker: porting `claude-hooks.ts`
 
 Mappings, all verified against https://opencode.ai/docs/build/plugins/migrate-v1:
 
-- Import `@opencode-ai/plugin` becomes `@opencode/plugin`; the named export becomes a default `Plugin.define({id, setup(ctx)})`. The comment in `claude-hooks.ts` about opencode calling every export of the module stops being true.
+- Import `@opencode-ai/plugin` becomes `@opencode/plugin`; the named export becomes a default `Plugin.define({id, setup(ctx)})`. The comment in `claude-hooks.ts` about opencode calling every export of the module stops being true. The import also changes in kind: `import type` is erased at runtime, where `Plugin.define(...)` is a value, so the package has to resolve when the module is loaded, by opencode and by the test driver alike. That is prerequisite 2 of the opening section, and it is a new failure mode for a file that needed no runtime dependency until now.
 - `directory` comes from `ctx.location.directory`.
 - `experimental.chat.system.transform` becomes `ctx.session.hook("context", ...)` editing `event.system`. **Resolved**: `event.system` is an array of content parts, the doc's own example pushing `{ type: "text", text: "..." }`. `stripGlobalProfile` currently maps over strings, so the port maps over `.text`. The reconstruction it does (`Instructions from: <file>\n<content>`) still has to be checked against what V2 actually writes into those parts: a changed format strips nothing, silently.
 - `tool.execute.before` and `tool.execute.after` become `ctx.tool.hook("execute.before"|"execute.after", ...)`. The signature `(input, output)` becomes one mutable `event`, with `event.tool` and `event.input`.
@@ -40,7 +43,7 @@ Three decision zones, none of them mechanical:
 
 The port is a substantial rewrite of the file, so `rules/code.md` applies to its output: the dozen WHY comments `claude-hooks.ts` carries today (the fuzzy-match rationale, the detached process group, the EPIPE guard, the relative-`instructions` walk) move into `DESIGN-OPENCODE-HARNESS.md`. Several are measurements no other file holds.
 
-`_meta/tests/claude-hooks-plugin.bats` drives the plugin through node against stub scripts under a fake HOME. It follows the plugin and is not invented separately.
+`_meta/tests/claude-hooks-plugin.bats` drives the plugin through node against stub scripts under a fake HOME, its driver loading the module with `await import(plugin)` and destructuring the named `ClaudeHooks` export. Both halves break on the port: the export becomes a default, and the value import above has to resolve from wherever the driver runs. The suite follows the plugin and is not invented separately, and it is the gate this port leaves green, which is the reason the work sits on `ju-TP`. It is also the instrument that settles the three zones below rather than a formality: it ran 34 tests, all passing, on 2026-11-11 before any port, and it already pins each of the three contracts, the refusal by `throw` in its `guard:` tests, the appended report in `after: the hook's report is appended to the tool output`, and the strip in its `system:` tests. A zone that V2 cannot honour shows up as those tests failing, which is the measurement.
 
 ## To convert, last, once both machines run V2
 
@@ -64,7 +67,7 @@ Other keys:
 
 The installer (https://opencode.ai/v2/install) is a bash script that puts the binary in `$HOME/.opencode/bin`, creates an `opencode2` shim beside it, overwrites an existing `opencode` there without uninstalling anything, and edits a shell config file to add the directory to `PATH` unless `--no-modify-path` is passed. V1 and V2 "both use the `opencode` command and are no longer installed side by side by default".
 
-- `cpd`: V1 already runs from `~/.opencode/bin/opencode`, so the installer overwrites it in place. Pass `--no-modify-path`, the directory being on `PATH` already, and check afterwards that the stow symlink `~/.opencode/bin/opencode-serve` survived.
+- `cpd`: **done on 2026-11-11**, and opencode is paused there pending this port. What never came back here is whether the stow symlink `~/.opencode/bin/opencode-serve` survived, the installer writing into that same directory: check it when `cpd` resumes.
 - `ju-TP`: V1 comes from npm (`~/.npm-global/bin/opencode`, prefix set in `_meta/notes/dotfiles-bootstrap.md`). The docs require removing a package-managed V1 first, otherwise two binaries sit on `PATH` and the order decides which runs. Pass `--no-modify-path` there too: the shell rc files are stow symlinks into this repository, and an installer edit would land through the symlink.
 - `OPENCODE_SERVER_USERNAME` is no longer supported, the username always being `opencode`. Check `opencode-serve` and anything that talks to the server API.
 
@@ -77,7 +80,8 @@ The installer (https://opencode.ai/v2/install) is a bash script that puts the bi
 
 ## Do not
 
-- Do not convert the config before both machines run V2. The constraint is the one-way compat quoted above, not a preference.
+- Do not convert the config before both machines run V2. The constraint is the one-way compat quoted above, not a preference. `cpd` is already there, `ju-TP` is not until its own install.
+- Do not leave `~/.claude/**` on `allow` in `external_directory` while `ju-TP` runs V2 without the ported plugin. On `cpd` that window is harmless, Claude Code never being installed there. On `ju-TP` the path is the live profile, the `PROFILE_ROOTS` guard that protects it lives in the plugin alone, and the config allows writes there so that skills stay readable. Flip the entry to `ask` for the window, or do not drive opencode here beyond the probes.
 - Do not treat the plugin port as a translation: the three decision zones each need an explicit, recorded choice.
 - Do not rewrite the shell allowlist without revalidating the residues accepted on 2026-11-05, recorded in `DESIGN-OPENCODE-HARNESS.md`, section "The read allowlist widened, 2026-11-05". They were measured against V1 matching (tree-sitter, full source text of the command), and the V2 scanner changes the rules. The take-backs `sort*-o*`, `tree*-o*` and `sed*-i*` and the git `deny` rules are the part to re-measure first, the git ones being in substring form since 2026-11-08 because the V1 scanner rewrote `cd X && git push` as `git -C X push`.
 - Do not fold in the "Next" openings `DESIGN-OPENCODE-HARNESS.md` carries (interactive trial, adversarial reviews). They predate this migration and are not part of it.
@@ -86,5 +90,8 @@ The installer (https://opencode.ai/v2/install) is a bash script that puts the bi
 
 - Current config: `cat ~/dotfiles/opencode/.config/opencode/opencode.json`, `cat ~/dotfiles/opencode/.config/opencode/tui.json`
 - Current plugin: `~/dotfiles/opencode/.config/opencode/plugins/claude-hooks.ts`, 152 lines
+- Local V2 state: `opencode --version`, `ls -l ~/.opencode/bin/`, then `opencode debug --help`, which settles what the `debug` namespace offers: the V2 CLI reference documents `opencode debug paths` alone, and whether `debug config` and `debug skill` survive from V1 is unverified in either direction
+- Plugin dependency state: `cat ~/.config/opencode/package.json`, `ls ~/.config/opencode/node_modules/`
+- The gate: `bats _meta/tests/claude-hooks-plugin.bats`, green before the port and green after
 - Reference note to read whole before proposing anything: `~/dotfiles/.claude/DESIGN-OPENCODE-HARNESS.md`, 271 lines, which holds the decisions and measurements that constrain the port
 - V2 docs: https://opencode.ai/docs/migrate-v1, https://opencode.ai/docs/build/plugins/migrate-v1, https://opencode.ai/docs/permissions, https://opencode.ai/docs/config, https://opencode.ai/docs/providers, https://opencode.ai/docs/skills, https://opencode.ai/docs/cli/config
