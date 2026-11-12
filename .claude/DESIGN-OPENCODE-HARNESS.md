@@ -318,6 +318,50 @@ The bats driver cannot rely on that, so it registers a resolve hook mapping `@op
 
 Weakest assumption: the host keeps demanding the marked form and serving the package from its embedded cache. A version that stopped serving it would break the value import at load time, visible in the server log as a module resolution failure rather than a schema error.
 
+Refuted on its central claim 2026-11-12, see "The audit of `Plugin.define` finds the host demands nothing, 2026-11-12": 2.2.7 loads both forms, and the marked one is kept for conformity with the upstream API rather than because the host asks for it.
+
+## The audit of `Plugin.define` finds the host demands nothing, 2026-11-12
+
+Audit of `752f70f` asked for by `HANDOFF-OPENCODE.md`, run on ju-TP against the same 2.2.7 binary, under node v24.22.3 where the brief recorded v22.23.4.
+The suite is still 42 tests and 0 failures on that node.
+
+**The deciding measurement does not reproduce.**
+Probes under a scratch `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `XDG_STATE_HOME`, configuration reduced to `$schema` plus a provider on a dead `baseURL`, the plugin auto-discovered from `plugins/` as the stowed configuration declares it:
+
+- the port's `Plugin.define` form and the pre-`752f70f` plain-object form, the latter byte-identical to `752f70f^`, both log `loading plugin` with no `Plugin failed` and no `SchemaError`, under `opencode plugin list --standalone --print-logs` and under `opencode run --standalone`;
+- a two-line marker plugin written in each form proves the module is imported and `setup` called in both: the marker file holds `imported` then `setup` for the plain object as for the marked form;
+- the real plugin in the plain-object form, instrumented with the same two markers, is imported and its `setup` runs, the session failing on the dead provider and on nothing else;
+- through a background service under isolated state, both forms behave the same way.
+
+So 2.2.7 accepts `{ id, setup }` and the claim that the host demands the marked form is wrong.
+`SchemaError(Missing key at ["default"])` named an absent `default` key, which is the shape of a module that exports none, not of one whose default is a plain object.
+"Probing a V2 configuration takes `--standalone`, 2026-11-11" holds the likely cause, the service caching a plugin module by path, which stalled `cpd` the same day under the host's own `plugin must export a default definition with an id and an effect or setup function`.
+The value import therefore buys nothing against 2.2.7, and the decision it reversed, a type-only import and a plain object, was sound.
+Reverting it is a change to the plugin that this audit does not make: the user accepted on 2026-11-12 the recommendation to keep the marked form, which is the upstream API and whose two failure modes, a cache that stops serving the package and a host that starts demanding the marked form, are both loud at startup.
+So the plugin stays as `752f70f` left it and this point is closed rather than deferred.
+
+**The package is served off disk, and the disk is not clean.**
+The V2 scope exists nowhere under `~` (`fdfind` over `~/.cache`, `~/.opencode`, `~/.local/share`), and the scratch probes resolved the import with no `node_modules` anywhere up the path from the plugin, so the embedded-cache claim holds.
+What "nothing goes under `~/.config/opencode`" misses: `~/.config/opencode/node_modules` is a 63 MB tree of 2026-09-21 whose `package.json` declares `@opencode-ai/plugin@1.18.31`, and the V2 installer wrote a second 64 MB tree at `~/.opencode/node_modules` carrying `@opencode-ai/plugin@1.19.5` on 2026-11-11 at 14:22.
+Both are V1-scope and neither serves the port: moved aside, a standalone session still imports the plugin, runs its `setup` and fires `provider.updated`, failing on the dead endpoint and on nothing else, so neither tree is on the resolution path of the plugin or of `aisdk:@ai-sdk/openai-compatible`.
+The two differ in kind.
+The one under `~/.config/opencode` is residue of the npm route that `71a6417` retired from the records alone, with the `package.json` and `package-lock.json` that declared it; all three went to the trash on 2026-11-12, after which the real configuration still logs `loading plugin` with no failure.
+The one under `~/.opencode` is the installer's own workspace, scaffolded at 14:22 on 2026-11-11 beside a `.gitignore` listing `node_modules`, `package.json`, `package-lock.json`, `bun.lock` and itself, so a plugin written there finds its dependencies: it is kept, and an `opencode upgrade` owns it.
+
+That same tree is where the identity claim of the section above is verifiable: `@opencode-ai/plugin@1.19.5` ships the V2 API under the `./v2/promise` subpath, whose `plugin.js` is `export function define(plugin) { return plugin }` against an interface of exactly `{ id, setup }`.
+So the marked form is reachable from disk under another specifier, and the embedded cache is a convenience rather than the only route to it.
+
+**The bats stub stands in faithfully, and its gap is the only one left.**
+The driver's resolve hook short-circuits `@opencode/plugin` to `export const Plugin = { define: (p) => p }`, an identity like the real export, and the suite reaches no further than `mod.default.setup(ctx)`: no host schema check lies on its path, so the stub cannot diverge on anything the 42 tests exercise.
+What it cannot catch is the real package failing to resolve, and the live probe is the only net: the `opencode plugin load` line of `_meta/cpd/recon.sh`, which greps `loading plugin|Plugin failed` out of the log.
+Acceptable, the suite's object being the plugin's logic while the import is one line whose failure is loud at startup.
+
+Measured against the neighbouring section at the same time: `opencode plugin list` lists no file plugin at all on 2.2.7, in either export form, standalone or on a service, from a scratch directory or from `~/dotfiles`.
+Its claim to "list the local plugins and not only the registry's" does not reproduce here, which strengthens rather than weakens the conclusion of that section, that the log is what answers the question.
+
+Weakest assumption: that auto-discovery is the only declaration route.
+Every probe above dropped the plugin in `<config>/opencode/plugins/`, as the stowed configuration does; a plugin named through a configuration key could meet a different schema, and that is the one place the error of 2026-11-11 could still live.
+
 ## What V2 changes in the plugin's three contracts, measured 2026-11-11
 
 Read from the JS bundle embedded in the 2.2.7 binary and from the type definitions of `@opencode/plugin@2.2.7`.
@@ -375,6 +419,7 @@ A file whose content is replaced at a path the service has already imported keep
 `opencode service restart` is what clears it, measured 2026-11-11 against a probe configuration: a plugin stripped of its `default` export was still listed under its old id by the running service, and listed with no id at all once restarted.
 That is what stalled `cpd` on 2026-11-11, `stow` having replaced the plugin's content at a path whose V1 module the running service still held, so the TUI reported `plugin must export a default definition with an id and an effect or setup function` while the file on disk was the ported one.
 `opencode plugin list` does list the local plugins and not only the registry's, and it is still no probe: it reports the state the server has already loaded, so it races the load on a cold process.
+That first half did not reproduce on 2026-11-12, the command listing no file plugin in any configuration tried (see "The audit of `Plugin.define` finds the host demands nothing, 2026-11-12"), which leaves the conclusion of this paragraph standing and strengthened.
 The first call after a `start` or a `restart` answers `No plugins found` and the second lists them, while `--standalone`, which starts a server per invocation, answers `No plugins found` every time (measured 2026-11-11).
 What answers the question instead is the log, `loading plugin` and `Plugin failed` in `~/.local/share/opencode/log/opencode.log`, which is the pair `_meta/cpd/recon.sh` now carries.
 
