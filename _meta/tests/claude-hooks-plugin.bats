@@ -336,6 +336,45 @@ _profile_files() {
   [ "$(jq -r '.[0]' <<<"$output")" = "HEADER"$'\n\n\n'"Instructions from: ${PROJECT}/.claude/CLAUDE.md"$'\n'"PROJECT RULES"$'\n\n\n'"Skills provide specialized instructions." ]
 }
 
+# Like _system_with, but drops the header, the trailing skills block, or both, so a
+# profile block sits at one end of the part. On _system_with's shape either anchor of
+# the strip fires and both leave the same residue, so each one is redundant there and
+# dropping either passes the whole suite: these two shapes are what separate them.
+# The assertions read the JSON string rather than jq -r, command substitution
+# stripping the trailing newline one of them pins.
+_system_edge() {
+  local head=$1 tail=$2 out="" sep="" f content
+  shift 2
+  if [ "$head" = head ]; then
+    out="HEADER"
+    sep=$'\n\n'
+  fi
+  for f in "$@"; do
+    content=$(
+      cat "$f"
+      printf x
+    )
+    out+="${sep}Instructions from: ${f}"$'\n'"${content%x}"
+    sep=$'\n\n'
+  done
+  [ "$tail" = tail ] && out+=$'\n\n'"Skills provide specialized instructions."
+  jq -n --arg s "$out" '{system: $s}'
+}
+
+@test "system: a profile block ending the part is removed" {
+  _profile_files
+  _drive system context "$(_system_edge head no-tail "${HOME}/.claude/CLAUDE.md")"
+  [ "$status" -eq 0 ]
+  [ "$(jq -c '.[0]' <<<"$output")" = '"HEADER\n"' ]
+}
+
+@test "system: a profile block opening the part is removed" {
+  _profile_files
+  _drive system context "$(_system_edge no-head tail "${HOME}/.claude/CLAUDE.md")"
+  [ "$status" -eq 0 ]
+  [ "$(jq -c '.[0]' <<<"$output")" = '"\nSkills provide specialized instructions."' ]
+}
+
 # Builds a part whose header is not the one opencode writes today, so only the
 # instructions metadata can identify the block.
 _system_by_metadata() {
