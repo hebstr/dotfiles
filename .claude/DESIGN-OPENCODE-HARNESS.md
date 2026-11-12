@@ -482,6 +482,49 @@ The user narrowed `ju-TP`'s role the same day, from the 2026-11-08 "write and me
 That is what settles the Better BibTeX JSON-RPC deny which `5d6c755` dropped on 2026-11-08 under a header naming only git permissions: left out rather than restored, the `zotero` package not being among the four stowed on `cpd`.
 The record is in `_meta/notes/zotero-agent-access-reco.md` § "La lecture seule tient au seul verrou de Zotero", with what still guards that endpoint.
 
+## The suite could not tell the strip's two anchors apart, and the lone-block leak is unreachable, 2026-11-12
+
+Third review walkthrough of `claude-hooks.ts`, on `752f70f` with the suite at 42 tests, run with `posit-dev:critical-code-reviewer` on Sonnet per `reference_opus_cyber_classifier_review`.
+Two findings, neither Blocking nor Required.
+It changed the suite twice and the plugin not at all.
+None of the decisions of the port or of the 2026-11-11 round was reopened.
+
+**The fail-open on a hook timeout is contracted, not a gap.** `runHook`'s timer kills the process group, `close` settles `code ?? 1`, and only exit 2 throws, so a timed-out `prose-lint-pretool.sh` lets the edit through.
+Measured directly: a group `SIGKILL` gives node's `close` a null code and a `SIGKILL` signal, so `code ?? 1` is 1.
+That is the advisory-timeout rule of "The plugin's first review walkthrough, 2026-09-21" together with the exit-2 rule of "What the ported plugin no longer says in comments, 2026-11-11", and the test "before: a hook whose child keeps the pipes open is killed at the timeout" already asserts `ALLOWED` on exactly that path.
+Noted, the intra-family L1 agreeing that the claim holds.
+
+**The host renders `core/instructions` between four sibling entries, so a profile block is never the whole text of a part.** The 2.2.7 bundle builds the entry with `L.map((e) => "Instructions from: " + e.path + "\n" + e.content).join("\n\n")`, no header, no footer and no trim.
+A live capture under a scratch `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `XDG_STATE_HOME` with `--standalone`, the configuration reduced to a provider on a dead `baseURL` and one capture plugin, returned four system parts whose third carries these entries in order: `core/codemode`, `core/skill-guidance`, `core/instructions`, `core/date`, `core/environment`.
+The block therefore sits between the skills text and `Today's date:`, bracketed by a blank line on both sides, which is the shape the verbatim route is written for.
+
+**The suite could not tell the two anchors apart, and each covers one edge.** `text.replace(block + "\n", "")` and `text.replace("\n" + block, "")` both fire on the only shape `_system_with` builds, and both leave the same residue, so dropping either one passed all 42 tests, measured both ways.
+They are not interchangeable in general:
+
+```
+| shape                          | both  | block+\n only | \n+block only |
+| ------------------------------ | ----- | ------------- | ------------- |
+| HEADER, block, skills text     | strip | strip         | strip         |
+| block first, skills text after | strip | strip         | LEAK          |
+| HEADER before, block last      | strip | LEAK          | strip         |
+| block alone                    | LEAK  | LEAK          | LEAK          |
+```
+
+`_system_edge` builds the two edge shapes by dropping the header, the trailing skills block, or both, and the tests "system: a profile block ending the part is removed" and "system: a profile block opening the part is removed" pin one anchor each.
+Measured before they were kept: each kills exactly one of the two mutants and nothing else, and the suite ran 44 tests with 0 failures on the real plugin, under node v24.22.3.
+Both read `jq -c` rather than `jq -r`, command substitution stripping the trailing newline that the first of them pins.
+
+**Noted, not fixed.** A part whose text is exactly one block leaks, and so does one whose last block lost its trailing newline to a trim, both measured.
+Neither is reachable against 2.2.7 by the capture above, and the fix the reviewer proposed, an unanchored replace guarded on `text === block`, covers the first and not the second.
+Not pinned either: a test asserting the current leak would obstruct the fix, which `feedback_review_severity_bats_tests` refuses.
+
+Measured in passing and not acted on: the bundle carries a `ClaudeInstructions` built-in holding the set `{core/date, core/environment}` and a transform that walks `system.slice(1)` reading each part's metadata, registered on the session hooks for the Anthropic provider alone.
+It reshapes nothing the plugin touches on a llama.cpp provider.
+
+Weakest assumption: that `core/date` and `core/environment` always render after `core/instructions` in the same part.
+One capture settled it, on one configuration, and it recorded the `compaction` build alone: `context` and `generate` wrote no file in that run, which the probe does not explain.
+A host that left the instructions entry alone in its part, or that trimmed the part with that entry last, re-opens the leak, and the two new tests would not catch it: they pin the anchors, not the lone-block shape.
+
 ## Next, in the order agreed on 2026-09-21
 
 1. The user's first interactive trial, in `~/Documents/services/md-nesrine` on a throwaway branch, following `.claude/ESSAI-OPENCODE.md` in that project (untracked there): the model's knowledge of the project rules without being shown them, `/design` as a slash command, a multi-step task with the gate, a hook refusal, a long session through compaction.
