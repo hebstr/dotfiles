@@ -8,25 +8,33 @@ CACHE_MAX_AGE=21600 # 6 hours: one full rate_limit window
 
 input=$(cat)
 
-tab=$(printf '\t')
-
-jq_full='[
+jq_fields='
+def as_pct: if type == "number" then (round | tostring) else "" end;
+def as_epoch:
+  if type == "number" then (floor | tostring)
+  elif type == "string" then (try (fromdateiso8601 | tostring) catch "")
+  else "" end;
+[
   ((.context_window.current_usage.input_tokens // 0)
    + (.context_window.current_usage.cache_creation_input_tokens // 0)
    + (.context_window.current_usage.cache_read_input_tokens // 0) | tostring),
   (.context_window.context_window_size // 0 | tostring),
-  (.rate_limits.five_hour.used_percentage // null | if . then (. | round | tostring) else "null" end),
-  (.rate_limits.five_hour.resets_at // "" | tostring),
-  (.rate_limits.seven_day.used_percentage // null | if . then (. | round | tostring) else "null" end),
-  (.rate_limits.seven_day.resets_at // "" | tostring)
-] | @tsv'
+  (.rate_limits.five_hour.used_percentage | as_pct),
+  (.rate_limits.five_hour.resets_at | as_epoch),
+  (.rate_limits.seven_day.used_percentage | as_pct),
+  (.rate_limits.seven_day.resets_at | as_epoch)
+] | .[]'
 
-jq_rl='[
-  (.rate_limits.five_hour.used_percentage // null | if . then (. | round | tostring) else "null" end),
-  (.rate_limits.five_hour.resets_at // "" | tostring),
-  (.rate_limits.seven_day.used_percentage // null | if . then (. | round | tostring) else "null" end),
-  (.rate_limits.seven_day.resets_at // "" | tostring)
-] | @tsv'
+unless_reset() {
+  local pct="$1" ts="$2"
+  case "$ts" in
+  '' | *[!0-9]*) printf '%s' "$pct" && return ;;
+  esac
+  if [ "$ts" -le "$(date +%s)" ]; then
+    return
+  fi
+  printf '%s' "$pct"
+}
 
 cache_file_mtime() {
   local path="$1"
@@ -38,41 +46,45 @@ cache_file_mtime() {
   printf '%s\n' "${ts:-0}"
 }
 
-# Single jq pass for live input
-parsed=""
-[ "$input" != "" ] && parsed=$(printf '%s' "$input" | jq -r "$jq_full" 2>/dev/null)
+# --- Payload ---
+fields=()
+if [ "$input" != "" ]; then
+  mapfile -t fields < <(printf '%s' "$input" | jq -r "$jq_fields" 2>/dev/null)
+fi
 
-IFS="$tab" read -r used_tokens window_size live_five_pct live_five_reset live_seven_pct live_seven_reset <<EOF
-$parsed
-EOF
+used_tokens="${fields[0]:-0}"
+window_size="${fields[1]:-0}"
+five_pct="${fields[2]:-}"
+five_reset="${fields[3]:-}"
+seven_pct="${fields[4]:-}"
+seven_reset="${fields[5]:-}"
 
-five_pct="${live_five_pct:-}"
-five_reset="${live_five_reset:-}"
-seven_pct="${live_seven_pct:-}"
-seven_reset="${live_seven_reset:-}"
+live_limits=""
+if [ "$five_pct" != "" ] || [ "$seven_pct" != "" ]; then
+  live_limits=1
+fi
 
-# If rate_limits missing from live input, read from cache
-if [ "$five_pct" = "null" ] || [ "$five_pct" = "" ]; then
-  if [ -f "$CACHE_FILE" ]; then
-    cache_mtime=$(cache_file_mtime "$CACHE_FILE")
-    cache_age=$(($(date +%s) - cache_mtime))
-    if [ "$cache_age" -lt "$CACHE_MAX_AGE" ]; then
-      cached=$(jq -r "$jq_rl" "$CACHE_FILE" 2>/dev/null)
-      IFS="$tab" read -r five_pct five_reset seven_pct seven_reset <<EOF
-$cached
-EOF
-    fi
+# --- Cache ---
+if [ "$live_limits" = "" ] && [ -f "$CACHE_FILE" ]; then
+  cache_mtime=$(cache_file_mtime "$CACHE_FILE")
+  cache_age=$(($(date +%s) - cache_mtime))
+  if [ "$cache_age" -lt "$CACHE_MAX_AGE" ]; then
+    cached=()
+    mapfile -t cached < <(jq -r "$jq_fields" "$CACHE_FILE" 2>/dev/null)
+    five_pct=$(unless_reset "${cached[2]:-}" "${cached[3]:-}")
+    five_reset="${cached[3]:-}"
+    seven_pct=$(unless_reset "${cached[4]:-}" "${cached[5]:-}")
+    seven_reset="${cached[5]:-}"
   fi
 fi
 
-# Persist live rate_limits only when present (atomic write)
-if [ "${live_five_pct:-}" != "null" ] && [ "${live_five_pct:-}" != "" ] && [ "$input" != "" ]; then
+if [ "$live_limits" = 1 ]; then
   mkdir -p "$CACHE_DIR"
   # shellcheck disable=SC2015
   printf '%s' "$input" | jq '{rate_limits: .rate_limits}' \
     >"${CACHE_FILE}.tmp" 2>/dev/null &&
     mv "${CACHE_FILE}.tmp" "$CACHE_FILE" 2>/dev/null ||
-    true
+    rm -f "${CACHE_FILE}.tmp"
 fi
 
 # --- Colors ---
@@ -88,11 +100,12 @@ MAGENTA="\033[38;2;214;112;214m"
 format_reset() {
   local ts="$1"
   [ "$ts" = "" ] && return
-  local epoch now diff
-  epoch=$(printf '%s' "$ts" | tr -dc '0-9')
-  [ "$epoch" = "" ] && return
+  local now diff
+  case "$ts" in
+  '' | *[!0-9]*) return ;;
+  esac
   now=$(date +%s)
-  diff=$((epoch - now))
+  diff=$((ts - now))
   [ "$diff" -le 0 ] && return
   local mins=$((diff / 60))
   local hours=$((mins / 60))
@@ -133,7 +146,7 @@ usage_color() {
 }
 
 # 5h part
-if [ "$five_pct" != "null" ] && [ "$five_pct" != "" ]; then
+if [ "$five_pct" != "" ]; then
   color=$(usage_color "$five_pct")
   reset_str=$(format_reset "$five_reset")
   if [ "$reset_str" != "" ]; then
@@ -146,7 +159,7 @@ else
 fi
 
 # 7d part
-if [ "$seven_pct" != "null" ] && [ "$seven_pct" != "" ]; then
+if [ "$seven_pct" != "" ]; then
   color=$(usage_color "$seven_pct")
   reset_str=$(format_reset "$seven_reset")
   if [ "$reset_str" != "" ]; then
