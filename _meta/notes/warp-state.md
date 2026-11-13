@@ -30,7 +30,8 @@ Exclude mode, with hosts/ips:
   192.168.0.0/16
 ```
 
-Les exclusions ne portent que sur les plages privées IPv4, donc le trafic local reste hors tunnel et tout le reste y passe.
+Ce relevé est tronqué par `head -12` et date d'avant les exclusions d'hôte : le fichier d'état porte aussi les plages link-local et multicast que WARP ajoute lui-même, et `warp-cli --accept-tos settings` liste en plus les hôtes exclus à la main (voir « Google Scholar refuse la sortie WARP » et « Posit Connect Cloud refuses the WARP exit »).
+Le trafic local reste hors tunnel et tout le reste y passe, hors ces hôtes.
 
 Gotcha mesuré : le premier `warp-cli --accept-tos settings` d'une session peut dépasser 120 secondes avant de répondre, puis se comporter normalement ensuite.
 Le lancer avec un `timeout` ou en arrière-plan, sinon il passe pour bloqué.
@@ -120,6 +121,25 @@ D'où le volet Firefox dans `dns-dnsforge-firefox.md` : le DoH du navigateur cou
 
 Voie écartée : `add-excluded-route 142.250.0.0/15` fonctionne quel que soit le résolveur (mesuré 200 sur l'IP dnsforge), mais sort du tunnel toute la bordure Google, services tiers compris, et les plages seraient à entretenir à la main.
 
+## Posit Connect Cloud refuses the WARP exit
+
+*2026-11-13*
+
+Posit Publisher failed at its `publish` step with an HTML `403 Forbidden` from an AWS load balancer (`server: awselb/2.0`, 118 bytes), not a JSON answer of the API.
+An unauthenticated `curl` through the tunnel reproduced the same page on `api.connect.posit.cloud` (`/` and `/v1/users/me`) and on `login.posit.cloud`, while `connect.posit.cloud` returned 200: the edge refuses the host, so neither the token nor the bundle is at fault.
+An earlier deploy of the same day had passed through the same tunnel, so the refusal is intermittent and its trigger is unknown.
+`curl --interface wlp0s20f3` does not leave the tunnel here (it times out), so the direct path was not measured.
+
+Fix: `warp-cli --accept-tos add-excluded-host api.connect.posit.cloud`, after which the deploy went through.
+The two other hosts stayed in the tunnel and were not needed.
+
+## What is versioned about the exclusions
+
+The state lives in `/var/lib/cloudflare-warp/settings.json`, owned by root and rewritten by the `warp-svc` daemon, next to the private ranges WARP adds itself: it is state, not configuration, and outside `$HOME`, so it is not a stow target.
+What can be replayed is the commands, one per excluded host: `scholar.google.com` and `api.connect.posit.cloud`, both read in `excluded_hosts` of that file on 2026-11-13.
+The precedent for a root-side artefact is `_meta/warp-cake/`: versioned here, installed by hand with `sudo`, not stowed.
+No replay script is written, a reinstall being the only use.
+
 ## Diagnostic
 
 ~~~bash
@@ -135,6 +155,7 @@ Bascule : `warp-cli --accept-tos disconnect` et `connect`, `warp-cli set-mode <m
 ## Voir aussi
 
 - `dns-dnsforge-firefox.md` : le résolveur DoH posé dans Firefox par-dessus ce tunnel, et pourquoi c'était la seule option qui cohabite avec lui
+- `warp-cake-shaping.md` : l'unité systemd versionnée sous `_meta/warp-cake/` et installée à la main, précédent des artefacts côté root
 
 ## Sources
 
