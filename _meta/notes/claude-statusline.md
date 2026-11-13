@@ -1,7 +1,7 @@
 # Claude Code statusline
 
 `claude/.claude/statusline.sh` renders `Context N% | 5h: N% (reset) | 7d: N% (reset)` from the JSON the CLI pipes to the `statusLine` command declared in `claude/.claude/settings.json`.
-It has no dependency beyond `jq`, `awk` and coreutils, and it must never write to stderr or exit non-zero: the CLI renders whatever lands on stdout, so a failure shows up as a mangled line rather than an error.
+It has no dependency beyond `jq` and coreutils, and it must never write to stderr or exit non-zero: the CLI renders whatever lands on stdout, so a failure shows up as a mangled line rather than an error.
 `_meta/tests/statusline.bats` pins it, and `prek.toml`'s `bats-tests` hook lists the script's path explicitly so a change to it replays that suite.
 
 ## The payload
@@ -21,6 +21,12 @@ Three consequences the script has to absorb. A window that has reported nothing 
 
 `resets_at` is a Unix epoch as a number. The script also accepts an ISO 8601 string through `fromdateiso8601`, so a schema change in that direction degrades to a correct countdown instead of a wrong one.
 
+The context percentage is read from `context_window.used_percentage` and never recomputed from the token counts.
+The CLI's own `Ajr()` sums `input_tokens`, `cache_creation_input_tokens` and `cache_read_input_tokens`, divides by `context_window_size`, then rounds and clamps to `[0, 100]`; `Abt()` publishes the result as that field and the same sum as `total_input_tokens`.
+The script summed those three fields itself until 2026-11-13 and rendered the quotient through `awk printf "%d"`, which truncates where the CLI rounds and never clamps: 139200 of 200000 tokens displayed `Context 69%` against the CLI's 70, 169800 displayed 84 against 85, and an over-full window displayed `Context 125%`.
+The colour thresholds (70 yellow, 85 red) therefore tripped one point late.
+The field is `null` on a session that has sent nothing, which `as_pct` turns into the empty string and the binding turns into `0`, so a fresh session still reads `Context 0%`.
+
 ## The field-shift defect (fixed 2026-11-13)
 
 Symptom: `7d: 1795078800%`, a raw epoch printed as a percentage, while `5h` showed `--`.
@@ -39,13 +45,16 @@ Downstream, "unavailable" is exactly the empty string; the `"null"` sentinel the
 
 ## Cache semantics
 
-`~/.cache/claude-statusline/last.json` exists to carry the rate-limit segments through the renders where `rate_limits` is absent from the payload. It holds `{rate_limits: ...}` verbatim and is read only while its mtime is under `CACHE_MAX_AGE` (6 h, one full window).
+`~/.cache/claude-statusline/last.json` exists to carry the rate-limit segments through the renders where `rate_limits` is absent from the payload. It holds `{rate_limits: ...}` verbatim and is read only while its mtime is under `CACHE_MAX_AGE` (6 h).
 
 **A live payload carrying any window is authoritative, and the cache is not consulted at all.**
 Per-window fallback was rejected: a window the server has stopped reporting would be re-read from the cache and re-persisted on every render, so a stale value would display forever with no way to age out. Whole-file replacement keeps the mtime an honest freshness signal for everything inside.
 The write is therefore a replace, not a merge, and it fires whenever either window is live, which is why a payload carrying only `seven_day` still refreshes the file. The previous gate keyed on the five-hour window alone and had frozen the cache from 2026-11-11 onward.
 
 A failed atomic write removes its own `.tmp` rather than leaving one beside the cache.
+
+`cache_file_mtime` reads the mtime with GNU `stat -c %Y` alone.
+The BSD `stat -f %m` fallback it carried until 2026-11-13 was unreachable, the GNU form failing only on a missing file and the caller already guarding on `[ -f ]`, and harmful if ever reached: GNU reads `%m` as a file operand rather than a format, so it would have put a multi-line filesystem report on stdout in place of an epoch.
 
 `unless_reset` drops a cached percentage whose `resets_at` has passed, because the retention window (6 h) outlives the five-hour window it caches: a 4 % read five hours ago describes a window that has since rolled over to near zero, and `--` is the honest answer. A cached window reporting no `resets_at` is kept, there being nothing to decide on. Borrowed from ccstatusline, whose v2.2.32 notes list the same rule as "stale usage fallback drops windows that have reset".
 

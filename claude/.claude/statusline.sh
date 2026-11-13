@@ -4,7 +4,7 @@ exec 2>/dev/null
 
 CACHE_DIR="$HOME/.cache/claude-statusline"
 CACHE_FILE="$CACHE_DIR/last.json"
-CACHE_MAX_AGE=21600 # 6 hours: one full rate_limit window
+CACHE_MAX_AGE=21600
 
 input=$(cat)
 
@@ -15,10 +15,7 @@ def as_epoch:
   elif type == "string" then (try (fromdateiso8601 | tostring) catch "")
   else "" end;
 [
-  ((.context_window.current_usage.input_tokens // 0)
-   + (.context_window.current_usage.cache_creation_input_tokens // 0)
-   + (.context_window.current_usage.cache_read_input_tokens // 0) | tostring),
-  (.context_window.context_window_size // 0 | tostring),
+  (.context_window.used_percentage | as_pct),
   (.rate_limits.five_hour.used_percentage | as_pct),
   (.rate_limits.five_hour.resets_at | as_epoch),
   (.rate_limits.seven_day.used_percentage | as_pct),
@@ -40,9 +37,6 @@ cache_file_mtime() {
   local path="$1"
   local ts=""
   ts=$(stat -c %Y "$path" 2>/dev/null || true)
-  if [ "$ts" = "" ]; then
-    ts=$(stat -f %m "$path" 2>/dev/null || true)
-  fi
   printf '%s\n' "${ts:-0}"
 }
 
@@ -52,12 +46,11 @@ if [ "$input" != "" ]; then
   mapfile -t fields < <(printf '%s' "$input" | jq -r "$jq_fields" 2>/dev/null)
 fi
 
-used_tokens="${fields[0]:-0}"
-window_size="${fields[1]:-0}"
-five_pct="${fields[2]:-}"
-five_reset="${fields[3]:-}"
-seven_pct="${fields[4]:-}"
-seven_reset="${fields[5]:-}"
+ctx_pct="${fields[0]:-0}"
+five_pct="${fields[1]:-}"
+five_reset="${fields[2]:-}"
+seven_pct="${fields[3]:-}"
+seven_reset="${fields[4]:-}"
 
 live_limits=""
 if [ "$five_pct" != "" ] || [ "$seven_pct" != "" ]; then
@@ -71,10 +64,10 @@ if [ "$live_limits" = "" ] && [ -f "$CACHE_FILE" ]; then
   if [ "$cache_age" -lt "$CACHE_MAX_AGE" ]; then
     cached=()
     mapfile -t cached < <(jq -r "$jq_fields" "$CACHE_FILE" 2>/dev/null)
-    five_pct=$(unless_reset "${cached[2]:-}" "${cached[3]:-}")
-    five_reset="${cached[3]:-}"
-    seven_pct=$(unless_reset "${cached[4]:-}" "${cached[5]:-}")
-    seven_reset="${cached[5]:-}"
+    five_pct=$(unless_reset "${cached[1]:-}" "${cached[2]:-}")
+    five_reset="${cached[2]:-}"
+    seven_pct=$(unless_reset "${cached[3]:-}" "${cached[4]:-}")
+    seven_reset="${cached[4]:-}"
   fi
 fi
 
@@ -99,7 +92,6 @@ MAGENTA="\033[38;2;214;112;214m"
 # Format seconds remaining as "4h23m" or "1d21h"
 format_reset() {
   local ts="$1"
-  [ "$ts" = "" ] && return
   local now diff
   case "$ts" in
   '' | *[!0-9]*) return ;;
@@ -120,10 +112,6 @@ format_reset() {
 }
 
 # Context %
-ctx_pct=0
-if [ "$window_size" -gt 0 ] 2>/dev/null; then
-  ctx_pct=$(awk -v u="${used_tokens:-0}" -v t="$window_size" 'BEGIN { printf "%d", (u/t)*100 }')
-fi
 if [ "$ctx_pct" -ge 85 ] 2>/dev/null; then
   ctx_color="$RED"
 elif [ "$ctx_pct" -ge 70 ] 2>/dev/null; then

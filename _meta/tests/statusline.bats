@@ -37,7 +37,7 @@ _in_hours() {
 }
 
 _payload() {
-  printf '{"context_window":{"current_usage":{"input_tokens":30000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0},"context_window_size":200000}%s}' \
+  printf '{"context_window":{"current_usage":{"input_tokens":30000,"cache_creation_input_tokens":0,"cache_read_input_tokens":0},"context_window_size":200000,"used_percentage":15}%s}' \
     "${1:+,\"rate_limits\":$1}"
 }
 
@@ -52,6 +52,18 @@ _seed_cache() {
   [[ "$output" == *"Context 15%"* ]]
   [[ "$output" == *"5h: 4%"* ]]
   [[ "$output" == *"7d: 12%"* ]]
+}
+
+@test "takes the context percentage the payload reports instead of recomputing it" {
+  run _run '{"context_window":{"current_usage":{"input_tokens":139200,"cache_creation_input_tokens":0,"cache_read_input_tokens":0},"context_window_size":200000,"used_percentage":70}}'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Context 70%"* ]]
+}
+
+@test "reports no context percentage when the payload carries none" {
+  run _run '{"context_window":{"current_usage":{"input_tokens":139200,"cache_creation_input_tokens":0,"cache_read_input_tokens":0},"context_window_size":200000,"used_percentage":null}}'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Context 0%"* ]]
 }
 
 @test "keeps the seven-day percentage when the five-hour key is absent" {
