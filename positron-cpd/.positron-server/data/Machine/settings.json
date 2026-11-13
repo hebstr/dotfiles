@@ -749,6 +749,8 @@
     "positron.viewer.openLocalhostUrls": false,
     "dataExplorer.summaryCollapsed": true,
     "interpreters.showSessions": true,
+    "interpreters.startupBehavior": "manual",
+    "dataConnections.enabled": false,
 
 // EXTENSIONS ------------------------------------------------------------------
 
@@ -776,9 +778,9 @@
 
     "workbench.editorAssociations": {
         "*.md": "default",
-        "*.html": "open-with-system",
-        "*.docx": "open-with-system",
-        "*.xlsx": "open-with-system"
+        // "*.html": "open-with-system",
+        // "*.docx": "open-with-system",
+        // "*.xlsx": "open-with-system"
     },
 
     "quartoWizard.ask.trustAuthors": "never",
