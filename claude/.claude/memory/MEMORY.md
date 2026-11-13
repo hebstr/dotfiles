@@ -33,7 +33,7 @@
 - reference_zotero_metadata_acquisition.md: Route vs field; .nbib lands PMID; idconv checks PMCID; scipdf can attach a wrong PDF
 - reference_syncthing_ghost_records.md: Finding which device holds a stale record of an ignored path; the phones' `.stignore`
 - reference_warp_hotspot_bufferbloat.md: Stalls on the hotspot are uplink bufferbloat, not WARP or wifi: the cake shaper
-- reference_warp_scholar_split_tunnel.md: Scholar 403s through WARP: the excluded host plus the Firefox TRR exclusion
+- reference_warp_scholar_split_tunnel.md: Scholar and Posit Connect Cloud 403 through WARP: excluded host, Firefox TRR
 - reference_dbplyr_in_vs_semi_join.md: `filter(id %in% <100k values>)` on a lazy duckdb table never completes; use `semi_join`
 - reference_dbplyr_null_semantics.md: SQL NULLs silently change a dplyr pipeline's counts; `coalesce()`, verify on the artifact
 - reference_duckdb_storage_version_split.md: duckdb files read one way across versions; `v` prefix; split closed
