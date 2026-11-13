@@ -85,7 +85,7 @@
     ],
     "defaultMode": "default"
   },
-  "model": "claude-opus-5",
+  "model": "sonnet",
   "hooks": {
     "SessionStart": [
       {
@@ -278,9 +278,16 @@
     },
     "claude-opus-5-5": {
       "effortLevel": "high"
+    },
+    "claude-sonnet-5-5": {
+      "effortLevel": "high"
     }
   },
   "awaySummaryEnabled": false,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "tui": "fullscreen",
   "autoMemoryDirectory": "~/.claude/memory",
   "autoDreamEnabled": false,
