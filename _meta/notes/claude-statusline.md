@@ -27,6 +27,17 @@ The script summed those three fields itself until 2026-11-13 and rendered the qu
 The colour thresholds (70 yellow, 85 red) therefore tripped one point late.
 The field is `null` on a session that has sent nothing, which `as_pct` turns into the empty string and the binding turns into `0`, so a fresh session still reads `Context 0%`.
 
+## Why `5h: --` shows on Ultra (diagnosed 2026-11-14)
+
+A verified Ultra account (the former Max 20x) has no five-hour limit, per claude.com/pricing ("No 5-hour limit for verified accounts"), so the payload carries no `five_hour` key and the segment reads `--`.
+By the user's account, they moved to Ultra on 2026-11-11, the date the key disappeared; `~/.cache/claude-statusline/last.json`, a verbatim copy of the live `rate_limits`, held only `seven_day`.
+The causal link between the plan and the payload is an inference: no Anthropic text states that the CLI omits `five_hour` for such accounts.
+The Claude Code statusline reference only says each window may be independently absent.
+
+Decision: the script is left unchanged.
+`--` is the honest rendering of a window that does not exist, and a downgrade to Max brings `five_hour` back with no edit.
+Dropping the segment would be warranted only if the account stays on Ultra for good.
+
 ## The field-shift defect (fixed 2026-11-13)
 
 Symptom: `7d: 1795078800%`, a raw epoch printed as a percentage, while `5h` showed `--`.
