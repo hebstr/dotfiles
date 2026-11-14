@@ -30,7 +30,7 @@ For each path in `WRITES` that is not a tracking file, find the tracking files t
 - the repository's `README.md` and `CLAUDE.md` files.
 
 Search by filename, by symbol name and by path: `rg -F -l '<name>' REPO/.claude REPO/_meta ~/.claude/memory REPO/README.md`.
-A change that completes a step, defers one, removes a blocker or makes a decision, and that no tracking file records, is a finding.
+A change that completes a step, defers one, removes a blocker or makes a decision, and that no tracking file records, is a finding, unless `git log` or the commit message will already carry it: apply the necessity check of section 3 before proposing a record, and propose a memory for correction or deletion only, never for a new record.
 
 ### 2. The six post-change greps
 
@@ -62,6 +62,8 @@ Where the session inserted text into a tracking file, reread the passages around
 When `WRITES` holds `claude/.claude/CLAUDE.md`, the file grew against `HEAD` (`git diff --numstat HEAD -- claude/.claude/CLAUDE.md`), and `WRITES` also holds a mechanism path, each passage added to `CLAUDE.md` that describes, names or restates one of those mechanisms is a finding: quote the passage, name the mechanism, and propose moving the text into that mechanism's own message (the hook's reason or injected text, the skill, the rules file). A mechanism carries its own instruction; the root does not describe it.
 
 The same check covers the memory store, which is global: when `WRITES` holds a file under `~/dotfiles/claude/.claude/memory/` that the store did not hold at `HEAD` (`git -C ~/dotfiles log --oneline -1 -- <path>` prints nothing) and also holds a mechanism path, each such note whose instruction the mechanism's firing already produces is a finding: quote the note, name the mechanism, and propose deleting it with its index line. Key this on that absolute path, whatever repository the session sits in, never on the repository-relative `claude/.claude/memory/`, which resolves only from dotfiles while a memory is written from any project. The test is the admission test of `~/.claude/rules/memory.md`: does the mechanism firing already produce the behaviour, not whether it states the fact.
+
+Necessity of each addition: for every passage added to a note or tracking file of `WRITES` (`git diff HEAD -- <path>`; read a whole untracked or ignored file as its own addition), name what consumes it: who reads it, when, and which outcome it changes. A passage that `git log`, `git blame`, the commit message or a mechanism already carries (a settings diff, a hook, a rules file) is a finding: quote it, name the carrier, and propose deleting it, never completing it. A drift finding on a memory proposes "correct or delete", never only "record": a record of what the diff already states is the addition this check removes.
 
 A mechanism path, for both checks, is one of dotfiles (`claude/.claude/hooks/`, `claude/.claude/rules/`, `claude/.claude/skills/`, or the `hooks` or `permissions` key of `claude/.claude/settings.json` changed, by `git diff HEAD -- claude/.claude/settings.json`) or one of the session's own project (`REPO/.claude/rules/`, `REPO/CLAUDE.md`, `REPO/.claude/hooks/`, or those same two keys of `REPO/.claude/settings.json`).
 
