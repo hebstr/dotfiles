@@ -415,6 +415,36 @@
     },
     {
       "action": "shell",
+      "resource": "ls * 2>/dev/null",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "ls * 2>&1",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "rg * 2>/dev/null",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "rg * 2>&1",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "cat * 2>/dev/null",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "grep * 2>/dev/null",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
       "resource": "git*push*",
       "effect": "deny"
     },
