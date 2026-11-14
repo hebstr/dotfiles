@@ -392,3 +392,28 @@ The 47 cases of `inject-rules.bats` pass and `instructions-budget --budget 12288
 A re-set stays the user's to authorise, never a session's own call, as the 2026-10-23 entry records.
 
 The sweep of the entries no triage pass has read is still owed, and this pass adds a reason to run it: the fold is the standing answer to this trigger and the family refusal now blocks it for every new `feedback_review_severity_*` note, which is the shape the store keeps receiving.
+
+# Creation gate on a new memory file (2026-11-14)
+
+On 2026-11-13 the admission test of `rules/memory.md` failed twice in one session, each time at write time and on the writer's own judgment: a feedback note whose behaviour the `attribution` key of `settings.json` already carries (created, then deleted unpublished), and a dated paragraph in `reference_positron_open_html_externally.md` restating what the settings diff and the commit message carry (reverted before commit).
+The user challenged the additions three times in the session.
+
+**Three causes, read on that day.**
+
+- No gate at creation: the memory branch of `inject-rules.sh` only denied a new file over the index line ceiling.
+- The rule tilted toward writing: `rules/memory.md` reaches the session once, on the first memory write, and closed on "unsure between step 2 and step 3, write the memory"; `CLAUDE.md` "Plans and tracking" read as covering creation through "update every affected ... memory".
+- The commit verifier only contested a note when a mechanism already produced the behaviour, and treated an unrecorded change as a finding in itself. Its drift finding on the Positron note is what produced the paragraph later reverted.
+
+**Decisions.**
+
+- `ask` on every `Write` that creates a file of the store other than `MEMORY.md`, the reason carrying the admission test, fired at each creation and not once per session.
+  Rejected: an `ask` on `Edit` of an existing note, too frequent to prompt; the verifier's necessity check covers it after the fact.
+  The over-ceiling `deny` wins over the `ask` when both apply.
+- Doubt resolves to writing nothing: the candidate is named in the reply and the user decides. This replaces the tie-break that favoured a memory.
+- `CLAUDE.md` is narrowed to "each memory made false (never create one)", not extended: the always-loaded budget sat at 12,284 of 12,288 bytes, so the wording was tightened in place until `instructions-budget` exited 0.
+- The verifier names what consumes each addition to a note or tracking file, flags the one `git log`, `git blame` or a mechanism already carries, and proposes deleting it, never completing it.
+  A drift finding on a memory proposes "correct or delete".
+- No feedback memory records the discipline: the hook, `rules/memory.md` and the verifier are its carriers, and a note would fail its own test.
+
+**Measured.** On a memory write the hook injects `rules/memory.md` and defers `rules/claude-files.md` as "not injected (size cap): read <path>" (real hook output, 5,416 bytes), so the deferral predates this change and growth of `memory.md` by 230 bytes alters nothing there.
+`ask` on a `Write` was probed end to end with a throwaway file: the hook logged `inject-ask` and the write completed, but whether the harness showed the reason to the user is not established from the session side.

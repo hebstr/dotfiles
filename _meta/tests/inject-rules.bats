@@ -249,10 +249,11 @@ field() {
   [ "$(field permissionDecision)" = deny ]
   [[ $(field permissionDecisionReason) == *"at 171 lines, over the 170-line ceiling"* ]]
   [[ $(field permissionDecisionReason) == *"admission test"* ]]
+  [[ $(field permissionDecisionReason) != *"New memory file"* ]]
   [[ $(field additionalContext) == *BODY-memory* ]]
 }
 
-@test "leaves the prune path open over the ceiling, and passes at it" {
+@test "leaves the prune path open over the ceiling, and asks without denying at it" {
   STORE="$WORK/dotfiles/claude/.claude/memory"
   mkdir -p "$STORE"
   seq 171 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
@@ -268,8 +269,32 @@ field() {
   seq 170 | sed 's/^/- f/;s/$/.md: x/' >"$STORE/MEMORY.md"
   rm -f "$RUNTIME"/claude-code-rules-*
   run_hook "$(read_call Write "$STORE/feedback_new.md")"
-  [ -z "$(field permissionDecision)" ]
+  [ "$(field permissionDecision)" = ask ]
   [[ $(field additionalContext) == *BODY-memory* ]]
+}
+
+@test "asks on every Write creating a memory file, and nowhere else in the store" {
+  STORE="$WORK/dotfiles/claude/.claude/memory"
+  mkdir -p "$STORE"
+  printf -- '- f.md: x\n' >"$STORE/MEMORY.md"
+  printf 'body\n' >"$STORE/feedback_old.md"
+  for i in 1 2; do
+    run_hook "$(read_call Write "$STORE/feedback_new.md")"
+    [ "$(field permissionDecision)" = ask ] || {
+      echo "not asked on creation $i"
+      return 1
+    }
+    [[ $(field permissionDecisionReason) == *"admission test of $RULES/memory.md"* ]]
+    [[ $(field permissionDecisionReason) == *"What consumes this note"* ]]
+  done
+  for shape in "Write $STORE/feedback_old.md" "Write $STORE/MEMORY.md" "Edit $STORE/feedback_old.md" "Edit $STORE/MEMORY.md" "Edit $STORE/feedback_missing.md"; do
+    read -r t p <<<"$shape"
+    run_hook "$(read_call "$t" "$p")"
+    [ -z "$(field permissionDecision)" ] || {
+      echo "decided on: $shape"
+      return 1
+    }
+  done
 }
 
 @test "denies a write that grows an over-cap plan file, at both path shapes" {

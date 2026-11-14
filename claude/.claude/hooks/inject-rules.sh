@@ -173,6 +173,9 @@ Edit | Write | MultiEdit)
     if [[ ! -e $file && $file != "$index" && -r $index ]] && lines=$(wc -l <"$index") && ((lines > index_line_cap)); then
       decide deny "The memory index is at $lines lines, over the $index_line_cap-line ceiling that keeps it clear of the harness's own compaction nudge: add no entry until it is pruned. Apply the admission test of $rules_dir/memory.md first, since a mechanism whose firing already produces the behaviour needs no note, then prune MEMORY.md and the files it indexes, or edit an existing memory instead of adding one."
     fi
+    if [[ $tool == Write && ! -e $file && $file != "$index" ]]; then
+      decide ask "New memory file: apply the admission test of $rules_dir/memory.md before it is written. Does the firing of a mechanism (hook, permission, setting, rules file, skill) already produce the behaviour? Does git history or blame already carry the fact? What consumes this note, and when? If a mechanism or git answers, or nothing consumes it, write nothing and name the candidate in the reply."
+    fi
     ;;
   esac
   case $file in
