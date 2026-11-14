@@ -19,7 +19,9 @@ Three consequences the script has to absorb. A window that has reported nothing 
 `rate_limits` itself disappears when no window at all is known, which happens on the first renders of a session before any API response has carried utilization.
 `spend_limit` is a third window, gateway-only, that the statusline does not display; it must not shift or colour anything.
 
-`resets_at` is a Unix epoch as a number. The script also accepts an ISO 8601 string through `fromdateiso8601`, so a schema change in that direction degrades to a correct countdown instead of a wrong one.
+`resets_at` is a Unix epoch as a number. The script also accepts an ISO 8601 string through `fromdateiso8601`, so a schema change in that direction never yields a wrong countdown.
+A plain `…Z` string gives a correct one; a string with fractional seconds or a numeric offset (`.123Z`, `+00:00`) fails the parse (measured on jq 1.7, 2026-11-14) and the segment shows its percentage with no countdown.
+Those two shapes stay unhandled: no payload carries a string today, and a missing countdown is the safe outcome.
 
 The context percentage is read from `context_window.used_percentage` and never recomputed from the token counts.
 The CLI's own `Ajr()` sums `input_tokens`, `cache_creation_input_tokens` and `cache_read_input_tokens`, divides by `context_window_size`, then rounds and clamps to `[0, 100]`; `Abt()` publishes the result as that field and the same sum as `total_input_tokens`.
@@ -62,7 +64,9 @@ Downstream, "unavailable" is exactly the empty string; the `"null"` sentinel the
 Per-window fallback was rejected: a window the server has stopped reporting would be re-read from the cache and re-persisted on every render, so a stale value would display forever with no way to age out. Whole-file replacement keeps the mtime an honest freshness signal for everything inside.
 The write is therefore a replace, not a merge, and it fires whenever either window is live, which is why a payload carrying only `seven_day` still refreshes the file. The previous gate keyed on the five-hour window alone and had frozen the cache from 2026-11-11 onward.
 
-A failed atomic write removes its own `.tmp` rather than leaving one beside the cache.
+The write goes through `last.json.<pid>`, a name no other render shares.
+The cache path is common to every Claude session on the machine, and the fixed `last.json.tmp` it used until 2026-11-14 let two overlapping renders promote a half-written file: the review measured 1 unparseable cache in 320 launches (8 concurrent renders, 40 rounds), and the next payload without `rate_limits` then showed `5h: --` and `7d: --` until a live render rewrote it.
+A failed write removes its own temporary file rather than leaving one beside the cache; a render killed between the write and the `mv` can leave a `last.json.<pid>` behind, a window of a few milliseconds that nothing sweeps.
 
 `cache_file_mtime` reads the mtime with GNU `stat -c %Y` alone.
 The BSD `stat -f %m` fallback it carried until 2026-11-13 was unreachable, the GNU form failing only on a missing file and the caller already guarding on `[ -f ]`, and harmful if ever reached: GNU reads `%m` as a file operand rather than a format, so it would have put a multi-line filesystem report on stdout in place of an epoch.
@@ -76,3 +80,15 @@ The BSD `stat -f %m` fallback it carried until 2026-11-13 was unreachable, the G
 Not adopted. It spawns a Node or Bun process on every repaint, queries an Anthropic usage API with its own backoff, credential lookup and per-account cache, and keeps its configuration in `~/.config/ccstatusline/settings.json`, outside the stow tree. The script it would replace is one `bash` plus two `jq` calls per render (the live parse, then either the cache read or the cache write, which are exclusive branches), has no network surface, no credential access and no state beyond a cache of a few hundred bytes, and is pinned by `_meta/tests/statusline.bats`. The widgets worth having (model name, git branch) are either already on screen or one line of bash away; the ones that justify the runtime (forecasts, cost) need the usage API.
 
 What was taken instead: the stale-window rule above. What was looked at and left: `statusLine.refreshInterval` in `settings.json`, supported since Claude Code 2.1.97 and accepted at 2.1.323 (`Math.max(1, refreshInterval) * 1000` in the bundle). It is unset here on purpose. The only element that would benefit is the reset countdown, whose finest unit is the minute, and the cost is a process spawn every N seconds for the whole session.
+
+## Measured non-defects (review of 2026-11-14)
+
+A countdown under 60 seconds renders `(0m)`: `format_reset` floors to whole minutes, so `resets_at = now+30` prints `7d: 12% (0m)`.
+It is reachable, since the CLI keeps a window whose `resets_at` is strictly in the future, and it is visible for at most one minute per window.
+Left as is: the text is true, and clamping to `1m` or printing `<1m` would say less.
+
+The `-le` in `unless_reset` is not pinned against `-lt`.
+The two differ only for a cached window whose `resets_at` equals the current second, and the CLI's `wt()` already drops any window whose `resets_at` is not greater than now, so no live or cached payload reaches that second in a way a reader could see.
+
+The suite pins what a one-line mutant used to survive: the colour thresholds (the 85 and 70 cut-offs that once tripped a point late), the 6 h retention from below as well as from above, the plain ISO 8601 `resets_at` and the unparseable ISO one, and the no-stderr, exit-zero contract with a cache directory that cannot be created.
+The `rm -f` on a failed write is not pinned: reaching it needs a filesystem that accepts the temporary file and then refuses the `mv`, which no payload produces.

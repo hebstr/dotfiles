@@ -73,11 +73,12 @@ fi
 
 if [ "$live_limits" = 1 ]; then
   mkdir -p "$CACHE_DIR"
+  cache_tmp="${CACHE_FILE}.$$"
   # shellcheck disable=SC2015
   printf '%s' "$input" | jq '{rate_limits: .rate_limits}' \
-    >"${CACHE_FILE}.tmp" 2>/dev/null &&
-    mv "${CACHE_FILE}.tmp" "$CACHE_FILE" 2>/dev/null ||
-    rm -f "${CACHE_FILE}.tmp"
+    >"$cache_tmp" 2>/dev/null &&
+    mv "$cache_tmp" "$CACHE_FILE" 2>/dev/null ||
+    rm -f "$cache_tmp"
 fi
 
 # --- Colors ---

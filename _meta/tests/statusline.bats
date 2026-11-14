@@ -32,6 +32,10 @@ _run() {
   printf '%s' "$1" | bash "$SCRIPT" | sed 's/\x1b\[[0-9;]*m//g'
 }
 
+_run_raw() {
+  printf '%s' "$1" | bash "$SCRIPT"
+}
+
 _in_hours() {
   printf '%s\n' "$(($(date +%s) + $1 * 3600 + 90))"
 }
@@ -87,6 +91,21 @@ _seed_cache() {
   [[ "$output" == *"7d: 12%"* ]]
 }
 
+@test "reads a plain ISO 8601 resets_at as a countdown" {
+  iso=$(date -u -d "@$(_in_hours 2)" +%Y-%m-%dT%H:%M:%SZ)
+  run _run "$(_payload "{\"seven_day\":{\"used_percentage\":12,\"resets_at\":\"$iso\"}}")"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"7d: 12% (2h1m)"* ]]
+}
+
+@test "keeps the percentage and shows no countdown for an ISO resets_at it cannot parse" {
+  iso=$(date -u -d "@$(_in_hours 2)" +%Y-%m-%dT%H:%M:%S.123Z)
+  run _run "$(_payload "{\"seven_day\":{\"used_percentage\":12,\"resets_at\":\"$iso\"}}")"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"7d: 12%"* ]]
+  run ! grep -q '(' <<<"$output"
+}
+
 @test "shows the five-hour window alone when the seven-day key is absent" {
   run _run "$(_payload "{\"five_hour\":{\"used_percentage\":4,\"resets_at\":$(_in_hours 2)}}")"
   [ "$status" -eq 0 ]
@@ -129,6 +148,14 @@ _seed_cache() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"5h: 4%"* ]]
   [[ "$output" == *"7d: 12%"* ]]
+}
+
+@test "serves a cache that is still inside the retention window" {
+  _seed_cache "{\"rate_limits\":{\"five_hour\":{\"used_percentage\":4,\"resets_at\":$(_in_hours 2)}}}"
+  touch -d '5 hours ago' "$HOME/$CACHE_REL"
+  run _run "$(_payload "")"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"5h: 4%"* ]]
 }
 
 @test "ignores a cache older than the retention window" {
@@ -192,6 +219,47 @@ _seed_cache() {
   [ "$status" -eq 0 ]
   run ls "$HOME/.cache/claude-statusline"
   [ "$output" = "last.json" ]
+}
+
+@test "writes the cache through a temporary name no other render shares" {
+  mkdir -p "$HOME/.cache/claude-statusline"
+  printf 'sentinel' >"$HOME/$CACHE_REL.tmp"
+  run _run "$(_payload "{\"seven_day\":{\"used_percentage\":12,\"resets_at\":$(_in_hours 50)}}")"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME/$CACHE_REL.tmp")" = "sentinel" ]
+  run jq -r '.rate_limits.seven_day.used_percentage' "$HOME/$CACHE_REL"
+  [ "$output" = "12" ]
+}
+
+@test "colours the context percentage green below 70, yellow from 70, red from 85" {
+  run _run_raw '{"context_window":{"used_percentage":69}}'
+  [[ "$output" == *$'\e[38;2;13;188;121m69%'* ]]
+  run _run_raw '{"context_window":{"used_percentage":70}}'
+  [[ "$output" == *$'\e[38;2;229;229;16m70%'* ]]
+  run _run_raw '{"context_window":{"used_percentage":84}}'
+  [[ "$output" == *$'\e[38;2;229;229;16m84%'* ]]
+  run _run_raw '{"context_window":{"used_percentage":85}}'
+  [[ "$output" == *$'\e[38;2;205;49;49m85%'* ]]
+}
+
+@test "colours a usage percentage blue below 70, magenta from 70, red from 90" {
+  run _run_raw "$(_payload '{"seven_day":{"used_percentage":69}}')"
+  [[ "$output" == *$'\e[38;2;59;142;234m69%'* ]]
+  run _run_raw "$(_payload '{"seven_day":{"used_percentage":70}}')"
+  [[ "$output" == *$'\e[38;2;214;112;214m70%'* ]]
+  run _run_raw "$(_payload '{"seven_day":{"used_percentage":89}}')"
+  [[ "$output" == *$'\e[38;2;214;112;214m89%'* ]]
+  run _run_raw "$(_payload '{"seven_day":{"used_percentage":90}}')"
+  [[ "$output" == *$'\e[38;2;205;49;49m90%'* ]]
+}
+
+@test "stays silent on stderr and exits zero when the cache directory cannot be created" {
+  mkdir -p "$HOME/.cache"
+  printf 'x' >"$HOME/.cache/claude-statusline"
+  run --separate-stderr _run "$(_payload '{"seven_day":{"used_percentage":12}}')"
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  [[ "$output" == *"7d: 12%"* ]]
 }
 
 @test "ignores a spend_limit window it does not display" {
