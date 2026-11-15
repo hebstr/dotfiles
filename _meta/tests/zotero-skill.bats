@@ -9,13 +9,18 @@ bats_require_minimum_version 1.5.0
 #   1. no test needs a running Zotero: a curl shim on PATH serves a fixture
 #      library and emulates what the script depends on (the Total-Results
 #      header with CRLF line ends, limit and start paging, STUB_CAP capping the
-#      page size below the requested limit, a 404 for the children of a trashed
-#      parent). It answers 599 to any curl argument the script is not meant to
-#      use, so a non-GET request or a new flag fails a test instead of passing;
+#      page size below the requested limit, STUB_STALL cutting a 200 body with
+#      curl exiting 28, a 404 for the children of a trashed parent). It
+#      answers 599 to any curl argument the script is not meant to use, so a
+#      non-GET request or a new flag fails a test instead of passing;
 #   2. the shim is on PATH only inside z(), so the live smoke tests at the end
 #      reach the real curl and the real API, and skip when it answers 000;
 #   3. the fixture API shape is an assumption, which the live smoke tests pin
-#      field by field against the real library;
+#      only where the live library holds the case: the fields exist, keys
+#      agrees with Total-Results, cache resolves a stored PDF. The library has
+#      no linked_file attachment and an empty trash, so the cache location of
+#      a linked_file, the deleted flag of a trashed attachment and the 404 on
+#      the children of a trashed parent remain assumptions;
 #   4. a negative assertion is written run -1 rg or run !, never a bare "! cmd":
 #      bats runs a test under errexit, which a negated command does not trip;
 #   5. the guard only reads the first HEAD_BYTES (5000) of a cache, so the two
@@ -56,6 +61,7 @@ while (($#)); do
 done
 printf '%s\n' "$url" >>"$CALLS"
 if [[ -n ${STUB_DOWN-} ]]; then printf 000; exit 7; fi
+if [[ -n ${STUB_STALL-} ]]; then printf '[1,2' >"$out"; printf 200; exit 28; fi
 if [[ -n ${STUB_CODE-} ]]; then printf '%s' "$STUB_CODE"; exit 0; fi
 rest=${url#"$ZOTERO_API"/}
 path=${rest%%\?*}
@@ -178,10 +184,13 @@ Anna Multi. 2020"
 }
 
 z() {
+  local knob knobs=()
+  for knob in STUB_DOWN STUB_CODE STUB_CAP STUB_NO_TOTAL STUB_TOTAL STUB_STALL; do
+    if [[ -n ${!knob-} ]]; then knobs+=("$knob=${!knob}"); fi
+  done
+  if [[ -v STUB_BODY ]]; then knobs+=("STUB_BODY=$STUB_BODY"); fi
   env PATH="$STUBS:$PATH" ZOTERO_API="$API_URL" ZOTERO_STORAGE="$STORE" CALLS="$CALLS" FIX="$FIX" \
-    ${STUB_DOWN:+STUB_DOWN=1} ${STUB_CODE:+STUB_CODE=$STUB_CODE} ${STUB_CAP:+STUB_CAP=$STUB_CAP} \
-    ${STUB_NO_TOTAL:+STUB_NO_TOTAL=1} ${STUB_TOTAL:+STUB_TOTAL=$STUB_TOTAL} \
-    ${STUB_BODY+STUB_BODY=$STUB_BODY} bash "$SCRIPT" "$@"
+    "${knobs[@]}" bash "$SCRIPT" "$@"
 }
 
 @test "keys prints every notice as four TSV columns sorted by citation key" {
@@ -225,6 +234,8 @@ z() {
   z cache smith2020 >/dev/null 2>&1
   z grep propensity >/dev/null 2>&1
   z trash >/dev/null
+  [ -s "$CALLS" ]
+  rg -q -F 'users/0/items?itemType=attachment&limit=500&start=0' "$CALLS"
   run -1 rg -q 'unexpected curl argument' "$CALLS"
   run -1 rg -v '^http://stub\.invalid/api/users/0/' "$CALLS"
   run -1 rg -q 'json-rpc|better-bibtex' "$CALLS"
@@ -247,9 +258,21 @@ z() {
   done
 }
 
+@test "a body stalled after a 200, with curl exiting 28, exits 3 like a dead API" {
+  STUB_STALL=1 run -3 --separate-stderr z keys
+  [ -z "$output" ]
+  [[ $stderr == *"does not answer"* ]]
+}
+
 @test "an HTTP error exits 6" {
   STUB_CODE=500 run -6 --separate-stderr z keys
   [[ $stderr == *"HTTP 500"* ]]
+}
+
+@test "a 404 on anything but the children of a notice exits 6 instead of reading as an empty library" {
+  STUB_CODE=404 run -6 --separate-stderr z keys
+  [ -z "$output" ]
+  [[ $stderr == *"HTTP 404"* ]]
 }
 
 @test "a response with no Total-Results header exits 6" {
@@ -270,7 +293,7 @@ z() {
 }
 
 @test "a 200 whose body is not a JSON array exits 6" {
-  STUB_BODY='{"a":1,"b":2}' run -6 --separate-stderr z keys
+  STUB_BODY='{"a": 1, "b": 2, "c": "*"}' run -6 --separate-stderr z keys
   [ -z "$output" ]
   [[ $stderr == *"unreadable JSON"* ]]
 }
@@ -288,6 +311,8 @@ z() {
   add_trashed_parent T1 gone2015 "A trashed article" true
   add_trashed_parent T2 gone2016 "Another one" 1
   attach T1 TA1 imported_file trash
+  printf '%s\n' '{"key":"TN1","data":{"key":"TN1","itemType":"note","deleted":1}}' \
+    '{"key":"TN2","data":{"key":"TN2","itemType":"annotation","deleted":1}}' >>"$FIX/trash.ndjson"
   finish_library
   run -0 --separate-stderr z trash
   [ "${#lines[@]}" -eq 2 ]
@@ -317,6 +342,23 @@ z() {
   finish_library
   run -0 --separate-stderr z preprints "$BATS_TEST_TMPDIR"
   [[ $output == *rep2022* && $output == *rep2023* ]]
+}
+
+@test "preprints finds each DOI prefix, URL host and repository on its own" {
+  local ck
+  add_top N60 doi48550 journalArticle "x" 2020 10.48550/arXiv.1 Aa
+  add_top N61 urlssrn journalArticle "x" 2020 "" Ab '{"url":"https://papers.ssrn.com/x"}'
+  add_top N62 urlbiorxiv journalArticle "x" 2020 "" Ac '{"url":"https://www.biorxiv.org/x"}'
+  add_top N63 urlmedrxiv journalArticle "x" 2020 "" Ad '{"url":"https://www.medrxiv.org/x"}'
+  add_top N64 urlresearchsquare journalArticle "x" 2020 "" Ae '{"url":"https://www.researchsquare.com/x"}'
+  add_top N65 reparxiv journalArticle "x" 2020 "" Af '{"repository":"arXiv"}'
+  add_top N66 repssrn journalArticle "x" 2020 "" Ag '{"repository":"SSRN"}'
+  add_top N67 repbiorxiv journalArticle "x" 2020 "" Ah '{"repository":"bioRxiv"}'
+  finish_library
+  run -0 --separate-stderr z preprints "$BATS_TEST_TMPDIR"
+  for ck in doi48550 urlssrn urlbiorxiv urlmedrxiv urlresearchsquare reparxiv repssrn repbiorxiv; do
+    [[ $output == *"$ck"$'\t'* ]]
+  done
 }
 
 @test "preprints counts the qmd files citing each key and ignores a longer key and other extensions" {
@@ -449,6 +491,42 @@ CELIK 2022"
   [[ $stderr == *"surname=1 year=0"* ]]
 }
 
+@test "cache finds a surname and a year as whole words after an embedded occurrence of each" {
+  add_top N52 li2021 journalArticle "x" 2020 "" Li
+  attach N52 LI2
+  cache_text LI2 "relieved by Li 12020 and 2020"
+  finish_library
+  run -0 --separate-stderr z cache li2021
+  [[ $stderr == *"surname=1 year=1"* ]]
+}
+
+@test "cache takes the surname of the first author and not of an editor listed before" {
+  add_top N53 edited2020 journalArticle "x" 2020 "" "" '{"creators":[{"creatorType":"editor","lastName":"Zed"},{"creatorType":"author","lastName":"Auth"}]}'
+  attach N53 ED1
+  cache_text ED1 "Auth 2020"
+  finish_library
+  run -0 --separate-stderr z cache edited2020
+  [[ $stderr == *"surname=1 year=1"* ]]
+}
+
+@test "cache matches a multi-word surname across a run of spaces in the text" {
+  add_top N55 vanberg2020 journalArticle "x" 2020 "" "" '{"creators":[{"creatorType":"author","lastName":"van der Berg"}]}'
+  attach N55 VB1
+  cache_text VB1 $'Jan van der  Berg, 2020'
+  finish_library
+  run -0 --separate-stderr z cache vanberg2020
+  [[ $stderr == *"surname=1 year=1"* ]]
+}
+
+@test "cache counts a word repeated in the title once" {
+  add_top N54 dup2020 journalArticle "Mortality and mortality" "" "" Dup
+  attach N54 DU1
+  cache_text DU1 "Dup reports mortality"
+  finish_library
+  run -1 --separate-stderr z cache dup2020
+  [[ $stderr == *"unscorable"*"title=1/1"* ]]
+}
+
 @test "cache drops a surname that transliterates to question marks instead of matching any" {
   add_top N50 wang2020 journalArticle "x" 2020 "" "王"
   attach N50 WG1
@@ -490,14 +568,14 @@ CELIK 2022"
   attach N47 DP1
   mkdir -p "$STORE/DP1"
   {
-    head -c 5200 /dev/zero | tr '\0' 'x'
+    head -c 5010 /dev/zero | tr '\0' 'x'
     printf '\n10.9999/deep\n'
   } >"$STORE/DP1/.zotero-ft-cache"
   add_top N48 near2000 journalArticle "x" "" 10.9999/near ""
   attach N48 NR1
   mkdir -p "$STORE/NR1"
   {
-    head -c 3000 /dev/zero | tr '\0' 'x'
+    head -c 4970 /dev/zero | tr '\0' 'x'
     printf '\n10.9999/near\n'
   } >"$STORE/NR1/.zotero-ft-cache"
   finish_library
@@ -605,17 +683,27 @@ CELIK 2022"
 }
 
 @test "live API: start pages the notices and cache resolves a notice with a stored PDF" {
-  local api=${ZOTERO_API:-http://localhost:23119/api/users/0} code first second parent key
+  local api=${ZOTERO_API:-http://localhost:23119/api/users/0} storage=${ZOTERO_STORAGE:-$HOME/Zotero/storage} code first second att parent key
   code=$(curl -s -m 3 -o /dev/null -w '%{http_code}' "$api/items?limit=1") || true
   if [ "$code" = 000 ]; then skip "Zotero API does not answer at $api"; fi
   first=$(curl -s -m 10 "$api/items/top?limit=1&start=0" | jq -r '.[0].key')
   second=$(curl -s -m 10 "$api/items/top?limit=1&start=1" | jq -r '.[0].key')
   [ -n "$first" ] && [ -n "$second" ] && [ "$first" != "$second" ]
-  parent=$(curl -s -m 20 "$api/items?itemType=attachment&limit=500" |
-    jq -r '[.[] | select(.data.contentType == "application/pdf" and .data.linkMode == "imported_file")][0].data.parentItem')
-  key=$(curl -s -m 10 "$api/items/$parent" | jq -r '.data.citationKey // empty')
-  [ -n "$key" ]
+  curl -s -m 20 "$api/items/top?limit=500" >"$BATS_TEST_TMPDIR/top.json"
+  curl -s -m 20 "$api/items?itemType=attachment&limit=500" >"$BATS_TEST_TMPDIR/att.json"
+  jq -r --slurpfile top "$BATS_TEST_TMPDIR/top.json" '
+    ($top[0] | map(select((.data.citationKey // "") != "") | {(.key): .data.citationKey}) | add) as $ck
+    | .[] | select(.data.contentType == "application/pdf" and .data.linkMode == "imported_file" and $ck[.data.parentItem] != null)
+    | "\(.key) \($ck[.data.parentItem])"' "$BATS_TEST_TMPDIR/att.json" >"$BATS_TEST_TMPDIR/pairs"
+  key=
+  while read -r att parent; do
+    if [ -f "$storage/$att/.zotero-ft-cache" ]; then
+      key=$parent
+      break
+    fi
+  done <"$BATS_TEST_TMPDIR/pairs"
+  if [ -z "$key" ]; then skip "no PDF attachment of the live library has a full-text cache under $storage"; fi
   run --separate-stderr bash "$SCRIPT" cache "$key"
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 5 ]
-  [ "$status" -eq 5 ] || [ -f "$output" ]
+  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+  [ -f "$output" ]
 }

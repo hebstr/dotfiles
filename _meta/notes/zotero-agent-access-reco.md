@@ -239,6 +239,10 @@ The known false-alarm classes of the acquisition note (an inserted evaluation ba
 `zotero-skill.bats` runs on a `curl` shim serving a fixture library, so no test needs Zotero, and two live tests pin the fields the script reads against the real library and skip when the API answers `000`; the suite's own header and test titles hold the rest.
 Two mutations of the script were run and caught: `HEAD_BYTES` raised to 6000, and the `iconv` stderr no longer silenced.
 
+The second review pass (2026-11-15, `posit-dev:review-testing` on the whole suite) added 7 tests, a `STUB_STALL` knob and an array form of the harness's `z()`; each new or changed test was run against the script mutant that drops what it pins, and only that test failed.
+Two live measurements justify tests that would otherwise read as speculative: 62 of 357 titles repeat a word of six letters or more (the title-word dedup), and 31 notices carry a multi-word surname (`tr -s` before the whole-word match, which a double space or a tab inside the surname defeats).
+Two states stay unpinned because the live library cannot show them: the `deleted` flag and the trash-list membership of an attachment coincide in every fixture and the trash is empty, and the `Total-Results` header is canonical-case on the local HTTP/1.0 server (measured), so a lowercase variant is a state only the shim could produce.
+
 Unverified against the live API, because the trash was empty at the time: the shape of a trashed item (the value of `data.deleted`, `true` or `1`, which the script accepts both), and whether `items/<key>/children` answers for a trashed parent (the script treats a 404 there as no children and reads the trash listing instead).
 
 ### Choices
