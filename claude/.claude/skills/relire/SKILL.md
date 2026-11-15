@@ -1,85 +1,94 @@
 ---
 name: relire
-description: Relecture assistée d'un document rédigé, section par section et point par point, invoquée par `/relire <section>`.
+description: Assisted proofreading of a written document, section by section and point by point, invoked as `/relire <section>`.
 disable-model-invocation: true
 ---
 
-# Relecture assistée d'une section
+# Assisted proofreading of a section
 
-## Unité et périmètre
+Conduct the conversation in the user's language, whatever the language of this text.
 
-Le document est celui que l'invocation désigne ; à défaut, le document rédigé du projet, que son `CLAUDE.md` désigne.
-L'unité est la section de deuxième niveau, ou la sous-section quand la section dépasse une trentaine de lignes de source.
-Le titre le plus profond que le document porte est le plancher : sous lui, l'unité reste entière quelle que soit sa longueur, et le relevé annonce ses bornes en s'ouvrant.
-Jamais la phrase, jamais le document entier.
+## Unit and scope
 
-Un titre passé en argument qui désigne plusieurs sections du document se lève auprès de l'utilisateur avant le relevé, jamais par choix du niveau ou de l'ordre d'apparition.
+The document is the one the invocation names; by default, the project's written document, which its `CLAUDE.md` designates.
+The unit is the second-level section, or the subsection when the section runs past about thirty source lines.
+The deepest heading the document has is the floor: below it the unit stays whole however long it is, and the survey states its bounds as it opens.
+Never a single sentence, never the whole document.
 
-Avant le relevé, lire la section en entier sur le disque, plus ce dont elle dépend : l'amont du document, le plan du projet, les notes de design des chantiers que la section engage et que la table du plan nomme, et l'aval quand un déplacement est envisagé.
-L'aval se consulte pour savoir où un énoncé déplacé atterrirait et s'il y ferait doublon, jamais comme texte validé.
+A title passed as an argument that matches several sections of the document is resolved with the user before the survey, never by picking a level or the first match.
 
-## Temps 1, le relevé
+Before the survey, read the whole section from disk, plus what it depends on: the document upstream of it, the project plan, the design notes of the workstreams the section engages and that the plan's table names, and the downstream text when a move is under consideration.
+Downstream text is read to learn where a moved statement would land and whether it would duplicate something there, never as validated text.
 
-Une réponse qui ne contient aucune édition.
+## Step 1: the survey
 
-Une liste numérotée, un point par défaut : où il est, ce qu'il est, ce qu'il coûte au lecteur.
-Triée du fond vers la forme, contradictions et énoncés sans consommateur d'abord, répétitions et ponctuation ensuite.
-Close par une recommandation d'ordre de traitement, et par les questions de fond qui demandent une réponse de l'utilisateur avant toute édition.
+A reply that contains no edit.
 
-Un point dont la correction dépend d'un fait inconnu est une question, pas une proposition.
+A numbered list, one point per issue: where it is, what it is, what it costs the reader.
+Ordered from substance to form: contradictions and statements nobody uses first, repetitions and punctuation after.
+Each point is classified before it is presented: defect (a contradiction, a term used before it is introduced, an unsourced claim, a breach of a recorded decision) or preference.
+Only defects are proposed for application; preferences take one line at the end of the survey and do not justify another pass.
+The survey closes with a recommended order of treatment and with the substantive questions that need the user's answer before any edit.
 
-Avant toute édition, prendre l'inventaire des expressions en ligne du moteur de calcul portées par la section, sur l'arbre de travail et jamais sur le dernier commit, qui prend du retard dès qu'un tour n'est pas commité.
+A point whose fix depends on an unknown fact is a question, not a proposal.
 
-## Temps 2, les éditions
+Before any edit, take an inventory of the inline expressions of the computation engine that the section carries, from the working tree and never from the last commit, which lags as soon as a round goes uncommitted.
 
-Un point par réponse, validé par l'utilisateur avant le suivant, et le minimum d'appels `Edit` que le point exige : un le plus souvent, deux quand il porte sur deux sites.
-Une phrase d'intention avant l'appel, jamais de diff en prose : la permission affiche le diff.
+## Step 2: the edits
 
-L'utilisateur réécrit le fichier entre les tours, souvent en reprenant autrement ce qui vient d'être appliqué.
-Relire la zone sur le disque avant chaque édition, ne jamais composer un `old_string` de mémoire, et ne pas re-proposer ce qu'il vient de reprendre à sa façon.
+One point per reply, validated by the user before the next, with as few `Edit` calls as the point requires: usually one, two when it touches two sites.
+A sentence of intent before the call, never a prose diff: the permission prompt shows the diff.
 
-Un déplacement d'énoncé d'une section à l'autre est atomique : le retrait et l'arrivée dans la même réponse, sinon l'argument disparaît sans atterrir.
+The user rewrites the file between rounds, often rephrasing what was just applied.
+Reread the area on disk before every edit, never compose an `old_string` from memory, and do not re-propose what the user has just reworded their own way.
 
-## Critères
+Moving a statement from one section to another is atomic: removal and arrival in the same reply, otherwise the argument disappears without landing.
 
-Les critères propres au projet vivent dans son `CLAUDE.md` et dans ses notes de design : les y lire à l'invocation, ne pas les recopier ici, la duplication créant une seconde source de vérité qui dérive.
+## Criteria
 
-S'y ajoutent les critères de relecture, qui valent pour tout document rédigé.
+The project's own criteria live in its `CLAUDE.md` and design notes: read them at invocation and do not copy them here, since duplication creates a second source of truth that drifts.
 
-- Ce qu'une section décrit et ce qui la justifie ne se mêlent pas : une phrase de justification logée dans une section descriptive se déplace, elle ne se supprime pas.
-- Une contradiction entre deux passages est un défaut de fond, même quand chacun se défend isolément : la signaler avec ses deux localisations.
-- Un terme employé sans avoir été introduit est un défaut, y compris quand il vient d'une note de design où il va de soi.
-- Un membre de phrase qu'aucune mesure et aucune section n'utilise est un reliquat d'un état antérieur : proposer le retrait.
-- Une redite dont le second membre vit hors de l'unité ne s'arbitre pas depuis l'unité : la signaler comme question, avec ses deux localisations, et la trancher au tour qui atteint le second membre.
-- Une phrase qui annonce ce que la suivante va dire, un connecteur qui pose une opposition inexistante, une anaphore qui remonte par-dessus une frontière de paragraphe, un terme répété dans un même paragraphe.
+On top of them come the proofreading criteria that hold for any written document.
 
-## Vérification
+- What a section describes and what justifies it do not mix: a justifying sentence sitting in a descriptive section is moved, not deleted.
+- A contradiction between two passages is a substantive defect even when each passage stands on its own: report it with both locations.
+- A term used without having been introduced is a defect, including when it comes from a design note where it goes without saying.
+- A clause that no measurement and no section uses is a leftover from an earlier state: propose removing it.
+- A repetition whose second occurrence lives outside the unit cannot be settled from inside the unit: raise it as a question with both locations, and settle it in the round that reaches the second occurrence.
+- A sentence that announces what the next one will say, a connective that sets up an opposition that does not exist, an anaphora that reaches back over a paragraph boundary, a term repeated within one paragraph.
 
-Aucun fait affirmé sans l'avoir vérifié dans le tour même : recherche dans le dépôt, lecture du script ou du fichier de déclaration concerné, recherche web pour un fait externe.
-Une valeur que le document publie se lit sur la sortie rendue et jamais sur la source, qui porte l'expression et non son résultat ; quand cette sortie est absente ou périmée, la valeur est une question, pas une affirmation.
-Quand la vérification est impossible, le dire et poser la question plutôt que d'écrire une formulation plausible.
+## Verification
 
-## Temps 3, la clôture de section
+No fact is asserted without having been checked in the same round: a search of the repository, a reading of the relevant script or declaration file, a web search for an external fact.
+A value the document publishes is read from the rendered output and never from the source, which holds the expression and not its result; when that output is missing or stale, the value is a question, not an assertion.
+When verification is impossible, say so and ask the question rather than write a plausible wording.
 
-Le linter de prose du projet doit sortir en 0.
-Comparer les expressions en ligne du moteur de calcul à l'inventaire pris au Temps 1, au caractère près : identiques, sauf écart annoncé et justifié dans le tour.
-Un compte ne suffit pas, un renommage à nombre constant y passe au vert.
-Ne relancer le render que si une expression, un script ou un renvoi croisé a bougé ; une passe de prose seule ne le demande pas.
+## Step 3: closing the section
 
-Faire les greps de cohérence quand un titre, un objet ou un chemin a changé, et vérifier qu'aucun renvoi ne casse.
+The project's prose linter must exit 0.
+Compare the inline expressions of the computation engine with the inventory taken in Step 1, character for character: identical, except for a difference announced and justified in the round.
+A count is not enough, since a rename at constant count passes it.
+Rerun the render only if an expression, a script or a cross-reference moved; a prose-only pass does not call for it.
 
-Un contrôle qui ne passe pas laisse la section ouverte : sa cause revient en point de Temps 1, et l'entrée de plan le dit plutôt que d'annoncer une clôture.
+Run the consistency greps when a heading, an object or a path changed, and check that no cross-reference breaks.
 
-L'utilisateur arrête où il veut, la liste n'a pas à être épuisée.
-Écrire l'entrée dans le plan du projet dans la même réponse : les points appliqués, ceux qui restent ouverts, et tout énoncé descendu dans un autre document, faute de quoi la mise à jour de ce document se perd.
-Puis re-vérifier chacune de ses affirmations contre le fichier et contre les commandes : les comptes, les titres, les objets cités par nom.
+A check that fails leaves the section open: its cause comes back as a Step 1 point, and the plan entry says so instead of announcing a closure.
 
-## Ce que la passe ne fait pas
+Each section carries its closure criterion in the design note of its workstream: a finite number of conditions, each checkable by a command or a named reading, and a reopening clause.
+Read it at the opening; if it is missing, propose one in the survey rather than surveying without end.
+The section is closed when its conditions hold, and a new pass opens only on a new fact that the clause names (a source added, a result measured, an upstream change that contradicts the section, a decision by the user): a new reading is not one.
+A condition that needs a human reader, legibility for a non-specialist for instance, is closed by that reading and not by one more pass.
 
-Pas de verdict par phrase, pas de grille à remplir, pas de journal par verdict : la cérémonie se règle sur les défauts trouvés, pas sur la longueur du texte.
+The user stops wherever they want, and the list does not have to be exhausted.
+Write the entry in the project plan in the same reply: the points applied, those still open, and any statement moved to another document, since otherwise the update of that document is lost.
+Then re-verify each of its claims against the file and against commands: the counts, the titles, the objects cited by name.
 
-Pas d'édition dans la réponse qui propose.
+## What the pass does not do
 
-Pas de relevé sur une section sans matière rédigée : le dire, et proposer d'en écrire le fond plutôt que de juger un titre.
+No verdict per sentence, no grid to fill in, no log per verdict: ceremony scales with the defects found, not with the length of the text.
 
-Pas d'écriture dans les fichiers de travail personnels de l'utilisateur, qui se lisent et se citent mais n'appartiennent pas à la passe.
+No edit in the reply that proposes.
+
+No survey of a section with no written content: say so, and propose writing the substance rather than judging a heading.
+
+No writing to the user's personal working files, which are read and quoted but do not belong to the pass.
