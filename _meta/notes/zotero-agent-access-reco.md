@@ -217,6 +217,11 @@ The 600, 2000 and 10000 rows match the surname as a substring; the 5000 row, whi
 Head 5000 sits where the warnings on correct files stop falling steeply while wrong passes keep rising with the length.
 The year alone is a weak signal: with a title share of 0.5 instead of 0.8, wrong passes were 2.5% at the same head.
 The three warnings on correct files at 5000 were each read: a notice with no creator whose year is absent from the head (`cnil2021`), a conference-supplement page that opens on the end of another abstract before the notice's own article (`legayCoprescriptionsAntibiotiquesAntiinflammatoires2017`), and a notice whose title matches but whose head carries neither the byline nor the year (`ioannidisProposalLowerValue2018`).
+Re-run at the adversarial walkthrough of 2026-11-15 on 326 notices holding a cache and 6 496 wrong pairs (59 passes, 0.9%): 31 of the 59 came from one author's commentary series, whose sibling articles share the surname and the title vocabulary, and at most 1 came from a surname that is also an English word (`cook`, with 4 of 5 title words).
+No surname transliterates to question marks in the library.
+93 notices have no first-author surname, and their own caches score 33 match, 1 no-match and 59 unscorable; the 26 hyphenated or multi-word surnames all match their own cache.
+No library DOI is a prefix of another (238 DOIs), and no wrong pair passed on the DOI.
+A surname that transliterates to question marks is dropped before scoring, since a run of `?` matched any text holding one; a surname that is a common English word still counts, which would take a word list or a case rule and is deferred.
 The known false-alarm classes of the acquisition note (an inserted evaluation banner, a resource-centre notice, singular-plural wording) are why the verdict is a screen: the singular-plural class is handled by stripping a trailing `s` from title words, the other two are not.
 
 ### Measured on the API, 2026-11-15
@@ -225,6 +230,9 @@ The known false-alarm classes of the acquisition note (an inserted evaluation ba
   The script does not rely on it: it lists the library and filters on `data.citationKey`, which does not depend on how `q=` tokenises.
 - `items?itemType=attachment` returns 509 attachments in total, so `grep` and the guard page it like any other listing.
 - `limit=500` returned all 357 notices in one call; above that the behaviour is unmeasured, and the `Total-Results` header decides.
+- The library holds 335 imported PDFs and no `linked_file` PDF (its 84 linked attachments are `linked_url` web pages).
+  Zotero's `fulltext.js` (read through `gh api` on 2026-11-15) stores the cache of a `linked_file` under the attachment key's storage directory, like an imported one, so the script reads it and skips only `linked_url`.
+- `fetch_all` exits 6 on an empty page before `Total-Results` is reached, on an empty body and on a body that is not a JSON array; it used to return the pages read so far with exit 0.
 
 ### What the suite covers
 
