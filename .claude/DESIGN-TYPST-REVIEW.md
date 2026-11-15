@@ -47,7 +47,7 @@ The rule now has the reviewer copy the artifact aside and restore it, since skip
 The stop rule, on the model of `feedback_review_severity_heuristic_code`.
 A claim derived from reading the source alone is dropped rather than downgraded, because on this corpus the source reads fine and the artifact is where the defect is: `typst compile` exits 0 on `cv-body.typ` and produces a PDF whose `pdftotext` output is 1 byte.
 
-Round-level, the global `CLAUDE.md` rule governs unchanged: the user calls the stop, and the reviewer stops on its own only after two consecutive rounds producing nothing but findings already addressed or rejected.
+Round-level, the global `CLAUDE.md` rule governs unchanged: the user calls the stop, no round is owed, and only a loop run until clean stops on its own.
 
 ## The calibration note exists before the first run, or the first run pays for it
 

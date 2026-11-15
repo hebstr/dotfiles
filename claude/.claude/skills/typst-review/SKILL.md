@@ -189,7 +189,7 @@ A question no available probe answers is reported under "Unverified", with the c
 The five opening dismissals are in `feedback_review_severity_typst_documents.md` in the memory store.
 Read it before compiling, and file nothing it already settles.
 
-At the level of the round, the global `CLAUDE.md` rule governs unchanged: the user calls the stop, and you stop on your own only after two consecutive rounds producing nothing but findings already addressed or rejected.
+At the level of the round, the global `CLAUDE.md` rule governs unchanged: the user calls the stop, no round is owed, and only a loop run until clean stops on its own.
 
 ## Compiling the report
 

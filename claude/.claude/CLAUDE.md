@@ -45,7 +45,7 @@
 - On an existing codebase, scan the relevant files for the gap between current state and goal first, and build on what exists. When the project has no precedent for the kind of artifact being added, the convention likely lives in a sibling project of the user's: ask which to mirror, or name the candidate found, before inventing one.
 - When generalizing a one-shot script into a reusable tool, keep to what is mechanically decidable and defer subjective heuristics (thresholds, hardcoded lists) to the user through flags or prompts.
 - Review and `/workflow:write` proposals are made once, at closure, by the `commit` skill; propose none elsewhere unless asked. A review always runs in a fresh conversation, never the build one.
-- Adversarial review: the user calls the stop, not the audited model. Relay each round's findings verbatim and let the user judge relevance; stop on your own only after two consecutive rounds produce nothing but findings already addressed or rejected.
+- Adversarial review: the user calls the stop and no round is owed: after one, report what changed and propose no next round. Relay each round's findings verbatim; the user judges relevance. A loop run until clean stops after two rounds with nothing new.
 - In long conversations, state a significant decision or change of direction as a named anchor ("Decision: X because Y").
 
 ## Communication
