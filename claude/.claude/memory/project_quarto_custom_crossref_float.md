@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-The mechanism (the `pre-quarto` filter `filters/crossref-anx.lua` retyping a `FloatRefTarget`, why knitr's `is_figure_label()`/`is_table_label()` rule out a bare `anx-` chunk label, `float.type` taking the `reference-prefix` name, `parent_id` not yet set, the `quarto-float-anx` theme rules) and the two abandoned routes (R helper emitting the div, knitr `label` hook; do not reopen) are in `~/Documents/packages/quarto-hebstr-doc/.claude/CLAUDE.md` § "Custom crossref type : `anx` (annexes)". Shipped in `v1.4.0` (2026-08-29).
+The mechanism (the `pre-quarto` filter `filters/crossref-anx.lua` retyping a `FloatRefTarget`, why knitr's `is_figure_label()`/`is_table_label()` rule out a bare `anx-` chunk label, `float.type` taking the `reference-prefix` name, `parent_id` not yet set, the `quarto-float-anx` theme rules) and the two abandoned routes (R helper emitting the div, knitr `label` hook; do not reopen) are in `~/Documents/packages/quarto-hebstr-doc/.claude/CLAUDE.md` at `b28c41a` (`git -C .claude show b28c41a:CLAUDE.md`) § "Custom crossref type : `anx` (annexes)"; the current file keeps a five-line digest. Shipped in `v1.4.0` (2026-08-29).
 
 What a consumer document needs to know:
 
