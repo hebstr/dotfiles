@@ -22,7 +22,7 @@ Hors du périmètre : l'export d'une collection vers litrev (écarté par l'util
 ### Le montage vit dans quatre fichiers versionnés (en place 2026-09-23)
 
 - `zotero/.zotero/zotero/pucr7b5d.default/user.js` active l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
-- `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne s'ajoute que si les agents composent mal leurs requêtes à l'usage.
+- `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne devait s'ajouter que si les agents composaient mal leurs requêtes à l'usage : ajouté le 2026-11-15 (`zotero.sh`, voir § "The recurring lookups run through `zotero.sh`"), qui porte désormais la plupart des recettes, `SKILL.md` gardant trois appels en ligne et les garde-fous.
 - `claude/.claude/settings.json` porte `Bash(curl *better-bibtex/json-rpc*)` dans `permissions.deny`. Un appel `api.ready` au JSON-RPC a été refusé le 2026-09-23 sans invite.
 - `opencode/.config/opencode/opencode.json` ne porte plus l'équivalent opencode : `5d6c755` (2026-11-08) a supprimé `"curl *better-bibtex/json-rpc*": "deny"` sans que son en-tête le mentionne, et l'utilisateur a décidé le 2026-11-11 de l'y laisser absent (détail dans « La lecture seule tient au seul verrou de Zotero »).
 
@@ -146,6 +146,98 @@ Hors dépôt, l'index mémoire global, dont la ligne Zotero nomme le skill, n'es
 L'`AGENTS.md` global d'opencode demande, section « Where to look for more », d'ignorer « what names tools you do not have (Skill, Agent, AskUserQuestion, hooks, plugins) », ce qu'un modèle peut lire comme visant son propre outil `skill`.
 Aucune tentative d'écriture, de lecture SQLite ni d'appel au JSON-RPC, mais chaque passage s'arrête au premier rejet de permission, sans réponse finale : le refus d'écrire n'est pas observé, seule l'absence de tentative l'est.
 Sous opencode avec ce modèle, la lecture seule tient donc aux permissions (`curl` en `ask`, JSON-RPC en `deny`) et au verrou de Zotero, pas au skill.
+
+## The recurring lookups run through `zotero.sh` (2026-11-15)
+
+Decision of 2026-11-15, taken in a session that wrote the preprint section of `SKILL.md`.
+`claude/.claude/skills/zotero/scripts/zotero.sh` carries what is deterministic, `_meta/tests/zotero.bats` pins it, and `SKILL.md` names each subcommand and what it prints.
+The route of the 2026-09-23 decision is unchanged: GET on the local API and `rg` on the caches, no MCP server.
+
+### Premise
+
+Every session that looks up a reference consumes the skill: bibliography passes, and sourcing during a `/relire`.
+Three recomposition errors were measured on 2026-11-15, each one a hand-rolled version of something the script now does once:
+
+- a hand-paged listing truncated at 300 of 357 notices;
+- a preprint `jq` filter rewritten three times in one session;
+- `rg -o '.{80}term.{80}'` missing hits in a cache whose lines reach 11 171 characters.
+
+The identity guard of the cache was prose only (`head -c 600`, then a human reading), with no mechanism covering it.
+No always-on guard covers these, so the build stands.
+
+`/design` and `/workflow:reco` were judged not owed: the shape follows `handoff/scripts/tail.sh` and `handoff-tail.bats`, and the one open question, the guard's rule, was settled by the measurement below.
+
+### What is a script and what stays prose
+
+```
+| Script and tests (deterministic)                                                                                      |
+|-----------------------------------------------------------------------------------------------------------------------|
+| keys              Every top-level notice as TSV, one call with limit=500, paged by start while Total-Results exceeds  |
+|                   what came back                                                                                      |
+| cache <key>       citationKey, notice, PDF attachment (trash included), .zotero-ft-cache path, identity guard; exit    |
+|                   status separates match, no match, no PDF, unknown key                                               |
+| grep <term>       rg -l -i -w over the caches, then attachment, parent, citationKey, deduplicated                     |
+| preprints [dir]   Preprint notices (itemType, DOI prefix, URL, repository) with the number of .qmd citing each        |
+| trash             Trashed parent notices with key and deleted flag                                                    |
+| API down          Exit 3 and a message, never an empty result                                                         |
+```
+
+```
+| Prose in SKILL.md (judgment, or not the script's to do)                                                               |
+|-----------------------------------------------------------------------------------------------------------------------|
+| Searching for the published version of a preprint: a title changes at publication, a silent Crossref does not        |
+| conclude (the NeurIPS 2017 Vaswani paper has no record there), and Crossref returns fake posted-content DOIs         |
+| Judging whether a passage supports a claim; a verbatim quote follows rules/pdf.md on the PDF                          |
+| Choosing which of two notices to keep                                                                                 |
+| Import, trash and key refresh in Zotero: the API is read-only, those are the user's                                   |
+| The guard's verdict: a screen, not a proof; when it warns, a reading decides                                          |
+```
+
+Three calls stay inline in `SKILL.md`: the API-up check, one `q=` query, and the children-to-PDF path.
+
+### The identity guard, measured
+
+Method: the 335 stored PDF attachments whose notice the API returns, each notice scored against its own cache (what a correct file looks like) and against 20 random other caches (what a wrong file looks like), 6 683 wrong pairs.
+The signals are the ones of `reference_zotero_metadata_acquisition.md`: the notice's DOI, the first author's surname, the year, and the share of title words of six letters or more, all compared after folding accents and case.
+The head length and the rule were chosen on that measurement, not copied from the 600 characters of the prose.
+
+```
+| Head   | Own cache matches | Correct file warned | Wrong cache passes |
+|--------|-------------------|---------------------|--------------------|
+| 600    | 71.6%             | 10.7%               | 0.25%              |
+| 2000   | 75.2%             | 7.2%                | 0.39%              |
+| 5000   | 81.5%             | 0.9%                | 0.72%              |
+| 10000  | 82.1%             | 0.3%                | 1.29%              |
+```
+
+Rule at every row: the DOI found, or at least two of surname, year and title share of at least 0.8 (a title with at least two long words).
+The 600, 2000 and 10000 rows match the surname as a substring; the 5000 row, which is the chosen one, matches it as a whole word, which lowered its wrong passes from 0.85% to 0.72% with the same own-cache result.
+17.6% of notices are unscorable on every row: no DOI and fewer than two of surname, year and title words to compare, typically a notice whose title is a bare series number.
+
+Head 5000 sits where the warnings on correct files stop falling steeply while wrong passes keep rising with the length.
+The year alone is a weak signal: with a title share of 0.5 instead of 0.8, wrong passes were 2.5% at the same head.
+The three warnings on correct files at 5000 were each read: a notice with no creator whose year is absent from the head (`cnil2021`), a conference-supplement page that opens on the end of another abstract before the notice's own article (`legayCoprescriptionsAntibiotiquesAntiinflammatoires2017`), and a notice whose title matches but whose head carries neither the byline nor the year (`ioannidisProposalLowerValue2018`).
+The known false-alarm classes of the acquisition note (an inserted evaluation banner, a resource-centre notice, singular-plural wording) are why the verdict is a screen: the singular-plural class is handled by stripping a trailing `s` from title words, the other two are not.
+
+### Measured on the API, 2026-11-15
+
+- `items/top?q=<key>` found a notice by citation key on the three keys tried (`holtzman2020`, `vaswani2017`, `touvronLLaMAOpenEfficient2023`), the last of which shares no token with the creator or the year.
+  The script does not rely on it: it lists the library and filters on `data.citationKey`, which does not depend on how `q=` tokenises.
+- `items?itemType=attachment` returns 509 attachments in total, so `grep` and the guard page it like any other listing.
+- `limit=500` returned all 357 notices in one call; above that the behaviour is unmeasured, and the `Total-Results` header decides.
+
+### What the suite covers
+
+`zotero.bats` runs on a `curl` shim serving a fixture library, so no test needs Zotero, and two live tests pin the fields the script reads against the real library and skip when the API answers `000`; the suite's own header and test titles hold the rest.
+Two mutations of the script were run and caught: `HEAD_BYTES` raised to 6000, and the `iconv` stderr no longer silenced.
+
+Unverified against the live API, because the trash was empty at the time: the shape of a trashed item (the value of `data.deleted`, `true` or `1`, which the script accepts both), and whether `items/<key>/children` answers for a trashed parent (the script treats a 404 there as no children and reads the trash listing instead).
+
+### Choices
+
+- No `allow` rule was added for the script: `permissions.allow` of `settings.json` carries none for the other skills' scripts either.
+- `SKILL.md` was translated to English in the same change, since turning its recipes into a subcommand table rewrote it throughout; its `description` stays a trigger.
+- The French section "re-mesure sur la 1.26.0" of `pdf-inspector-reco.md` is left to that note's own rewrite.
 
 ## État local mesuré
 
