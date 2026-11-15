@@ -65,11 +65,15 @@ fetch_all() {
       ;;
     *) die 6 "HTTP $code on $path" ;;
     esac
-    n=$(jq 'length' "$work/body" 2>/dev/null) || die 6 "unreadable JSON from $path"
-    jq -s 'add' "$out" "$work/body" >"$out.next" && mv "$out.next" "$out"
+    n=$(jq -e 'select(type == "array") | length' "$work/body" 2>/dev/null) || die 6 "unreadable JSON from $path"
+    if ! jq -s 'add' "$out" "$work/body" >"$out.next"; then die 6 "cannot merge a page of $path"; fi
+    mv "$out.next" "$out"
     start=$((start + n))
-    ((n > 0)) || break
     total=$(awk -F': ' 'tolower($1) == "total-results" { gsub(/\r/, "", $2); print $2 }' "$work/hdr")
+    if ((n == 0)); then
+      if [[ $total =~ ^[0-9]+$ ]] && ((start < total)); then die 6 "empty page at start=$start on $path, Total-Results is $total"; fi
+      break
+    fi
     [[ $total =~ ^[0-9]+$ ]] || die 6 "no Total-Results header on $path"
     ((start < total)) || break
   done
@@ -97,6 +101,7 @@ function word(h, w, cls,   off, rest, p, b, a) {
 { h = h $0 " " }
 END {
   doi = ENVIRON["G_DOI"]; sur = ENVIRON["G_SUR"]; yr = ENVIRON["G_YR"]; title = ENVIRON["G_TITLE"]
+  if (index(sur, "?") > 0) sur = ""
   fd = (doi != "" && index(h, doi) > 0) ? 1 : 0
   fs = word(h, sur, "[a-z]")
   fy = word(h, yr, "[0-9]")
@@ -221,7 +226,7 @@ cmd_cache() {
     | [.key, (.data.linkMode // "none"), ($t | tostring)] | @tsv' "$work/children.json" "$work/trash.json" >"$work/candidates"
   while IFS=$'\t' read -r att mode trashed; do
     pdfs=$((pdfs + 1))
-    if [[ $mode != imported_file && $mode != imported_url ]]; then
+    if [[ $mode == linked_url ]]; then
       linked=$((linked + 1))
       continue
     fi

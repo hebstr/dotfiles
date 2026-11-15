@@ -74,8 +74,9 @@ case $path in
   *) printf 404; exit 0 ;;
 esac
 if [[ ! -f $FIX/$file ]]; then printf 404; exit 0; fi
-total=$(jq length "$FIX/$file")
+total=${STUB_TOTAL:-$(jq length "$FIX/$file")}
 jq -c --argjson s "$start" --argjson l "$limit" '.[$s:$s+$l]' "$FIX/$file" >"$out"
+if [[ -n ${STUB_BODY+x} ]]; then printf '%s' "$STUB_BODY" >"$out"; fi
 if [[ -z ${STUB_NO_TOTAL-} ]]; then
   printf 'HTTP/1.1 200 OK\r\nTotal-Results: %s\r\n\r\n' "$total" >"$hdr"
 else
@@ -179,7 +180,8 @@ Anna Multi. 2020"
 z() {
   env PATH="$STUBS:$PATH" ZOTERO_API="$API_URL" ZOTERO_STORAGE="$STORE" CALLS="$CALLS" FIX="$FIX" \
     ${STUB_DOWN:+STUB_DOWN=1} ${STUB_CODE:+STUB_CODE=$STUB_CODE} ${STUB_CAP:+STUB_CAP=$STUB_CAP} \
-    ${STUB_NO_TOTAL:+STUB_NO_TOTAL=1} bash "$SCRIPT" "$@"
+    ${STUB_NO_TOTAL:+STUB_NO_TOTAL=1} ${STUB_TOTAL:+STUB_TOTAL=$STUB_TOTAL} \
+    ${STUB_BODY+STUB_BODY=$STUB_BODY} bash "$SCRIPT" "$@"
 }
 
 @test "keys prints every notice as four TSV columns sorted by citation key" {
@@ -253,6 +255,24 @@ z() {
 @test "a response with no Total-Results header exits 6" {
   STUB_NO_TOTAL=1 run -6 --separate-stderr z keys
   [[ $stderr == *"Total-Results"* ]]
+}
+
+@test "an empty page before Total-Results is reached exits 6 instead of truncating" {
+  STUB_TOTAL=30 run -6 --separate-stderr z keys
+  [ -z "$output" ]
+  [[ $stderr == *"empty page"* ]]
+}
+
+@test "a 200 with an empty body exits 6" {
+  STUB_BODY='' run -6 --separate-stderr z keys
+  [ -z "$output" ]
+  [[ $stderr == *"unreadable JSON"* ]]
+}
+
+@test "a 200 whose body is not a JSON array exits 6" {
+  STUB_BODY='{"a":1,"b":2}' run -6 --separate-stderr z keys
+  [ -z "$output" ]
+  [[ $stderr == *"unreadable JSON"* ]]
 }
 
 @test "no argument, an unknown subcommand and a missing argument exit 2" {
@@ -364,6 +384,15 @@ z() {
   [[ $stderr == *"no .zotero-ft-cache"* ]]
 }
 
+@test "cache reads the cache of a linked_file PDF, which Zotero stores under the attachment key" {
+  add_top N51 linkedfile2020 journalArticle "x" "" 10.9999/linkedfile ""
+  attach N51 LF1 linked_file
+  cache_text LF1 "see 10.9999/linkedfile"
+  finish_library
+  run -0 --separate-stderr z cache linkedfile2020
+  [ "$output" = "$STORE/LF1/.zotero-ft-cache" ]
+}
+
 @test "cache picks the attachment that matches and reports the other candidate" {
   run -0 --separate-stderr z cache multi2020
   [ "$output" = "$STORE/M2/.zotero-ft-cache" ]
@@ -418,6 +447,15 @@ CELIK 2022"
   finish_library
   run -1 --separate-stderr z cache yr2020
   [[ $stderr == *"surname=1 year=0"* ]]
+}
+
+@test "cache drops a surname that transliterates to question marks instead of matching any" {
+  add_top N50 wang2020 journalArticle "x" 2020 "" "王"
+  attach N50 WG1
+  cache_text WG1 "Cohort study (?) of 2020 outcomes"
+  finish_library
+  run -1 --separate-stderr z cache wang2020
+  [[ $stderr == "zotero-skill.sh: unscorable "* ]]
 }
 
 @test "cache counts a singular for a plural in the title words" {
