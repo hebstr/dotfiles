@@ -22,7 +22,7 @@ Hors du périmètre : l'export d'une collection vers litrev (écarté par l'util
 ### Le montage vit dans quatre fichiers versionnés (en place 2026-09-23)
 
 - `zotero/.zotero/zotero/pucr7b5d.default/user.js` active l'API locale par `extensions.zotero.httpServer.localAPI.enabled` à `true` (nom et défaut `false` lus dans `defaults/preferences/zotero.js` au tag 10.0.3).
-- `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne devait s'ajouter que si les agents composaient mal leurs requêtes à l'usage : ajouté le 2026-11-15 (`zotero.sh`, voir § "The recurring lookups run through `zotero.sh`"), qui porte désormais la plupart des recettes, `SKILL.md` gardant trois appels en ligne et les garde-fous.
+- `claude/.claude/skills/zotero/SKILL.md` porte les recettes des trois usages, chacune essayée sur la bibliothèque le 2026-09-23 avant d'y entrer. Le skill est invocable par le modèle et lié par `stow claude`, un lien par skill comme ses voisins. Un script dans `scripts/`, sur le modèle de `depouiller` et de son `scripts/squelette.py`, ne devait s'ajouter que si les agents composaient mal leurs requêtes à l'usage : ajouté le 2026-11-15 (`zotero-skill.sh`, voir § "The recurring lookups run through `zotero-skill.sh`"), qui porte désormais la plupart des recettes, `SKILL.md` gardant deux appels en ligne et les garde-fous.
 - `claude/.claude/settings.json` porte `Bash(curl *better-bibtex/json-rpc*)` dans `permissions.deny`. Un appel `api.ready` au JSON-RPC a été refusé le 2026-09-23 sans invite.
 - `opencode/.config/opencode/opencode.json` ne porte plus l'équivalent opencode : `5d6c755` (2026-11-08) a supprimé `"curl *better-bibtex/json-rpc*": "deny"` sans que son en-tête le mentionne, et l'utilisateur a décidé le 2026-11-11 de l'y laisser absent (détail dans « La lecture seule tient au seul verrou de Zotero »).
 
@@ -147,10 +147,10 @@ L'`AGENTS.md` global d'opencode demande, section « Where to look for more », d
 Aucune tentative d'écriture, de lecture SQLite ni d'appel au JSON-RPC, mais chaque passage s'arrête au premier rejet de permission, sans réponse finale : le refus d'écrire n'est pas observé, seule l'absence de tentative l'est.
 Sous opencode avec ce modèle, la lecture seule tient donc aux permissions (`curl` en `ask`, JSON-RPC en `deny`) et au verrou de Zotero, pas au skill.
 
-## The recurring lookups run through `zotero.sh` (2026-11-15)
+## The recurring lookups run through `zotero-skill.sh` (2026-11-15)
 
 Decision of 2026-11-15, taken in a session that wrote the preprint section of `SKILL.md`.
-`claude/.claude/skills/zotero/scripts/zotero.sh` carries what is deterministic, `_meta/tests/zotero.bats` pins it, and `SKILL.md` names each subcommand and what it prints.
+`claude/.claude/skills/zotero/scripts/zotero-skill.sh` carries what is deterministic, `_meta/tests/zotero-skill.bats` pins it, and `SKILL.md` names each subcommand and what it prints.
 The route of the 2026-09-23 decision is unchanged: GET on the local API and `rg` on the caches, no MCP server.
 
 ### Premise
@@ -193,7 +193,7 @@ No always-on guard covers these, so the build stands.
 | The guard's verdict: a screen, not a proof; when it warns, a reading decides                                          |
 ```
 
-Three calls stay inline in `SKILL.md`: the API-up check, one `q=` query, and the children-to-PDF path.
+Two calls stay inline in `SKILL.md`, after the API-up check: one `q=` query and the children-to-PDF path.
 
 ### The identity guard, measured
 
@@ -228,7 +228,7 @@ The known false-alarm classes of the acquisition note (an inserted evaluation ba
 
 ### What the suite covers
 
-`zotero.bats` runs on a `curl` shim serving a fixture library, so no test needs Zotero, and two live tests pin the fields the script reads against the real library and skip when the API answers `000`; the suite's own header and test titles hold the rest.
+`zotero-skill.bats` runs on a `curl` shim serving a fixture library, so no test needs Zotero, and two live tests pin the fields the script reads against the real library and skip when the API answers `000`; the suite's own header and test titles hold the rest.
 Two mutations of the script were run and caught: `HEAD_BYTES` raised to 6000, and the `iconv` stderr no longer silenced.
 
 Unverified against the live API, because the trash was empty at the time: the shape of a trashed item (the value of `data.deleted`, `true` or `1`, which the script accepts both), and whether `items/<key>/children` answers for a trashed parent (the script treats a 404 there as no children and reads the trash listing instead).
@@ -236,7 +236,7 @@ Unverified against the live API, because the trash was empty at the time: the sh
 ### Choices
 
 - No `allow` rule was added for the script: `permissions.allow` of `settings.json` carries none for the other skills' scripts either.
-- `SKILL.md` was translated to English in the same change, since turning its recipes into a subcommand table rewrote it throughout; its `description` stays a trigger.
+- `SKILL.md` was translated to English in the same change, since turning its recipes into a subcommand list rewrote it throughout; its `description` stays a trigger.
 - The French section "re-mesure sur la 1.26.0" of `pdf-inspector-reco.md` is left to that note's own rewrite.
 
 ## État local mesuré

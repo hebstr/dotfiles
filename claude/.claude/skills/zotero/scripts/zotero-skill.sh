@@ -14,13 +14,13 @@ trap '[[ -z $work ]] || rm -rf "$work"' EXIT
 
 usage() {
   cat <<'EOF'
-usage: zotero.sh <subcommand> [argument]
+usage: zotero-skill.sh <subcommand> [argument]
 
-  keys               every top-level notice: citationKey, itemType, DOI, title (TSV)
-  cache <key>        path of the full-text cache of the notice's PDF, with an identity guard
-  grep <term>        notices whose full-text cache matches <term> (rg -i -w, regex): citationKey, title
-  preprints [dir]    preprint notices: citationKey, number of .qmd under dir citing it, itemType, DOI, title
-  trash              trashed parent notices: citationKey, item key, itemType, deleted flag, title
+  keys               every top-level item: citationKey, itemType, DOI, title (TSV)
+  cache <key>        path of the full-text cache of the item's PDF, with an identity guard
+  grep <term>        items whose full-text cache matches <term> (rg -i -w, regex): citationKey, title
+  preprints [dir]    preprint items: citationKey, number of .qmd under dir citing it, itemType, DOI, title
+  trash              trashed parent items: citationKey, item key, itemType, deleted flag, title
 
 exit status: 0 done or guard match, 1 no match, 2 usage, 3 API down,
              4 unknown citation key, 5 no PDF or no cache, 6 other failure
@@ -31,7 +31,7 @@ EOF
 die() {
   local code=$1
   shift
-  printf 'zotero.sh: %s\n' "$*" >&2
+  printf 'zotero-skill.sh: %s\n' "$*" >&2
   exit "$code"
 }
 
@@ -191,7 +191,7 @@ cmd_grep() {
   rc=${PIPESTATUS[0]}
   local orphans
   orphans=$(rg -c '^O\t' "$work/mapped" || true)
-  [[ -z $orphans ]] || printf 'zotero.sh: %s matching cache(s) belong to no notice of the library: %s\n' "$orphans" \
+  [[ -z $orphans ]] || printf 'zotero-skill.sh: %s matching cache(s) belong to no item of the library: %s\n' "$orphans" \
     "$(rg '^O\t' "$work/mapped" | cut -f2 | paste -sd' ')" >&2
   return "$((rc == 0 ? 0 : 1))"
 }
@@ -205,7 +205,7 @@ cmd_cache() {
   notice=$(jq -s -c --arg k "$key" 'add
     | map(select(.data.citationKey == $k and (.data.itemType | IN("attachment", "note", "annotation") | not)))
     | .[0] // empty' "$work/top.json" "$work/trash.json")
-  [[ -n $notice ]] || die 4 "no notice carries the citation key $key"
+  [[ -n $notice ]] || die 4 "no item carries the citation key $key"
   ikey=$(jq -r '.key' <<<"$notice")
   doi=$(jq -r '.data.DOI // "" | ascii_downcase' <<<"$notice" | norm)
   sur=$(jq -r '[.data.creators[]? | select(.creatorType == "author")][0].lastName // ([.data.creators[]?][0].lastName // "")' <<<"$notice" | norm)
@@ -246,9 +246,9 @@ cmd_cache() {
     fi
   done
   printf '%s\n' "${paths[chosen]}"
-  printf 'zotero.sh: %s\n' "${lines[chosen]}" >&2
+  printf 'zotero-skill.sh: %s\n' "${lines[chosen]}" >&2
   for i in "${!lines[@]}"; do
-    ((i == chosen)) || printf 'zotero.sh: other candidate: %s\n' "${lines[i]}" >&2
+    ((i == chosen)) || printf 'zotero-skill.sh: other candidate: %s\n' "${lines[i]}" >&2
   done
   [[ ${lines[chosen]} == match* ]]
 }

@@ -3,7 +3,7 @@
 
 bats_require_minimum_version 1.5.0
 
-# Pins zotero.sh of the zotero skill: what each subcommand prints, and which
+# Pins zotero-skill.sh of the zotero skill: what each subcommand prints, and which
 # failure exits with which status rather than with an empty result. Traps that
 # drive the harness:
 #   1. no test needs a running Zotero: a curl shim on PATH serves a fixture
@@ -22,7 +22,7 @@ bats_require_minimum_version 1.5.0
 #      depth tests place a DOI on each side of that line and the multibyte test
 #      puts the cut inside a two-byte character.
 
-SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/skills/zotero/scripts/zotero.sh"
+SCRIPT="$BATS_TEST_DIRNAME/../../claude/.claude/skills/zotero/scripts/zotero-skill.sh"
 
 setup() {
   FIX="$BATS_TEST_TMPDIR/fixture"
@@ -261,7 +261,7 @@ z() {
   run -2 --separate-stderr z cache
   run -2 --separate-stderr z grep
   run -0 --separate-stderr z --help
-  [[ $output == *"usage: zotero.sh"* ]]
+  [[ $output == *"usage: zotero-skill.sh"* ]]
 }
 
 @test "trash lists trashed parents only, with item key and deleted flag" {
@@ -334,19 +334,19 @@ z() {
 @test "cache prints the path and exits 0 when the DOI opens the cache" {
   run -0 --separate-stderr z cache smith2020
   [ "$output" = "$STORE/S1/.zotero-ft-cache" ]
-  [[ $stderr == "zotero.sh: match doi=1 "* ]]
+  [[ $stderr == "zotero-skill.sh: match doi=1 "* ]]
   [[ $stderr == *"attachment=S1" ]]
 }
 
 @test "cache matches on surname, year and title when the DOI is not in the cache" {
   run -0 --separate-stderr z cache lee2021
-  [ "$stderr" = "zotero.sh: match doi=0 surname=1 year=1 title=5/5 attachment=L1" ]
+  [ "$stderr" = "zotero-skill.sh: match doi=0 surname=1 year=1 title=5/5 attachment=L1" ]
 }
 
 @test "cache exits 1 and still prints the path when the PDF is another article" {
   run -1 --separate-stderr z cache jones2019
   [ "$output" = "$STORE/J1/.zotero-ft-cache" ]
-  [ "$stderr" = "zotero.sh: no-match doi=0 surname=0 year=0 title=0/5 attachment=J1" ]
+  [ "$stderr" = "zotero-skill.sh: no-match doi=0 surname=0 year=0 title=0/5 attachment=J1" ]
 }
 
 @test "cache exits 4 on an unknown citation key" {
@@ -435,7 +435,7 @@ CELIK 2022"
   cache_text BA1 "Anything at all"
   finish_library
   run -1 --separate-stderr z cache bare2000
-  [[ $stderr == "zotero.sh: unscorable "* ]]
+  [[ $stderr == "zotero-skill.sh: unscorable "* ]]
 }
 
 @test "cache with a DOI absent from the head is no-match, not unscorable" {
@@ -444,7 +444,7 @@ CELIK 2022"
   cache_text DO1 "Nothing relevant here"
   finish_library
   run -1 --separate-stderr z cache doionly2000
-  [[ $stderr == "zotero.sh: no-match "* ]]
+  [[ $stderr == "zotero-skill.sh: no-match "* ]]
 }
 
 @test "the guard reads the first 5000 bytes and not beyond" {
@@ -478,7 +478,7 @@ CELIK 2022"
   } >"$STORE/CU1/.zotero-ft-cache"
   finish_library
   run -0 --separate-stderr z cache cut2000
-  [[ $stderr == "zotero.sh: match "* ]]
+  [[ $stderr == "zotero-skill.sh: match "* ]]
 }
 
 @test "grep prints each matching notice once, with its title, as whole words, any case" {
@@ -505,7 +505,7 @@ CELIK 2022"
   cache_text ORPHAN "the word quokka occurs here"
   run -1 --separate-stderr z grep quokka
   [ -z "$output" ]
-  [[ $stderr == *"1 matching cache(s) belong to no notice"*ORPHAN* ]]
+  [[ $stderr == *"1 matching cache(s) belong to no item"*ORPHAN* ]]
 }
 
 @test "grep keeps the matched notices and still reports an orphan" {
