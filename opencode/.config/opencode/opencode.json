@@ -675,6 +675,11 @@
     },
     {
       "action": "skill",
+      "resource": "diagram",
+      "effect": "ask"
+    },
+    {
+      "action": "skill",
       "resource": "poc",
       "effect": "ask"
     },
