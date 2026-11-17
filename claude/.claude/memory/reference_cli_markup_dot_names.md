@@ -9,6 +9,8 @@ metadata:
 
 Interpolate a call rather than the bare name: `{nrow(.annot_non_resolu)}` and `{length(.annot_reader)}` both resolve, because the literal no longer starts with a dot. That also supplies the quantity a following `{?s}` reads for pluralisation, so holding the rows rather than the count in the object is usually the better shape.
 
+The same holds one level down: `{.val {.annot_reader}}` aborts too, the inner expression being read as a class, and `{.val {c(.annot_reader)}}` resolves (measured 2026-11-17 on `annot/annot_input-merge.R`, where `air`, `jarl` and `parse()` all passed and only a toy `Rscript -e` run raised): run every new `cli_*` string once on a toy frame, the gate does not.
+
 Second trap in the same strings: `cli_abort()` calls `cli:::glue_cmd(.trim = FALSE)`, so glue's `\\` end-of-line continuation keeps the next line's indentation and sends a run of spaces into the message. Write a long message on one line, or split it across elements of the `c()` vector.
 
 Measured 2026-11-11 in `eds-prise` on `annot/annot_output-merge.R`, where the guard fired and its own message was what raised. Related: [[reference_r_list_key_lookup]].
