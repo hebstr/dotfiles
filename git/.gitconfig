@@ -20,6 +20,7 @@
 	prune = true
 [push]
 	autoSetupRemote = true
+	followTags = true
 [diff]
 	colorMoved = default
 	algorithm = histogram
