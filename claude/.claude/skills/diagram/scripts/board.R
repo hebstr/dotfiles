@@ -138,6 +138,15 @@ main <- \(args) {
     fail(4L, "the hebstr package is not available to this R")
   }
 
+  if (!"easy_diagram" %in% getNamespaceExports("hebstr")) {
+    fail(
+      4L,
+      "this hebstr ",
+      as.character(utils::packageVersion("hebstr")),
+      " does not export easy_diagram(): use a project whose hebstr supports diagrams"
+    )
+  }
+
   if (!is.null(opts$setup)) {
     source(opts$setup)
   }
@@ -151,14 +160,17 @@ main <- \(args) {
       text <- paste(readLines(file, warn = FALSE), collapse = "\n")
       sub_dir <- file.path(out_dir, stem)
 
-      hebstr::easy_out(
-        hebstr::easy_diagram(text),
-        filename = stem,
-        dir = sub_dir,
-        subdir = FALSE,
-        pair = TRUE,
-        quiet = TRUE,
-        export = TRUE
+      tryCatch(
+        hebstr::easy_out(
+          hebstr::easy_diagram(text),
+          filename = stem,
+          dir = sub_dir,
+          subdir = FALSE,
+          pair = TRUE,
+          quiet = TRUE,
+          export = TRUE
+        ),
+        error = \(e) fail(6L, "rendering ", file, " failed: ", conditionMessage(e))
       )
 
       written <- list.files(sub_dir, pattern = "-(light|dark)\\.svg$")

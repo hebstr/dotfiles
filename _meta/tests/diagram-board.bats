@@ -99,6 +99,22 @@ real_run_ready() {
   [ ! -e "$OUT" ]
 }
 
+@test "a hebstr without diagram support: exit 4, nothing written" {
+  Rscript -e 'quit(status = !(requireNamespace("hebstr", quietly = TRUE) && !"easy_diagram" %in% getNamespaceExports("hebstr")))' ||
+    skip "the hebstr reached from here is absent or supports diagrams"
+  run -4 board --out "$OUT" "$A"
+  [[ "$output" == *"does not export easy_diagram()"* ]]
+  [ ! -e "$OUT" ]
+}
+
+@test "a candidate the renderer refuses: exit 6, the file named" {
+  real_run_ready
+  REAL_OUT=$(mktemp -d "$HOME/diagram-board-test.XXXXXX")
+  printf 'this is not mermaid\n' >"$BATS_TEST_TMPDIR/bad.mmd"
+  run -6 board --out "$REAL_OUT" "$A" "$BATS_TEST_TMPDIR/bad.mmd"
+  [[ "$output" == *"rendering $BATS_TEST_TMPDIR/bad.mmd failed"* ]]
+}
+
 @test "a real run writes one light and one dark SVG per candidate and a board naming both" {
   real_run_ready
   REAL_OUT=$(mktemp -d "$HOME/diagram-board-test.XXXXXX")

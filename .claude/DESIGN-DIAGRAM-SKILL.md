@@ -77,6 +77,22 @@ The user settled the three open points, each separately.
 
 Two shapes the suite pins that the design did not state: the script takes `--setup <file>`, the project's setup, because the font `set_opts()` resolves there decides how wide the boxes render, and the real-run tests of `diagram-board.bats` run from `DIAGRAM_BOARD_PROJECT` and skip when the hebstr they reach has no diagram support.
 
+## Amended by the audit of 2026-11-17
+
+The `/audit:walkthrough` of the skill and its script moved six points of the decisions above, each on a measurement.
+
+- **The ignore check of step 2 asks the repository that versions `.claude/`.** When `.claude/.git` exists, the outer `git check-ignore` reports the path ignored through `.claude/` whatever the nested repository holds (measured on a throwaway pair: outer exit 0, `git -C .claude check-ignore` exit 1), so the check runs in the nested one and the missing line goes in its `.gitignore`. That line is the one project file besides the board the pass may write, which the opening contract of the skill now states.
+
+- **The snippet of step 5 carries the throwaway-profile line of `rules/chromium.md`.** Decision 1's "repeats neither" is amended for that one line: the injection is a `PreToolUse` hook that adds context to the call and blocks nothing, so it reaches the model on the call that runs the snippet and not before it, and a first launch would run with `--user-data-dir=""`. The traps of the limits note stay out of the procedure.
+- **Step 2 probes for `easy_diagram()` and `board.R` exits 4 without it.** A hit for `hebstr` in `rproject.toml` does not gate: 12 of the 13 hebstr projects pin `0.0.0.9000` in `rv.lock`, and the library of `md-nesrine` and of `eds-avc` does not export `easy_diagram`; only `eds-prise` pins `0.1.0`. This extends the decision of "Decided at implementation" from a missing hebstr to one that cannot render a diagram, which the suite's `real_run_ready` already probed.
+- **The setup file is found by `rg -l 'set_opts\(' --glob '*.R'`.** Of the 13 projects, 5 keep `setup.R` at the root, `eds-prise` keeps `_setup.R` there, 5 keep only `scripts/_setup.R`, and `umb-radar` and `eds-epimad` have none: no fixed pair of names covers them, and none found is a stop and a question.
+- **A candidate the renderer refuses exits 6 and names its file.** The error of `easy_diagram()` carries the node stderr and no candidate.
+- **The candidates folder is cleared at the start of step 3, and dropping a type deletes its `.mmd`.** Step 4 globs the folder, which persists beside the ignored screenshots.
+
+Measured the same day: five rows of 1153 by 736 px make a page of 2382 by 3830 px, which the Read tool shows at 1244 by 2000 with 16 px text still legible, so the board stays one image; the height of the window is the diagrams plus 20 per candidate plus 100, the fixed `+100` clipping the last row by about 50 px at five candidates.
+
+Rejected at the same audit, each on the one deliberate guard of decision 3: validating or escaping the candidate stems (the stems are type names the session writes itself), refusing an option as the value of `--out` (the command of step 4 never produces it), and extending the `/tmp` guard to the dot-directories of `$HOME` (13 of 13 hebstr projects live under `~/Documents`).
+
 ## What stays open
 
 Owed elsewhere, not folded in: the limits in the roxygen of `easy_diagram()`; a width factor for non-generic fonts in the Pele measurer (`eds-prise/.claude/DEFERRED.md`, row "A pele diagram overflows its boxes in Luciole…"); the sankey script of the flowchart, paused; the open points of `eds-prise/.claude/DESIGN-DIAGRAM.md`, section "What stays open".
