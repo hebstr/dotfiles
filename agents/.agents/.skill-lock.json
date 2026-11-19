@@ -6,9 +6,10 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/lucifer1004/claude-skill-typst.git",
       "skillPath": "skills/typst/SKILL.md",
-      "skillFolderHash": "64229aeb12fd6ddcb129312a9e6dd1f429588cd5",
+      "skillFolderHash": "7c72989f601fc1ad19a3dd2514eb077f1b9dcbd1",
       "installedAt": "2026-10-17T08:47:06.936Z",
-      "updatedAt": "2026-11-10T13:12:53.722Z"
+      "updatedAt": "2026-11-17T08:37:05.201Z",
+      "commit": "3540b897b79c053b6cd822e307ffa691066fec19"
     },
     "prek": {
       "source": "j178/prek",
